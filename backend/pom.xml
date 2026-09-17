@@ -111,7 +111,7 @@
     <dependency>
       <groupId>org.springdoc</groupId>
       <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-      <version>2.8.6</version>
+      <version>3.1.1</version>
     </dependency>
 
     <!-- Circuit breakers y reintentos del pipeline de ingesta (D3, Sprint 3-4) -->
