@@ -1,0 +1,23 @@
+version: 2
+
+# Trivy (despliegue-ci.yml) avisa cuando una dependencia YA instalada tiene un CVE conocido.
+# Dependabot es el complemento: propone el PR que la actualiza, para backend, frontend y las
+# propias GitHub Actions que usan los workflows.
+updates:
+  - package-ecosystem: maven
+    directory: /backend
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5

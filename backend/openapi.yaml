@@ -1,0 +1,2067 @@
+openapi: 3.0.1
+info:
+  title: AguaVigia CTG — API publica
+  description: |-
+    Monitoreo ciudadano del acueducto de Cartagena de Indias.
+
+    Plataforma ciudadana e independiente: no esta afiliada a Aguas de Cartagena
+    S.A. E.S.P. ni a ninguna entidad distrital.
+  contact:
+    name: Equipo AguaVigia CTG — Tecnologico Comfenalco
+  license:
+    name: Proyecto de aula
+  version: 1.0.0
+servers:
+- url: /
+  description: Mismo origen que sirve la API
+tags:
+- name: Suscripciones
+  description: Alertas por correo cuando cambia el estado de un sector
+- name: Veedor - Moderación
+  description: Moderar reportes ciudadanos pendientes (RF018)
+- name: Open311
+  description: API abierta bajo el estándar Open311 GeoReport v2 (RF039)
+- name: Veedor - Ingesta
+  description: Salud de los colectores del pipeline de ingesta (RNF007)
+- name: Cumplimiento
+  description: Índice de Cumplimiento — prometido vs. real (RF020-RF022)
+- name: Estadisticas
+  description: M7 — Estadísticas Públicas (RF023)
+- name: Bitácora
+  description: "Bitácora pública de eventos, de solo anexado (RF026-RF028)"
+- name: Cuentas
+  description: "Alta, verificacion y recuperacion de cuentas del panel"
+- name: Sectores
+  description: Estado del servicio de agua por sector de Cartagena
+- name: Veedor - Cortes
+  description: Registro y cierre de cortes oficiales (RF016-RF017)
+- name: Reportes
+  description: "Reportes ciudadanos de estado del servicio, sin registro"
+- name: Veedor - Ingesta
+  description: Revisión de las propuestas de la ingesta automatizada (M9)
+- name: Veedor - Cuentas
+  description: Gestion de cuentas y permisos del panel (solo ADMIN)
+- name: Veedor - Segundo factor
+  description: Alta y baja del TOTP de la propia cuenta
+- name: Veedor
+  description: Autenticacion del panel del veedor
+paths:
+  /api/veedor/usuarios/invitaciones:
+    post:
+      tags:
+      - Veedor - Cuentas
+      summary: Invitar a una persona con un rol ya decidido
+      description: |-
+        Crea la cuenta en INVITADA y le envia un enlace para que fije su clave. Al
+        aceptarlo queda ACTIVA sin necesitar otra aprobacion.
+      operationId: invitar
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SolicitudInvitacion"
+        required: true
+      responses:
+        "201":
+          description: Invitacion enviada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UsuarioRespuesta"
+        "409":
+          description: Ya existe una cuenta con ese correo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UsuarioRespuesta"
+  /api/veedor/sesion:
+    post:
+      tags:
+      - Veedor
+      summary: Iniciar sesion en el panel del veedor
+      description: |-
+        Devuelve un token JWT valido por 8 horas (RNF011) junto con el rol y los permisos
+        ya resueltos. Si la cuenta tiene segundo factor y no se envio `codigoTotp`, la
+        respuesta es 401 con type `segundo-factor-requerido`: hay que reintentar con el
+        codigo, no es un error de credencial.
+      operationId: iniciarSesion
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CredencialVeedor"
+        required: true
+      responses:
+        "200":
+          description: "Credencial correcta, token emitido"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SesionVeedor"
+        "401":
+          description: "Credencial incorrecta, o falta el segundo factor"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SesionVeedor"
+        "403":
+          description: La cuenta existe pero no esta habilitada para entrar
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SesionVeedor"
+        "423":
+          description: Cuenta bloqueada por intentos fallidos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SesionVeedor"
+        "429":
+          description: Demasiados intentos desde esta IP
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SesionVeedor"
+  /api/veedor/sesion/cierre:
+    post:
+      tags:
+      - Veedor
+      summary: Cerrar sesion
+      description: |-
+        Revoca en el servidor todas las sesiones vivas de la cuenta, no solo la de este
+        navegador. Un token copiado antes del cierre deja de servir en el acto.
+      operationId: cerrar
+      responses:
+        "204":
+          description: No Content
+  /api/veedor/segundo-factor/confirmacion:
+    post:
+      tags:
+      - Veedor - Segundo factor
+      summary: Confirmar el alta con un codigo de la app
+      description: |-
+        Devuelve una sesion nueva de alcance COMPLETO. Es lo que permite que un ADMIN
+        recien sembrado pase de su sesion restringida al panel sin volver a escribir la
+        clave que acaba de escribir.
+      operationId: confirmar
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SolicitudCodigo"
+        required: true
+      responses:
+        "200":
+          description: Segundo factor activo; sesion nueva emitida
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SesionVeedor"
+        "401":
+          description: El codigo no coincide
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SesionVeedor"
+        "409":
+          description: No hay un alta en curso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SesionVeedor"
+  /api/veedor/segundo-factor/baja:
+    post:
+      tags:
+      - Veedor - Segundo factor
+      summary: Desactivar el segundo factor de la propia cuenta
+      description: |-
+        Exige un codigo valido: si bastara con la sesion, un token robado podria quitar
+        de en medio justamente la defensa que impide usarlo. Un ADMIN no puede
+        desactivarlo, su rol lo exige.
+      operationId: desactivar
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SolicitudCodigo"
+        required: true
+      responses:
+        "204":
+          description: Segundo factor desactivado
+        "401":
+          description: El codigo no coincide
+        "409":
+          description: El rol ADMIN exige segundo factor
+  /api/veedor/segundo-factor/alta:
+    post:
+      tags:
+      - Veedor - Segundo factor
+      summary: "Empezar el alta: genera el secreto y devuelve el QR"
+      description: |-
+        El secreto queda guardado sin confirmar y todavia no se exige al entrar. Solo
+        empieza a hacerlo tras confirmar un codigo valido. El secreto se muestra una
+        sola vez: no hay endpoint para volver a leerlo.
+      operationId: iniciar
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AltaSegundoFactorRespuesta"
+  /api/veedor/cortes:
+    get:
+      tags:
+      - Veedor - Cortes
+      summary: Listar los cortes que afectan a un sector
+      operationId: listarPorSector
+      parameters:
+      - name: sectorId
+        in: query
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CorteRespuesta"
+    post:
+      tags:
+      - Veedor - Cortes
+      summary: Registrar un corte oficial
+      description: "Sectores afectados, inicio, fin prometido y causa (RF016). Origen\
+        \ VEEDOR."
+      operationId: registrar
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SolicitudCorte"
+        required: true
+      responses:
+        "201":
+          description: Corte registrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CorteRespuesta"
+        "400":
+          description: Datos inválidos o algún sector no existe
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+  /api/suscripciones:
+    post:
+      tags:
+      - Suscripciones
+      summary: Suscribirse a los avisos de uno o más sectores
+      description: |-
+        Crea la suscripción en PENDIENTE_CONFIRMACION y envía un correo de doble
+        opt-in (Ley 1581/2012, RF013). No empieza a recibir avisos hasta confirmarla.
+      operationId: suscribirse
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SolicitudSuscripcion"
+        required: true
+      responses:
+        "201":
+          description: "Suscripción creada, correo de confirmación en camino"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuscripcionRespuesta"
+        "400":
+          description: Correo inválido o algún sector no existe
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+  /api/reportes:
+    post:
+      tags:
+      - Reportes
+      summary: Registrar un reporte ciudadano
+      description: |-
+        Sin registro ni cuenta (RF005). Limita automáticamente los reportes por
+        dispositivo en la ventana vigente (RF006) — ver 429. La coordenada es opcional,
+        solo si el usuario autorizó compartir su ubicación (RF007).
+      operationId: registrar_1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SolicitudReporte"
+        required: true
+      responses:
+        "201":
+          description: Reporte registrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReporteRespuesta"
+        "400":
+          description: Sector inexistente o tipo de reporte inválido
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "429":
+          description: El dispositivo superó el límite de reportes para este sector
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+  /api/reportes/{id}/foto:
+    post:
+      tags:
+      - Reportes
+      summary: Agregar evidencia a un reporte
+      description: Permite subir una foto y asociarla a un reporte existente (M10).
+      operationId: agregarEvidencia
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              required:
+              - foto
+              type: object
+              properties:
+                foto:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Evidencia agregada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReporteRespuesta"
+        "400":
+          description: Error en la solicitud
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReporteRespuesta"
+        "404":
+          description: Reporte no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReporteRespuesta"
+  /api/reportes/{id}/confirmar:
+    post:
+      tags:
+      - Reportes
+      summary: Confirmar un reporte
+      description: Permite a otro vecino confirmar un reporte ciudadano (M11).
+      operationId: confirmar_1
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SolicitudConfirmar"
+        required: true
+      responses:
+        "200":
+          description: Reporte confirmado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReporteRespuesta"
+        "400":
+          description: Error en la solicitud
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReporteRespuesta"
+        "404":
+          description: Reporte no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReporteRespuesta"
+  /api/iot/presion:
+    post:
+      tags:
+      - iot-controller
+      operationId: reportarPresion
+      parameters:
+      - name: X-IoT-Key
+        in: header
+        required: false
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IotPresionRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+  /api/cuentas/verificacion:
+    post:
+      tags:
+      - Cuentas
+      summary: Confirmar el correo con el token del enlace
+      description: Pasa la cuenta a PENDIENTE_APROBACION. Sigue sin poder entrar hasta
+        que un ADMIN la apruebe.
+      operationId: verificarCorreo
+      parameters:
+      - name: token
+        in: query
+        required: true
+        schema:
+          type: string
+      responses:
+        "204":
+          description: Correo confirmado
+        "400":
+          description: "Enlace invalido, vencido o ya usado"
+  /api/cuentas/restablecimiento:
+    post:
+      tags:
+      - Cuentas
+      summary: Pedir el enlace para restablecer la clave
+      description: "Responde 202 siempre, exista o no la cuenta. Ver el javadoc de\
+        \ esta clase."
+      operationId: pedirRestablecimiento
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SolicitudRestablecer"
+        required: true
+      responses:
+        "202":
+          description: Accepted
+  /api/cuentas/registro:
+    post:
+      tags:
+      - Cuentas
+      summary: Solicitar una cuenta del panel
+      description: |-
+        Crea la cuenta en PENDIENTE_VERIFICACION y envia el enlace de confirmacion.
+        Registrarse no concede ningun permiso: hace falta verificar el correo y que un
+        ADMIN apruebe. Responde 202 aunque el correo ya tenga cuenta, para no revelar
+        que direcciones estan registradas.
+      operationId: registrarse
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SolicitudRegistro"
+        required: true
+      responses:
+        "202":
+          description: Solicitud recibida; revisa tu correo
+        "400":
+          description: Correo mal formado o clave que no cumple la politica
+  /api/cuentas/invitacion:
+    post:
+      tags:
+      - Cuentas
+      summary: Aceptar una invitacion fijando la clave
+      description: Deja la cuenta ACTIVA con el rol que eligio quien invito. No hace
+        falta otra aprobacion.
+      operationId: aceptar
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SolicitudFijarClave"
+        required: true
+      responses:
+        "204":
+          description: Cuenta activa; ya puedes iniciar sesion
+        "400":
+          description: Enlace invalido o clave que no cumple la politica
+  /api/cuentas/clave:
+    post:
+      tags:
+      - Cuentas
+      summary: Fijar la clave nueva con el token del enlace
+      description: Cambia la clave y revoca todas las sesiones abiertas de esa cuenta.
+      operationId: fijarClave
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SolicitudFijarClave"
+        required: true
+      responses:
+        "204":
+          description: Clave cambiada
+        "400":
+          description: "Enlace invalido, vencido o ya usado"
+  /api/veedor/usuarios/{id}/suspension:
+    patch:
+      tags:
+      - Veedor - Cuentas
+      summary: Suspender una cuenta activa
+      description: "Revoca sus sesiones al instante: no espera a que caduque su token."
+      operationId: suspender
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Cuenta suspendida
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UsuarioRespuesta"
+        "409":
+          description: "Es el unico ADMIN activo, o el ADMIN se administra a si mismo"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UsuarioRespuesta"
+  /api/veedor/usuarios/{id}/rechazo:
+    patch:
+      tags:
+      - Veedor - Cuentas
+      summary: Denegar una solicitud de acceso
+      operationId: rechazar
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UsuarioRespuesta"
+  /api/veedor/usuarios/{id}/reactivacion:
+    patch:
+      tags:
+      - Veedor - Cuentas
+      summary: Devolver el acceso a una cuenta suspendida
+      operationId: reactivar
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UsuarioRespuesta"
+  /api/veedor/usuarios/{id}/permisos:
+    patch:
+      tags:
+      - Veedor - Cuentas
+      summary: Cambiar rol y ajustes de permisos de una cuenta
+      description: |-
+        Revoca las sesiones vivas de esa persona, tanto si los permisos se amplian como
+        si se recortan: el token los lleva dentro y una sesion abierta seguiria usando
+        los anteriores.
+      operationId: cambiarPermisos
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SolicitudPermisos"
+        required: true
+      responses:
+        "200":
+          description: Permisos actualizados
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UsuarioRespuesta"
+        "409":
+          description: Dejaria al sistema sin ningun ADMIN activo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UsuarioRespuesta"
+  /api/veedor/usuarios/{id}/aprobacion:
+    patch:
+      tags:
+      - Veedor - Cuentas
+      summary: "Aprobar una cuenta que ya verifico su correo, asignandole permisos"
+      operationId: aprobar
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SolicitudPermisos"
+        required: true
+      responses:
+        "200":
+          description: Cuenta activa
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UsuarioRespuesta"
+        "409":
+          description: "La cuenta no esta esperando aprobacion, o el ADMIN se administra\
+            \ a si mismo"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UsuarioRespuesta"
+  /api/veedor/reportes/{id}/descartar:
+    patch:
+      tags:
+      - Veedor - Moderación
+      summary: Descartar un reporte
+      operationId: descartar
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Reporte descartado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReporteModeracionRespuesta"
+        "400":
+          description: El reporte no existe
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+  /api/veedor/reportes/{id}/aprobar:
+    patch:
+      tags:
+      - Veedor - Moderación
+      summary: Aprobar un reporte
+      operationId: aprobar_1
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Reporte aprobado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReporteModeracionRespuesta"
+        "400":
+          description: El reporte no existe
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+  /api/veedor/ingesta/propuestas/{id}/descartar:
+    patch:
+      tags:
+      - Veedor - Ingesta
+      summary: Descartar una propuesta
+      description: "No toca el sector. La propuesta se archiva como descartada, no\
+        \ se borra."
+      operationId: descartar_1
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Propuesta descartada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PropuestaIngestaRespuesta"
+        "400":
+          description: La propuesta no existe
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+  /api/veedor/ingesta/propuestas/{id}/aprobar:
+    patch:
+      tags:
+      - Veedor - Ingesta
+      summary: Aprobar una propuesta
+      description: |-
+        Aplica el estado propuesto al sector y anexa el evento a la bitácora pública
+        (RF026). Es el único camino por el que la ingesta llega al mapa.
+      operationId: aprobar_2
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Propuesta aprobada y estado aplicado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PropuestaIngestaRespuesta"
+        "400":
+          description: La propuesta no existe
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: El sector de la propuesta ya no existe
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+  /api/veedor/cortes/{id}/cierre:
+    patch:
+      tags:
+      - Veedor - Cortes
+      summary: Cerrar un corte con la hora real de restablecimiento (RF017)
+      operationId: cerrar_1
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SolicitudCierreCorte"
+        required: true
+      responses:
+        "200":
+          description: Corte cerrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CorteRespuesta"
+        "400":
+          description: El corte no existe
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: El corte ya estaba cerrado
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+  /api/veedor/yo:
+    get:
+      tags:
+      - Veedor
+      summary: Datos de la cuenta que tiene la sesion
+      description: |-
+        Lo usa el frontend al recargar para saber que puede pintar sin volver a pedir la
+        clave. Devuelve el estado vigente en la base de datos, no lo que dice el token.
+      operationId: yo
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UsuarioRespuesta"
+  /api/veedor/usuarios:
+    get:
+      tags:
+      - Veedor - Cuentas
+      summary: "Listar cuentas, mas recientes primero"
+      description: |-
+        Paginado, con el total y el enlace a la siguiente pagina en `X-Total-Count` y
+        `Link`. `estado` filtra por PENDIENTE_APROBACION para ver solo la cola de altas.
+      operationId: listar
+      parameters:
+      - name: estado
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: pagina
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+      - name: tamano
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UsuarioRespuesta"
+  /api/veedor/reportes/pendientes:
+    get:
+      tags:
+      - Veedor - Moderación
+      summary: "Listar los reportes pendientes de moderación, más antiguos primero"
+      description: |-
+        Paginado, con el total y el enlace a la siguiente página en las cabeceras
+        `X-Total-Count` y `Link`. Por defecto 50; el máximo por página es 200.
+      operationId: listarPendientes
+      parameters:
+      - name: pagina
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+      - name: tamano
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ReporteModeracionRespuesta"
+  /api/veedor/ingesta/salud:
+    get:
+      tags:
+      - Veedor - Ingesta
+      summary: "Salud de cada colector: última ejecución exitosa, ítems y tasa de\
+        \ error"
+      description: |-
+        Lista vacía mientras el pipeline no haya corrido un ciclo. La telemetría vive en
+        memoria del proceso, así que un reinicio la reinicia.
+      operationId: salud
+      responses:
+        "200":
+          description: Estado generado
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SaludColectorRespuesta"
+        "401":
+          description: Falta el token del veedor
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SaludColectorRespuesta"
+  /api/veedor/ingesta/propuestas:
+    get:
+      tags:
+      - Veedor - Ingesta
+      summary: "Listar las propuestas pendientes de revisión, más recientes primero"
+      description: |-
+        Paginado, con el total y el enlace a la siguiente página en las cabeceras
+        `X-Total-Count` y `Link`. Por defecto 50; el máximo por página es 200.
+      operationId: listarPendientes_1
+      parameters:
+      - name: pagina
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+      - name: tamano
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+      responses:
+        "200":
+          description: Listado generado
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PropuestaIngestaRespuesta"
+  /api/veedor/cortes/{id}:
+    get:
+      tags:
+      - Veedor - Cortes
+      summary: Consultar un corte por su identificador
+      operationId: consultar
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Corte encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CorteRespuesta"
+        "404":
+          description: No existe un corte con ese id
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+  /api/veedor/auditoria:
+    get:
+      tags:
+      - Veedor - Cuentas
+      summary: "Bitacora de auditoria de cuentas, mas recientes primero"
+      description: "Solo anexado: no hay forma de editar ni borrar un asiento desde\
+        \ la API."
+      operationId: auditoria
+      parameters:
+      - name: pagina
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+      - name: tamano
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EventoAuditoriaRespuesta"
+  /api/v2/requests.json:
+    get:
+      tags:
+      - Open311
+      summary: "Listar los sectores con el servicio afectado, en formato Open311"
+      description: |-
+        Un `service_request` por sector que no está en CON_SERVICIO. Los sectores sin
+        estado verificado no aparecen: publicar "sin novedad" sin haberlo comprobado es
+        el falso positivo que ADR-014 evita.
+      operationId: getRequests
+      responses:
+        "200":
+          description: Listado generado
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Open311Response"
+  /api/suscripciones/confirmar:
+    get:
+      tags:
+      - Suscripciones
+      summary: Confirmar la suscripción (doble opt-in)
+      description: |-
+        Enlace del correo de confirmación. El token es de un solo enlace, no de un solo uso:
+        confirmarla dos veces no falla (RF013). Responde JSON o una página HTML de cortesía
+        según el `Accept` de quien pide — el mismo enlace del correo abre bien tanto en un
+        navegador como desde un cliente de API.
+      operationId: confirmar_2
+      parameters:
+      - name: token
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: Accept
+        in: header
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Suscripción confirmada
+          content:
+            application/json:
+              schema:
+                type: object
+            text/html:
+              schema:
+                type: object
+        "400":
+          description: "Token inválido, inexistente o de una suscripción ya cancelada"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+  /api/suscripciones/cancelar:
+    get:
+      tags:
+      - Suscripciones
+      summary: Darse de baja en un clic (RF015)
+      description: |-
+        Sin pedir credenciales — el token que llega en cada correo es suficiente. Responde
+        JSON o una página HTML de cortesía según el `Accept` de quien pide (mismo motivo
+        que en {@code /confirmar}).
+      operationId: cancelar
+      parameters:
+      - name: token
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: Accept
+        in: header
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Suscripción cancelada
+          content:
+            application/json:
+              schema:
+                type: object
+            text/html:
+              schema:
+                type: object
+        "400":
+          description: Token inválido o inexistente
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+  /api/sectores:
+    get:
+      tags:
+      - Sectores
+      summary: Listar los sectores con su estado conocido
+      description: |-
+        Devuelve los sectores de Cartagena (211 barrios sembrados desde el GeoJSON
+        oficial). `estado` viaja nulo mientras no haya dato verificado del sector —
+        el cliente debe mostrarlo como "sin datos" y no suponer que hay servicio.
+      operationId: listarSectores
+      responses:
+        "200":
+          description: Listado generado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RespuestaSectores"
+  /api/sectores/{id}:
+    get:
+      tags:
+      - Sectores
+      summary: Consultar un sector por su identificador
+      operationId: consultarSector
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Sector encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SectorRespuesta"
+        "404":
+          description: No existe un sector con ese id
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+  /api/sectores/stream:
+    get:
+      tags:
+      - Sectores
+      summary: Suscribirse a cambios en vivo mediante SSE
+      operationId: streamSectores
+      responses:
+        "200":
+          description: OK
+          content:
+            text/event-stream:
+              schema:
+                $ref: "#/components/schemas/SseEmitter"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SseEmitter"
+  /api/estadisticas:
+    get:
+      tags:
+      - Estadisticas
+      summary: Obtener estadísticas globales de la ciudad
+      operationId: globales
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EstadisticasRespuesta"
+  /api/estadisticas/exportar.csv:
+    get:
+      tags:
+      - Estadisticas
+      summary: Exportar las estadísticas en CSV (RF025)
+      description: "Separador `;` y BOM UTF-8, para que Excel en español lo abra sin\
+        \ romper las tildes."
+      operationId: exportarCsv
+      responses:
+        "200":
+          description: CSV generado
+          content:
+            text/csv:
+              schema:
+                type: string
+            application/json:
+              schema:
+                type: string
+  /api/cumplimiento:
+    get:
+      tags:
+      - Cumplimiento
+      summary: "Índice global de la ciudad, sobre todos los cortes cerrados"
+      operationId: global
+      responses:
+        "200":
+          description: Índice calculado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IndiceCumplimientoRespuesta"
+        "400":
+          description: Todavía no hay cortes cerrados
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+  /api/cumplimiento/serie:
+    get:
+      tags:
+      - Cumplimiento
+      summary: Evolución del índice mes a mes (RF024)
+      description: |-
+        Un punto por mes con al menos un corte cerrado, en hora de Cartagena. Sin
+        `sectorId`, la ciudad completa. `desde` y `hasta` son opcionales y acotan por la
+        hora real de restablecimiento. Lista vacía si no hay cortes cerrados en el
+        rango — una serie sin datos es una respuesta válida.
+      operationId: serie
+      parameters:
+      - name: sectorId
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: desde
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date-time
+      - name: hasta
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date-time
+      responses:
+        "200":
+          description: Serie generada
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PuntoSerieRespuesta"
+  /api/cumplimiento/serie.csv:
+    get:
+      tags:
+      - Cumplimiento
+      summary: La misma serie en CSV (RF025)
+      description: "Separador `;` y BOM UTF-8, para que Excel en español la abra sin\
+        \ romper las tildes."
+      operationId: serieCsv
+      parameters:
+      - name: sectorId
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: desde
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date-time
+      - name: hasta
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date-time
+      responses:
+        "200":
+          description: CSV generado
+          content:
+            text/csv:
+              schema:
+                type: string
+            application/json:
+              schema:
+                type: string
+  /api/cumplimiento/sectores/{sectorId}:
+    get:
+      tags:
+      - Cumplimiento
+      summary: "Índice agregado de un sector, sobre sus cortes cerrados"
+      operationId: porSector
+      parameters:
+      - name: sectorId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Índice calculado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IndiceCumplimientoRespuesta"
+        "400":
+          description: El sector no tiene cortes cerrados todavía
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+  /api/cumplimiento/cortes/{corteId}:
+    get:
+      tags:
+      - Cumplimiento
+      summary: Índice de un corte cerrado
+      operationId: porCorte
+      parameters:
+      - name: corteId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Índice calculado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IndiceCumplimientoRespuesta"
+        "400":
+          description: El corte no existe
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: El corte todavía no está cerrado
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+  /api/bitacora:
+    get:
+      tags:
+      - Bitácora
+      summary: "Listar los eventos de la bitácora, más recientes primero"
+      description: |-
+        Paginado: la bitácora es de solo anexado (RF028), así que crece sin cota.
+        El total, la página y el enlace a la siguiente viajan en las cabeceras
+        `X-Total-Count`, `X-Total-Pages`, `X-Page`, `X-Page-Size` y `Link` — el cuerpo
+        sigue siendo un arreglo JSON, así que un cliente que las ignore no se rompe.
+        Por defecto 50 eventos; el máximo por página es 200.
+      operationId: listar_1
+      parameters:
+      - name: pagina
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+      - name: tamano
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+      responses:
+        "200":
+          description: Listado generado
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EventoBitacoraRespuesta"
+components:
+  schemas:
+    SolicitudInvitacion:
+      required:
+      - rol
+      type: object
+      properties:
+        correo:
+          minLength: 1
+          type: string
+        nombre:
+          maxLength: 80
+          minLength: 2
+          type: string
+        rol:
+          type: string
+          description: "ADMIN, VEEDOR u OBSERVADOR"
+      description: "Invitacion emitida por un ADMIN: crea la cuenta con su rol y manda\
+        \ el enlace"
+    UsuarioRespuesta:
+      type: object
+      properties:
+        id:
+          type: string
+        correo:
+          type: string
+        nombre:
+          type: string
+        estado:
+          type: string
+          description: "PENDIENTE_VERIFICACION, PENDIENTE_APROBACION, INVITADA, ACTIVA,\
+            \ SUSPENDIDA o RECHAZADA"
+        rol:
+          type: string
+        permisosEfectivos:
+          type: array
+          items:
+            type: string
+        permisosConcedidos:
+          type: array
+          items:
+            type: string
+        permisosRevocados:
+          type: array
+          items:
+            type: string
+        segundoFactorActivo:
+          type: boolean
+        creadoEn:
+          type: string
+          format: date-time
+        actualizadoEn:
+          type: string
+          format: date-time
+      description: "Cuenta del panel, tal como la ve un ADMIN"
+    CredencialVeedor:
+      type: object
+      properties:
+        correo:
+          minLength: 1
+          type: string
+          description: Correo de la cuenta
+          example: veedor@ejemplo.org
+        clave:
+          minLength: 1
+          type: string
+          description: Clave de la cuenta
+        codigoTotp:
+          type: string
+          description: |-
+            Codigo de 6 digitos de la app de autenticacion. Se omite en el primer intento; si la
+            cuenta tiene segundo factor, la respuesta 401 con type `segundo-factor-requerido`
+            indica que hay que reintentar incluyendolo.
+      description: Credencial de acceso al panel del veedor
+    SesionVeedor:
+      type: object
+      properties:
+        token:
+          type: string
+          description: "Token JWT. Se envia como 'Authorization: Bearer <token>'"
+        usuarioId:
+          type: string
+        nombre:
+          type: string
+        correo:
+          type: string
+        rol:
+          type: string
+          description: "ADMIN, VEEDOR u OBSERVADOR"
+        permisos:
+          type: array
+          description: "Permisos efectivos ya resueltos: rol mas concedidos menos\
+            \ revocados"
+          items:
+            type: string
+            description: "Permisos efectivos ya resueltos: rol mas concedidos menos\
+              \ revocados"
+        alcance:
+          type: string
+          description: |-
+            COMPLETO, o ALTA_SEGUNDO_FACTOR cuando la cuenta es ADMIN y todavia no dio de alta su
+            TOTP. Con ese alcance el token solo sirve para /api/veedor/segundo-factor.
+      description: "Sesion emitida para el panel del veedor (RNF011: expira en 8 horas)"
+    SolicitudCodigo:
+      type: object
+      properties:
+        codigo:
+          minLength: 1
+          type: string
+      description: Codigo de 6 digitos de la app de autenticacion
+    AltaSegundoFactorRespuesta:
+      type: object
+      properties:
+        uri:
+          type: string
+          description: URI otpauth:// para pintar el QR
+        secreto:
+          type: string
+          description: "El mismo secreto en Base32, para teclearlo si la camara falla"
+      description: "Datos para dar de alta el segundo factor. El secreto solo se muestra\
+        \ aqui, una vez."
+    SolicitudCorte:
+      required:
+      - finPrometido
+      - inicio
+      type: object
+      properties:
+        sectoresAfectados:
+          minItems: 1
+          type: array
+          description: Identificadores de los sectores afectados
+          example:
+          - manga
+          - bocagrande
+          items:
+            type: string
+            description: Identificadores de los sectores afectados
+            example: "[\"manga\",\"bocagrande\"]"
+        inicio:
+          type: string
+          format: date-time
+        finPrometido:
+          type: string
+          format: date-time
+        causa:
+          minLength: 1
+          type: string
+          example: Mantenimiento planta El Bosque
+      description: Registro de un corte oficial por el veedor (RF016)
+    ProblemDetail:
+      type: object
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+          format: int32
+        detail:
+          type: string
+        instance:
+          type: string
+          format: uri
+        properties:
+          type: object
+          additionalProperties:
+            type: object
+    CorteRespuesta:
+      type: object
+      properties:
+        id:
+          type: string
+        sectoresAfectados:
+          type: array
+          items:
+            type: string
+        inicio:
+          type: string
+          format: date-time
+        finPrometido:
+          type: string
+          format: date-time
+        finReal:
+          type: string
+          description: Nulo mientras el corte sigue abierto
+          format: date-time
+        causa:
+          type: string
+        origen:
+          type: string
+        estado:
+          type: string
+      description: Corte oficial (RF016-RF017)
+    SolicitudSuscripcion:
+      type: object
+      properties:
+        correo:
+          minLength: 1
+          type: string
+          description: Correo al que llegarán los avisos
+          example: vecino@correo.com
+        sectorIds:
+          minItems: 1
+          type: array
+          description: Identificadores de los sectores a seguir
+          items:
+            type: string
+            description: Identificadores de los sectores a seguir
+      description: Solicitud para suscribirse a los avisos de uno o más sectores
+    SuscripcionRespuesta:
+      type: object
+      properties:
+        id:
+          type: string
+        correo:
+          type: string
+        sectorIds:
+          type: array
+          items:
+            type: string
+        estado:
+          type: string
+          description: "PENDIENTE_CONFIRMACION, CONFIRMADA o CANCELADA"
+        creadaEn:
+          type: string
+          format: date-time
+      description: "Suscripción creada, pendiente de confirmación por correo (RF013)"
+    CoordenadaDTO:
+      required:
+      - latitud
+      - longitud
+      type: object
+      properties:
+        latitud:
+          maximum: 90
+          exclusiveMaximum: false
+          minimum: -90
+          exclusiveMinimum: false
+          type: number
+          format: double
+        longitud:
+          maximum: 180
+          exclusiveMaximum: false
+          minimum: -180
+          exclusiveMinimum: false
+          type: number
+          format: double
+      description: "Coordenada GPS del reporte, solo cuando el usuario la autoriza\
+        \ (RF007)"
+    SolicitudReporte:
+      type: object
+      properties:
+        sectorId:
+          minLength: 1
+          type: string
+          description: Identificador del sector reportado
+          example: bocagrande
+        tipo:
+          minLength: 1
+          type: string
+          description: "SIN_AGUA, PRESION_BAJA o SERVICIO_RESTABLECIDO"
+          example: SIN_AGUA
+        huella:
+          minLength: 1
+          type: string
+          description: |-
+            Huella anónima del dispositivo (ADR-007) — no es una cuenta ni un identificador
+            personal. El cliente la genera una vez (p. ej. un UUID persistido en el dispositivo,
+            hasheado) y la reutiliza en cada reporte; es lo único que permite RF006 (límite de
+            reportes por dispositivo) sin pedir registro.
+        coordenada:
+          $ref: "#/components/schemas/CoordenadaDTO"
+      description: Reporte ciudadano sin registro (RF005-RF008)
+    ReporteRespuesta:
+      type: object
+      properties:
+        id:
+          type: string
+        sectorId:
+          type: string
+        tipo:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        fotoUrl:
+          type: string
+        confirmaciones:
+          type: integer
+          format: int32
+      description: Reporte ciudadano registrado
+    SolicitudConfirmar:
+      type: object
+      properties:
+        huella:
+          maxLength: 128
+          minLength: 32
+          type: string
+          description: Huella hash del dispositivo del usuario que confirma (ADR-007)
+          example: 3a7b9c...
+      description: Solicitud para confirmar un reporte ciudadano por otro vecino
+    IotCoordenada:
+      type: object
+      properties:
+        lat:
+          type: number
+          format: double
+        lon:
+          type: number
+          format: double
+    IotPresionRequest:
+      type: object
+      properties:
+        sensorId:
+          type: string
+        sectorId:
+          type: string
+        presionPsi:
+          type: number
+          format: double
+        coordenada:
+          $ref: "#/components/schemas/IotCoordenada"
+    SolicitudRestablecer:
+      type: object
+      properties:
+        correo:
+          minLength: 1
+          type: string
+      description: "Pedir el enlace de restablecimiento. Responde siempre 202, exista\
+        \ o no la cuenta."
+    SolicitudRegistro:
+      type: object
+      properties:
+        correo:
+          minLength: 1
+          type: string
+        nombre:
+          maxLength: 80
+          minLength: 2
+          type: string
+          description: Nombre con el que apareceras en la auditoria del panel
+        clave:
+          minLength: 1
+          type: string
+          description: Minimo 12 caracteres. La politica completa vive en ClaveEnClaro.
+      description: "Solicitud de acceso al panel. No concede nada: exige verificar\
+        \ el correo y que un ADMIN apruebe."
+    SolicitudFijarClave:
+      type: object
+      properties:
+        token:
+          minLength: 1
+          type: string
+          description: Token que venia en el enlace del correo
+        clave:
+          minLength: 1
+          type: string
+      description: Fijar clave desde un enlace de un solo uso (invitacion o restablecimiento)
+    SolicitudPermisos:
+      type: object
+      properties:
+        rol:
+          minLength: 1
+          type: string
+          description: "ADMIN, VEEDOR u OBSERVADOR"
+        concedidos:
+          type: array
+          items:
+            type: string
+        revocados:
+          type: array
+          items:
+            type: string
+      description: |-
+        Rol de base mas los ajustes por persona. Los permisos del rol se aplican solos; `concedidos`
+        anade sobre ellos y `revocados` quita. Un permiso en las dos listas es un error y se rechaza.
+    ReporteModeracionRespuesta:
+      type: object
+      properties:
+        id:
+          type: string
+        sectorId:
+          type: string
+        tipo:
+          type: string
+        coordenada:
+          $ref: "#/components/schemas/CoordenadaDTO"
+        timestamp:
+          type: string
+          format: date-time
+        estadoModeracion:
+          type: string
+          description: "PENDIENTE, APROBADO o DESCARTADO"
+      description: Reporte ciudadano en la cola de moderación del veedor (RF018)
+    PropuestaIngestaRespuesta:
+      type: object
+      properties:
+        id:
+          type: string
+        sectorId:
+          type: string
+        estadoPropuesto:
+          type: string
+          description: "SIN_SERVICIO, PRESION_BAJA, CORTE_PROGRAMADO o CON_SERVICIO"
+        fuente:
+          type: string
+          description: Colector que la detectó
+          example: acuacar
+        urlOriginal:
+          type: string
+          description: Enlace al boletín o nota de prensa original
+          nullable: true
+        citaTextual:
+          type: string
+          description: "Fragmento del que se dedujo el estado, para que el veedor\
+            \ pueda verificarlo"
+        confianza:
+          type: number
+          description: |-
+            Entre 0 y 1, graduada según la evidencia que halló el extractor (ADR-032): 0.85 con
+            enumeración explícita de barrios y horario, 0.75 con enumeración sin horario, 0.45
+            con una mención suelta en prosa. Sirve para ordenar la cola, no para publicar solo.
+          format: double
+        detectadaEn:
+          type: string
+          format: date-time
+        estadoRevision:
+          type: string
+          description: "PENDIENTE, APROBADA o DESCARTADA"
+        inicioDeclarado:
+          type: string
+          description: |-
+            Inicio de la ventana que el boletín prometió. Nulo cuando el texto no la declaraba:
+            no se estima (ADR-006).
+          format: date-time
+          nullable: true
+        finPrometido:
+          type: string
+          description: |-
+            Fin prometido de la misma ventana. Junto con el inicio es lo que permite que el
+            estado del sector evolucione solo (ADR-033) y lo que alimenta el Índice de
+            Cumplimiento (RF020-RF022).
+          format: date-time
+          nullable: true
+      description: |-
+        Propuesta de cambio de estado detectada por la ingesta automatizada (M9), esperando la
+        revisión de un veedor. No afecta el mapa público hasta que se apruebe.
+    SolicitudCierreCorte:
+      required:
+      - horaReal
+      type: object
+      properties:
+        horaReal:
+          type: string
+          format: date-time
+      description: Cierre de un corte con la hora real de restablecimiento (RF017)
+    SaludColectorRespuesta:
+      type: object
+      properties:
+        nombre:
+          type: string
+          example: acuacar
+        ultimaEjecucionExitosa:
+          type: string
+          description: Nulo si el colector todavía no ha completado un ciclo con éxito
+          format: date-time
+          nullable: true
+        ultimoFallo:
+          type: string
+          description: Nulo si nunca ha fallado
+          format: date-time
+          nullable: true
+        motivoDelUltimoFallo:
+          type: string
+          description: "Mensaje del último fallo, para diagnosticar sin entrar al\
+            \ servidor"
+          nullable: true
+        itemsProcesados:
+          type: integer
+          description: Documentos traídos desde que arrancó el proceso
+          format: int64
+        tasaDeError:
+          type: number
+          description: "Entre 0 y 1, sobre los ciclos corridos desde que arrancó el\
+            \ proceso"
+          format: double
+        fallosConsecutivos:
+          type: integer
+          description: "Ciclos seguidos fallando. Desde 3, el colector se reporta\
+            \ caído en /actuator/health"
+          format: int32
+      description: Estado de salud de un colector de la ingesta automatizada
+    EventoAuditoriaRespuesta:
+      type: object
+      properties:
+        id:
+          type: string
+        accion:
+          type: string
+        autorCorreo:
+          type: string
+          description: Nulo cuando actua el sistema o alguien sin sesion
+        sujetoCorreo:
+          type: string
+        detalle:
+          type: string
+        ip:
+          type: string
+        ocurrioEn:
+          type: string
+          format: date-time
+      description: "Asiento de la bitacora de auditoria de cuentas: quien le hizo\
+        \ que a quien"
+    Open311Response:
+      type: object
+      properties:
+        service_request_id:
+          type: string
+        status:
+          type: string
+          description: open o closed
+          example: open
+        service_code:
+          type: string
+          description: Código del tipo de servicio
+          example: AGUA-001
+        service_name:
+          type: string
+        description:
+          type: string
+        address:
+          type: string
+          description: "Nombre del barrio. La unidad geográfica es el sector, no un\
+            \ punto (ADR-026)"
+        requested_datetime:
+          type: string
+          description: Cuándo se registró el estado actual del sector
+          format: date-time
+          nullable: true
+        updated_datetime:
+          type: string
+          description: "Igual a requested_datetime: el estado del sector es su propia\
+            \ actualización"
+          format: date-time
+          nullable: true
+      description: service_request de Open311 GeoReport v2
+    RespuestaSectores:
+      type: object
+      properties:
+        sectores:
+          type: array
+          items:
+            $ref: "#/components/schemas/SectorRespuesta"
+        generadoEn:
+          type: string
+          description: Instante en que el servidor genero esta respuesta (UTC)
+          format: date-time
+      description: Listado de sectores con la hora en que el servidor genero la respuesta
+    SectorRespuesta:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Identificador estable del sector
+          example: bocagrande
+        nombre:
+          type: string
+          description: Nombre del barrio segun el GeoJSON oficial
+          example: BOCAGRANDE
+        estado:
+          type: string
+          description: |-
+            Estado conocido del servicio. **Nulo cuando no hay dato verificado**: no se asume
+            CON_SERVICIO por omision, porque publicar servicio normal sin verificarlo es el
+            falso positivo que el proyecto evita (ADR-014). Presentarlo como "sin datos".
+          nullable: true
+          enum:
+          - CON_SERVICIO
+          - SIN_SERVICIO
+          - PRESION_BAJA
+          - CORTE_PROGRAMADO
+        actualizadoEn:
+          type: string
+          description: Cuando se registro ese estado. Nulo si el sector no tiene estado.
+          format: date-time
+          nullable: true
+      description: Sector de Cartagena con el estado conocido de su servicio de agua
+    SseEmitter:
+      type: object
+      properties:
+        timeout:
+          type: integer
+          format: int64
+    EstadisticaSectorRespuesta:
+      type: object
+      properties:
+        sectorId:
+          type: string
+        nombre:
+          type: string
+        cantidadCortes:
+          type: integer
+          format: int32
+      description: Sector con su cantidad de cortes registrados
+    EstadisticasRespuesta:
+      type: object
+      properties:
+        sectoresMasAfectados:
+          type: array
+          items:
+            $ref: "#/components/schemas/EstadisticaSectorRespuesta"
+        cortesPorDiaDeSemana:
+          type: object
+          additionalProperties:
+            type: integer
+            format: int32
+        duracionPromedioHoras:
+          type: number
+          format: double
+      description: "Estadísticas públicas globales (M7, RF023)"
+    IndiceCumplimientoRespuesta:
+      type: object
+      properties:
+        sectorId:
+          type: string
+          description: "Nulo cuando el índice es por corte o global, no por sector"
+        duracionPrometidaSegundos:
+          type: integer
+          format: int64
+        duracionRealSegundos:
+          type: integer
+          format: int64
+        desviacionSegundos:
+          type: integer
+          description: duracionReal - duracionPrometida. Negativa si terminó antes
+            de lo prometido
+          format: int64
+        porcentajeCumplimiento:
+          type: number
+          description: Capado en 100 cuando el corte termina antes o a tiempo
+          format: double
+      description: |-
+        Índice de Cumplimiento (RF020-RF022): comparación explícita entre duración prometida y
+        real, nunca un porcentaje aislado.
+    PuntoSerieRespuesta:
+      type: object
+      properties:
+        periodo:
+          type: string
+          description: "Mes en hora de Cartagena, ISO 8601"
+          example: 2026-08
+        duracionPrometidaSegundos:
+          type: integer
+          format: int64
+        duracionRealSegundos:
+          type: integer
+          format: int64
+        desviacionSegundos:
+          type: integer
+          description: duracionReal - duracionPrometida. Negativa si terminaron antes
+            de lo prometido
+          format: int64
+        porcentajeCumplimiento:
+          type: number
+          description: Capado en 100 cuando los cortes terminan antes o a tiempo
+          format: double
+        cantidadCortes:
+          type: integer
+          description: |-
+            Cortes cerrados sobre los que se calculó el mes. Un 40% sobre un solo corte y uno
+            sobre veinte no significan lo mismo.
+          format: int32
+      description: Un mes de la evolución del Índice de Cumplimiento (RF024)
+    EventoBitacoraRespuesta:
+      type: object
+      properties:
+        id:
+          type: string
+        tipo:
+          type: string
+          description: "CORTE_ANUNCIADO, CORTE_CONFIRMADO_POR_CIUDADANOS, CORTE_RESTABLECIDO\
+            \ o CORTE_DETECTADO_POR_INGESTA"
+        sectorId:
+          type: string
+          description: Nulo si el evento no está atado a un sector
+        corteId:
+          type: string
+          description: Nulo si el evento no está atado a un corte oficial (p. ej.
+            consenso ciudadano)
+        timestamp:
+          type: string
+          format: date-time
+        descripcion:
+          type: string
+        estado:
+          type: string
+          description: "Estado del servicio que afirma el evento: CON_SERVICIO, SIN_SERVICIO,\
+            \ PRESION_BAJA o CORTE_PROGRAMADO. Nulo si el evento no habla del servicio\
+            \ — presentarlo entonces como informativo, sin color de estado."
+        urlOriginal:
+          type: string
+          description: Boletín o nota que respalda el evento. Nulo si la fuente no
+            lo trae.
+        imagenUrl:
+          type: string
+          description: Portada del boletín. Nula si la fuente no la trae.
+      description: "Evento de la bitácora pública, de solo anexado (RF026-RF028)"

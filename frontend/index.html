@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/pwa-192x192.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+    <!-- SEO -->
+    <title>AguaVigía CTG — Monitoreo del acueducto en Cartagena</title>
+    <meta
+      name="description"
+      content="Plataforma ciudadana que cruza los avisos oficiales de Acuacar con reportes georreferenciados y publica el Índice de Cumplimiento de interrupciones del servicio en Cartagena de Indias."
+    />
+    <meta name="robots" content="index, follow" />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="AguaVigía CTG" />
+    <meta
+      property="og:description"
+      content="¿Tengo agua en mi sector? Monitoreo en tiempo real del acueducto en Cartagena de Indias."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="es_CO" />
+
+    <!-- PWA — tema e iconos para instalación en iOS y Android -->
+    <!-- Acento turquesa oficial de DESIGN.md §3 (claro #087f8c / oscuro #54c6ca), no un azul
+         genérico ni negro puro: esto es lo que pinta la barra de estado del sistema. -->
+    <meta name="theme-color" content="#087f8c" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#54c6ca" media="(prefers-color-scheme: dark)" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="AguaVigía" />
+    <link rel="apple-touch-icon" href="/favicon-180.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+
+    <!-- No CDN de fuentes — DESIGN.md §4 -->
+
+    <!-- Tiles del mapa (M1): el elemento más pesado en cargar en 3G real (RNF001) es un
+         `img.leaflet-tile` de estos dominios de terceros — Leaflet no empieza a pedirlos hasta
+         que su JS corre e inicializa el mapa, así que no hay forma de descubrir la URL exacta
+         desde el HTML. Adelantar la resolución DNS/TLS mientras el bundle todavía descarga
+         recorta ese tiempo de espera. Los dos proveedores (`useTheme` decide cuál según
+         prefers-color-scheme, no se sabe de antemano) y sus 3 subdominios (a/b/c, el reparto
+         por defecto de Leaflet). Esri (tema oscuro) no reparte por subdominio, un solo host. -->
+    <link rel="preconnect" href="https://a.tile.openstreetmap.org" crossorigin />
+    <link rel="preconnect" href="https://server.arcgisonline.com" crossorigin />
+    <link rel="dns-prefetch" href="https://a.tile.openstreetmap.org" />
+    <link rel="dns-prefetch" href="https://b.tile.openstreetmap.org" />
+    <link rel="dns-prefetch" href="https://c.tile.openstreetmap.org" />
+    <link rel="dns-prefetch" href="https://server.arcgisonline.com" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

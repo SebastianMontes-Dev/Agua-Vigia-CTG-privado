@@ -1,0 +1,20 @@
+# Sin esto, un checkout en Windows con autocrlf convierte estos scripts a CRLF, y el shebang
+# #!/bin/sh se rompe dentro de cualquier contenedor Linux (exec format / "not found").
+# Encontrado en PR #27: docker compose build backend fallaba con "./mvnw: not found".
+backend/mvnw text eol=lf
+*.sh text eol=lf
+
+# Forzar LF en código y configuración para evitar diferencias CRLF entre SO y contenedores
+*.ts text eol=lf
+*.tsx text eol=lf
+*.js text eol=lf
+*.mjs text eol=lf
+*.json text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.java text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+*.md text eol=lf
+Dockerfile* text eol=lf
+.env* text eol=lf

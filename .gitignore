@@ -1,0 +1,78 @@
+# ─── Contexto personal del agente (NO compartir con el equipo) ───
+CLAUDE.local.md
+.claude/settings.local.json
+
+# ─── Secretos ───
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+credentials.json
+
+# ─── Java / Spring Boot ───
+target/
+.maven-user/
+!.mvn/wrapper/maven-wrapper.jar
+*.class
+*.jar
+*.war
+hs_err_pid*
+
+# ─── Node / React ───
+node_modules/
+dist/
+dist-ssr/
+.vite/
+*.local
+coverage/
+.eslintcache
+
+# ─── IDEs ───
+.idea/
+*.iml
+.vscode/*
+!.vscode/extensions.json
+.settings/
+.classpath
+.project
+
+# ─── Sistema operativo ───
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ─── Logs y temporales ───
+*.log
+npm-debug.log*
+logs/
+tmp/
+
+# ─── Datos locales de desarrollo ───
+docker/data/
+mongo-data/
+redis-data/
+data/
+
+# ─── Respaldos generados por scripts/backup-*.sh (contienen datos de produccion) ───
+respaldos-mongo/
+respaldos-fotos/
+
+# ─── Resultados de pruebas ───
+playwright-report/
+test-results/
+
+# ─── Sala de control (se genera en CI, no se comitea) ───
+dist-dashboard/
+
+# ─── Sesion del bot de WhatsApp — NUNCA comitear ───
+# Quien tenga estos archivos puede enviar mensajes como el numero vinculado.
+# En CI vive en actions/cache, no en el repositorio.
+bot-whatsapp/sesion/
+.worktrees/
+
+# ─── Indice local de CodeGraph (se regenera con codegraph init) ───
+.codegraph/
+
+# ─── Respaldos sueltos ───
+*.bak
