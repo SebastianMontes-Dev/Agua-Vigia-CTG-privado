@@ -1,15 +1,13 @@
-# Plan de pruebas — borrador del Anexo 5
+# Plan de pruebas
 
-> **Titular:** D5 (Yordy Pardo Pajaro). **Estado: PLAN, no informe.** El Anexo 5 real
-> ("Plan e informe de pruebas") es entregable de Sprint 5→6 (`docs/anexos/README.md`) y **su parte de
-> resultados sale del registro, no de la memoria**: se construye desde `registro-de-bugs.md` y
-> `registro-de-implementaciones.md` cuando existan. Escribir esa parte ahora sería inventar datos —
-> exactamente lo que el Anexo 3 prohíbe para el Alfa de Cronbach, y la misma regla aplica aquí.
+> **Estado: PLAN, no informe.** Los documentos académicos (capítulos, anexos) se retiraron del repo
+> el 2026-09-17 y se rehacen más adelante; este plan sigue vigente como estrategia de pruebas del
+> proyecto, independiente de esa numeración. **Su parte de resultados sale del registro, no de la
+> memoria**: se construye desde `registro-de-bugs.md` y `registro-de-implementaciones.md` cuando
+> existan. Escribir esa parte ahora sería inventar datos.
 >
-> Este documento es la **estrategia**, adelantada en Sprint 0 mientras no hay código de aplicación
-> (mismo patrón que `modelo-de-dominio.md` de D2). Cuando exista el código y los primeros resultados,
-> este archivo se traduce al Anexo 5 formal — con la numeración que confirme D1 tras validar la
-> plantilla oficial (`docs/anexos/README.md` §⚠️).
+> Este documento es la **estrategia**, adelantada mientras no hay código de aplicación. Cuando exista
+> el código y los primeros resultados, esta parte de resultados se completa desde el registro real.
 
 ---
 
@@ -37,7 +35,7 @@ un `RNF` verificable con métrica y umbral — no hay pruebas "porque sí".
 | Secretos en el repo | RNF010 | `gitleaks` en CI (ya activo desde Sprint 0, `.github/workflows/secret-scan.yml`) | En cada push | 0 |
 | Seguridad del panel admin | RNF011 (JWT ≤ 8 h) | Test de seguridad (expiración de token) | Sprint 3 | 3 |
 | Accesibilidad | RNF012–RNF016 (contraste, teclado, táctil, responsive, no-solo-color) | `axe-core` + Lighthouse + prueba manual con teclado | Por página, antes de cada release | 1 → 5 (auditoría formal) |
-| Precisión del clasificador IA | RNF019 (≥ 90% sobre conjunto dorado) | Prueba de regresión en CI contra `docs/anexos/` conjunto dorado etiquetado | Cada cambio al prompt/pipeline M9 | 4 (etiquetado) → 5 (CI) |
+| Precisión del clasificador IA | RNF019 (≥ 90% sobre conjunto dorado) | Prueba de regresión en CI contra conjunto dorado etiquetado | Cada cambio al prompt/pipeline M9 | 4 (etiquetado) → 5 (CI) |
 | Arranque en máquina limpia | RNF020 (`docker compose up`, un comando) | E2E de infraestructura | Antes de cada release | 0 (compose base) → 5 (documentado en manual técnico) |
 | Flujo completo de usuario | RF001–RF028 (flujos principales) | Playwright E2E | Antes de cada release | 5 |
 
@@ -89,8 +87,7 @@ Una prueba está **Hecha** cuando (alineado con `docs/gestion/README.md` § Defi
   redacta en Sprint 5–6 desde los registros, con fecha y evidencia.
 - **No fija herramientas que dependen de una decisión pendiente** (p. ej. la herramienta de prueba de
   carga para RNF002 — "k6 o similar" — la confirma D5 cuando exista `/backend` real contra qué probar).
-- **No numera esto como "Anexo 5" todavía** — la numeración depende de que D1 valide la plantilla
-  oficial (`docs/anexos/README.md` §⚠️, tarea bloqueante de Sprint 0).
+- **No es un anexo académico numerado** — esos documentos se rehacen más adelante, aparte de este plan.
 
 ## 7. Siguiente paso
 

@@ -85,13 +85,15 @@ Al proponer código, verifica mentalmente esta regla antes de escribir el import
 
 ## Convenciones de Git
 
-- Ramas: `main` ← `develop` ← `feature/*`, `fix/*`. `develop` se fusiona a `main` **al cerrar cada
-  sprint**, por PR y con etiqueta `sprint-N`. Fuera de eso, `main` no se toca.
-- Commits en formato **Conventional Commits**: `feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `chore:`.
-  Mensaje en español, imperativo: `feat: agregar cálculo del índice de cumplimiento`. Fecha del
-  proyecto = **hora local de Cartagena (UTC-5)**, no UTC.
-- Todo cambio entra por Pull Request con al menos **1 revisor**, enlazando su issue y su historia de
-  usuario. **Es política, no un candado técnico**: no hay branch protection en GitHub (`ADR-010`).
+Repo privado, de un solo colaborador desde 2026-09-17 (antes era un repo de equipo — ver nota abajo).
+Commits, ramas y PRs siguen las reglas de siempre en mis proyectos, documentadas en
+[`CONTRIBUTING.md`](CONTRIBUTING.md) — no las repito acá para no duplicar la fuente de verdad. Resumen:
+Conventional Commits en español, ramas `tipo/slug-corto-en-espanol-kebab-case` sobre `main`,
+squash-merge por defecto, CI en verde antes de mergear.
+
+Lo que **cambió** respecto al repo de equipo anterior: ya no hay `develop`, ni etiquetas `sprint-N`,
+ni revisor obligatorio (PR es recomendado para cambios no triviales, no obligatorio). Fecha del
+proyecto sigue siendo **hora local de Cartagena (UTC-5)**, no UTC — eso no cambió.
 
 ### Autoría — regla no negociable
 
@@ -139,17 +141,17 @@ docs/                   brief.md · product-requirements.md (46 RF, 25 RNF) · d
 docs/equipo/            Titulares D1–D5, tareas por sprint y secuencia de trabajo
 docs/ingenieria/        Pipeline de datos, auditoría de fuentes, matriz de trazabilidad
 docs/gestion/           Scrum, bitácora, bugs, implementaciones, bloqueos y compuertas
-docs/informe-metodologico/ · docs/anexos/   Los 4 capítulos y los 6 anexos académicos
 frontend/ · backend/    React 19 + Vite · Spring Boot — ambos completos y conectados
 ```
 
 ---
 
-## Formato académico obligatorio
+## Formato académico
 
-Plantilla del Tecnológico Comfenalco: **4 capítulos + 6 anexos + referencias APA 7**. No inventes
-secciones ni las renombres — el docente evalúa contra esa plantilla. Enfoque **proyectivo, mixto**,
-validado con **Alfa de Cronbach ≥ 0.75**. Detalle y estado en `docs/informe-metodologico/README.md`.
+**Retirado del repo el 2026-09-17** — `docs/informe-metodologico/` (4 capítulos) y `docs/anexos/`
+(6 anexos, plantilla del Tecnológico Comfenalco) se sacaron porque no aplican todavía. Se rehacen más
+adelante cuando corresponda. Si alguien pide ese material, no lo inventes ni asumas la plantilla
+vieja: no existe en este repo ahora mismo.
 
 ---
 

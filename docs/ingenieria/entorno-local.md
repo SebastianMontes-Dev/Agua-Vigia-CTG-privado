@@ -33,8 +33,7 @@ Con esto el mapa, los reportes, las suscripciones, la bitácora, las estadístic
 
 Ambas se leen en `VeedorAuthController.java` (`backend/src/main/java/.../api/VeedorAuthController.java`).
 Son credenciales de **desarrollo local**, no de producción: el perfil `prod` exige las suyas
-propias y aborta el arranque si faltan (`ValidacionDeSecretosProd` — ver
-`docs/anexos/anexo-5-manual-tecnico.md`, sección de despliegue, para ese caso).
+propias y aborta el arranque si faltan (`ValidacionDeSecretosProd`).
 
 ## 3. La vía rápida — copiar la clave de equipo
 
