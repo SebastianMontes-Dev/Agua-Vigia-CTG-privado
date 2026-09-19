@@ -89,6 +89,10 @@ Tres razones concretas, no burocráticas:
 | BUG-070 | 2026-09-04 | S3 | CI | El E2E buscaba la etiqueta «Clave del veedor», que el rediseño de M15 renombró a «Clave»: Frontend CI en rojo desde el 2026-09-01 | Cerrado — `tests/e2e/home.spec.ts` usa la etiqueta real |
 | BUG-067 | 2026-09-03 | S2 | M1 | En pantallas ≤480px el navbar flotante de la portada se quedaba sin marca: un hueco vacío a la izquierda de la barra | Cerrado — la regla que oculta el texto del logo se acotó al otro encabezado; `index.css` + `home.spec.ts` |
 | BUG-068 | 2026-09-03 | S3 | CI | La prueba E2E del ingreso del veedor lleva fallando desde `69f64de`: busca el campo «Clave del veedor» en `/veedor`, y ese ingreso se movió al modal de la portada | Abierto |
+| BUG-071 | 2026-09-19 | S2 | M8 | La bitácora pública nunca mostraba los boletines de Acuacar: `PaginaMapa` montaba `SeccionBitacora` sin `boletines`, `estadoAcuacar` ni `onRecargarAcuacar` y siempre decía «Acuacar no devolvió publicaciones» | Cerrado — se pasan los tres props; E2E «las flechas de la bitácora recorren el carrusel» |
+| BUG-072 | 2026-09-19 | S3 | M1 | Los estilos de escritorio no se aplicaban: `AguaVigiaDesktop.css` (≈1.300 líneas) no lo importaba nadie | Cerrado — `import` en `main.tsx`; E2E «el logo oficial…» y «el panel barrial usa el tema claro…» |
+| BUG-073 | 2026-09-19 | S3 | M1 | El mapa no rotula los barrios: la clase `.mapa-etiqueta-barrio*` que pide su prueba E2E no existe en el código | Abierto — hay que construir el rotulado o retirar la prueba |
+| BUG-074 | 2026-09-19 | S2 | M1 | `PaginaMapa` no pasa props obligatorios (`porcentajeOperativo`, `conexionViva`, `datosDisponibles`, `temaActivo`, `onReportar`): «undefined% operativa», tarjetas de resumen siempre en «—» y `npm run build` con tres errores de tipos | Abierto — falta definir el cálculo de «% operativa» |
 
 **Severidad:** `S1` bloquea el uso o publica dato falso · `S2` funcionalidad rota con rodeo posible ·
 `S3` molesto pero no impide · `S4` cosmético
@@ -1300,6 +1304,104 @@ se modeló como un formulario de contraseña real en vez de un simulador explíc
 **Prueba que impide la regresión:** `frontend/src/pages/PaginaVeedor.test.tsx` — verifica que no exista
 ningún `input[type="password"]` ni `textbox`, y que el botón de simulación lleve al panel de moderación.
 
+
+### BUG-071 — La bitácora pública nunca muestra los boletines de Acuacar
+
+- **Fecha:** 2026-09-19 · **Severidad:** S2 · **Módulo:** M8
+- **Estado:** Cerrado
+
+**Síntoma:** en la portada, la sección «Bitácora & Boletines Oficiales» siempre dice «Acuacar no devolvió
+publicaciones» y «Fuente oficial sin publicaciones», aunque la petición a `/acuacar-api/posts` responde
+200 con boletines. La prueba E2E «las flechas de la bitácora recorren el carrusel» no encuentra ninguna flecha.
+
+**Reproducción:** consistente, en local y en CI. Con las tres publicaciones simuladas de la prueba, la
+app las pide y las recibe, pero la sección se dibuja vacía.
+
+**Esperado:** la bitácora muestra los boletines que devuelve Acuacar y el estado real de la fuente
+(`loading`, `success`, `unavailable`). El texto de vacío afirma algo falso sobre la fuente oficial cuando
+en realidad sí respondió.
+
+**Causa raíz:** `PaginaMapa.tsx` montaba `<SeccionBitacora busqueda={…} />` sin `boletines`,
+`estadoAcuacar` ni `onRecargarAcuacar`. `useDatosEnVivo` sí los expone, pero la página solo usaba
+`boletines` para el panel de detalle de sector, así que el componente recibía siempre sus valores por
+omisión (`[]` y `'empty'`). Las pruebas unitarias de `SeccionBitacora` no lo veían porque le pasan los
+props a mano.
+
+**Corrección:** `frontend/src/pages/PaginaMapa.tsx` — se desestructuran `estadoAcuacar` y
+`recargarAcuacar` del hook y se pasan los tres props a `SeccionBitacora`.
+**Prueba que impide la regresión:** E2E `home.spec.ts` › «las flechas de la bitácora recorren el
+carrusel», que ejercita la página completa con publicaciones simuladas.
+
+### BUG-072 — Los estilos de escritorio no se cargan: `AguaVigiaDesktop.css` no lo importa nadie
+
+- **Fecha:** 2026-09-19 · **Severidad:** S3 · **Módulo:** M1
+- **Estado:** Cerrado
+
+**Síntoma:** en escritorio (≥1025px) el logo de la barra mide 200px en vez de 46px y el panel barrial
+queda con fondo transparente. Fallaban las pruebas E2E «el logo oficial aparece en la barra
+institucional sin recuadro» y «el panel barrial usa el tema claro…».
+
+**Reproducción:** consistente. `frontend/src/AguaVigiaDesktop.css` (≈1.300 líneas, dentro de
+`@media (min-width: 1025px)`) está versionado, pero ningún archivo lo importa: `main.tsx` solo cargaba
+`index.css`.
+
+**Esperado:** la capa de escritorio descrita en su encabezado se aplica sobre `index.css`.
+
+**Causa raíz:** falta el `import`. No se pudo determinar cuándo se perdió: el historial se reinició en
+`79a6718` y solo conserva una foto del estado.
+
+**Corrección:** `frontend/src/main.tsx` — `import './AguaVigiaDesktop.css'` después de `index.css`, para
+que sus reglas ganen por orden.
+**Prueba que impide la regresión:** E2E `home.spec.ts` › «el logo oficial aparece en la barra
+institucional sin recuadro» (ancho de 46px) y «el panel barrial usa el tema claro…» (color de fondo que
+solo existe en ese archivo).
+
+### BUG-073 — El mapa no rotula los barrios: la función que pide su prueba E2E no existe
+
+- **Fecha:** 2026-09-19 · **Severidad:** S3 · **Módulo:** M1
+- **Estado:** Abierto
+
+**Síntoma:** la prueba E2E «el mapa rotula barrios y conserva una sola selección ante clics rápidos»
+falla en `home.spec.ts:97`: no hay ningún `.mapa-etiqueta-barrio--principal` visible.
+
+**Reproducción:** consistente, 3 de 3 en local (Chromium contra el dev server) y en CI. La clase
+`mapa-etiqueta-barrio*` no aparece en ningún archivo de `frontend/src`, y `MapaCartagena.tsx` declara
+«sin tooltip de hover a propósito».
+
+**Esperado:** rótulos de barrio sobre el mapa y una sola selección ante una ráfaga de clics, como lo
+da por hecho la bitácora del 2026-09-08 («mapa rotulado y estable ante clics rápidos»).
+
+**Causa raíz probable —sin confirmar—:** esa parte del refactor «costero» no llegó a este repositorio.
+No es un ajuste de estilos: hay que construir el rotulado.
+
+**Corrección:** pendiente. Decisión abierta: construir el rotulado de barrios o retirar la prueba.
+
+### BUG-074 — `PaginaMapa` no pasa props obligatorios y `npm run build` falla
+
+- **Fecha:** 2026-09-19 · **Severidad:** S2 · **Módulo:** M1
+- **Estado:** Abierto
+
+**Síntoma:** (1) la barra superior dice «Red Distrital: undefined% operativa»; (2) las tarjetas de
+resumen por estado muestran siempre «—» y «Esperando datos validados», con los botones «Ver en el mapa»
+deshabilitados, incluso cuando hay sectores; (3) el botón de reportar de `LlamadoVeedor` no hace nada.
+(4) `npm run build` termina con tres errores de tipos.
+
+**Reproducción:** `cd frontend && npx tsc -b` da `TS2739` en `PaginaMapa.tsx:166`
+(`NavegacionFlotante` sin `porcentajeOperativo` ni `conexionViva`) y en `:301` (`TarjetasEstadoMapa` sin
+`temaActivo` ni `datosDisponibles`), y `TS2741` en `LlamadoVeedor` sin `onReportar` (`:348` antes de BUG-071, `:353` después). Es igual
+sobre el árbol original: no lo introdujo ningún cambio en curso. El síntoma (1) se ve en la
+instantánea de la prueba E2E del carrusel; (2) y (3) salen de leer el código.
+
+**Esperado:** el build en verde y los tres componentes con sus datos. Ninguna función del repositorio
+calcula `porcentajeOperativo`, así que cómo se define «% operativa» (¿sobre qué sectores? ¿con `null`
+si no hay datos validados?) es una decisión de producto pendiente.
+
+**Causa raíz probable —sin confirmar—:** mismo origen que BUG-071/072/073: piezas del rediseño que no
+llegaron a este repositorio. Vite no comprueba tipos, así que la app arranca; y el paso Build del
+Frontend CI va después del E2E, que falla antes, por lo que el build roto nunca se vio en el CI.
+
+**Corrección:** pendiente.
+
 ---
 
 ## Nota sobre BUG-001 y BUG-002
@@ -1682,5 +1784,5 @@ Plantilla de bug abierto — copiar a la sección "Bugs abiertos — detalle".
 **Causa raíz:** se llena al diagnosticar. Si el origen es un requisito ambiguo, corrige también el requisito.
 **Corrección:** qué se cambió + `archivo:línea` + prueba que lo cubre. Sin prueba, el bug vuelve.
 
-Siguiente número disponible: BUG-071
+Siguiente número disponible: BUG-075
 -->

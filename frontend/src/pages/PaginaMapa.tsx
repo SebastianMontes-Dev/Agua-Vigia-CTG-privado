@@ -57,7 +57,7 @@ interface Props {
 }
 
 const PaginaMapa: FC<Props> = ({ temaActivo, onAlternarTema }) => {
-  const { sectores, cargando, error, ultimaActualizacion, conexionViva, boletines } = useDatosEnVivo();
+  const { sectores, cargando, error, ultimaActualizacion, conexionViva, boletines, estadoAcuacar, recargarAcuacar } = useDatosEnVivo();
 
   const [sectorActivo, setSectorActivo] = useState<Sector | null>(null)
   const [modalAbierto, setModalAbierto] = useState(false)
@@ -338,7 +338,12 @@ const PaginaMapa: FC<Props> = ({ temaActivo, onAlternarTema }) => {
       </details>
 
       <Suspense fallback={<div className="seccion-cargando" role="status">Cargando bitácora…</div>}>
-        <SeccionBitacora busqueda={busquedaBitacora} />
+        <SeccionBitacora
+          busqueda={busquedaBitacora}
+          boletines={boletines}
+          estadoAcuacar={estadoAcuacar}
+          onRecargarAcuacar={recargarAcuacar}
+        />
       </Suspense>
 
       <Suspense fallback={<div className="seccion-cargando" role="status">Cargando estadísticas…</div>}>
