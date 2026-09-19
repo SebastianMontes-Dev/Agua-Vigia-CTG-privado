@@ -1,7 +1,7 @@
 # Estado del backend — documento de traspaso
 
 > **Para qué sirve este archivo.** Es el punto de entrada para quien retome el backend: una sesión
-> de trabajo nueva, un compañero del equipo o el propio autor dentro de un mes. Recoge qué hace el
+> de trabajo nueva o el propio autor dentro de un mes. Recoge qué hace el
 > proyecto, en qué estado está, qué se hizo, qué falta, qué se decidió dejar fuera y las trampas del
 > entorno que cuestan una hora si nadie las avisa.
 >
@@ -33,7 +33,7 @@
 >    del correo), así que no había ningún tipo roto en uso — pero el archivo "fuente de verdad,
 >    generada, no escrita a mano" mentía, y `ContratoOpenApiTest` no lo agarró porque ese commit no
 >    tocó `backend/` y el CI de backend no corrió con `paths` filtrado a esa carpeta.
-> 2. **El job "Escaneo de secretos" quedaba en rojo desde `ad7d660`** por la clave de equipo de
+> 2. **El job "Escaneo de secretos" quedaba en rojo desde `ad7d660`** por la clave de desarrollo de
 >    `entorno-local.md` (intencional, de desarrollo local — ver el propio archivo). Sin
 >    `.gitleaks.toml`, gitleaks no tenía forma de distinguir "secreto real filtrado" de "secreto de
 >    desarrollo documentado a propósito". Resuelto con un allowlist acotado por ruta a ese único
@@ -51,8 +51,7 @@
 ## 1. Qué es AguaVigía CTG
 
 Plataforma ciudadana e independiente de monitoreo del servicio de acueducto en Cartagena de Indias.
-Proyecto de aula de la Fundación Universitaria Tecnológico Comfenalco, Tecnología en Desarrollo de
-Software, 2026. **No está afiliada a Aguas de Cartagena S.A. E.S.P.** ni a ninguna entidad distrital.
+Proyecto personal, 2026. **No está afiliada a Aguas de Cartagena S.A. E.S.P.** ni a ninguna entidad distrital.
 
 **La pregunta que responde:** *"¿tengo agua o no, y hasta cuándo?"* en menos de 5 segundos, desde un
 celular, sin registrarse y sin hacer scroll (`DESIGN.md` §1).
@@ -68,12 +67,11 @@ De ahí sale un principio que atraviesa todo el código y conviene interiorizar 
 > expone estado agregado por barrio y no la coordenada de cada reporte (`ADR-026`). Un mapa que
 > admite que no sabe es mejor que uno que miente.
 
-### Reparto del equipo
+### Alcance de una sesión de backend
 
-Cinco integrantes. **El backend, las bases de datos y el DevOps son de una sola persona; el frontend
-es de otros compañeros.** Para una sesión de trabajo esto significa: `frontend/` no se toca salvo
-petición explícita, y **cualquier cambio en el contrato de la API tiene que ser aditivo** para no
-romperles el trabajo.
+El proyecto es de una sola persona. Aun así, `frontend/` no se toca salvo petición explícita, y
+**cualquier cambio en el contrato de la API tiene que ser aditivo** para no romper el cliente ya
+generado.
 
 ---
 
@@ -94,7 +92,7 @@ romperles el trabajo.
 
 **Requisitos:** todos implementados salvo **RF041** (webhook real de WhatsApp/Telegram), que depende
 de credenciales de terceros. **RNF002 ya se midió** (ver §4) y queda ✅ en la matriz. **RNF001** sigue
-🟡 — es de frontend (D4), fuera de este alcance.
+🟡 — es de frontend, fuera de este alcance.
 
 ---
 
@@ -209,7 +207,7 @@ producción y no en desarrollo.
    `GenericJackson2JsonRedisSerializer` empezó a lanzar: su `ObjectMapper` no trae `JavaTimeModule`.
    El síntoma habría sido el mapa entero fallando en la primera lectura tras un cambio de estado.
 2. **El CSV dependía del locale del servidor.** `"%.1f".formatted(...)` usa `Locale.getDefault()`:
-   el archivo salía distinto en cada máquina del equipo y en el contenedor.
+   el archivo salía distinto en cada máquina y en el contenedor.
 3. **El JWT nacía vencido con relojes distintos.** Al pasar `JwtProvider` a `RelojPort`, emitía con
    el reloj inyectado pero validaba con el del sistema, porque jjwt usa su propio `Clock`. En
    producción habría sido un fallo intermitente imposible de reproducir.
@@ -256,7 +254,7 @@ producción con despliegue de aula*— y están escritas para que nadie las desc
 | **Autenticación local de MongoDB y Redis** | El compose de desarrollo sigue sin credenciales para facilitar el trabajo local; el compose de producción ya exige usuario/clave de Mongo y clave de Redis | Si el entorno local se expone fuera de la máquina del desarrollador |
 | **Métricas (Prometheus/Grafana)** | Solo se expone `health`. Añadir `/actuator/prometheus` sin protegerlo sería una fuga de información operativa | Cuando haya usuarios reales y haga falta diagnosticar rendimiento |
 | **Boot 4.x** | Arrastra Spring Framework 7. Se eligió 3.5.16 —que parchea las mismas CVE— por no hacer un salto mayor a días de sustentar | Cuando haya margen para probarlo |
-| **Todo `frontend/`** | Es de los compañeros | — |
+| **Todo `frontend/`** | Fuera del alcance de esta ronda de backend | — |
 
 ---
 
@@ -354,9 +352,8 @@ Si la pantalla de bitácora asumía recibirlo todo, ahí hay que paginar.
 | [`../design-decisions.md`](../design-decisions.md) | 28 ADRs. Los de esta ronda: **026** Open311 agregado por privacidad, **027** retención de evidencia, **028** la ingesta propone |
 | [`../product-requirements.md`](../product-requirements.md) | RF001–RF041 y RNF001–RNF021, con su redacción literal |
 | [`../../DESIGN.md`](../../DESIGN.md) | Sistema de diseño. **Aplica al backend también:** los cuatro estados del servicio, cómo se le escribe al usuario, cifras con contexto |
-| [`../anexos/anexo-5-manual-tecnico.md`](../anexos/anexo-5-manual-tecnico.md) | Despliegue y QA manual. Corregido en esta ronda |
 | [`respaldo-y-restauracion.md`](respaldo-y-restauracion.md) | Respaldo de Mongo y de las fotos |
-| [`entorno-local.md`](entorno-local.md) | `JWT_SECRET`/`VEEDOR_PASSWORD_HASH` vacías en `.env` — cómo dejar el panel del veedor funcionando en un clon nuevo, con la clave de equipo lista para copiar |
+| [`entorno-local.md`](entorno-local.md) | `JWT_SECRET`/`VEEDOR_PASSWORD_HASH` vacías en `.env` — cómo dejar el panel del veedor funcionando en un clon nuevo, con la clave de desarrollo lista para copiar |
 | `backend/openapi.yaml` | Contrato que consume el frontend. **Generado, no escrito a mano** |
 
 ---
@@ -366,7 +363,7 @@ Si la pantalla de bitácora asumía recibirlo todo, ahí hay que paginar.
 1. **`./mvnw verify` con Docker abierto.** Si algo falla, no es por lo que ibas a hacer.
 2. **Lee la matriz antes de creer que algo falta.** Muchas cosas que parecen pendientes están
    implementadas y probadas; otras están declaradas fuera de alcance con razón.
-3. **Antes de cambiar el contrato de la API, pregunta.** El frontend es de otros y el acuerdo vigente
+3. **Antes de cambiar el contrato de la API, pregunta.** El frontend ya consume ese contrato y el acuerdo vigente
    es que los cambios sean aditivos.
 4. **Si tocas un comportamiento, actualiza el comentario y la matriz.** El valor de este proyecto no
    es que funcione: es que lo que dice de sí mismo sea verdad.

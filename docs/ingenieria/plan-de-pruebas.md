@@ -58,10 +58,9 @@ corrige `product-requirements.md` primero (mismo criterio que usa `registrar-imp
 ## 4. Datos de prueba
 
 - **Conjunto dorado para M9 (ingesta con IA):** boletines reales de Acuacar etiquetados a mano
-  (`origen: OFICIAL_ACUACAR`, ver `docs/ingenieria/pipeline-ingesta-datos.md`). Etiquetado es tarea de
-  D1 en Sprint 4 (`docs/equipo/secuencia-de-trabajo.md` §4). RNF019 se mide contra este conjunto, no
+  (`origen: OFICIAL_ACUACAR`, ver `docs/ingenieria/pipeline-ingesta-datos.md`). Etiquetado es tarea del Sprint 4. RNF019 se mide contra este conjunto, no
   contra datos sintéticos.
-- **Dataset histórico para la demo final:** boletines y reportes de mayo–julio 2026, tarea de D5 en
+- **Dataset histórico para la demo final:** boletines y reportes de mayo–julio 2026, tarea del
   Sprint 6.
 - **Datos geoespaciales:** ya verificados y disponibles — `data/geoespacial/` (213 barrios, 184 con
   población real). Las pruebas de integración que necesiten sectores reales parten de ahí, no de
@@ -86,8 +85,7 @@ Una prueba está **Hecha** cuando (alineado con `docs/gestion/README.md` § Defi
 - **No es el informe de resultados.** Cobertura real, bugs encontrados, resultados de E2E: eso se
   redacta en Sprint 5–6 desde los registros, con fecha y evidencia.
 - **No fija herramientas que dependen de una decisión pendiente** (p. ej. la herramienta de prueba de
-  carga para RNF002 — "k6 o similar" — la confirma D5 cuando exista `/backend` real contra qué probar).
-- **No es un anexo académico numerado** — esos documentos se rehacen más adelante, aparte de este plan.
+  carga para RNF002 — "k6 o similar" — se confirma cuando exista `/backend` real contra qué probar).
 
 ## 7. Siguiente paso
 

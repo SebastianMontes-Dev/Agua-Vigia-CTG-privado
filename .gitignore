@@ -1,4 +1,4 @@
-# ─── Contexto personal del agente (NO compartir con el equipo) ───
+# ─── Contexto personal del agente (NO versionar) ───
 CLAUDE.local.md
 .claude/settings.local.json
 
@@ -62,13 +62,9 @@ respaldos-fotos/
 playwright-report/
 test-results/
 
-# ─── Sala de control (se genera en CI, no se comitea) ───
+# ─── Sala de control (se genera en local con scripts/generar-dashboard.mjs, no se comitea) ───
 dist-dashboard/
 
-# ─── Sesion del bot de WhatsApp — NUNCA comitear ───
-# Quien tenga estos archivos puede enviar mensajes como el numero vinculado.
-# En CI vive en actions/cache, no en el repositorio.
-bot-whatsapp/sesion/
 .worktrees/
 
 # ─── Indice local de CodeGraph (se regenera con codegraph init) ───

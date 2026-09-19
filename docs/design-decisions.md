@@ -18,20 +18,19 @@
 
 - **Fecha:** 2026-08-06
 - **Estado:** Aceptada
-- **Decide:** Equipo completo
 
 ### Contexto
-El proyecto anterior del equipo (ODYXS) usó MVC monolítico con Thymeleaf y MySQL: los controladores
+Un proyecto anterior (ODYXS) usó MVC monolítico con Thymeleaf y MySQL: los controladores
 contenían lógica de negocio, no había capa de DTOs y las entidades JPA viajaban directo a la vista.
 Funcionó, pero no era demostrable como diseño ni testeable por capas. Este proyecto debe evidenciar
-SOLID y patrones ante un docente.
+SOLID y patrones.
 
 ### Alternativas consideradas
 | Opción | A favor | En contra |
 |---|---|---|
 | MVC en capas (como ODYXS) | Familiar, rápido de arrancar | No evidencia SOLID; dominio acoplado al framework |
 | Arquitectura Limpia | Dominio testeable sin framework; SOLID demostrable con el dedo | Más carpetas, curva de aprendizaje |
-| Microservicios | Escalable | Sobreingeniería absoluta para 5 personas y 6 meses |
+| Microservicios | Escalable | Sobreingeniería absoluta para un proyecto de una persona |
 
 ### Decisión
 Arquitectura Limpia con cuatro capas (`domain`, `application`, `infrastructure`, `api`) y
@@ -52,16 +51,15 @@ No se revierte parcialmente. Volver a MVC implicaría reescribir `application/` 
 
 - **Fecha:** 2026-08-06
 - **Estado:** Aceptada
-- **Decide:** Backend – Dominio
 
 ### Contexto
 Una regla de arquitectura que depende de que la gente la recuerde se rompe en el primer sprint con
-presión de entrega. Especialmente con 5 personas de niveles distintos tocando el mismo backend.
+presión de entrega. Especialmente cuando se escribe rápido y con ayuda de un agente.
 
 ### Alternativas consideradas
 | Opción | A favor | En contra |
 |---|---|---|
-| Confiar en la revisión de PR | Cero configuración | Depende del revisor; se cuela lo que se cuela |
+| Confiar en la revisión de PR | Cero configuración | Depende de quien revise; se cuela lo que se cuela |
 | Documentar la regla y ya | Rápido | Nadie relee la documentación bajo presión |
 | Test automático con ArchUnit | La build falla, no se puede ignorar | Una dependencia más |
 
@@ -83,7 +81,6 @@ Borrar el test. Trivial, pero se perdería la garantía.
 
 - **Fecha:** 2026-08-06
 - **Estado:** Aceptada
-- **Decide:** Backend – Infraestructura
 
 ### Contexto
 Los cortes son documentos de estructura variable (lista de sectores afectados, historial embebido,
@@ -93,7 +90,7 @@ pertenece esta coordenada?" y contar reportes recientes por sector en ventanas d
 ### Alternativas consideradas
 | Opción | A favor | En contra |
 |---|---|---|
-| Solo MySQL/PostgreSQL | Familiar; PostGIS es potente | Esquema rígido para documentos variables; el equipo no conoce PostGIS |
+| Solo MySQL/PostgreSQL | Familiar; PostGIS es potente | Esquema rígido para documentos variables; PostGIS no era conocido |
 | Solo MongoDB | Documentos flexibles; geoespacial nativo | No sirve para rate limiting ni ventanas deslizantes |
 | MongoDB + Redis | Cada motor hace lo que hace bien | Dos tecnologías que aprender y operar |
 
@@ -115,7 +112,6 @@ Reemplazable por adaptadores alternativos gracias a ADR-001; el dominio no cambi
 
 - **Fecha:** 2026-08-06
 - **Estado:** Aceptada · **Reemplaza el supuesto erróneo del plan inicial**
-- **Decide:** Backend – Infraestructura
 
 ### Contexto
 El plan inicial afirmaba que el `robots.txt` de Acuacar **prohibía el acceso automatizado**, y sobre
@@ -144,7 +140,7 @@ Consumir la API REST de WordPress como fuente primaria (capa L1), con el RSS com
 - **Gana:** fuente estructurada y estable; se elimina el scraping frágil; permite reprocesar los 307
   boletines históricos para el Índice de Cumplimiento.
 - **Pierde:** si Acuacar deshabilita `/wp-json/`, hay que caer al RSS.
-- **Lección conservada:** verificar antes de afirmar. Va en las conclusiones del informe final.
+- **Lección conservada:** verificar antes de afirmar.
 
 ### Cómo se revierte
 Cayendo al RSS o al sitemap. El resto del pipeline no cambia (ADR-001).
@@ -155,7 +151,6 @@ Cayendo al RSS o al sitemap. El resto del pipeline no cambia (ADR-001).
 
 - **Fecha:** 2026-08-06
 - **Estado:** Aceptada
-- **Decide:** Equipo completo
 
 ### Contexto
 Al auditar cada medio se encontró que **El Universal, El Tiempo, El Heraldo y Blu Radio** incluyen
@@ -195,7 +190,6 @@ Solo si el medio cambia su `robots.txt` o concede permiso explícito por escrito
 
 - **Fecha:** 2026-08-06
 - **Estado:** Aceptada
-- **Decide:** Backend – Infraestructura + Scrum Master
 
 ### Contexto
 La capa de IA extrae sectores, fechas y horas de texto libre. Un modelo puede alucinar un corte que
@@ -229,7 +223,6 @@ Bajando el umbral o quitando la verificación. No recomendado sin sustituir por 
 
 - **Fecha:** 2026-08-06
 - **Estado:** Aceptada
-- **Decide:** Equipo completo
 
 ### Contexto
 El usuario principal es un vecino sin agua, en el celular, con datos limitados y con prisa. Cualquier
@@ -262,33 +255,31 @@ Agregando autenticación opcional para reportes "verificados" sin quitar la vía
 
 - **Fecha:** 2026-08-07
 - **Estado:** Aceptada
-- **Decide:** Equipo completo
 
 ### Contexto
-Cinco personas trabajan el mismo repositorio, cada una con su propia sesión de agente de IA. Nada de
+Varias sesiones de agente de IA trabajan el mismo repositorio, una tras otra. Nada de
 lo que ocurre en una conversación sobrevive a su cierre: ni el bug que se encontró y se arregló, ni
 el motivo por el que un endpoint quedó como quedó, ni en qué punto quedó el trabajo.
 
 Dos consecuencias concretas, no hipotéticas:
 
-1. **El Capítulo IV del informe exige resultados medibles** (defectos encontrados, requisitos
-   cubiertos, cobertura). Reconstruir eso en el Sprint 6, seis meses después, es imposible: se
-   termina inventando.
+1. **Los resultados medibles** (defectos encontrados, requisitos
+   cubiertos, cobertura) no se pueden reconstruir meses después: se termina inventando.
 2. **El contexto de IA tiene un costo real.** Sin un lugar acordado donde vive cada dato, cada sesión
    vuelve a explicar el proyecto, y cada archivo permanente crece hasta que leerlo cuesta más que el
    trabajo mismo.
 
 La auditoría de documentación del 2026-08-07 encontró además el síntoma: la misma información
-duplicada en dos carpetas `equipo/`, tres carpetas declaradas en `CLAUDE.md` que no existían, y
+duplicada en dos carpetas, tres carpetas declaradas en `CLAUDE.md` que no existían, y
 referencias a archivos nunca creados.
 
 ### Alternativas consideradas
 | Opción | A favor | En contra |
 |---|---|---|
 | Confiar en el historial de Git y en los PRs | Cero esfuerzo adicional | Un commit dice *qué* cambió, no *por qué* ni qué falló antes; no hay causa raíz ni siguiente paso |
-| Llevarlo todo en GitHub Issues/Projects | Herramienta hecha para eso; buena para tareas | El agente no lo lee sin conectar el MCP; se pierde al cerrar el tablero; no sirve como fuente del informe |
+| Llevarlo todo en GitHub Issues/Projects | Herramienta hecha para eso; buena para tareas | El agente no lo lee sin conectar el MCP; se pierde al cerrar el tablero; no sirve como fuente de datos acumulados |
 | Documento único de bitácora | Simple | Crece sin control y mezcla cosas de naturaleza distinta; nadie lo lee a los dos meses |
-| **Tres registros separados + protocolo de contexto y rotación** | Cada registro tiene formato, dueño y límite; el agente puede llenarlos con skills | Disciplina diaria; si nadie registra, queda peor que no tenerlo |
+| **Tres registros separados + protocolo de contexto y rotación** | Cada registro tiene formato y límite; el agente puede llenarlos con skills | Disciplina diaria; si nadie registra, queda peor que no tenerlo |
 
 ### Decisión
 Tres registros en `docs/gestion/`, cada uno con su skill que lo llena:
@@ -302,17 +293,16 @@ un solo archivo**, los archivos permanentes tienen **presupuesto de líneas** (`
 Registrar pasa a ser parte de la definición de terminado.
 
 ### Consecuencias
-- **Gana:** el Capítulo IV se construye desde datos reales acumulados, no desde la memoria; una
+- **Gana:** los resultados se construyen desde datos reales acumulados, no desde la memoria; una
   sesión nueva arranca en tres líneas; los bugs dejan de repetirse porque quedan con causa raíz y
-  prueba; las cinco sesiones paralelas del equipo comparten los mismos hechos.
+  prueba; las sesiones paralelas comparten los mismos hechos.
 - **Pierde:** disciplina diaria. Un registro que se llena a medias es peor que no tenerlo, porque da
   falsa sensación de trazabilidad. Las skills existen justamente para bajar ese costo.
-- **Condiciona:** obliga a rotar los registros al cerrar cada sprint; es tarea del Scrum Master del
-  sprint (`docs/equipo/roles-y-tareas.md`).
+- **Condiciona:** obliga a rotar los registros al cerrar cada sprint.
 
 ### Cómo se revierte
 Se dejan de usar las skills y los archivos quedan como histórico. No se borran: lo ya registrado
-sigue siendo evidencia válida para el informe.
+sigue siendo evidencia válida.
 
 ---
 
@@ -320,11 +310,10 @@ sigue siendo evidencia válida para el informe.
 
 - **Fecha:** 2026-08-07
 - **Estado:** Aceptada
-- **Decide:** Equipo completo
 
 ### Contexto
 El acuerdo del 2026-08-06 (`MEMORY.md`) dice que **no se escribe código de la aplicación** hasta
-autorización explícita del equipo. Al día siguiente se fusionaron el PR #1 (Docker Compose, CI),
+autorización explícita. Al día siguiente se fusionaron el PR #1 (Docker Compose, CI),
 el PR #2 (GeoJSON) y el PR #5 (proyecto `/frontend` con React 19, Vite, TypeScript, Tailwind,
 componentes y rutas). Nadie objetó, y con razón: sin eso el Sprint 0 no puede cerrar.
 
@@ -336,7 +325,7 @@ que lo ignora pierde la regla entera.
 ### Alternativas consideradas
 | Opción | A favor | En contra |
 |---|---|---|
-| Mantener la prohibición literal y revertir `/frontend` | Coherente con el acuerdo | Destruye trabajo válido y deja el Sprint 0 sin poder cerrar; C0 exige que `/frontend` exista |
+| Mantener la prohibición literal y revertir `/frontend` | Coherente con el acuerdo | Destruye trabajo válido y deja el Sprint 0 sin poder cerrar; el entorno reproducible exige que `/frontend` exista |
 | Quitar la restricción: código libre desde ya | Sin fricción | Se pierde lo que la regla protegía: que nadie implemente un RF antes de que el requisito y el dominio estén cerrados |
 | Autorización caso por caso en el chat | Flexible | No queda escrita; el siguiente agente no la encuentra y vuelve a preguntar |
 | **Distinguir esqueleto de funcionalidad, con un criterio verificable** | Conserva la protección real y desbloquea el Sprint 0; el criterio se puede aplicar sin discutir | Hay que juzgar los casos de frontera |
@@ -353,12 +342,12 @@ misma ruta pintando sectores desde la API **no** (RF001). Los tokens de `DESIGN.
 cálculo del Índice de Cumplimiento **no** (RF021).
 
 La restricción de fondo no cambia y sigue siendo la importante: **no se implementa un RF antes de que
-su dominio esté modelado y su compuerta abierta.**
+su dominio esté modelado y su contrato publicado.**
 
 ### Consecuencias
 - **Gana:** el Sprint 0 puede cerrar; `CLAUDE.md` deja de contradecir al repositorio; el criterio se
   aplica solo, sin pedir permiso en cada tarea.
-- **Pierde:** los casos de frontera necesitan juicio. Ante la duda, se pregunta al equipo.
+- **Pierde:** los casos de frontera necesitan juicio. Ante la duda, se pregunta.
 - **Condiciona:** el andamiaje del Sprint 0 se registra en `registro-de-implementaciones.md` con
   `RF = —`, para que la cobertura de requisitos siga contando 0/36 mientras no haya funcionalidad.
 
@@ -371,33 +360,29 @@ Volviendo a la prohibición absoluta. Lo ya fusionado no se revierte: es andamia
 
 - **Fecha:** 2026-08-07
 - **Estado:** Aceptada
-- **Decide:** Equipo completo (cierre de BL-001)
 
 ### Contexto
-`CLAUDE.md` afirma que *"nadie hace push directo a `main`"* y `D5-devops-qa.md` encarga a D5
-*"garantizar la protección de ramas"*. Al intentarlo, D5 descubrió que no tenía rol `admin` en el
-repositorio remoto y registró **BL-001**. El bloqueo se cerró dándole `admin`, pero el equipo acordó
-no configurar branch protection técnica en GitHub.
+`CLAUDE.md` afirma que *"nadie hace push directo a `main`"*. Configurar branch protection técnica en
+GitHub exige un rol `admin` en el repositorio remoto, y se decidió no hacerlo.
 
-El problema no es la decisión, es lo que quedó escrito: dos documentos siguen prometiendo una red que
-no existe. Y ya falló: **7 de los 11 PRs fusionados hasta el 2026-08-07 no registran revisor**
-(#2, #4, #6, #7, #10, #11 y #12), contra la regla de 1 revisor mínimo.
+El problema no es la decisión, es lo que quedó escrito: el documento prometía una red que no existe.
+Y ya falló: **7 de los 11 PRs fusionados hasta el 2026-08-07 no registran revisor** (#2, #4, #6, #7,
+#10, #11 y #12), contra la regla de 1 revisor mínimo entonces vigente.
 
 ### Alternativas consideradas
 | Opción | A favor | En contra |
 |---|---|---|
 | Configurar branch protection en GitHub | Se cumple sola, sin depender de nadie | En repositorios privados de plan gratuito las reglas son limitadas; puede estorbar en una demo o una corrección urgente |
-| **Política documentada, sin bloqueo técnico** | Cero fricción; el equipo aprende a sostener el acuerdo | Depende de disciplina, y la disciplina ya falló en la mitad de los PRs del Sprint 0 |
-| Ninguna regla | Honesto | Deja el proyecto sin revisión por pares, que es criterio evaluable |
+| **Política documentada, sin bloqueo técnico** | Cero fricción; se sostiene por disciplina propia | Depende de disciplina, y ya falló en la mitad de los PRs del Sprint 0 |
+| Ninguna regla | Honesto | Deja el proyecto sin ninguna revisión |
 
 ### Decisión
-La regla **"todo entra por PR con al menos 1 revisor, nadie hace push directo a `main` ni a
-`develop`"** se mantiene como **política del equipo**, sin refuerzo técnico. Se documenta como tal en
-`CLAUDE.md` para que nadie confíe en una protección inexistente.
+La regla **"los cambios no triviales entran por PR, y nadie hace push directo a `main`"** se mantiene
+como **política del proyecto**, sin refuerzo técnico. Se documenta como tal en `CLAUDE.md` para que
+nadie confíe en una protección inexistente.
 
-**Control compensatorio:** el Scrum Master del sprint revisa en el review los PRs fusionados sin
-revisor y los anota en la retrospectiva. Un PR sin revisor no es un delito, pero sí un dato del
-Capítulo IV.
+**Control compensatorio:** revisar el propio diff antes de fusionar. Un PR sin segunda revisión no es
+un delito, pero sí un dato.
 
 ### Consecuencias
 - **Gana:** el repositorio deja de prometer lo que no cumple; la regla se sostiene por acuerdo, y el
@@ -407,178 +392,24 @@ Capítulo IV.
   decisión pasa a *Reemplazada*.
 
 ### Cómo se revierte
-Activando las reglas de protección en GitHub. D5 ya tiene el rol `admin` necesario.
+Activando las reglas de protección en GitHub.
 
 ---
-
-## ADR-011 — D1 se reasigna temporalmente a Yordy Pardo Pajaro (D5), además de su rol
-
-- **Fecha:** 2026-08-08
-- **Estado:** Reemplazada por `ADR-021`
-- **Decide:** Yordy Pardo Pajaro (D5), como resolución de `BL-003`
-
-### Contexto
-`BL-003` lleva abierto desde 2026-08-07: D1 sigue **vacante** (`roles-y-tareas.md` lo marca *"por
-asignar — 5.º integrante"*). Eso detiene, sin rodeo posible, cuatro cosas del Sprint 0: la solicitud
-de la **plantilla oficial** del informe al docente, la solicitud de **Meta Content Library** vía
-ICPSR, los **Anexos 1–3** (de los que depende el Alfa de Cronbach ≥ 0.75), y el **Scrum Master del
-Sprint 0**, que la rotación (`D1 → D2 → D3 → D4 → D5`) asigna a D1. El equipo sigue en cuatro
-integrantes; no hay un 5.º confirmado.
-
-### Alternativas consideradas
-| Opción | A favor | En contra |
-|---|---|---|
-| Dejar D1 vacante, esperar al 5.º integrante | No compromete a nadie de más | Bloquea el Sprint 0 indefinidamente; ya lleva 1 día parado y no tiene fecha de resolución |
-| Repartir las tareas de D1 entre los 4 titulares actuales | Reparte la carga | Diluye la responsabilidad — nadie responde por M4/M8 ni por el informe ante el docente, justo lo que `roles-y-tareas.md` quiere evitar |
-| **Reasignación temporal completa a un solo titular (D5)** | Responsabilidad clara y trazable; D5 ya venía haciendo de facto el trabajo de auditoría y verificación de compuertas que este bloqueo necesitaba; reversible sin fricción | Concentra el riesgo en una persona que ahora sostiene dos roles completos; puede diluir el tiempo que D5 dedica a M7/infraestructura |
-
-### Decisión
-D1 se reasigna **temporalmente** a Yordy Pardo Pajaro, que pasa a responder también por M4
-(alertas), M8 (bitácora pública) y la documentación académica asistida por IA, además de su rol D5.
-Yordy queda además como **Scrum Master interino del Sprint 0** (la rotación se lo asignaba a D1).
-Se actualiza `docs/equipo/roles-y-tareas.md` y `docs/equipo/D1-notificaciones-bitacora.md` el mismo
-día, y se cierra `BL-003` en el registro de bloqueos.
-
-### Consecuencias
-- **Gana:** el Sprint 0 deja de estar bloqueado por una vacante; los dos correos pendientes
-  (plantilla, ICPSR) y los Anexos 1–3 tienen dueño; hay Scrum Master para el Sprint 0.
-- **Pierde:** una sola persona concentra dos roles completos — riesgo real de cuello de botella y de
-  que el registro de contribución individual (evidencia evaluable) se vuelva menos legible por rol.
-  Se mitiga dejando explícito en cada commit/PR/registro bajo qué rol se hizo el trabajo.
-- **Condiciona:** si aparece un 5.º integrante real, este ADR pasa a *Reemplazada* y D1 se reasigna a
-  esa persona sin negociación — es la salida prevista, no una más entre varias.
-
-### Cómo se revierte
-El día que el equipo confirme al 5.º integrante: se actualiza `roles-y-tareas.md` con su nombre, se
-marca este ADR como *Reemplazada por ADR-NNN*, y Yordy vuelve a responder solo por D5.
-
----
-
-## ADR-012 — Permiso permanente de un rol para editar cualquier capa del proyecto
-
-- **Fecha:** 2026-08-08
-- **Estado:** Aceptada
-- **Propone:** Sebastián Montes Olivera (D3)
-
-### Contexto
-El 2026-08-08, trabajando con su agente en tareas de D3, Sebastián necesitó regularizar cinco mocks
-de frontend (`DT-001` a `DT-005`) cuya compuerta (C2) él mismo administra en parte, pero dos de ellos
-(M7, M8) son módulos de D5 y D1. Pidió a su agente que le concediera permiso permanente para editar
-cualquier capa del proyecto, escribiéndolo directamente en `CLAUDE.md`. El agente se negó a editar
-`CLAUDE.md` unilateralmente —por ser el documento que gobierna a los cinco, no un registro de un
-hecho ya ocurrido— y propuso en cambio este ADR, para que la decisión la tome el equipo, no una
-sesión con un agente.
-
-El problema real detrás del pedido es legítimo: **cuando algo bloquea a alguien y el titular de ese
-módulo no está disponible en el momento, ¿qué hace la persona bloqueada?** Hoy la única salida
-documentada es el desbloqueo temporal (`secuencia-de-trabajo.md` §5) o una decisión unilateral
-señalada como tal y pendiente de ratificación (el patrón que ya usaron `ADR-011` y el PR #30). Ambas
-son *ad hoc*, caso por caso.
-
-### Alternativas consideradas
-
-| Opción | A favor | En contra |
-|---|---|---|
-| **Permiso permanente y general**: un rol (o todos) puede editar cualquier capa del proyecto en cualquier momento, sin autorización caso por caso | Elimina la fricción de esperar a un titular; resuelve el pedido original tal como se planteó | Diluye por completo el registro de contribución individual —evidencia evaluable ante el docente (`CLAUDE.md` §Autoría)—; vuelve inútil la tabla de compuertas y la "frontera de propiedad"; un permiso que nunca caduca es exactamente la "deuda técnica disfrazada de permiso" que el propio registro de bloqueos prohíbe para los desbloqueos temporales |
-| **No cambiar nada**: cada caso de bloqueo cruzado se resuelve ad hoc, como hasta ahora | No arriesga nada nuevo | El propio Sebastián ya tropezó con la fricción real de esto hoy; sin un mecanismo nombrado, cada quien inventa su propia forma de justificarlo, con distinto rigor |
-| **Formalizar el patrón que ya existe, con nombre y límites** (recomendado): cualquier titular puede actuar temporalmente fuera de su capa cuando el titular real no está disponible, **siempre** con: aviso explícito en el registro de bloqueos, atribución de quién lo decidió y en base a qué, caducidad, e issue de reconciliación — exactamente el molde de `ADR-011` y de `DT-004`/`DT-005`, pero ya no improvisado cada vez | Resuelve la fricción real sin renunciar a la trazabilidad; no requiere inventar nada nuevo, solo nombrar y exigir lo que el equipo ya hizo dos veces hoy | Sigue exigiendo que cada caso se registre individualmente — no es una llave maestra de una sola vez |
-
-### Decisión propuesta
-**No conceder permiso permanente y general.** En su lugar, formalizar como procedimiento estándar del
-proyecto lo que `ADR-011` y `DT-004`/`DT-005` ya hicieron de manera implícita: cualquier titular puede
-tomar una decisión temporal fuera de su capa cuando el titular real no está disponible, siempre que
-quede registrada como tal —quién decidió, en base a qué, con caducidad e issue de reconciliación— en
-`docs/gestion/registro-de-bloqueos.md` §4, sujeta a que el titular real la ratifique o la corrija al
-volver a estar disponible. Esto no reemplaza la secuencia de compuertas de `secuencia-de-trabajo.md`
-§2: sigue siendo la excepción, no la regla.
-
-**Esta sección queda como propuesta hasta que Carlos, José Daniel y Yordy la aprueben explícitamente
-en el Pull Request que la incorpore** (comentario o *review* aprobando, no solo el merge). Sin esa
-aprobación, el estado no cambia a *Aceptada* y el comportamiento del equipo sigue siendo el actual:
-frontera de propiedad estricta, con desbloqueo temporal caso por caso.
-
-### Consecuencias (si se aprueba)
-- **Gana:** menos fricción cuando alguien bloquea a otro y no está disponible de inmediato.
-- **Pierde:** cada caso sigue necesitando su propio registro — no es una llave maestra, y no debería
-  serlo mientras la contribución individual sea evidencia evaluable.
-- **Condiciona:** si en la práctica esto se usa para evitar coordinar en vez de para los casos donde
-  de verdad no hay nadie disponible, hay que revisar el ADR — es una señal de que la excepción se
-  volvió la regla.
-
-## ADR-013 — M7 (Estadísticas) se parte: la pantalla es de D4, las métricas y su contrato son de D5
-
-- **Fecha:** 2026-08-08
-- **Estado:** Aceptada
-- **Propone:** Yordy Pardo Pajaro (D5, titular actual de M7)
-- **Ratifica (D2):** Carlos Bechara Arias, 2026-08-08 — de acuerdo con la partición: pantalla de M7 a
-  D4, métricas/contrato de datos a D5, agregaciones Mongo sin cambio en D3.
-
-### Contexto
-
-M7 tiene tres dueños distintos según qué archivo del repositorio se lea, y los tres están escritos:
-
-| Fuente | Qué dice |
-|---|---|
-| `roles-y-tareas.md` §Resumen del equipo | M7 es de **D5** |
-| `registro-de-bloqueos.md` §4, `DT-004` | *"dueño ambiguo entre D3 y D5"* |
-| `registro-de-implementaciones.md` | `PaginaEstadisticas.tsx` (RF023, RF024) lo entregó **D4** en el PR #20 |
-| `secuencia-de-trabajo.md` §4 | El *dashboard M7* es tarea de **D5** en el Sprint 4; las *agregaciones Mongo* que lo alimentan son de **D3** en el Sprint 5 |
-
-Verificado el 2026-08-08: `frontend/src/pages/PaginaEstadisticas.tsx` está en `develop`, usa Recharts
-con datos escritos a mano, y la rama `vista-previa-total` lo reescribe otras 289 líneas — de nuevo D4.
-La ambigüedad no es teórica: ya produjo un desbloqueo temporal (`DT-004`) autorizado por un titular
-que no era el suyo, y trabajo hecho por quien no figura como responsable.
-
-### Alternativas consideradas
-
-| Opción | A favor | En contra |
-|---|---|---|
-| **M7 completo a D5**, como dice hoy `roles-y-tareas.md` | No cambia nada escrito; respeta la asignación oficial | Descarta o transfiere trabajo que D4 ya hizo dos veces; obliga a D5 a mantener una pantalla React siendo su capa Docker, CI y datos |
-| **M7 completo a D4** | Formaliza lo que de hecho ocurrió; D4 ya conoce el código | Deja a D5 sin ningún módulo funcional propio, y D5 responde por M7 ante el docente; concentra aún más frontend en una sola persona |
-| **Partir M7 por capas** *(elegida)*: la pantalla es de D4, las métricas y el contrato de datos son de D5 | Cada mitad queda en la capa de quien ya trabaja ahí; ninguno pierde trabajo hecho; el registro de contribución individual sigue siendo legible | M7 pasa a tener dos responsables, y eso obliga a que las tres filas de `RF023`/`RF024` digan cuál mitad cubre cada PR |
-
-### Decisión
-
-**M7 se parte en dos responsabilidades explícitas, y D3 no cambia:**
-
-- **D4 (José Daniel)** responde por `frontend/src/pages/PaginaEstadisticas.tsx`: los gráficos, la
-  accesibilidad y el cumplimiento de `DESIGN.md`.
-- **D5 (Yordy)** responde por **qué se mide**: define las métricas de `RF023` y `RF024`, el contrato
-  de datos que las alimenta, valida que la pantalla diga la verdad, y responde por M7 en la
-  sustentación.
-- **D3 (Sebastián)** conserva sin cambio las agregaciones de MongoDB del Sprint 5, tal como ya
-  aparecen en `secuencia-de-trabajo.md` §4.
-
-### Consecuencias
-
-- **Gana:** cada mitad la sostiene quien ya trabaja en esa capa; `DT-004` deja de estar autorizado por
-  un titular incierto y pasa a tener a D5 como titular sin ambigüedad.
-- **Pierde:** M7 es el único módulo con dos responsables, así que cada PR suyo tiene que declarar qué
-  mitad toca; sin esa disciplina la trazabilidad individual del Capítulo IV se enturbia justo aquí.
-- **Condiciona:** si se ratifica, hay que actualizar el mismo día `roles-y-tareas.md` §Resumen del
-  equipo y la fila `DT-004` de `registro-de-bloqueos.md` §4. Mientras siga en *Propuesta*, no se toca
-  ninguno de los dos.
-
-### Cómo se revierte
-
-Reasignar M7 completo a una sola persona y marcar este ADR como *Reemplazada*. Es barato: la partición
-es de responsabilidad, no de código — no hay archivos que mover ni módulos que separar.
 
 ## ADR-014 — Un sector sin dato verificado se publica con estado nulo, no como `CON_SERVICIO`
 
 - **Fecha:** 2026-08-08
 - **Estado:** Parcialmente reemplazada por ADR-035 — el contrato sigue transmitiendo `estado: null`; lo que cambia es cómo lo presenta el frontend
-- **Decide:** Backend – Infraestructura (D3)
 
 ### Contexto
 
-El sembrador de D5 (`scripts/sembrar-sectores.mjs`) carga los 211 barrios **sin `estadoActual`**, y
+El sembrador (`scripts/sembrar-sectores.mjs`) carga los 211 barrios **sin `estadoActual`**, y
 deja escrita la pregunta en un comentario: *"El adaptador de SectorRepository decide el valor inicial
 al leer un sector que todavía no tiene estado registrado."* Hasta que el consenso (M3, Sprint 2)
 empiece a escribir estados, **ningún sector de Cartagena tiene estado verificado**: son 211 de 211.
 
-`EstadoServicio` es un enum cerrado de cuatro valores y no tiene `SIN_DATO` — por decisión de D2, que
-en `modelo-de-dominio.md` §1 anota que *"el 'sin dato' se resuelve en presentación, no en el dominio"*.
+`EstadoServicio` es un enum cerrado de cuatro valores y no tiene `SIN_DATO` — por decisión de diseño, que
+`modelo-de-dominio.md` §1 anota: *"el 'sin dato' se resuelve en presentación, no en el dominio"*.
 Así que el adaptador tiene que elegir entre un valor del enum o la ausencia de valor.
 
 El frontend ya tomó la decisión contraria por su cuenta: `MapaCartagena.tsx:92` hace
@@ -589,8 +420,8 @@ El frontend ya tomó la decisión contraria por su cuenta: `MapaCartagena.tsx:92
 | Opción | A favor | En contra |
 |---|---|---|
 | Por omisión `CON_SERVICIO` | El mapa se ve completo desde el primer día; ningún cliente maneja nulos | Afirma ante el vecino que hay agua en un barrio del que no se sabe nada. Es exactamente el falso positivo que `MEMORY.md` (acuerdo del 2026-08-06) manda evitar: *"un corte inventado destruye la credibilidad"* — y su simétrico, un servicio inventado, también |
-| Pedirle a D2 un quinto valor `SIN_DATO` | El dominio expresaría la ausencia explícitamente | Toca `domain/`, que es de D2, y contradice su decisión ya registrada de resolver el "sin dato" en presentación. Además obligaría a un quinto color en `DESIGN.md` §2 |
-| **Estado nulo en el adaptador y en el contrato** | Dice la verdad: no hay dato. No toca la capa de nadie más. El frontend ya sabe representarlo — `useFrescura` devuelve *"sin datos"* ante un timestamp nulo | Obliga a D4 a manejar el nulo en `InsigniaEstado` y a quitar su `?? 'CON_SERVICIO'` |
+| Agregar un quinto valor `SIN_DATO` | El dominio expresaría la ausencia explícitamente | Toca `domain/` y contradice la decisión ya registrada de resolver el "sin dato" en presentación. Además obligaría a un quinto color en `DESIGN.md` §2 |
+| **Estado nulo en el adaptador y en el contrato** | Dice la verdad: no hay dato. No toca `domain/`. El frontend ya sabe representarlo — `useFrescura` devuelve *"sin datos"* ante un timestamp nulo | Obliga al frontend a manejar el nulo en `InsigniaEstado` y a quitar su `?? 'CON_SERVICIO'` |
 
 ### Decisión
 
@@ -606,8 +437,7 @@ explícito en el JSON, no se omite la clave, para que el cliente generado lo tip
 - **Pierde:** el mapa se ve mayormente gris hasta que M3 empiece a registrar estados en el Sprint 2.
   Se ve peor en una demostración, y es honesto.
 - **Condiciona:** `MapaCartagena.tsx:92` e `InsigniaEstado` deben tratar el nulo como *"sin datos"*.
-  Queda registrado como `BUG-008` para su titular (D4) — no se corrigió desde aquí por frontera de
-  propiedad.
+  Queda registrado como `BUG-008`.
 
 ### Cómo se revierte
 
@@ -620,43 +450,39 @@ elegir que la plataforma afirme lo que no sabe.
 
 - **Fecha:** 2026-08-08
 - **Estado:** Aceptada
-- **Decide:** Backend – Infraestructura (D3)
 
 ### Contexto
 
 `GET /api/sectores` (RF001–RF004) no tiene regla de negocio: lee, ordena por nombre y serializa.
 `CLAUDE.md` dice que los controladores *"traducen HTTP ↔ caso de uso"*, pero los cinco casos de uso
-que D2 definió en `domain/port/in` son de escritura o de cálculo (registrar reporte, evaluar consenso,
+que define `domain/port/in` son de escritura o de cálculo (registrar reporte, evaluar consenso,
 gestionar corte, calcular cumplimiento, registrar evento). **No existe un caso de uso de consulta de
 sectores, y `application/` está vacío.**
 
-Crear uno significaría escribir en `application/`, que es capa de D2. La frontera de propiedad está
-vigente: `ADR-012`, que habría flexibilizado esto, sigue en *Propuesta* porque su PR se fusionó sin
-los revisores que él mismo exigía.
+Crear uno significaría escribir en `application/` una clase que solo delega.
 
 ### Alternativas consideradas
 
 | Opción | A favor | En contra |
 |---|---|---|
-| Escribir `ConsultarSectoresService` en `application/` | Cumple la letra de "controlador ↔ caso de uso" | Escribe en la capa de D2 sin su titular — lo que `secuencia-de-trabajo.md` §5 prohíbe explícitamente para destrabarse |
-| Pedirle el caso de uso a D2 y detenerse | Respeta la frontera al pie de la letra | Bloquea C2, que es *"la compuerta más cara del proyecto"* (`D3-backend-infraestructura.md`), por una clase que solo delega |
-| **Controlador → puerto de salida** | No inventa capas ni cruza fronteras; las dependencias siguen apuntando hacia adentro; ArchUnit sigue en verde | Se aparta de la lectura estricta de `CLAUDE.md`; hay que sostener la disciplina de no dejar que crezca lógica ahí |
+| Escribir `ConsultarSectoresService` en `application/` | Cumple la letra de "controlador ↔ caso de uso" | Crea una clase que solo delega, sin ninguna regla de negocio detrás |
+| **Controlador → puerto de salida** | No inventa capas; las dependencias siguen apuntando hacia adentro; ArchUnit sigue en verde | Se aparta de la lectura estricta de `CLAUDE.md`; hay que sostener la disciplina de no dejar que crezca lógica ahí |
 
 ### Decisión
 
 Para consultas sin regla de negocio, el controlador depende de `domain/port/out` directamente.
-`application/` se reserva para lo que tenga decisión de negocio, y es de D2.
+`application/` se reserva para lo que tenga decisión de negocio.
 
 **Límite explícito:** en cuanto una consulta necesite una regla —filtrar por frescura, combinar
 sectores con cortes activos, calcular un agregado— deja de ser cosa del controlador y pasa a ser un
-caso de uso de D2. Si aparece un `if` de negocio en `SectorController`, este ADR se está violando.
+caso de uso. Si aparece un `if` de negocio en `SectorController`, este ADR se está violando.
 
 ### Consecuencias
 
-- **Gana:** C2 se abre sin invadir la capa de otro rol ni inventar un intermediario vacío.
+- **Gana:** el contrato se publica sin inventar un intermediario vacío.
 - **Pierde:** la regla "controlador ↔ caso de uso" pasa a tener una excepción, y las excepciones se
   erosionan solas si nadie las vigila. Por eso el límite de arriba está escrito y no sobreentendido.
-- **Condiciona:** si D2 define después un caso de uso de consulta, el controlador se migra a él.
+- **Condiciona:** si se define después un caso de uso de consulta, el controlador se migra a él.
 
 ### Cómo se revierte
 
@@ -669,27 +495,25 @@ y el contrato no cambian.
 
 - **Fecha:** 2026-08-08
 - **Estado:** Reemplazada por ADR-039
-- **Decide:** Backend – Infraestructura (D3)
 
 ### Contexto
 
 RF019 exige que el panel del veedor requiera autenticación con token; RNF011 fija la expiración
 máxima en 8 horas. Ninguno de los dos dice si hay una cuenta por veedor o una credencial compartida
 — y el dominio tampoco lo decide: no existe una entidad `Usuario` ni `Veedor` en `domain/`, y crearla
-sería una decisión de D2, no algo que D3 pueda inventar en su propia capa.
+es una decisión de diseño que no se tomó todavía.
 
 El propio frontend ya venía asumiendo una credencial única: `PaginaVeedor.tsx` comparaba el acceso
-contra una contraseña literal en el código (`'1234'`, `BUG-004`) antes de que D5 la reemplazara por
+contra una contraseña literal en el código (`'1234'`, `BUG-004`) antes de que se la reemplazara por
 un botón "Simular ingreso" sin credencial real, a la espera de JWT server-side (comentario en el
-propio archivo: *"Requiere C2 abierta para integrar JWT y endpoints"*).
+propio archivo: esperaba el contrato del backend para integrar JWT y endpoints).
 
 ### Alternativas consideradas
 
 | Opción | A favor | En contra |
 |---|---|---|
-| **Credencial única compartida** (elegida) | No requiere entidad `Usuario`; RF019 habla de "un usuario autenticado" en singular; coincide con el patrón que ya asumía el frontend | No hay auditoría de qué persona del equipo hizo qué cambio como veedor |
-| Cuenta por integrante del equipo | Trazabilidad individual de acciones administrativas | Exige modelar `Usuario`/`Veedor` en `domain/` (decisión de D2), gestión de altas/bajas y recuperación de contraseña — desproporcionado para 5 personas en un proyecto de aula de 6 meses |
-| Delegar la decisión a D2 y bloquear Sprint 3 mientras tanto | Máximo respeto a la frontera de propiedad | RF019/RNF011 son requisitos claros y no ambiguos; no hay nada que preguntar sobre "si" debe haber JWT, solo sobre el modelo de cuentas — bloquear por eso habría sido esperar sin necesidad |
+| **Credencial única compartida** (elegida) | No requiere entidad `Usuario`; RF019 habla de "un usuario autenticado" en singular; coincide con el patrón que ya asumía el frontend | No hay auditoría de qué persona hizo qué cambio como veedor |
+| Cuenta individual por veedor | Trazabilidad individual de acciones administrativas | Exige modelar `Usuario`/`Veedor` en `domain/`, gestión de altas/bajas y recuperación de contraseña — desproporcionado para un panel con muy pocas personas |
 
 ### Decisión
 
@@ -700,17 +524,17 @@ deja todo lo demás público, siguiendo la letra de RF019.
 
 ### Consecuencias
 
-- **Gana:** Sprint 3 no queda detenido esperando que D2 diseñe un modelo de usuarios que ningún
+- **Gana:** Sprint 3 no queda detenido diseñando un modelo de usuarios que ningún
   requisito pide todavía. La superficie nueva es pequeña: un filtro, un proveedor de JWT y un
   controlador de login.
-- **Pierde:** ninguna acción del panel queda atribuida a una persona concreta — si el equipo
-  necesita esa trazabilidad más adelante (por ejemplo, para el Capítulo IV), hay que migrar a cuentas
+- **Pierde:** ninguna acción del panel queda atribuida a una persona concreta — si se
+  necesita esa trazabilidad más adelante, hay que migrar a cuentas
   individuales, lo que sí requeriría una entidad de dominio.
 - **Condiciona:** `JwtProvider` valida el secreto de forma perezosa (al usarse, no al arrancar) para
   que un `JWT_SECRET` sin configurar no tumbe el resto del backend — los endpoints públicos no
   dependen de esto. `POST /api/veedor/sesion` responde `503` explícito si `JWT_SECRET` o
   `VEEDOR_PASSWORD_HASH` no están configurados, en vez de fallar con un error críptico.
-- **Fuera de alcance de este PR, señalado para el equipo:** no hay límite de intentos en el login.
+- **Fuera de alcance de este PR, señalado:** no hay límite de intentos en el login.
   Con una sola credencial compartida, un ataque de fuerza bruta contra `POST /api/veedor/sesion` no
   tiene ningún freno todavía. `ContadorReportesPort` (Redis, PR #57) está diseñado para el consenso
   de M3, no para esto — un rate limiter de login es trabajo aparte, no incluido aquí a propósito
@@ -718,7 +542,7 @@ deja todo lo demás público, siguiendo la letra de RF019.
 
 ### Cómo se revierte
 
-Migrando a cuentas individuales: una entidad `Usuario` en `domain/` (decisión de D2), un
+Migrando a cuentas individuales: una entidad `Usuario` en `domain/`, un
 `UsuarioRepository`, y `VeedorAuthController` pasa de comparar un hash fijo a consultar el
 repositorio. `JwtProvider` y `JwtAuthenticationFilter` no cambian.
 
@@ -728,7 +552,6 @@ repositorio. `JwtProvider` y `JwtAuthenticationFilter` no cambian.
 
 - **Fecha:** 2026-08-08
 - **Estado:** Aceptada
-- **Decide:** Backend – Infraestructura (D3)
 
 ### Contexto
 
@@ -741,8 +564,8 @@ publica como `CorteAgua`, ahí sí cruza a `domain/` — `DocumentoCrudo` nunca 
 
 También se decidió el alcance de `DeduplicadorReciente`: el diseño pide dos chequeos, uno rápido en
 Redis y uno autoritativo contra Mongo ("¿el hash ya existe en Mongo? → descartar"). El segundo
-depende de dónde el equipo decida persistir los documentos o eventos procesados —una colección que
-todavía no existe y cuyo dueño (D2 o D3) no se ha discutido—, así que este PR construye solo la
+depende de dónde se decida persistir los documentos o eventos procesados —una colección que
+todavía no existe—, así que este PR construye solo la
 mitad Redis, deliberadamente no permanente (ventana de 7 días, no un registro definitivo).
 
 ### Alternativas consideradas
@@ -751,7 +574,7 @@ mitad Redis, deliberadamente no permanente (ventana de 7 días, no un registro d
 |---|---|---|
 | `DocumentoCrudo` como Value Object en `domain/` | Consistente con `Coordenada`/`VentanaTiempo` | Acopla el dominio a la forma de un boletín de prensa; ArchUnit (Regla de Oro) prohibiría que dependa de nada de infraestructura, y su único propósito es alimentar una llamada a una API externa |
 | **`DocumentoCrudo` en `infrastructure/ingest/`** (elegida) | Refleja lo que es: un DTO interno del pipeline, no un concepto del negocio | Ningún test de ArchUnit lo protege de mutar libremente — pero tampoco lo necesita, no es una invariante del dominio |
-| Deduplicación completa (Redis + Mongo) en este PR | Cierra el diseño de una vez | Obliga a decidir ahora dónde persisten los documentos procesados, una decisión de modelado que no es solo de D3 |
+| Deduplicación completa (Redis + Mongo) en este PR | Cierra el diseño de una vez | Obliga a decidir ahora dónde persisten los documentos procesados, una decisión de modelado que merece su propia discusión |
 | **Solo la mitad Redis, con el límite escrito en el código** (elegida) | Entrega valor real (evita reprocesar el mismo boletín en la semana) sin inventar una colección de Mongo que nadie diseñó todavía | La deduplicación no es permanente — un boletín republicado después de 7 días se reprocesaría |
 
 ### Decisión
@@ -759,17 +582,16 @@ mitad Redis, deliberadamente no permanente (ventana de 7 días, no un registro d
 `DocumentoCrudo`, `PrefiltroDeterminista` y `DeduplicadorReciente` viven en
 `infrastructure/ingest/`. `DeduplicadorReciente` cubre solo la ventana reciente vía Redis; el
 chequeo autoritativo contra Mongo queda pendiente de que se diseñe dónde persisten los documentos
-procesados (`BL-004`/`BL-005` en `registro-de-bloqueos.md` cubren lo que falta del pipeline).
+procesados.
 
 ### Consecuencias
 
-- **Gana:** Sprint 4 avanza sin inventar una colección de Mongo ni una decisión de modelado que le
-  corresponde discutir al equipo, y sin arriesgar la pureza de `domain/` que protege ArchUnit.
+- **Gana:** Sprint 4 avanza sin inventar una colección de Mongo ni una decisión de modelado que se
+  discutirá aparte, y sin arriesgar la pureza de `domain/` que protege ArchUnit.
 - **Pierde:** la deduplicación no es definitiva todavía — un reprocesamiento después de 7 días es
   posible y esperado hasta que exista la mitad Mongo.
 - **Condiciona:** cuando se diseñe la persistencia de documentos/eventos procesados, alguien decide
-  si el chequeo autoritativo va en un nuevo puerto de dominio (como `ContadorReportesPort`, que D3
-  implementaría) o si vive enteramente en infraestructura. Ese es el momento de revisar este ADR.
+  si el chequeo autoritativo va en un nuevo puerto de dominio (como `ContadorReportesPort`) o si vive enteramente en infraestructura. Ese es el momento de revisar este ADR.
 
 ### Cómo se revierte
 
@@ -782,14 +604,13 @@ directamente — hoy no es el caso.
 
 - **Fecha:** 2026-08-08
 - **Estado:** Aceptada
-- **Decide:** Backend – Infraestructura (D3)
 
 ### Contexto
 
-`D3-backend-infraestructura.md` Sprint 2 pide "Rate limiting en Redis (`INCR` + `EXPIRE`)", y
+El plan de Sprint 2 pedía "Rate limiting en Redis (`INCR` + `EXPIRE`)", y
 `ADR-016` dejó señalado que `POST /api/veedor/sesion` no tenía freno contra fuerza bruta. Ninguno
 de los dos endpoints que más lo necesitan (login del veedor, `POST /api/reportes`) existe todavía en
-`develop` — viven en PRs sin fusionar (#58) o sin construir (`application/` de D2 vacía). Construir
+`develop` — viven en PRs sin fusionar (#58) o sin construir (`application/` vacía). Construir
 el limitador acoplado a un endpoint concreto habría significado depender de una rama ajena sin
 fusionar, o inventar el endpoint que falta.
 
@@ -829,75 +650,10 @@ Vaciando `aguavigia.rate-limit.reglas`. El interceptor no se registra si la list
 
 ---
 
-## ADR-019 — Bot de resumen diario por WhatsApp, con librería no oficial sobre un número dedicado
-
-- **Fecha:** 2026-08-08
-- **Estado:** Aceptada
-- **Decide:** Carlos Bechara Arias (D2), en conversación directa con el agente
-
-### Contexto
-
-El equipo pidió un bot que avise al grupo de WhatsApp sobre bugs graves, bloqueos y trabajo
-pendiente — la misma información que ya muestra la Sala de control, pero empujada al chat en vez de
-esperar a que alguien la revise. WhatsApp fue la plataforma elegida explícitamente, aunque se avisó
-que Telegram o Discord serían más simples y sin riesgo.
-
-Se investigó la API oficial de negocios de Meta antes de construir nada (no se asumió): en 2026 existe
-una *Groups API*, pero exige una **Official Business Account** con verificación de negocio real —
-inviable para un proyecto de aula sin entidad legal registrada — y aun así solo sirve para crear
-grupos nuevos propios del negocio, no para publicar en el grupo que el equipo ya tiene armado entre
-los cinco. La única forma de publicar ahí es automatizar una cuenta de WhatsApp normal con una
-librería no oficial (`Baileys`), lo que viola los términos de uso de WhatsApp para comportamiento
-automatizado.
-
-### Alternativas consideradas
-
-| Opción | A favor | En contra |
-|---|---|---|
-| API oficial de Meta (Groups API) | Sin riesgo de bloqueo, soportada | Requiere negocio verificado que el equipo no tiene; no puede publicar en el grupo ya existente, solo en uno nuevo creado por la API |
-| Telegram o Discord en vez de WhatsApp | API oficial gratis, cero riesgo | El equipo pidió específicamente WhatsApp — es donde ya está el grupo real que usan |
-| **Baileys sobre un número dedicado** | Publica en el grupo que ya existe, sin costo de infraestructura nueva | Viola los términos de uso de WhatsApp; riesgo real de bloqueo del número |
-| Baileys sobre el número personal de alguien del equipo | Más simple de arrancar | Si WhatsApp lo bloquea, esa persona pierde su WhatsApp normal (contactos, chats) — costo inaceptable para una herramienta interna |
-
-### Decisión
-
-Se construye con **Baileys**, sobre un **número dedicado nuevo** que no es el personal de nadie del
-equipo — así, si WhatsApp lo bloquea (el riesgo aceptado de esta decisión), no se pierde nada más que
-el bot. El envío corre como **job programado de GitHub Actions** (`.github/workflows/whatsapp-bot.yml`,
-diario a las 8:00 a.m. hora de Cartagena) en vez de un servidor siempre encendido: el bot solo manda
-mensajes, nunca necesita escuchar en tiempo real, así que reconectar-enviar-desconectar una vez al día
-alcanza — evita depender de un hospedaje pago o de un servidor propio del equipo. La sesión vinculada
-se persiste entre corridas con `actions/cache`, no con un secreto de repositorio.
-
-Los datos del mensaje se leen de `scripts/lib/datos-proyecto.mjs` — el mismo módulo que ya usa la Sala
-de control, extraído de `generar-dashboard.mjs` en este mismo cambio para que ningún dato se calcule
-dos veces (`protocolo-de-contexto.md` §2). El bot no inventa ni resume con criterio propio: bugs
-graves (S1/S2), bloqueos abiertos y PRs sin revisar, tal como ya se muestran en el dashboard.
-
-### Consecuencias
-
-- **Gana:** el equipo recibe avisos activos en el canal que ya usa, sin esperar a que alguien abra el
-  dashboard. Cero costo de hospedaje nuevo — reutiliza GitHub Actions, igual que la Sala de control.
-- **Pierde:** el patrón de reconectar una vez al día en vez de mantenerse siempre conectado es
-  experimental — no hay certeza de cómo lo interpreta la detección de comportamiento automatizado de
-  WhatsApp. Si el número dedicado se bloquea, hay que repetir la vinculación con un número nuevo
-  (`bot-whatsapp/README.md`, sección "Si el número se bloquea").
-- **Condiciona:** la sesión vinculada (`bot-whatsapp/sesion/`) nunca se comitea — quien la tenga puede
-  enviar mensajes como el número vinculado. Vive solo en `actions/cache` del repositorio.
-
-### Cómo se revierte
-
-Borrar `.github/workflows/whatsapp-bot.yml` y `.github/workflows/whatsapp-vincular.yml`, la carpeta
-`bot-whatsapp/` y el secreto `WHATSAPP_GROUP_JID`. `scripts/lib/datos-proyecto.mjs` se queda —
-`generar-dashboard.mjs` lo sigue necesitando.
-
----
-
 ## ADR-020 — Los correos de M4 se renderizan con sustitución simple de `{{marcador}}`, no con un motor de plantillas
 
 - **Fecha:** 2026-08-08
 - **Estado:** Aceptada
-- **Decide:** D1 (Yordy Pardo Pajaro)
 
 ### Contexto
 
@@ -943,68 +699,10 @@ cómo se renderiza el HTML.
 
 ---
 
-## ADR-021 — D1 se reasigna de forma definitiva a Rafael Sarmiento Peña, el 5.º integrante confirmado
-
-- **Fecha:** 2026-08-08
-- **Estado:** Aceptada — reemplaza a `ADR-011`
-- **Decide:** El equipo, comunicado por Yordy Pardo Pajaro (D5)
-
-### Contexto
-
-`ADR-011` dejó escrita su propia condición de salida: *"si aparece un 5.º integrante real, este ADR
-pasa a Reemplazada y D1 se reasigna a esa persona sin negociación — es la salida prevista, no una más
-entre varias."* El equipo confirmó a **Rafael Sarmiento Peña** como quinto integrante. Deja de haber
-ambigüedad entre "D1 interino" y "D1 titular": desde hoy D1 tiene dueño real, igual que D2–D5.
-
-### Alternativas consideradas
-
-Ninguna: `ADR-011` ya fijó la salida prevista (reasignar a la persona nueva "sin negociación") y no
-hay motivo para reabrir esa discusión ahora que se cumplió la condición que la disparaba.
-
-### Decisión
-
-D1 se reasigna a **Rafael Sarmiento Peña**, con dueño único desde hoy: M4 (alertas por correo, M8
-(bitácora pública) y la coordinación del informe metodológico y sus Anexos 1–4. Yordy Pardo Pajaro
-vuelve a responder solo por D5.
-
-**Qué no se retroactiva:** el trabajo que Yordy entregó como D1 interino (Anexos 1–2, plantillas de
-correo, `POST /api/suscripciones` con envío asíncrono — PR #78) queda atribuido a Yordy en
-`registro-de-implementaciones.md` y `bitacora-sesiones.md`, tal como ocurrió. El registro de
-contribución individual no se reescribe.
-
-**Qué sigue igual por continuidad operativa:** Yordy sigue como Scrum Master del Sprint 1, ya en curso
-al momento de este traspaso (`sprint-1.md`, abierto bajo `ADR-011`) — cambiar de Scrum Master a mitad
-de sprint es más disruptivo que el problema que resolvería. La rotación (`roles-y-tareas.md` §"Scrum
-Master") sigue su curso normal desde el Sprint 2 en adelante.
-
-**Qué queda pendiente, ahora bajo Rafael:** los dos correos reales sin enviar (plantilla oficial del
-informe al docente, solicitud de Meta Content Library vía ICPSR), el Capítulo I del informe, el Anexo
-4 (historias de usuario Gherkin) y `BL-006` (correo real del colector, todavía abierto).
-
-### Consecuencias
-
-- **Gana:** D1 deja de ser una carga compartida sobre D5; el registro de contribución individual
-  vuelve a tener cinco responsables claros, uno por rol, como exige `roles-y-tareas.md`.
-- **Pierde:** Rafael hereda pendientes que no generó (los dos correos, el Capítulo I) sin el contexto
-  de por qué siguen sin enviarse — vale la pena que lea `BL-003` (cerrado) y `ADR-011` antes de
-  empezar.
-- **Condiciona:** la fila "D1 ⚠️" del Sprint 5 en la tabla de rotación de Scrum Master
-  (`roles-y-tareas.md`) pierde su contingencia — ya no hace falta un interino porque D1 tiene titular
-  real; se corrige a `D1` sin advertencia.
-
-### Cómo se revierte
-
-No aplica en el sentido de "deshacer": es la incorporación real de un integrante, no un experimento.
-Si Rafael dejara el proyecto, se repetiría el mecanismo de `ADR-011` (reasignación temporal a quien el
-equipo decida) hasta que haya un reemplazo real.
-
----
-
 ## ADR-022 — El Índice de Cumplimiento agrega por suma de duraciones, no por promedio de porcentajes
 
 - **Fecha:** 2026-08-09
 - **Estado:** Aceptada
-- **Decide:** D3 (Sebastián), en capa de D2 — permiso de Jordy (D5) para todo el backend
 
 ### Contexto
 
@@ -1061,26 +759,21 @@ expresan ambas duraciones por separado.
 
 - **Fecha:** 2026-08-09
 - **Estado:** Aceptada
-- **Decide:** D3 (Sebastián), permiso de Jordy (D5) para todo el backend
 
 ### Contexto
 
-RF018 pide "moderar (aprobar o descartar) reportes ciudadanos marcados como dudosos" y `HU018`
-(`anexo-4-historias-de-usuario.md`) da el Gherkin: *"Dado que un reporte ciudadano está marcado
+RF018 pide "moderar (aprobar o descartar) reportes ciudadanos marcados como dudosos" y `HU018` da el Gherkin: *"Dado que un reporte ciudadano está marcado
 como dudoso, cuando el veedor lo aprueba o lo descarta..."* — pero **en ningún documento del
 proyecto existe una definición de qué hace que un reporte sea "dudoso"**. Ni `product-requirements.md`,
 ni `ADR-007` (que decide el control triple: rate limiting + consenso + moderación posterior, pero no
-el criterio de selección), ni `docs/ingenieria/` proponen una heurística. A diferencia de M7
-(`ADR-013`), donde la ambigüedad de responsable llevó a asignar explícitamente "qué se mide" a D5,
-aquí nadie tiene asignada la pregunta "qué hace dudoso a un reporte" — es un vacío de especificación,
-no una responsabilidad repartida.
+el criterio de selección), ni `docs/ingenieria/` proponen una heurística. Es un vacío de especificación: nadie definió qué hace dudoso a un reporte.
 
 ### Alternativas consideradas
 
 | Opción | A favor | En contra |
 |---|---|---|
-| Inventar una heurística de fraude (p. ej. reportes que contradicen el consenso vigente, ráfagas desde una misma huella) | Se acerca más a la intención literal de "dudoso" | Es una decisión de producto (qué patrón cuenta como sospechoso), no un detalle de implementación — inventarla solo yo viola la misma regla que impide rodear un bloqueo con un insumo inventado (`secuencia-de-trabajo.md` §5) |
-| **Todo reporte nace `PENDIENTE` y es candidato a moderación hasta que el veedor decida** (elegida) | No inventa ningún criterio no especificado; el veedor —que sí tiene criterio humano— ve la cola completa y decide; cumple la letra del Gherkin sin fabricar un algoritmo no pedido | El panel puede llenarse de reportes que nadie consideraría "dudosos" en el sentido coloquial; si el equipo define después una heurística de preselección, hay que revisar esta decisión |
+| Inventar una heurística de fraude (p. ej. reportes que contradicen el consenso vigente, ráfagas desde una misma huella) | Se acerca más a la intención literal de "dudoso" | Es una decisión de producto (qué patrón cuenta como sospechoso), no un detalle de implementación — inventarla sin que nadie la haya especificado viola el principio del proyecto de no afirmar lo que no se puede sostener (`ADR-006`) |
+| **Todo reporte nace `PENDIENTE` y es candidato a moderación hasta que el veedor decida** (elegida) | No inventa ningún criterio no especificado; el veedor —que sí tiene criterio humano— ve la cola completa y decide; cumple la letra del Gherkin sin fabricar un algoritmo no pedido | El panel puede llenarse de reportes que nadie consideraría "dudosos" en el sentido coloquial; si se define después una heurística de preselección, hay que revisar esta decisión |
 
 ### Decisión
 
@@ -1094,7 +787,7 @@ visible con su decisión, pero **no** recalcula retroactivamente el consenso (M3
 de RF006 (límite de reportes por dispositivo) — ninguna de las dos cosas está pedida por el Gherkin,
 y hacerlo bien (¿un sector cambia de estado si el reporte que lo sostenía se descarta?) es una
 decisión de producto propia, no una consecuencia obvia de "moderar". Queda como recomendación para
-que el equipo la valide si la necesita.
+validarla si se necesita.
 
 ### Consecuencias
 
@@ -1103,7 +796,7 @@ que el equipo la valide si la necesita.
 - **Pierde:** un reporte "dudoso" en el sentido literal (contradice el consenso, viene de una huella
   con historial de descartes) no se distingue de uno normal en la cola — el veedor ve todo, sin
   preselección.
-- **Condiciona:** si el equipo decide después que sí quiere una heurística de preselección, se agrega
+- **Condiciona:** si se decide después que sí se quiere una heurística de preselección, se agrega
   como un filtro sobre la cola existente (`ReporteCiudadanoRepository.listarPendientes()`), sin tocar
   el mecanismo de aprobar/descartar.
 
@@ -1118,7 +811,6 @@ pendientes, sin cambiar `EstadoModeracion` ni el flujo de aprobar/descartar ya c
 
 - **Fecha:** 2026-08-09
 - **Estado:** Aceptada
-- **Decide:** D2 (Carlos Bechara Arias)
 
 ### Contexto
 
@@ -1172,17 +864,16 @@ Si en el futuro se prefiere la opción (b), requiere además tocar `CorteAguaDoc
 
 - **Fecha:** 2026-08-10
 - **Estado:** Aceptada
-- **Decide:** Equipo completo
 
 ### Contexto
 El Módulo 9 (Ingesta automática con IA) requería usar el SDK de Anthropic para estructurar avisos no estructurados de la prensa local y Acuacar. Sin embargo, para poder destrabar el Módulo 9 en su funcionalidad base (ingesta por heurísticas), se eliminó la dependencia de Anthropic (PR #137) ya que bloqueaba el despliegue y desarrollo por falta de API keys o limitaciones de integración.
-Como consecuencia, los requisitos específicos de IA (RF032, RF033, RF034, RF035, RF036, y RNF019) quedaron huérfanos y sin posibilidad de implementación, lo cual representa un riesgo de evaluación académica si se mantienen en el alcance.
+Como consecuencia, los requisitos específicos de IA (RF032, RF033, RF034, RF035, RF036, y RNF019) quedaron huérfanos y sin posibilidad de implementación, lo cual representa un riesgo si se mantienen en el alcance.
 
 ### Decisión
 Se declaran **oficialmente fuera de alcance (Descartados)** los requisitos RF032 a RF036 y el RNF019. El Módulo 9 (Ingesta) continuará funcionando mediante el `HeuristicaExtractor` (heurísticas deterministas y expresiones regulares) que ya está en `main`, sin modelos de IA.
 
 ### Consecuencias
-- **Gana:** El alcance del proyecto se ajusta a la realidad del código; el informe metodológico reflejará esto como una decisión técnica sustentable en vez de un fallo de incumplimiento.
+- **Gana:** El alcance del proyecto se ajusta a la realidad del código; esto queda registrado como una decisión técnica sustentable en vez de un fallo de incumplimiento.
 - **Pierde:** Se sacrifica la clasificación semántica avanzada; los falsos positivos/negativos del extractor basado en heurísticas no tendrán la confianza estructurada de la IA.
 
 ---
@@ -1191,7 +882,6 @@ Se declaran **oficialmente fuera de alcance (Descartados)** los requisitos RF032
 
 - **Fecha:** 2026-08-11
 - **Estado:** Aceptada
-- **Decide:** D3 (backend)
 
 ### Contexto
 RF039 pide "exponer los reportes bajo el estándar Open311". La lectura literal es un
@@ -1237,7 +927,6 @@ coordenada igual.
 
 - **Fecha:** 2026-08-11
 - **Estado:** Aceptada
-- **Decide:** D3 (backend)
 
 ### Contexto
 M10 permite adjuntar una foto a un reporte. Esa foto se sirve en `/fotos/<uuid>.jpg` sin
@@ -1283,7 +972,6 @@ antes resolver la identidad del ciudadano, que ADR-007 dejó fuera a propósito.
 
 - **Fecha:** 2026-08-11
 - **Estado:** Parcialmente reemplazada por ADR-034 — sigue rigiendo para las fuentes de prensa; ya no para los boletines de Acuacar
-- **Decide:** D3 (backend)
 
 ### Contexto
 Tras ADR-025, M9 quedó con `HeuristicaExtractor`: expresiones regulares sobre boletines y notas de
@@ -1330,7 +1018,6 @@ Hacer que `RegistrarPropuestaIngestaService` cree la propuesta ya aprobada e inv
 
 - **Fecha:** 2026-08-09
 - **Estado:** Aceptada por solicitud explícita del usuario
-- **Decide:** José Daniel Zambrano (D4)
 
 ### Contexto
 
@@ -1367,7 +1054,6 @@ del frontend en ese punto.
 
 - **Fecha:** 2026-08-12
 - **Estado:** Aceptada
-- **Decide:** sesión de integración frontend/backend
 
 ### Contexto
 `MailNotificacionAdapter` manda el enlace de confirmación y el de baja apuntando directo al backend
@@ -1415,12 +1101,11 @@ antes de este ADR.
 
 - **Fecha:** 2026-08-12
 - **Estado:** Aceptada
-- **Decide:** sesión de auditoría y optimización del proyecto
 
 ### Contexto
 El job "Escaneo de secretos" (`gitleaks`) empezó a fallar en `ad7d660` — el mismo commit que creó
-`docs/ingenieria/entorno-local.md` con la clave de equipo `JWT_SECRET=jHZczr...` en texto plano,
-descrita ahí mismo como "clave de equipo lista para copiar" para no repetir la fricción que "quedó
+`docs/ingenieria/entorno-local.md` con la clave de desarrollo `JWT_SECRET=jHZczr...` en texto plano,
+descrita ahí mismo como "clave de desarrollo lista para copiar" para no repetir la fricción que "quedó
 sin resolver durante varias sesiones seguidas". Verificado con `gh run view --log-failed`: gitleaks
 detecta exactamente esa línea (`generic-api-key`, línea 42) y no hay `.gitleaks.toml` en el repo, así
 que corre con la regla por defecto sin ninguna excepción.
@@ -1449,11 +1134,9 @@ documento no se toca.
   producción) y quien lo edite es responsable de no meter ahí algo que sí importe.
 
 ### Cómo se revierte
-Borrar `.gitleaks.toml` (o solo la entrada de `allowlist`) y rotar la clave de equipo del documento —
+Borrar `.gitleaks.toml` (o solo la entrada de `allowlist`) y rotar la clave de desarrollo del documento —
 ambos pasos juntos, porque borrar solo el allowlist sin rotar la clave deja el mismo secreto expuesto
 sin la excepción que lo explica.
-
----
 
 ---
 
@@ -1461,7 +1144,6 @@ sin la excepción que lo explica.
 
 - **Fecha:** 2026-08-22
 - **Estado:** Parcialmente reemplazada por ADR-034 — la graduación de confianza sigue vigente; que el veedor decida ya no aplica a Acuacar
-- **Decide:** D3
 
 ### Contexto
 
@@ -1498,7 +1180,7 @@ que era una cita literal pero inútil para contrastar.
 ### Consecuencias
 
 - **Gana:** el veedor revisa primero lo mejor respaldado y lee una cita que de verdad le permite
-  decidir. Si el equipo quisiera más adelante reabrir la publicación automática, ahora existe la
+  decidir. Si se quisiera más adelante reabrir la publicación automática, ahora existe la
   señal que `ADR-028` echaba en falta.
 - **Pierde:** los tres valores son un juicio calibrado sobre 37 boletines, no una probabilidad
   medida. No deben leerse como tal ni exponerse al público como si lo fueran.
@@ -1511,7 +1193,6 @@ que era una cita literal pero inútil para contrastar.
 
 - **Fecha:** 2026-08-22
 - **Estado:** Aceptada
-- **Decide:** D3
 
 ### Contexto
 
@@ -1560,7 +1241,6 @@ Tres restricciones que hacen que esto no contradiga `ADR-028`:
 
 - **Fecha:** 2026-08-29
 - **Estado:** Aceptada
-- **Decide:** Product owner, con implementación de D3
 
 ### Contexto
 `ADR-028` mandó toda detección a una cola de revisión. Medido en local el 2026-08-29 con la base de
@@ -1619,7 +1299,6 @@ restaurar `ADR-028` y `ADR-032` a *Aceptada*. El color es un cambio de una const
 
 - **Fecha:** 2026-08-30
 - **Estado:** Aceptada
-- **Decide:** Product owner, con implementación de D4
 
 ### Contexto
 `ADR-014` decidió lo contrario y su argumento era correcto **en su momento**: el 2026-08-08 no
@@ -1675,7 +1354,6 @@ ninguno se fabricó.
 
 - **Fecha:** 2026-08-31
 - **Estado:** Aceptada
-- **Decide:** Product owner, con implementación de D3
 
 ### Contexto
 Las estadísticas (M7) y el Índice de Cumplimiento (M6) agregan sobre la colección `cortes`, que la
@@ -1722,7 +1400,6 @@ eliminar los de origen `INGESTA_IA` a mano.
 
 - **Fecha:** 2026-08-31
 - **Estado:** Aceptada
-- **Decide:** Product owner, con implementación de D3
 
 ### Contexto
 Un `CorteAgua` exige ventana completa (inicio + fin prometido). Medido sobre los 100 boletines más
@@ -1730,7 +1407,7 @@ recientes de Acuacar el 30/08/2026: **18 anuncian suspensión del servicio, los 
 pero solo 5 declaran el rango horario**. Es decir, ~5% de los boletines pueden generar un corte.
 
 Contra la colección `cortes`, el top de sectores se calculaba sobre 3 registros: no representaba la
-ciudad ni de lejos, y desde luego no los cinco años de historia que el equipo quería mostrar.
+ciudad ni de lejos, y desde luego no los cinco años de historia que se quería mostrar.
 
 ### Alternativas consideradas
 
@@ -1761,7 +1438,6 @@ Volver a agregar sobre `CorteAguaDocumento` y restaurar el `unwind` por `sectore
 
 - **Fecha:** 2026-08-31
 - **Estado:** Aceptada
-- **Decide:** D4, verificado contra el sitio real
 
 ### Contexto
 Las tarjetas de la bitácora muestran la portada del boletín. Enlazarla directo a
@@ -1800,7 +1476,6 @@ de verse, que es el estado del que se venía.
 
 - **Fecha:** 2026-08-31
 - **Estado:** Aceptada
-- **Decide:** Equipo (petición del titular del producto), sobre backend y frontend
 - **Reemplaza a:** `ADR-016`
 
 ### Contexto
@@ -1811,7 +1486,7 @@ entidad de dominio. También dejó abierto que `POST /api/veedor/sesion` no ten�
 bruta; `ADR-018` cerró la mitad de ese hueco con un límite por IP, que no ve el ataque repartido
 entre muchas direcciones contra un mismo correo.
 
-El equipo pide ahora lo que aquella ADR aplazó: que cada persona se registre con su correo, y que un
+Ahora se pide lo que aquella ADR aplazó: que cada persona se registre con su correo, y que un
 administrador decida desde el panel quién entra y qué puede hacer. `RF019` solo exige *"autenticación
 con token"* y `RNF011` fija la expiración en 8 horas — ninguno de los dos dice nada sobre el modelo de
 cuentas, así que esto es requisito nuevo (`RF042`–`RF046`), no una reinterpretación.
@@ -1825,8 +1500,8 @@ punta a punta.
 
 | Opción | A favor | En contra |
 |---|---|---|
-| Seguir con la credencial compartida (`ADR-016`) | Cero trabajo | No atribuye ninguna acción a nadie; una filtración obliga a rotar la clave de las cinco personas a la vez |
-| Solo invitación del administrador | Superficie mínima; nadie llega sin que alguien lo llame | No es lo que el equipo pidió, y obliga a un administrador disponible para cada alta |
+| Seguir con la credencial compartida (`ADR-016`) | Cero trabajo | No atribuye ninguna acción a nadie; una filtración obliga a rotar la clave de todas las personas del panel a la vez |
+| Solo invitación del administrador | Superficie mínima; nadie llega sin que alguien lo llame | No es lo que se pidió, y obliga a un administrador disponible para cada alta |
 | Solo auto-registro sin aprobación | El alta no depende de nadie | Registro abierto = panel de moderación abierto. Inaceptable |
 | **Auto-registro + invitación, ambos con aprobación o rol asignado** (elegida) | Cubre las dos formas de entrar; en ninguna se concede acceso sin decisión humana | Dos flujos de alta y dos tipos de token que mantener |
 | Roles fijos sin ajustes | Imposible dejar a alguien mal configurado | No permite el caso real de "veedor que no cierra cortes" |
@@ -1867,8 +1542,8 @@ es exactamente la carencia que `ADR-016` se reprochó.
 
 ### Consecuencias
 
-- **Gana:** cada acción del panel queda atribuida a una persona con nombre y correo — evidencia
-  directa para el Capítulo IV. Una filtración afecta a una cuenta, no a las cinco. Un `OBSERVADOR`
+- **Gana:** cada acción del panel queda atribuida a una persona con nombre y correo — trazabilidad
+  directa. Una filtración afecta a una cuenta, no a todas. Un `OBSERVADOR`
   puede acompañar la moderación sin poder ejecutarla.
 - **Pierde:** la superficie crece mucho. Diez casos de uso nuevos, tres colecciones de Mongo, dos
   claves de Redis, dos plantillas de correo y cinco pantallas. Es la parte del sistema con más
@@ -1901,7 +1576,6 @@ apaga el TOTP obligatorio sin tocar nada más. Volver a una clave compartida exi
 
 - **Fecha:** 2026-09-04
 - **Estado:** Aceptada
-- **Decide:** Equipo completo
 
 ### Contexto
 El repositorio describe lo que el sistema hace en cuatro sitios a la vez: `docs/product-requirements.md`
@@ -1917,10 +1591,10 @@ el paso de antes.
 ### Alternativas consideradas
 | Opción | A favor | En contra |
 |---|---|---|
-| Seguir solo con el PRD y la matriz | Cero herramienta nueva; el equipo ya lo conoce | Nada verifica que el documento y el código digan lo mismo; ya se desincronizaron |
+| Seguir solo con el PRD y la matriz | Cero herramienta nueva; ya se conoce | Nada verifica que el documento y el código digan lo mismo; ya se desincronizaron |
 | Migrar los ADR a un archivo por decisión bajo `docs/adr/` | Archivos más cortos, menos conflictos de merge | Rompe las ~200 referencias `ADR-0XX` del repositorio y la skill `registrar-decision`, a cambio de comodidad |
 | Adoptar OpenSpec y mover los ADR dentro | Un solo sitio para todo | La bitácora append-only y los ADR ya funcionan; moverlos es riesgo sin ganancia |
-| Adoptar OpenSpec solo como capa de especificación | Specs validables por CLI y un flujo de propuesta antes del código; no toca lo que ya sirve | Dos directorios que el equipo debe distinguir |
+| Adoptar OpenSpec solo como capa de especificación | Specs validables por CLI y un flujo de propuesta antes del código; no toca lo que ya sirve | Dos directorios que hay que distinguir |
 
 ### Decisión
 Se adopta OpenSpec en `openspec/`, con las trece capacidades ya construidas capturadas como specs
@@ -1929,8 +1603,8 @@ y con su numeración intacta.
 
 El reparto es: **`openspec/specs/` dice qué hace el sistema hoy** (comportamiento observable, en
 `WHEN`/`THEN`); **`docs/design-decisions.md` dice por qué se decidió así** (contexto, alternativas
-descartadas, cómo se revierte); **`docs/product-requirements.md` sigue siendo el SRS académico** con
-los identificadores `RF`/`RNF` que el docente evalúa. Cada spec cita los `RF` y los `ADR` que la
+descartadas, cómo se revierte); **`docs/product-requirements.md` sigue siendo la especificación de requisitos** con
+los identificadores `RF`/`RNF`. Cada spec cita los `RF` y los `ADR` que la
 sostienen, y ningún dato se duplica: la spec no repite el porqué, el ADR no repite el comportamiento.
 
 Un cambio de comportamiento entra por `openspec/changes/` antes de tocar el código; si además elige
@@ -1942,7 +1616,7 @@ entre alternativas técnicas, deja su ADR aquí.
 - **Gana:** el trabajo tiene un artefacto de «antes», que era el hueco del protocolo actual.
 - **Pierde:** una herramienta más que instalar (`openspec`, global de npm) y un directorio más que
   entender al entrar al proyecto.
-- **Condiciona:** los `RF` y `RNF` del PRD siguen siendo la numeración oficial ante el docente. Las
+- **Condiciona:** los `RF` y `RNF` del PRD siguen siendo la numeración oficial. Las
   specs los citan, no los reemplazan ni los renumeran.
 - **Condiciona:** una spec que se separa del código es un defecto, igual que una prueba que miente.
   Quien cambie comportamiento actualiza su spec en el mismo PR.
@@ -1958,7 +1632,6 @@ el PRD quedan como estaban.
 
 - **Fecha:** 2026-09-04
 - **Estado:** Aceptada
-- **Decide:** Frontend
 
 ### Contexto
 La rama `rediseno/frontend-premium` sostenía un rediseño completo del frontend —fondo crema
@@ -1991,7 +1664,7 @@ oscuro, sobre fondo `#f3f8f7`.
 - **Gana:** una sola identidad visual, coherente con el documento que la declara, y ninguna
   funcionalidad perdida.
 - **Pierde:** seis commits de trabajo visual que no llegan a producción. Recuperables desde el tag,
-  como propuesta con su propio ADR si el equipo la retoma.
+  como propuesta con su propio ADR si se retoma.
 - **Condiciona:** el token `--font-cuerpo` no debe volver a nombrar `Inter`. `DESIGN.md` §9 la
   descarta explícitamente y, además, el proyecto no carga webfonts: nombrarla solo produce una fuente
   que nunca se aplica.
@@ -2003,7 +1676,6 @@ oscuro, sobre fondo `#f3f8f7`.
 
 - **Fecha:** 2026-09-04
 - **Estado:** Aceptada
-- **Decide:** Frontend
 
 ### Contexto
 Los cuatro colores de estado son «la única jerarquía cromática que importa» (`DESIGN.md` §2), y
@@ -2087,11 +1759,10 @@ bajar el umbral de contraste de §7 o dejar de usarlos como color de texto.
 
 - **Fecha:** 2026-09-04
 - **Estado:** Aceptada
-- **Decide:** sesión de actualización y análisis del proyecto
 
 ### Contexto
 El job "Escaneo de secretos" (`gitleaks`) quedó en rojo en `main` desde el merge del
-[PR #152](https://github.com/CarlosBecharaDev/Agua-Vigia-CTG/pull/152) (`c56afcb`). Verificado con
+PR #152 (`c56afcb`). Verificado con
 `gh run view 33874369838 --log-failed`: el hallazgo es la regla `generic-api-key` sobre
 `backend/src/test/java/com/aguavigia/ctg/infrastructure/security/TotpAdapterTest.java:106`,
 introducido en el commit `df216373` (2026-09-01).
@@ -2135,7 +1806,6 @@ Quitar la entrada de `regexes` en `.gitleaks.toml`. Si para entonces `TotpAdapte
 
 - **Fecha:** 2026-09-05
 - **Estado:** Aceptada
-- **Decide:** sesión de auditoría y resolución de hallazgos
 
 ### Contexto
 Una auditoría de frontend (2026-09-04) encontró que el service worker (`vite.config.ts`, Workbox)
@@ -2170,10 +1840,54 @@ es explícito (`normalizarErrorApi`, mensaje visible) y no bloquea reintentar ma
 No aplica — no se implementó nada que deshacer. Retomarlo es una decisión de producto nueva, con su
 propio ADR.
 
+## ADR-045 — El proyecto es individual: se retira el aparato de coordinación de equipo
+
+- **Fecha:** 2026-09-19
+- **Estado:** Aceptada
+
+### Contexto
+El repositorio nació con un marco de cinco personas: roles `D1`–`D5` con capas y módulos asignados,
+cuatro compuertas de habilitación entre roles, un registro de bloqueos y desbloqueos temporales,
+Scrum Master rotativo, ceremonias, y una Sala de control que mapeaba usuarios de GitHub a roles y se
+publicaba en GitHub Pages bajo la cuenta de otro integrante. El proyecto lo desarrolla una sola
+persona; el historial de git ya se reinició bajo su cuenta (`chore: iniciar historial privado`). Sin
+más gente, ese aparato no coordinaba a nadie y cada sesión pagaba su costo en contexto
+(`docs/gestion/protocolo-de-contexto.md`). Los códigos de rol también se habían filtrado a unos 20
+comentarios Javadoc de `backend/src` (incluida la prueba `ContratoOpenApiTest`), solo en prosa.
+
+### Alternativas consideradas
+| Opción | A favor | En contra |
+|---|---|---|
+| Dejar el marco de equipo tal cual | Cero trabajo, historial de decisiones intacto | Documentación que describe una organización que no existe; las compuertas y el Scrum Master rotativo no tienen quién los ejerza |
+| Marcarlo como histórico y conservarlo | Se conserva la trazabilidad de cómo se decidió | Los agentes lo leen igual y proponen trabajo por rol; sigue costando contexto |
+| Retirarlo y despersonalizar los registros (hechos sí, actores no) | Los documentos describen la realidad; la Sala de control deja de depender de `gh` y de una cuenta ajena | Se pierde el detalle de quién hizo qué; edita registros históricos y rompe la regla de *append-only* |
+
+### Decisión
+Retirar el aparato de equipo. Se borran `docs/equipo/`, la skill `registrar-bloqueo`,
+`registro-de-bloqueos.md` (todas sus entradas ya estaban cerradas) y el workflow `dashboard.yml`
+(Pages). Los registros de gestión, la bitácora, los ADR y los comentarios de código se reescriben en
+voz de hechos, sin actores. La Sala de control se reduce a lo que sale de `docs/`: sprint actual,
+cobertura, bugs, ADR y recomendaciones; se genera solo en local y ya no lee PRs ni issues con `gh`.
+
+### Consecuencias
+- **Gana:** documentación coherente con un solo desarrollador; menos archivos permanentes que leer
+  en cada sesión; la Sala de control funciona sin `gh`, sin red y sin apuntar a un repositorio ajeno.
+- **Pierde:** la atribución por persona en el historial documental, y con ella la lectura de "quién
+  estaba detenido esperando a quién". Los ADR `011`, `012`, `013`, `019` y `021` (asignación de roles,
+  compuertas y herramienta de equipo) se eliminaron enteros, y el `010` se reescribió, en contra de
+  la regla de *append-only*: la numeración queda con huecos, que no se renumeran.
+- **Condiciona:** si el proyecto vuelve a tener más de una persona, hay que decidir de nuevo cómo se
+  reparte y coordina el trabajo; no se reactiva nada de lo retirado.
+
+### Cómo se revierte
+Este repositorio ya no conserva el marco: el historial se reinició y los archivos se borraron.
+Rehacerlo sería una decisión nueva, con su propio ADR. No hay código que deshacer, solo
+documentación y una skill.
+
 ---
 
 <!--
-Siguiente número disponible: ADR-045
+Siguiente número disponible: ADR-046
 Para agregar: usa la skill `registrar-decision`.
 Recuerda: append-only. Las entradas viejas solo cambian de estado, no de contenido.
 -->

@@ -23,10 +23,10 @@ import java.time.Instant;
 public class RedisContadorReportesAdapter implements ContadorReportesPort {
 
     /**
-     * Cota de retencion del ZSET, no la ventana de consenso real (esa la decide el caso de uso de
-     * D2, ej. los 30 min del brief). Sin este TTL una clave de un sector que dejo de recibir
-     * reportes viviria en Redis para siempre — D3-backend-infraestructura.md §4 pide TTL en toda
-     * llave de Redis para no agotar memoria en un plan cloud.
+     * Cota de retencion del ZSET, no la ventana de consenso real (esa la decide el caso de uso, p. ej.
+     * los 30 min del brief). Sin este TTL una clave de un sector que dejo de recibir
+     * reportes viviria en Redis para siempre — toda
+     * llave de Redis lleva TTL, para no agotar memoria en un plan cloud.
      */
     private static final Duration RETENCION_MAXIMA = Duration.ofHours(24);
 

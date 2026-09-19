@@ -1,7 +1,7 @@
 /**
  * tipos-dominio.ts — Tipos del dominio para el frontend.
  *
- * Derivados del modelo de dominio de D2 (docs/ingenieria/modelo-de-dominio.md).
+ * Derivados del modelo de dominio (docs/ingenieria/modelo-de-dominio.md).
  * NO son el contrato de la API — eso viene de openapi.yaml cuando C2 abra.
  * Sirven para tipar el estado local del mapa y los componentes estáticos.
  */

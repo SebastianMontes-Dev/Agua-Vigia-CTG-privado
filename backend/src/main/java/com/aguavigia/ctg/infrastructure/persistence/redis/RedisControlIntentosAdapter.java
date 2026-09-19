@@ -23,7 +23,7 @@ import java.util.concurrent.TimeUnit;
  *
  * **Falla abierto** cuando Redis no responde, igual que RedisContadorReportesAdapter y el
  * limitador por IP de ADR-018. Perder el bloqueo deja la cuenta protegida por su contraseña, que
- * es su defensa normal; fallar cerrado dejaría a todo el equipo sin poder entrar por una caída de
+ * es su defensa normal; fallar cerrado dejaría a todo el panel sin poder entrar por una caída de
  * la caché. La revocación de sesiones sí falla cerrado, y su adaptador explica por qué difiere.
  *
  * El correo no se guarda en claro: la clave lleva su SHA-256. Redis suele ser el componente con

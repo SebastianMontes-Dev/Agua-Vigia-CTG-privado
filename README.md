@@ -4,8 +4,7 @@
 
 AguaVigía cruza los avisos oficiales con reportes ciudadanos georreferenciados para publicar un **Índice de Cumplimiento** que compara la duración prometida de cada corte con la real.
 
-> Proyecto de aula · Fundación Universitaria Tecnológico Comfenalco
-> Tecnología en Desarrollo de Software · Cartagena de Indias D.T. y C. · 2026
+> Cartagena de Indias · 2026
 
 **Estado actual:** Backend y Bases de Datos completos salvo RF041 (webhook real de
 WhatsApp/Telegram), que depende de credenciales de terceros. **563 pruebas** de backend y **95** de
@@ -72,7 +71,7 @@ El proyecto está completamente contenerizado. Solo necesitas tener un motor de 
    veedor** (`/veedor`) necesita tres variables que `.env.example` deja vacías a propósito
    (`JWT_SECRET`, `VEEDOR_PASSWORD_HASH`, `ADMIN_INICIAL_CORREO`) — ver
    [`docs/ingenieria/entorno-local.md`](docs/ingenieria/entorno-local.md) para la clave de
-   equipo lista para copiar.
+   desarrollo lista para copiar.
 
    Con la base de datos vacía, al arrancar se crea **una sola cuenta**: el administrador de
    `ADMIN_INICIAL_CORREO`, con la clave cuyo hash está en `VEEDOR_PASSWORD_HASH` (`ADR-039`).

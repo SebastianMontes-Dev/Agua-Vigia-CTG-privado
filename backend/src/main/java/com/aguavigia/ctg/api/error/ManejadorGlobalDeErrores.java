@@ -299,7 +299,7 @@ public class ManejadorGlobalDeErrores {
 
     /**
      * Mongo caido o inalcanzable. Se responde 503 y no 500: el servicio no esta roto, esta sin
-     * su base de datos, y un cliente puede reintentar. DoD de D3: fallar sin mentir.
+     * su base de datos, y un cliente puede reintentar. Criterio: fallar sin mentir.
      */
     @ExceptionHandler(DataAccessException.class)
     public ProblemDetail baseDeDatosNoDisponible(DataAccessException e) {

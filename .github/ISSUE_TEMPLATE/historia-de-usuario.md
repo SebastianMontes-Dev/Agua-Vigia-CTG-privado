@@ -5,7 +5,7 @@ title: "[HU0NN] "
 labels: historia
 ---
 
-**Requisito:** RF0NN · **Módulo:** M<N> · **Sprint:** N · **Responsable:** D<N>
+**Requisito:** RF0NN · **Módulo:** M<N> · **Sprint:** N
 
 ## Historia
 
@@ -31,13 +31,12 @@ Escenario: <caso de borde — siempre al menos uno>
 
 ## Dependencias
 
-<!-- ¿Necesitas el contrato OpenAPI de D3? ¿El GeoJSON de D5? Dilo aquí, no en el daily del día
-     en que te bloquee. Ver docs/equipo/secuencia-de-trabajo.md §1 -->
+<!-- ¿Necesitas el contrato OpenAPI o el GeoJSON de barrios? Dilo aquí. -->
 
 ## Terminado cuando
 
 - [ ] Los escenarios Gherkin pasan como pruebas automatizadas
-- [ ] PR fusionado con al menos 1 revisor
+- [ ] PR fusionado
 - [ ] Fila en `docs/gestion/registro-de-implementaciones.md`
 - [ ] Fila actualizada en `docs/ingenieria/matriz-trazabilidad.md`
 - [ ] Si toca interfaz: checklist de `DESIGN.md` §10

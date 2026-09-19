@@ -26,7 +26,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * `backend/openapi.yaml` es la compuerta C2: el contrato versionado del que D4 genera su cliente.
+ * `backend/openapi.yaml` es el contrato versionado del que el frontend genera su cliente.
  * Se genera con la aplicación corriendo y se comitea a mano, así que nada garantizaba que siguiera
  * al día — un endpoint nuevo sin regenerar y el frontend queda programando contra un contrato que
  * ya no existe.

@@ -13,7 +13,7 @@
  */
 import type { FC } from 'react'
 import { Link, NavLink } from 'react-router-dom'
-import { Mail, Code2, Heart } from 'lucide-react'
+import { Mail, Heart } from 'lucide-react'
 import { ENLACES } from '../config/navegacion'
 import logoAguaVigia from '../assets/logo-aguavigia-animado.webp'
 
@@ -65,19 +65,11 @@ export const PieDePagina: FC = () => (
           <a href="mailto:alertas@aguavigia.com?subject=Suscripción a Alertas" aria-label="Escríbenos por correo">
             <Mail size={18} />
           </a>
-          <a
-            href="https://github.com/CarlosBecharaDev/Agua-Vigia-CTG"
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="Código fuente en GitHub"
-          >
-            <Code2 size={18} />
-          </a>
         </div>
       </div>
 
       <p className="pie-creditos">
-        Datos abiertos para el control ciudadano <Heart size={12} fill="currentColor" aria-hidden="true" /> Proyecto de aula, Tecnológico Comfenalco
+        Datos abiertos para el control ciudadano <Heart size={12} fill="currentColor" aria-hidden="true" />
       </p>
     </footer>
   </>

@@ -74,7 +74,7 @@ class BitacoraControllerTest {
 
         mockMvc.perform(get("/api/bitacora").param("pagina", "0").param("tamano", "2"))
                 .andExpect(status().isOk())
-                // El cuerpo sigue siendo un arreglo: el contrato con D4 es aditivo.
+                // El cuerpo sigue siendo un arreglo: el contrato con el frontend es aditivo.
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(header().string("X-Total-Count", "7"))
                 .andExpect(header().string("X-Total-Pages", "4"))

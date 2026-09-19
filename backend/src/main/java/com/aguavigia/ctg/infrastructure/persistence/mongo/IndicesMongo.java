@@ -17,7 +17,7 @@ import org.bson.Document;
 
 /**
  * Asegura los indices de `sectores` al arrancar. Spring Data no los crea solo (la creacion
- * automatica esta desactivada por defecto desde 3.0) y el sembrador de D5 solo corre a mano,
+ * automatica esta desactivada por defecto desde 3.0) y el sembrador solo corre a mano,
  * asi que sin esto un despliegue limpio quedaria sin el 2dsphere que necesitan las consultas
  * geoespaciales de M2.
  *
@@ -95,8 +95,8 @@ public class IndicesMongo {
             indicesAuditoria.ensureIndex(new Index().on("ocurrioEn", Sort.Direction.DESC));
             log.info("Indices de `auditoria_cuentas` asegurados: ocurrioEn");
         } catch (DataAccessException noHayMongo) {
-            // El backend no debe caerse porque Mongo no este disponible al arrancar (DoD de D3,
-            // punto 2). Se registra y se sigue: las consultas fallaran con su propio error.
+            // El backend no debe caerse porque Mongo no este disponible al arrancar.
+            // Se registra y se sigue: las consultas fallaran con su propio error.
             log.warn("No se pudieron asegurar los indices: {}", noHayMongo.getMessage());
         }
     }

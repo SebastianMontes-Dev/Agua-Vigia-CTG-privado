@@ -2,7 +2,7 @@
  * MapaCartagena — componente principal del mapa (M1).
  *
  * Sprint 1: carga el GeoJSON de barrios desde /data/geoespacial/barrios-cartagena.geojson
- * (datos reales de D5) y colorea los polígonos según su estado.
+ * (datos reales) y colorea los polígonos según su estado.
  *
  * C2 ya está abierta: el estado de cada sector viene de GET /api/sectores (vía
  * useDatosEnVivo), no de datos locales. Los tipos y colores son definitivos.

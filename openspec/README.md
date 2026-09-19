@@ -15,13 +15,13 @@ Decidido en `ADR-040`.
 |---|---|---|
 | ¿Qué hace el sistema? | `openspec/specs/<capacidad>/spec.md` | `Requirement` + `Scenario` con `WHEN`/`THEN` |
 | ¿Por qué se decidió así? | `docs/design-decisions.md` | ADR: contexto, alternativas, consecuencias |
-| ¿Qué exige el SRS académico? | `docs/product-requirements.md` | `RF`/`RNF` con prioridad MoSCoW |
+| ¿Qué exige la especificación de requisitos? | `docs/product-requirements.md` | `RF`/`RNF` con prioridad MoSCoW |
 | ¿Qué prueba sostiene cada requisito? | `docs/ingenieria/matriz-trazabilidad.md` | Matriz `RF` → prueba |
 | ¿Cuál es el contrato HTTP? | `backend/openapi.yaml` | OpenAPI 3 |
 
 **Un dato vive en un solo archivo.** La spec no repite el porqué; el ADR no repite el
 comportamiento. Cada spec cita los `RF` y los `ADR` que la sostienen — esos identificadores siguen
-siendo la numeración oficial ante el docente, y las specs no los reemplazan ni los renumeran.
+siendo la numeración oficial, y las specs no los reemplazan ni los renumeran.
 
 ## Las trece capacidades
 

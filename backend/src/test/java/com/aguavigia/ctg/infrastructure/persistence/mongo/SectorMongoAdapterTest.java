@@ -22,9 +22,9 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Prueba de integracion del adaptador contra un MongoDB real (DoD de D3, punto 1).
+ * Prueba de integracion del adaptador contra un MongoDB real.
  * Se llama *Test y no *IT a proposito: el pom no configura failsafe, asi que un *IT no lo
- * ejecutaria nadie ni en local ni en el CI. Requiere Docker, que ya exige la compuerta C0.
+ * ejecutaria nadie ni en local ni en el CI. Requiere Docker.
  */
 @Testcontainers
 @DataMongoTest

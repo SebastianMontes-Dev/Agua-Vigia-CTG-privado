@@ -11,7 +11,7 @@ import org.springframework.context.annotation.Configuration;
 import java.util.List;
 
 /**
- * Publica el contrato que consume D4 (compuerta C2). El archivo versionado
+ * Publica el contrato que consume el frontend. El archivo versionado
  * backend/openapi.yaml se genera desde aqui con la app corriendo — no se escribe a mano, para
  * que no pueda desviarse de lo que el backend responde de verdad.
  */
@@ -32,7 +32,7 @@ public class OpenApiConfig {
 
                         Plataforma ciudadana e independiente: no esta afiliada a Aguas de Cartagena
                         S.A. E.S.P. ni a ninguna entidad distrital.""")
-                .contact(new Contact().name("Equipo AguaVigia CTG — Tecnologico Comfenalco"))
+                .contact(new Contact().name("AguaVigia CTG"))
                 .license(new License().name("Proyecto de aula")));
     }
 }

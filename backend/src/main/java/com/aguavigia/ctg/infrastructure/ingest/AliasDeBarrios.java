@@ -23,12 +23,12 @@ import java.util.Map;
  * —que es lo de {@link NormalizadorDeNombres}— sino de que un nombre abarca varios polígonos.
  *
  * <b>Es un archivo de datos, no de código, y a propósito.</b> Quién contiene a quién en Cartagena
- * es conocimiento del equipo, no algo que el pipeline deba deducir: la norma para admitir una fila
+ * es conocimiento del proyecto, no algo que el pipeline deba deducir: la norma para admitir una fila
  * está escrita en la cabecera del CSV y exige prueba, no parecido. Un alias equivocado publica un
  * corte en el barrio equivocado.
  *
  * Un slug que no exista en el catálogo se ignora con aviso en el log en vez de tumbar el arranque:
- * el archivo lo edita el equipo y una errata de tipeo no puede dejar el backend sin levantar.
+ * el archivo se edita a mano y una errata de tipeo no puede dejar el backend sin levantar.
  */
 final class AliasDeBarrios {
 

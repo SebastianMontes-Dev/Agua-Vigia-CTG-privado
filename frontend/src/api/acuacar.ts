@@ -54,7 +54,7 @@ export interface MencionBarrio {
 }
 
 // ── Barrios conocidos de Cartagena ──────────────────────────
-// Fuente: GeoJSON de D5 + boletines reales de Acuacar
+// Fuente: GeoJSON de barrios + boletines reales de Acuacar
 
 const BARRIOS_CONOCIDOS = [
   'BOCAGRANDE', 'CASTILLOGRANDE', 'EL LAGUITO', 'MANGA',
@@ -187,7 +187,7 @@ function citaEnPosicion(textoOriginal: string, posicion: number): string {
  *
  * @param barriosConocidos Lista de barrios a reconocer en el texto. Por defecto la lista
  *   corta de respaldo (`BARRIOS_CONOCIDOS`); en producción useDatosEnVivo pasa el universo
- *   completo cargado desde el GeoJSON de D5 (ver `data/barriosCartagena.ts`), para que un
+ *   completo cargado desde el GeoJSON de barrios (ver `data/barriosCartagena.ts`), para que un
  *   boletín pueda mencionar cualquiera de los ~211 barrios reales, no solo estos 55.
  */
 export async function obtenerBoletinesRecientes(

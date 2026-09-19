@@ -94,34 +94,34 @@
       <artifactId>spring-boot-starter-actuator</artifactId>
     </dependency>
 
-    <!-- Envío de correo de M4 (D1, Sprint 1) — JavaMailSender contra Mailhog/SMTP real -->
+    <!-- Envío de correo de M4 (Sprint 1) — JavaMailSender contra Mailhog/SMTP real -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-mail</artifactId>
     </dependency>
 
-    <!-- Mappers DTO <-> dominio (D3, Sprint 1) -->
+    <!-- Mappers DTO <-> dominio (Sprint 1) -->
     <dependency>
       <groupId>org.mapstruct</groupId>
       <artifactId>mapstruct</artifactId>
       <version>${mapstruct.version}</version>
     </dependency>
 
-    <!-- Contrato OpenAPI publicado para D4 (D3, Sprint 1 - compuerta C2) -->
+    <!-- Contrato OpenAPI publicado para el frontend (Sprint 1) -->
     <dependency>
       <groupId>org.springdoc</groupId>
       <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
       <version>2.8.6</version>
     </dependency>
 
-    <!-- Circuit breakers y reintentos del pipeline de ingesta (D3, Sprint 3-4) -->
+    <!-- Circuit breakers y reintentos del pipeline de ingesta (Sprint 3-4) -->
     <dependency>
       <groupId>io.github.resilience4j</groupId>
       <artifactId>resilience4j-spring-boot3</artifactId>
       <version>2.3.0</version>
     </dependency>
 
-    <!-- JWT del panel del veedor (D3, Sprint 3 - RF019, RNF011). BCryptPasswordEncoder tambien
+    <!-- JWT del panel del veedor (Sprint 3 - RF019, RNF011). BCryptPasswordEncoder tambien
          viene de aqui (spring-security-crypto), para no depender de una libreria aparte. -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
@@ -163,7 +163,7 @@
       <scope>test</scope>
     </dependency>
 
-    <!-- Pruebas de integración de adaptadores Mongo/Redis (DoD de D3) -->
+    <!-- Pruebas de integración de adaptadores Mongo/Redis -->
     <!-- Aporta @ServiceConnection: apunta Spring al contenedor sin @DynamicPropertySource -->
     <dependency>
       <groupId>org.springframework.boot</groupId>

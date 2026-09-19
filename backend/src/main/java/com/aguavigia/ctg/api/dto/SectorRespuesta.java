@@ -8,7 +8,7 @@ import java.time.Instant;
 /**
  * Un sector tal como lo ve el mapa (M1). Replica a proposito la forma que el frontend ya
  * declaro en frontend/src/types/tipos-dominio.ts, para que el cliente generado desde este
- * contrato encaje con los componentes que D4 escribio contra sus mocks.
+ * contrato encaje con los componentes que el frontend escribio contra sus mocks.
  */
 @Schema(description = "Sector de Cartagena con el estado conocido de su servicio de agua")
 public record SectorRespuesta(

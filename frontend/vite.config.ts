@@ -144,7 +144,7 @@ export default defineConfig({
           // El colector se identifica siempre (CLAUDE.md §Ética de datos, regla 3). Antes iba
           // un User-Agent de Chrome falsificado, que contradice la regla 1 del mismo archivo.
           // Verificado contra la API real: con esta identidad acuacar.com responde 200 igual.
-          'User-Agent': 'AguaVigiaCTG-Bot/1.0 (+rafasarmiento777@gmail.com)',
+          'User-Agent': 'AguaVigiaCTG-Bot/1.0 (+alertas@aguavigia.com)',
           'Accept': 'application/json'
         },
         rewrite: (path) => path.replace(/^\/acuacar-api/, ''),
@@ -157,7 +157,7 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
         headers: {
-          'User-Agent': 'AguaVigiaCTG-Bot/1.0 (+rafasarmiento777@gmail.com)',
+          'User-Agent': 'AguaVigiaCTG-Bot/1.0 (+alertas@aguavigia.com)',
           'Referer': '',
         },
         rewrite: (path) => path.replace(/^\/acuacar-media/, ''),

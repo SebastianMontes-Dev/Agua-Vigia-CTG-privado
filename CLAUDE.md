@@ -10,7 +10,7 @@
 Plataforma web ciudadana de monitoreo y trazabilidad del acueducto en **Cartagena de Indias,
 Colombia**. Cruza los avisos oficiales de Acuacar con reportes ciudadanos georreferenciados y publica
 un **Índice de Cumplimiento** que compara la duración prometida de cada corte con la real.
-**Proyecto de aula** — Tecnológico Comfenalco, 5 personas, 6 meses, Scrum. Detalle en `docs/brief.md`.
+**Proyecto personal**, de un solo desarrollador. Detalle en `docs/brief.md`.
 
 **El problema que resuelve no es hidráulico, es informativo.** No reparamos tuberías; cerramos el
 vacío de información que multiplica el daño. Toda decisión de alcance se juzga contra eso.
@@ -85,15 +85,14 @@ Al proponer código, verifica mentalmente esta regla antes de escribir el import
 
 ## Convenciones de Git
 
-Repo privado, de un solo colaborador desde 2026-09-17 (antes era un repo de equipo — ver nota abajo).
-Commits, ramas y PRs siguen las reglas de siempre en mis proyectos, documentadas en
-[`CONTRIBUTING.md`](CONTRIBUTING.md) — no las repito acá para no duplicar la fuente de verdad. Resumen:
-Conventional Commits en español, ramas `tipo/slug-corto-en-espanol-kebab-case` sobre `main`,
-squash-merge por defecto, CI en verde antes de mergear.
+Repo privado, de un solo desarrollador. Commits, ramas y PRs siguen las reglas de siempre en mis
+proyectos, documentadas en [`CONTRIBUTING.md`](CONTRIBUTING.md) — no las repito acá para no duplicar
+la fuente de verdad. Resumen: Conventional Commits en español, ramas
+`tipo/slug-corto-en-espanol-kebab-case` sobre `main`, squash-merge por defecto, CI en verde antes de
+mergear. No hay rama `develop` ni revisor obligatorio: el PR es recomendado para cambios no
+triviales, no obligatorio.
 
-Lo que **cambió** respecto al repo de equipo anterior: ya no hay `develop`, ni etiquetas `sprint-N`,
-ni revisor obligatorio (PR es recomendado para cambios no triviales, no obligatorio). Fecha del
-proyecto sigue siendo **hora local de Cartagena (UTC-5)**, no UTC — eso no cambió.
+Las fechas del proyecto se escriben en **hora local de Cartagena (UTC-5)**, no UTC.
 
 ### Autoría — regla no negociable
 
@@ -102,10 +101,9 @@ firma *"Generated with Claude Code"*, ni como autor o revisor de un PR, issue o 
 mecánico: `includeCoAuthoredBy: false` en `.claude/settings.json`; si aun así ves un trailer de
 coautoría en un mensaje que vas a escribir, quítalo.
 
-**Por qué:** la autoría es de las cinco personas, que responden por el proyecto ante el docente. La IA
-es una herramienta y se documenta como tal en el Capítulo III. Firmar los commits enturbiaría el
-registro de contribución individual, que es evidencia evaluable. Esto **no** oculta el uso de IA:
-está declarado en la documentación académica y en el rol de D1.
+**Por qué:** la autoría del proyecto es mía. La IA es una herramienta, y que firme los commits
+enturbiaría el registro de lo que realmente escribí yo. Esto **no** oculta el uso de IA: está
+declarado abiertamente en este mismo archivo y en la bitácora de sesiones.
 
 ---
 
@@ -138,69 +136,39 @@ afirmar que una fuente está bloqueada o disponible, verifícalo con una petici�
 .claude/                skills/ · agents/ · settings.json
 openspec/               specs/ — qué hace el sistema hoy, validable con `openspec validate` (`ADR-040`)
 docs/                   brief.md · product-requirements.md (46 RF, 25 RNF) · design-decisions.md (ADR)
-docs/equipo/            Titulares D1–D5, tareas por sprint y secuencia de trabajo
 docs/ingenieria/        Pipeline de datos, auditoría de fuentes, matriz de trazabilidad
-docs/gestion/           Scrum, bitácora, bugs, implementaciones, bloqueos y compuertas
+docs/gestion/           Sprints, bitácora, bugs e implementaciones
 frontend/ · backend/    React 19 + Vite · Spring Boot — ambos completos y conectados
 ```
 
 ---
 
-## Formato académico
-
-**Retirado del repo el 2026-09-17** — `docs/informe-metodologico/` (4 capítulos) y `docs/anexos/`
-(6 anexos, plantilla del Tecnológico Comfenalco) se sacaron porque no aplican todavía. Se rehacen más
-adelante cuando corresponda. Si alguien pide ese material, no lo inventes ni asumas la plantilla
-vieja: no existe en este repo ahora mismo.
-
----
-
-## Secuencia de trabajo — obligatoria
-
-Orden: **D5 → D2 → D3 y D1 → D4 → D5 (QA)**. Entre etapas hay **compuertas**: un artefacto
-verificable que separa a quien lo produce de quien lo consume. Compuertas, titulares y protocolo en
-`docs/equipo/secuencia-de-trabajo.md` §2 y §5; estado vivo en `docs/gestion/registro-de-bloqueos.md`.
-
-**Antes de la primera línea de cualquier tarea:**
-
-1. **Verifica con su comando** la compuerta de la que depende esa tarea. No de memoria, y no
-   confiando en la tabla de estado: la tabla se desactualiza, el repositorio no.
-2. Abierta → avanzas. **Cerrada → te detienes**: registras el bloqueo (skill `registrar-bloqueo`),
-   **lo avisas en el chat** con el formato de la skill y ofreces el trabajo alterno que no la cruza.
-3. **Nunca rodees un bloqueo** inventando el insumo que falta (tipos escritos a mano, DTOs
-   "provisionales", simulaciones que nadie retira) ni escribiendo en la capa de otro rol. Única
-   excepción: desbloqueo temporal autorizado por el titular, con caducidad y registro.
-4. Si la tarea es de **otro rol**, no la ejecutas: lo dices. Si no sabes de qué depende, preguntas.
-   Al **abrir** una compuerta, la verificas, la marcas y la anuncias igual.
-
----
-
 ## Qué se registra siempre — regla del proyecto
 
-No es opcional: es parte de la definición de terminado y el insumo del Capítulo IV.
+No es opcional: es parte de la definición de terminado.
 
 | Ocurre | Se registra en | Con la skill |
 |---|---|---|
-| Se fusiona un PR a `develop` | `docs/gestion/registro-de-implementaciones.md` | `registrar-implementacion` |
+| Se fusiona un PR a `main` | `docs/gestion/registro-de-implementaciones.md` | `registrar-implementacion` |
 | Se encuentra un bug (aunque se arregle en el acto) | `docs/gestion/registro-de-bugs.md` | `registrar-bug` |
 | Termina una sesión de trabajo con IA | `docs/gestion/bitacora-sesiones.md` | `cerrar-sesion` |
 | Se elige entre alternativas técnicas | `docs/design-decisions.md` | `registrar-decision` |
 | Cambia el comportamiento del sistema | `openspec/specs/<capacidad>/spec.md`, en el mismo PR | `/opsx:propose` |
 | Se verifica una fuente de datos | `docs/ingenieria/auditoria-fuentes-de-datos.md` | `verificar-fuente` |
-| Una tarea no puede avanzar por falta del insumo de otro rol | `docs/gestion/registro-de-bloqueos.md` **+ aviso en el chat** | `registrar-bloqueo` |
 | Avanza un compromiso del sprint (entregado o a medias) | `docs/gestion/sprint-N.md` §2 — `✅`/`🟡` al inicio del Entregable | — |
 
-**Quien avanza, actualiza su registro — humano o IA, sin excepción.** La Sala de control que los cinco
-miran (`https://carlosbecharadev.github.io/Agua-Vigia-CTG/`) **se genera sola de estas filas y nadie
-edita su HTML**: lo que no se registre aquí, allá no existe. Detalle: `docs/gestion/README.md`.
+**Quien avanza, actualiza el registro — yo o la IA, sin excepción.** La Sala de control
+(`dist-dashboard/index.html`, ignorado por git) **se genera sola de estas filas y nadie edita su HTML**: lo que no se registre
+aquí, allá no existe. Se regenera a mano con `node scripts/generar-dashboard.mjs` y se abre en local;
+ya no se publica. Detalle: `docs/gestion/README.md`.
 
 ---
 
-## Cómo colaborar conmigo (el equipo, contigo el agente)
+## Cómo colaborar conmigo
 
 - **Antes de tu primera sesión, lee `docs/gestion/protocolo-de-contexto.md`**: dónde vive cada dato y
-  el presupuesto de líneas de los archivos permanentes. Cada línea que agregues aquí la pagan las
-  cinco personas del equipo, en cada una de sus sesiones.
+  el presupuesto de líneas de los archivos permanentes. Cada línea que agregues aquí se paga en cada
+  sesión de trabajo.
 - **Un dato vive en un solo archivo.** Si lo encuentras duplicado, es un defecto: detalle en uno,
   puntero en el otro.
 - **No repitas contexto**: lo decidido está en `docs/design-decisions.md`. Léelo antes de proponer una

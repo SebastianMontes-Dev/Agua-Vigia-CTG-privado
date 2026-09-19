@@ -29,7 +29,7 @@ import com.aguavigia.ctg.application.SectorActualizadoEvent;
  *
  * Consulta de solo lectura sin regla de negocio: va directo al puerto de salida, sin caso de
  * uso intermedio (ADR-015). Si alguna vez aparece una regla aqui, deja de ser cosa del
- * controlador y pasa a application/, que es de D2.
+ * controlador y pasa a application/.
  */
 @Tag(name = "Sectores", description = "Estado del servicio de agua por sector de Cartagena")
 @RestController

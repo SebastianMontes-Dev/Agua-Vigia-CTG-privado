@@ -19,9 +19,9 @@ El proyecto separa a propósito lo que el agente lee **siempre** de lo que lee *
 | **Bajo demanda** | `docs/**` | Solo cuando la tarea lo pide | Sin techo, pero con índice |
 | **Efímero** | Conversación, salidas de comandos | Se pierde al cerrar | Se resume en la bitácora |
 
-**La consecuencia práctica:** cada línea que agregues a `CLAUDE.md` o `MEMORY.md` la pagan las cinco
-personas del equipo, en cada una de sus sesiones, durante seis meses. Antes de agregar algo ahí,
-pregúntate si no pertenece a `docs/`.
+**La consecuencia práctica:** cada línea que agregues a `CLAUDE.md` o `MEMORY.md` se paga en cada
+sesión de trabajo, durante toda la vida del proyecto. Antes de agregar algo ahí, pregúntate si no
+pertenece a `docs/`.
 
 **Si un archivo permanente supera su presupuesto**, no se recorta borrando información: se mueve el
 detalle a `docs/` y en el archivo permanente queda una línea con el puntero.
@@ -36,15 +36,13 @@ sabe cuál manda.
 | Tipo de información | Único lugar válido |
 |---|---|
 | Cómo se trabaja aquí (reglas, convenciones, arquitectura) | `CLAUDE.md` |
-| Hallazgo verificado, restricción externa, acuerdo del equipo | `MEMORY.md` |
+| Hallazgo verificado, restricción externa, decisión permanente | `MEMORY.md` |
 | Por qué se eligió A en vez de B | `docs/design-decisions.md` (ADR) |
 | Reglas visuales y de interfaz | `DESIGN.md` |
 | Qué construimos y para quién | `docs/brief.md` |
 | Requisitos con id y prioridad | `docs/product-requirements.md` |
-| Quién hace qué y cuándo | `docs/equipo/` |
 | Qué se implementó | `docs/gestion/registro-de-implementaciones.md` |
 | Qué se rompió y cómo se arregló | `docs/gestion/registro-de-bugs.md` |
-| Quién está detenido esperando a quién, y el estado de las compuertas | `docs/gestion/registro-de-bloqueos.md` |
 | Qué hizo cada sesión de trabajo con IA | `docs/gestion/bitacora-sesiones.md` |
 | Estado de tareas en curso | GitHub Issues / Projects — **no** en archivos |
 | Cómo va el proyecto de un vistazo | La **Sala de control** — generada, nunca escrita a mano (`docs/gestion/README.md`) |
@@ -119,7 +117,7 @@ Los archivos de registro crecen para siempre; el contexto no. Por eso rotan.
 | `registro-de-implementaciones.md` | Sprint actual + anterior | Los anteriores se agrupan en un resumen por sprint |
 | `MEMORY.md` | 150 líneas | Se consolidan hallazgos redundantes; lo obsoleto se borra, no se acumula |
 
-La rotación la hace quien cierra el sprint (ver `docs/equipo/roles-y-tareas.md`, ceremonia de review).
+La rotación se hace al cerrar el sprint, junto con el review.
 
 ---
 

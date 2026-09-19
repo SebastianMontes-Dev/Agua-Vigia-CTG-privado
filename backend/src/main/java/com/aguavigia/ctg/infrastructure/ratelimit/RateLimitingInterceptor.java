@@ -39,7 +39,7 @@ public class RateLimitingInterceptor implements HandlerInterceptor {
         Long conteo = redis.opsForValue().increment(clave);
         if (conteo == null) {
             // Redis no disponible: no se bloquea el trafico por un problema de infraestructura
-            // ajeno al cliente (mismo criterio que el resto de D3 — fallar sin interrumpir).
+            // ajeno al cliente (mismo criterio que el resto de la infraestructura — fallar sin interrumpir).
             return true;
         }
         if (conteo == 1L) {

@@ -26,7 +26,7 @@ el correo es el lugar donde el proyecto se juega la credibilidad ante alguien qu
 página.
 
 **`urlBaja` va en todo correo de aviso**, no solo en un centro de preferencias. Es la baja en un clic
-que exige la Ley 1581/2012 y que el rol de D1 tiene como criterio de terminado.
+que exige la Ley 1581/2012 y que es criterio de terminado de estas plantillas.
 
 **Tablas y estilos en línea** porque los clientes de correo no aplican CSS moderno. El `<style>` del
 encabezado lleva solo lo que puede perderse sin romper nada: los ajustes de pantalla angosta y el tema

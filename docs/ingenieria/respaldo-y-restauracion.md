@@ -73,7 +73,7 @@ producción, y luego trimestralmente:
 2. Levantar el backend contra esa base restaurada.
 3. Verificar: `GET /api/sectores` devuelve datos, un reporte con foto conocida carga su imagen en
    `/fotos/<nombre>`, y `GET /api/bitacora` trae eventos.
-4. Anotar la fecha del simulacro y cualquier hallazgo en `docs/gestion/` (bitácora del equipo).
+4. Anotar la fecha del simulacro y cualquier hallazgo en `docs/gestion/` (bitácora de sesiones).
 
 ## 6. Qué NO cubre esto
 

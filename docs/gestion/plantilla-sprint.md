@@ -3,14 +3,13 @@
 > Copia este archivo a `docs/gestion/sprint-N.md` al abrir cada sprint. Se llena en tres momentos:
 > planning (§1–2), durante (§3) y cierre (§4–6).
 >
-> **Cabe en una página.** Un documento de sprint de cinco páginas no lo lee nadie, ni el docente.
+> **Cabe en una página.** Un documento de sprint de cinco páginas no lo lee nadie.
 
 ---
 
 # Sprint N — <foco en tres palabras>
 
 **Abierto:** AAAA-MM-DD · **Cerrado:** — *(se llena el día que el entregable se demuestra funcionando)*
-· **Scrum Master del sprint:** D<N>
 
 ---
 
@@ -26,28 +25,24 @@ Una frase que describe qué podrá hacer un usuario al final que hoy no puede.
 
 ## 2. Compromisos
 
-| Resp. | RF/RNF | Entregable | Depende de |
-|---|---|---|---|
-| D1 | | | |
-| D2 | | | |
-| D3 | | | |
-| D4 | | | |
-| D5 | | | |
+| RF/RNF | Entregable | Depende de |
+|---|---|---|
+| | | |
 
-La columna **Depende de** es la importante: es donde se ven los bloqueos antes de que ocurran.
-Escríbela con la **compuerta** correspondiente (C0–C3), no con un nombre propio. Cadena de
-dependencias y compuertas: `docs/equipo/secuencia-de-trabajo.md` §1 y §2.
+La columna **Depende de** es la importante: es donde se ve qué tiene que existir antes. Se escribe
+con el artefacto concreto que falta (una entidad de dominio, un endpoint, el contrato OpenAPI), no
+con una intención.
 
 ---
 
-## 3. Bloqueos del sprint — resumen
+## 3. Obstáculos del sprint — resumen
 
-El detalle de cada bloqueo vive en `registro-de-bloqueos.md`; aquí solo el resumen del sprint, para
-la retrospectiva. Un sprint sin bloqueos anotados y con entregables retrasados significa que hubo
-bloqueos y no se registraron.
+Lo que detuvo el avance y no dependía de escribir código: una credencial de un tercero que no llegó,
+una fuente de datos caída, una decisión sin tomar. Un sprint con entregables retrasados y sin nada
+anotado aquí significa que hubo obstáculos y no se registraron.
 
-| ID | Compuerta | Quién quedó detenido | Días | Cómo se resolvió |
-|---|---|---|---|---|
+| Qué detuvo el avance | De qué dependía | Días | Cómo se resolvió |
+|---|---|---|---|
 
 ---
 
@@ -78,10 +73,10 @@ Solo lo que se pudo **mostrar corriendo**. Código fusionado que no se puede dem
 
 **Qué funcionó** — máximo 3, concretos.
 
-**Qué no funcionó** — máximo 3. Sobre el proceso, no sobre las personas.
+**Qué no funcionó** — máximo 3. Sobre el proceso, no sobre uno mismo.
 
-**Acciones para el próximo sprint** — máximo 3, cada una con responsable y fecha. Una acción sin
-responsable no se ejecuta.
+**Acciones para el próximo sprint** — máximo 3, cada una con fecha. Una acción sin fecha no se
+ejecuta.
 
-| Acción | Resp. | Para cuándo |
-|---|---|---|
+| Acción | Para cuándo |
+|---|---|

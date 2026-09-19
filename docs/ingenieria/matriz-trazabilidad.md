@@ -43,7 +43,7 @@
 
 ## Nivel 2 — Requisitos funcionales
 
-### M1 — Mapa en vivo · D4
+### M1 — Mapa en vivo
 
 | RF | Historia | Caso de prueba | Obj. | Sprint | Estado |
 |---|---|---|---|---|---|
@@ -52,7 +52,7 @@
 | RF003 Antigüedad del dato visible por sector | HU003 | CP003 | 3 | 2 | ✅ (`SectorMongoAdapterTest.debeDevolverLaFechaDelEstadoAlLeerElSector`) |
 | RF004 Lista textual accesible alternativa al mapa | HU004 | CP004 | 3, 4 | 1 | ✅ |
 
-### M2 — Reporte ciudadano · D3 + D4
+### M2 — Reporte ciudadano
 
 | RF | Historia | Caso de prueba | Obj. | Sprint | Estado |
 |---|---|---|---|---|---|
@@ -61,7 +61,7 @@
 | RF007 Coordenada del reporte e inferencia de sector | HU007 | CP007 | 2, 3 | 2 | ✅ |
 | RF008 Reporte en máximo dos toques | HU008 | CP008 | 3, 4 | 2 | ✅ |
 
-### M3 — Consenso automático · D2
+### M3 — Consenso automático
 
 | RF | Historia | Caso de prueba | Obj. | Sprint | Estado |
 |---|---|---|---|---|---|
@@ -69,7 +69,7 @@
 | RF010 Dos estrategias de consenso intercambiables | HU010 | CP010 | 3 | 2 | ✅ |
 | RF011 Registro de los reportes que sustentaron el cambio | HU011 | CP011 | 3, 4 | 2 | ✅ |
 
-### M4 — Alertas por correo · D1
+### M4 — Alertas por correo
 
 | RF | Historia | Caso de prueba | Obj. | Sprint | Estado |
 |---|---|---|---|---|---|
@@ -78,7 +78,7 @@
 | RF014 Notificación al cambiar el estado del sector | HU014 | CP014 | 3 | 3 | ✅ |
 | RF015 Baja en un clic sin credenciales | HU015 | CP015 | 3 | 2 | ✅ |
 
-### M5 — Panel del veedor · D3 + D4
+### M5 — Panel del veedor
 
 | RF | Historia | Caso de prueba | Obj. | Sprint | Estado |
 |---|---|---|---|---|---|
@@ -87,7 +87,7 @@
 | RF018 Moderar reportes dudosos | HU018 | CP018 | 3 | 3 | ✅ |
 | RF019 Autenticación con token para el panel | HU019 | CP019 | 3 | 3 | ✅ |
 
-### M6 — Índice de Cumplimiento ⭐ · D2
+### M6 — Índice de Cumplimiento ⭐
 
 | RF | Historia | Caso de prueba | Obj. | Sprint | Estado |
 |---|---|---|---|---|---|
@@ -95,7 +95,7 @@
 | RF021 Índice agregado por sector y global | HU021 | CP021 | 3, 4 | 4 | ✅ |
 | RF022 Presentación como comparación, no como puntaje | HU022 | CP022 | 3 | 4 | ✅ |
 
-### M7 — Estadísticas · D5 + D4
+### M7 — Estadísticas
 
 | RF | Historia | Caso de prueba | Obj. | Sprint | Estado |
 |---|---|---|---|---|---|
@@ -103,7 +103,7 @@
 | RF024 Evolución del índice en el tiempo | HU024 | CP024 | 4 | 4 | ✅ (`GET /api/cumplimiento/serie` · `SerieMensualCumplimientoTest`) |
 | RF025 Exportación en CSV | HU025 | CP025 | 3 | 5 | ✅ (`/api/estadisticas/exportar.csv` y `/api/cumplimiento/serie.csv` · `EscritorCsvTest`) |
 
-### M8 — Bitácora pública · D1
+### M8 — Bitácora pública
 
 | RF | Historia | Caso de prueba | Obj. | Sprint | Estado |
 |---|---|---|---|---|---|
@@ -111,7 +111,7 @@
 | RF027 Consulta pública sin autenticación | HU027 | CP027 | 3 | 4 | ✅ |
 | RF028 Inmutabilidad: no se edita ni se elimina | HU028 | CP028 | 2, 3 | 3 | ✅ |
 
-### M9 — Ingesta automática con IA ⭐ · D3
+### M9 — Ingesta automática con IA ⭐
 
 | RF | Historia | Caso de prueba | Obj. | Sprint | Estado |
 |---|---|---|---|---|---|
@@ -218,7 +218,7 @@ Se revisa al cerrar cada sprint. Un hueco aquí es un hallazgo del docente esper
 | Ningún endpoint paginaba: `/api/bitacora` devolvía la bitácora entera, que por RF028 crece sin cota | 2026-08-11 | ✅ **Cerrado 2026-08-11** — paginación con metadatos en cabeceras en bitácora y las dos colas del veedor |
 | El cupo por dispositivo (RF006) contaba y luego guardaba: dos peticiones simultáneas del mismo dispositivo pasaban ambas | 2026-08-11 | ✅ **Cerrado 2026-08-11** — reserva atómica con INCR de Redis, con prueba de 50 hilos concurrentes |
 | RNF020 marcado ✅ sin verificación: el CI no construía las imágenes ni validaba los compose | 2026-08-11 | ✅ **Cerrado 2026-08-11** — `despliegue-ci.yml`, que además falla si producción publica un puerto de base de datos |
-| RNF001 y RNF002 marcados ✅ sin ninguna medición | 2026-08-11 | 🟡 **RNF001 sigue abierto** (es de frontend, D4) · ✅ **RNF002 cerrado 2026-08-11** — k6 midió p(95)=16.49 ms contra el umbral de 1 s |
+| RNF001 y RNF002 marcados ✅ sin ninguna medición | 2026-08-11 | 🟡 **RNF001 sigue abierto** (es de frontend) · ✅ **RNF002 cerrado 2026-08-11** — k6 midió p(95)=16.49 ms contra el umbral de 1 s |
 | El backend paginó `/api/veedor/reportes/pendientes` y `/api/veedor/ingesta/propuestas` (fila anterior), pero el frontend nunca leyó `X-Total-Count`: un reporte o propuesta más allá del elemento 50 era invisible para el veedor, sin aviso | 2026-08-12 | ✅ **Cerrado 2026-08-12** — ambas colas piden el máximo (`tamano=200`) y el panel avisa si aun así sobra más de lo mostrado (`PanelVeedor.tsx`) |
 | M15 (cuentas individuales, roles, permisos y TOTP) está construido y probado en el backend desde el 2026-08-31 (`ADR-039`), pero nunca entró a la cadena académica: `product-requirements.md` §4 no citaba `RF037`–`RF046` ni `RNF020`–`RNF026`, esta matriz no tenía Nivel 1 ni sección M15 para RF042–RF046 y llegaba solo hasta RNF021 en Nivel 3, y esta misma matriz citaba `HU037`–`HU041` para M10–M14 sin que `anexo-4-historias-de-usuario.md` las tuviera escritas (solo cubría HU001–HU036) | 2026-09-05 | ✅ **Cerrado 2026-09-05** — `anexo-4` incorpora HU037–HU041 (M10–M14) y HU042–HU046 (M15); `anexo-5` incorpora CP042–CP046; `product-requirements.md` §4 y esta matriz citan RF037–RF046 y RNF020–RNF026. **Pendiente de verificar por un humano:** los nombres de los métodos JUnit citados en CP042–CP046 y en las filas RNF022–RNF025 se tomaron de una lectura estática del código (`Grep`), sin ejecutar `mvnw test` en esta sesión — confirmar que compilan y pasan antes de cerrar el sprint |
 

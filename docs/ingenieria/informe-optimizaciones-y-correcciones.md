@@ -2,7 +2,7 @@
 
 **Proyecto:** AguaVigía CTG — Monitoreo del Servicio de Acueducto en Cartagena de Indias  
 **Fecha de Elaboración:** 2026-08-22  
-**Autor:** Equipo de Ingeniería / Pair Programming Assistant  
+**Autor:** Pair Programming Assistant  
 
 ---
 

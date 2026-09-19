@@ -66,7 +66,7 @@ public class SectorMongoAdapter implements SectorRepository {
     @CacheEvict(value = "sectores", allEntries = true)
     public Sector guardar(Sector sector) {
         // Se lee el documento existente en vez de construir uno nuevo: la geometria y los datos
-        // censales los sembro D5 y este adaptador no los produce. Un save() sobre un documento
+        // censales los siembra el sembrador y este adaptador no los produce. Un save() sobre un documento
         // recien construido los borraria de los 213 barrios.
         SectorDocumento documento = repositorio.findBySlug(sector.id().valor())
                 .orElseGet(() -> {

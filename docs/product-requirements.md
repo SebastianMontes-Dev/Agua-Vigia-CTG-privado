@@ -1,6 +1,6 @@
 # Requisitos de producto — AguaVigía CTG
 
-> Especificación de requisitos (base del SRS académico, formato IEEE 830 adaptado).
+> Especificación de requisitos (formato IEEE 830 adaptado).
 > Cada requisito tiene id, prioridad MoSCoW, módulo y origen. Sin origen, un requisito es una opinión.
 
 **Convenciones de prioridad (MoSCoW):**
@@ -15,7 +15,7 @@
 
 | ID | Requisito | Prioridad | Actor | Origen |
 |---|---|---|---|---|
-| RF001 | El sistema debe mostrar un mapa de Cartagena con todos los sectores coloreados según su estado actual (con servicio, sin servicio, presión baja, corte programado). | Debe | Vecino | Objetivo general |
+| RF001 | El sistema debe mostrar un mapa de Cartagena con todos los sectores coloreados según su estado actual (con servicio, sin servicio, presión baja, corte programado). | Debe | Vecino | Brief |
 | RF002 | El sistema debe permitir consultar el detalle de un sector (estado, último cambio, histórico de cortes) al seleccionarlo. | Debe | Vecino | Observación de campo |
 | RF003 | El sistema debe mostrar, junto a cada sector, cuánto tiempo hace que se actualizó su información. | Debe | Vecino | Riesgo: mapa congelado con datos viejos |
 | RF004 | El sistema debe ofrecer una lista textual de sectores y sus estados como alternativa accesible al mapa. | Debe | Vecino con lector de pantalla | RNF de accesibilidad |
@@ -34,7 +34,7 @@
 | ID | Requisito | Prioridad | Actor | Origen |
 |---|---|---|---|---|
 | RF009 | El sistema debe cambiar el estado de un sector automáticamente cuando N reportes independientes coincidan dentro de una ventana de tiempo configurable. | Debe | Sistema | Diferencial del producto |
-| RF010 | El sistema debe soportar al menos dos estrategias de consenso intercambiables (umbral fijo y umbral proporcional a la población del sector). | Debería | Sistema | Patrón Strategy — evidencia académica |
+| RF010 | El sistema debe soportar al menos dos estrategias de consenso intercambiables (umbral fijo y umbral proporcional a la población del sector). | Debería | Sistema | Patrón Strategy |
 | RF011 | El sistema debe registrar qué reportes sustentaron cada cambio de estado por consenso. | Debe | Veedor | Trazabilidad |
 
 ### M4 — Alertas por correo
@@ -43,7 +43,7 @@
 |---|---|---|---|---|
 | RF012 | El sistema debe permitir suscribirse a uno o más sectores indicando solo un correo electrónico. | Debe | Vecino | Brief |
 | RF013 | El sistema debe confirmar la suscripción mediante doble opt-in antes de enviar cualquier alerta. | Debe | Sistema | Ley 1581/2012 (datos personales) |
-| RF014 | El sistema debe notificar al suscriptor cuando su sector cambie de estado (corte anunciado, confirmado o restablecido). | Debe | Vecino | Objetivo general |
+| RF014 | El sistema debe notificar al suscriptor cuando su sector cambie de estado (corte anunciado, confirmado o restablecido). | Debe | Vecino | Brief |
 | RF015 | Todo correo debe incluir un enlace de baja que funcione en un clic, sin pedir credenciales. | Debe | Vecino | Ley 1581/2012 |
 
 ### M5 — Panel del veedor
@@ -67,7 +67,7 @@
 
 | ID | Requisito | Prioridad | Actor | Origen |
 |---|---|---|---|---|
-| RF023 | El sistema debe mostrar los sectores más afectados, la duración promedio de los cortes y su frecuencia mensual. | Debe | Veedor, periodista | Objetivo específico 4 |
+| RF023 | El sistema debe mostrar los sectores más afectados, la duración promedio de los cortes y su frecuencia mensual. | Debe | Veedor, periodista | Brief |
 | RF024 | El sistema debe mostrar la evolución del índice de cumplimiento en el tiempo. | Debería | Veedor | Evidencia acumulada |
 | RF025 | El sistema debería permitir exportar las estadísticas en formato abierto (CSV). | Podría | Periodista | Uso periodístico |
 
@@ -166,15 +166,8 @@ Todos medibles. Un RNF sin métrica y umbral no es verificable y no cuenta.
 
 ## 4. Trazabilidad
 
-| Objetivo específico | Requisitos que lo cumplen |
-|---|---|
-| 1. Analizar requisitos mediante elicitación | RF001–RF046 (elicitados) — este documento + anexos 1, 2 y 4 |
-| 2. Diseñar arquitectura limpia y modelo geoespacial | RNF018, RNF020, RNF026, RF001, RF007, RF009 |
-| 3. Implementar con Spring Boot, MongoDB, Redis y React aplicando SOLID | Todos los RF de M1–M9 y de M10–M15 (Fase 2, RF037–RF046), RNF021 |
-| 4. Validar funcionamiento y aceptación | RNF017, RNF019, RNF022–RNF025, RF023, instrumentos de percepción |
-
-> La matriz completa `objetivo → RF → historia de usuario → caso de prueba` se mantiene en
-> `docs/ingenieria/matriz-trazabilidad.md`.
+La matriz completa `RF → historia de usuario → caso de prueba` se mantiene en
+`docs/ingenieria/matriz-trazabilidad.md`.
 
 ---
 

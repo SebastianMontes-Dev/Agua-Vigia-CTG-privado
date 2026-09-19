@@ -5,7 +5,7 @@
 > `VEEDOR_PASSWORD_HASH`— y el panel del veedor responde 503 hasta configurarlas. Esto quedó
 > sin resolver durante varias sesiones seguidas de integración frontend-backend, siempre
 > pospuesto por ser "solo config, no código". Esta nota es el único lugar que hace falta leer
-> para dejarlo funcionando, con una clave de equipo lista para copiar y pegar.
+> para dejarlo funcionando, con una clave de desarrollo lista para copiar y pegar.
 >
 > **Última actualización:** 2026-08-12
 
@@ -35,9 +35,9 @@ Ambas se leen en `VeedorAuthController.java` (`backend/src/main/java/.../api/Vee
 Son credenciales de **desarrollo local**, no de producción: el perfil `prod` exige las suyas
 propias y aborta el arranque si faltan (`ValidacionDeSecretosProd`).
 
-## 3. La vía rápida — copiar la clave de equipo
+## 3. La vía rápida — copiar la clave de desarrollo
 
-Para desarrollo local, todo el equipo puede compartir la misma clave. Pega esto en tu `.env`:
+Para desarrollo local, se puede usar esta misma clave. Pega esto en tu `.env`:
 
 ```bash
 JWT_SECRET=jHZczrMtY+dNWbYoCFZe3ZOvDUl8j7rWqVDeEeLMfIQ=
@@ -106,7 +106,7 @@ Borra únicamente las cuentas del panel: reportes, boletines y cortes quedan int
 
 ## 4. La vía propia — generar tu propia clave
 
-Si prefieres no compartir la del equipo:
+Si prefieres generar una propia:
 
 ```bash
 # JWT_SECRET — 32 bytes al azar
@@ -151,5 +151,4 @@ VEEDOR_PASSWORD_HASH`); un `401` significa que la clave no coincide con el hash 
 
 Documentos relacionados: [`../../frontend/INTEGRACION-BACKEND.md`](../../frontend/INTEGRACION-BACKEND.md)
 (qué endpoint usa cada pantalla) · [`estado-del-backend.md`](estado-del-backend.md) §6.2
-(por qué esto quedó pendiente tanto tiempo) · [`../anexos/anexo-5-manual-tecnico.md`](../anexos/anexo-5-manual-tecnico.md)
-(las mismas variables, pero para producción).
+(por qué esto quedó pendiente tanto tiempo).
