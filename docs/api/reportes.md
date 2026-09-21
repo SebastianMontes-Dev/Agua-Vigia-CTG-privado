@@ -88,7 +88,7 @@ El umbral, por defecto, es `max(3, ceil(población del sector × 0,001))`: un ba
 necesita 12 vecinos; uno pequeño, 3. Es configurable.
 
 Cuando el consenso cambia el estado se anexa un evento a la [bitácora](bitacora-estadisticas-cumplimiento.md)
-con `reportesSustento`: **los ids de los reportes que lo sostuvieron** (RF011), para poder contrastar el
+con `cantidadReportesSustento`, y los **ids** de los reportes que lo sostuvieron (RF011) se piden con `GET /api/bitacora/{id}/sustento`, para poder contrastar el
 cambio con la evidencia.
 
 > **Consecuencia para la interfaz.** Tras reportar, el estado del mapa **no cambia** hasta que otros

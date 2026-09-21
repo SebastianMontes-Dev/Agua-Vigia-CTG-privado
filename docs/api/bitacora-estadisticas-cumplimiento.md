@@ -73,7 +73,7 @@ cabeceras (ver [Errores y límites §Paginación](errores-y-limites.md#paginaci�
   "timestamp": "2026-08-08T15:30:00Z",
   "descripcion": "3 reportes ciudadanos independientes confirmaron SIN_SERVICIO en 'manga'",
   "estado": "SIN_SERVICIO", "urlOriginal": null, "imagenUrl": null,
-  "reportesSustento": ["r1", "r2", "r3"]
+  "cantidadReportesSustento": 3
 }
 ```
 
@@ -81,11 +81,11 @@ cabeceras (ver [Errores y límites §Paginación](errores-y-limites.md#paginaci�
 |---|---|
 | `CORTE_ANUNCIADO` | Un veedor registró un corte oficial. |
 | `CORTE_RESTABLECIDO` | Se cerró un corte. |
-| `CORTE_CONFIRMADO_POR_CIUDADANOS` | El consenso de reportes cambió el estado. Trae `reportesSustento`. |
+| `CORTE_CONFIRMADO_POR_CIUDADANOS` | El consenso de reportes cambió el estado. Trae `cantidadReportesSustento`. |
 | `CORTE_DETECTADO_POR_INGESTA` | Un boletín de Acuacar detectado y aprobado. Trae `urlOriginal`. |
 
 Campos que **pueden ser nulos** y que la interfaz debe tolerar: `sectorId`, `corteId`, `estado`,
-`urlOriginal`, `imagenUrl`. `reportesSustento` nunca es nulo (lista vacía si no aplica).
+`urlOriginal`, `imagenUrl`. `cantidadReportesSustento` nunca es nulo (0 si el evento no es de consenso).
 
 - **`estado`** permite darle color y filtro al evento. Un evento con `estado: null` es **informativo**:
   píntalo neutro, sin color de estado.
@@ -95,8 +95,17 @@ Campos que **pueden ser nulos** y que la interfaz debe tolerar: `sectorId`, `cor
   (*hotlinking*): la misma imagen responde `200` sin `Referer` y `403` con uno ajeno. En producción, el
   proxy del proyecto las sirve como propias: sustituye `https://www.acuacar.com/wp-content/uploads/` por
   **`/acuacar-media/`** en la URL. Sin ese proxy, las imágenes no cargarán en el navegador.
-- **`reportesSustento`** son ids de reportes; **no hay ruta pública que los consulte**. Sirven para que un
-  veedor los cruce con el panel.
+- **`cantidadReportesSustento`** dice cuántos reportes sostuvieron el cambio. **Los ids no vienen en el listado**
+  (en una avería grande pueden ser miles y una página llegó a pesar 205 KB): se piden con
+  `GET /api/bitacora/{id}/sustento`, ver abajo.
+
+### Los reportes que sustentan un evento (RF011)
+
+`GET /api/bitacora/{id}/sustento?pagina=0&tamano=50` devuelve un **arreglo de ids de reportes** (los que
+sostuvieron el cambio de estado de ese evento), con las mismas cabeceras de paginación que el listado
+(por defecto 50, máximo 200). Pídelo **solo si el usuario abre el detalle** del evento. Una página fuera de
+rango devuelve `[]`; un `id` de evento inexistente, `404`. Los ids sirven para que un veedor los cruce con
+el panel: no hay ruta pública que devuelva el contenido de un reporte.
 
 ## Estadísticas
 

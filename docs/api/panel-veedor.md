@@ -17,7 +17,7 @@ Cómo se obtiene el token: [Cuentas y sesión](cuentas-y-sesion.md).
 | `PATCH /api/veedor/reportes/{id}/aprobar` · `…/descartar` | `MODERAR_REPORTES` |
 | `GET /api/veedor/ingesta/propuestas` · `GET /api/veedor/ingesta/salud` | `VER_PANEL` |
 | `PATCH /api/veedor/ingesta/propuestas/{id}/aprobar` · `…/descartar` | `REVISAR_INGESTA` |
-| `GET /api/veedor/usuarios` · `POST …/usuarios/invitaciones` · `PATCH …/usuarios/{id}/{aprobacion,rechazo,suspension,reactivacion,permisos}` | `GESTIONAR_USUARIOS` |
+| `GET /api/veedor/usuarios` · `POST …/usuarios/invitaciones` · `POST …/usuarios/{id}/invitacion/reenvio` · `PATCH …/usuarios/{id}/{aprobacion,rechazo,suspension,reactivacion,permisos}` | `GESTIONAR_USUARIOS` |
 | `GET /api/veedor/auditoria` | `VER_AUDITORIA` |
 | `POST /api/veedor/segundo-factor/{alta,confirmacion,baja}` | `CONFIGURAR_SEGUNDO_FACTOR` |
 | `POST /api/veedor/sesion/cierre` · `GET /api/veedor/yo` | solo estar autenticado |
@@ -107,6 +107,7 @@ que ella misma ejecutó.
 |---|---|
 | `GET /api/veedor/usuarios?estado=…&pagina&tamano` | Lista paginada, filtrable por estado de cuenta. `400` si el estado no existe. |
 | `POST /api/veedor/usuarios/invitaciones` `{ correo, nombre, rol }` | Crea una cuenta `INVITADA` y envía el correo. `409` si el correo ya tiene cuenta. |
+| `POST …/{id}/invitacion/reenvio` | Reenvía la invitación a una cuenta `INVITADA` (invalida el enlace anterior y reinicia sus 7 días). `202`; `404` si no existe; `409` si la cuenta ya no está `INVITADA`. |
 | `PATCH …/{id}/aprobacion` `{ rol, concedidos, revocados }` | Aprueba una cuenta de registro abierto, asignándole rol. |
 | `PATCH …/{id}/rechazo` | Rechaza una solicitud (`PENDIENTE_APROBACION`). |
 | `PATCH …/{id}/suspension` · `…/reactivacion` | Suspende o reactiva una cuenta `ACTIVA`. La suspensión **cierra sus sesiones**. |

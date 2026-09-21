@@ -15,6 +15,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Component
@@ -55,6 +56,11 @@ public class EventoBitacoraMongoAdapter implements EventoBitacoraRepository {
                 pagina,
                 tamano,
                 resultado.getTotalElements());
+    }
+
+    @Override
+    public Optional<EventoBitacora> buscarPorId(EventoId id) {
+        return repositorio.findById(id.valor()).map(EventoBitacoraMongoAdapter::aDominio);
     }
 
     private static EventoBitacora aDominio(EventoBitacoraDocumento documento) {

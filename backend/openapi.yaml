@@ -17,6 +17,8 @@ servers:
 tags:
 - name: Suscripciones
   description: Alertas por correo cuando cambia el estado de un sector
+- name: Sectores
+  description: Sectores de Cartagena y su estado del servicio
 - name: Veedor - Moderación
   description: Moderar reportes ciudadanos pendientes (RF018)
 - name: Cuentas
@@ -37,6 +39,8 @@ tags:
   description: "Alta, verificacion y recuperacion de cuentas del panel"
 - name: Sectores
   description: Estado del servicio de agua por sector de Cartagena
+- name: Veedor - Cuenta propia
+  description: Cambios que una persona hace sobre su propia cuenta
 - name: Veedor - Cortes
   description: Registro y cierre de cortes oficiales (RF016-RF017)
 - name: Reportes
@@ -50,6 +54,41 @@ tags:
 - name: Veedor
   description: Autenticacion del panel del veedor
 paths:
+  /api/veedor/usuarios/{id}/invitacion/reenvio:
+    post:
+      tags:
+      - Cuentas
+      summary: Reenviar la invitación a una cuenta que aún no la aceptó
+      description: Requiere GESTIONAR_USUARIOS. El enlace anterior deja de servir
+        y se reinicia su vigencia de 7 días.
+      operationId: reenviarInvitacion
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "202":
+          description: Invitación reenviada
+        "404":
+          description: No existe la cuenta
+        "409":
+          description: La cuenta ya aceptó la invitación (no está en estado INVITADA)
+        "401":
+          description: "Sin sesión, token inválido, caducado o revocado"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: La sesión no tiene el permiso que exige esta operación
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+      security:
+      - bearerAuth: []
   /api/veedor/usuarios/invitaciones:
     post:
       tags:
@@ -282,6 +321,45 @@ paths:
                 $ref: "#/components/schemas/ProblemDetail"
       security:
       - bearerAuth: []
+  /api/veedor/cuenta/clave:
+    post:
+      tags:
+      - Veedor - Cuenta propia
+      summary: Cambiar la propia clave
+      description: |-
+        Exige la clave actual y comparte el contador de intentos fallidos con el inicio de sesión
+        (5 fallos en 15 minutos bloquean la cuenta 15 minutos). Al cambiarla se cierran **todas** las
+        sesiones, la actual incluida: el cliente debe volver a pedir `POST /api/veedor/sesion` con la
+        clave nueva. Se avisa por correo del cambio.
+      operationId: cambiarClave
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SolicitudCambioClave"
+        required: true
+      responses:
+        "204":
+          description: Clave cambiada; todas las sesiones cerradas
+        "400":
+          description: "La clave actual no es correcta, la nueva no cumple la polí\
+            tica (12 a 128 caracteres) o es igual a la actual"
+        "423":
+          description: Cuenta bloqueada por intentos fallidos
+        "401":
+          description: "Sin sesión, token inválido, caducado o revocado"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: La sesión no tiene el permiso que exige esta operación
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+      security:
+      - bearerAuth: []
   /api/veedor/cortes:
     get:
       tags:
@@ -385,6 +463,131 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
+  /api/suscripciones/confirmar:
+    get:
+      tags:
+      - Suscripciones
+      summary: Pantalla del enlace «Confirmar» del correo
+      description: |-
+        Página a la que lleva el enlace del correo. Solo muestra un botón: NO confirma nada, porque un
+        antivirus o una vista previa de enlaces abre los GET sin que nadie los pida (`ADR-054`). La
+        acción ocurre al enviar el formulario, que hace POST a la misma ruta.
+      operationId: pantallaConfirmar
+      parameters:
+      - name: token
+        in: query
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Página con el botón
+          content:
+            text/html:
+              schema:
+                type: string
+            application/json:
+              schema:
+                type: string
+    post:
+      tags:
+      - Suscripciones
+      summary: Confirmar la suscripción (doble opt-in)
+      description: |-
+        Acción del botón de la página de confirmación (o de un cliente de API). El token es de un solo enlace, no de un solo uso:
+        confirmarla dos veces no falla (RF013). Responde JSON o una página HTML de cortesía
+        según el `Accept` de quien pide: el formulario de la página responde HTML y un cliente de API
+        responde JSON. `token` va como parámetro de consulta o del formulario.
+      operationId: confirmar_1
+      parameters:
+      - name: token
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: Accept
+        in: header
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Suscripción confirmada
+          content:
+            application/json:
+              schema:
+                type: object
+            text/html:
+              schema:
+                type: object
+        "400":
+          description: "Token inválido, inexistente o de una suscripción ya cancelada"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+  /api/suscripciones/cancelar:
+    get:
+      tags:
+      - Suscripciones
+      summary: Pantalla del enlace de baja de todo correo (RF015)
+      description: |-
+        Página a la que lleva el enlace del correo. Solo muestra un botón: NO cancela nada, porque un
+        antivirus o una vista previa de enlaces abre los GET sin que nadie los pida (`ADR-054`). La
+        acción ocurre al enviar el formulario, que hace POST a la misma ruta.
+      operationId: pantallaCancelar
+      parameters:
+      - name: token
+        in: query
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Página con el botón
+          content:
+            text/html:
+              schema:
+                type: string
+            application/json:
+              schema:
+                type: string
+    post:
+      tags:
+      - Suscripciones
+      summary: Darse de baja en un clic (RF015)
+      description: |-
+        Acción del botón de la página de baja (o de un cliente de API). Sin pedir credenciales: el token que llega en cada correo es suficiente. Responde
+        JSON o una página HTML de cortesía según el `Accept` de quien pide (mismo motivo
+        que en {@code /confirmar}).
+      operationId: cancelar
+      parameters:
+      - name: token
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: Accept
+        in: header
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Suscripción cancelada
+          content:
+            application/json:
+              schema:
+                type: object
+            text/html:
+              schema:
+                type: object
+        "400":
+          description: Token inválido o inexistente
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
   /api/reportes:
     post:
       tags:
@@ -472,7 +675,7 @@ paths:
       - Reportes
       summary: Confirmar un reporte
       description: Permite a otro vecino confirmar un reporte ciudadano (M11).
-      operationId: confirmar_1
+      operationId: confirmar_2
       parameters:
       - name: id
         in: path
@@ -567,6 +770,27 @@ paths:
           description: Correo confirmado
         "400":
           description: "Enlace invalido, vencido o ya usado"
+  /api/cuentas/verificacion/reenvio:
+    post:
+      tags:
+      - Cuentas
+      summary: Reenviar el correo de verificación
+      description: |-
+        Para quien se registró y no recibió el enlace (o venció). Responde 202 **siempre**, exista o no
+        la cuenta y ya esté verificada o no: no revela qué correos están registrados. Reenvía como mucho
+        una vez cada 2 minutos por cuenta. El enlace anterior deja de servir.
+      operationId: reenviarVerificacion
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SolicitudReenvioVerificacion"
+        required: true
+      responses:
+        "202":
+          description: "Si había algo que reenviar, el correo va en camino"
+        "400":
+          description: Correo mal formado
   /api/cuentas/restablecimiento:
     post:
       tags:
@@ -1528,81 +1752,6 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Open311Response"
-  /api/suscripciones/confirmar:
-    get:
-      tags:
-      - Suscripciones
-      summary: Confirmar la suscripción (doble opt-in)
-      description: |-
-        Enlace del correo de confirmación. El token es de un solo enlace, no de un solo uso:
-        confirmarla dos veces no falla (RF013). Responde JSON o una página HTML de cortesía
-        según el `Accept` de quien pide — el mismo enlace del correo abre bien tanto en un
-        navegador como desde un cliente de API.
-      operationId: confirmar_2
-      parameters:
-      - name: token
-        in: query
-        required: true
-        schema:
-          type: string
-      - name: Accept
-        in: header
-        required: false
-        schema:
-          type: string
-      responses:
-        "200":
-          description: Suscripción confirmada
-          content:
-            application/json:
-              schema:
-                type: object
-            text/html:
-              schema:
-                type: object
-        "400":
-          description: "Token inválido, inexistente o de una suscripción ya cancelada"
-          content:
-            application/problem+json:
-              schema:
-                $ref: "#/components/schemas/ProblemDetail"
-  /api/suscripciones/cancelar:
-    get:
-      tags:
-      - Suscripciones
-      summary: Darse de baja en un clic (RF015)
-      description: |-
-        Sin pedir credenciales — el token que llega en cada correo es suficiente. Responde
-        JSON o una página HTML de cortesía según el `Accept` de quien pide (mismo motivo
-        que en {@code /confirmar}).
-      operationId: cancelar
-      parameters:
-      - name: token
-        in: query
-        required: true
-        schema:
-          type: string
-      - name: Accept
-        in: header
-        required: false
-        schema:
-          type: string
-      responses:
-        "200":
-          description: Suscripción cancelada
-          content:
-            application/json:
-              schema:
-                type: object
-            text/html:
-              schema:
-                type: object
-        "400":
-          description: Token inválido o inexistente
-          content:
-            application/problem+json:
-              schema:
-                $ref: "#/components/schemas/ProblemDetail"
   /api/sectores:
     get:
       tags:
@@ -1620,6 +1769,51 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/RespuestaSectores"
+  /api/sectores/{sectorId}/cortes:
+    get:
+      tags:
+      - Sectores
+      summary: "Histórico de cortes de un sector, del más reciente al más antiguo"
+      description: |-
+        Cortes oficiales que afectaron al sector, abiertos y cerrados. Paginado con las mismas
+        cabeceras que la bitácora (`X-Total-Count`, `X-Total-Pages`, `X-Page`, `X-Page-Size`, `Link`);
+        por defecto 50, máximo 200. Un sector sin cortes devuelve una lista vacía, no un 404.
+      operationId: listar_1
+      parameters:
+      - name: sectorId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: pagina
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+      - name: tamano
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+      responses:
+        "200":
+          description: Cortes de la página pedida
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CorteRespuesta"
+        "404":
+          description: No existe el sector
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CorteRespuesta"
   /api/sectores/{id}:
     get:
       tags:
@@ -1871,7 +2065,7 @@ paths:
         `X-Total-Count`, `X-Total-Pages`, `X-Page`, `X-Page-Size` y `Link` — el cuerpo
         sigue siendo un arreglo JSON, así que un cliente que las ignore no se rompe.
         Por defecto 50 eventos; el máximo por página es 200.
-      operationId: listar_1
+      operationId: listar_2
       parameters:
       - name: pagina
         in: query
@@ -1894,6 +2088,52 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/EventoBitacoraRespuesta"
+  /api/bitacora/{id}/sustento:
+    get:
+      tags:
+      - Bitácora
+      summary: Los reportes que sustentan un evento de consenso (RF011)
+      description: |-
+        Ids de los reportes ciudadanos que sostuvieron el cambio de estado, para contrastarlo con la
+        evidencia. Van aparte del listado porque en una avería grande pueden ser miles. Paginado con las
+        mismas cabeceras que el listado; por defecto 50 ids por página, máximo 200. Vacío en los
+        eventos que no son de consenso.
+      operationId: sustento
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: pagina
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+      - name: tamano
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+      responses:
+        "200":
+          description: Ids de la página pedida (vacía si se pasa del final)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+        "404":
+          description: No existe el evento
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
 components:
   schemas:
     SolicitudInvitacion:
@@ -2015,6 +2255,18 @@ components:
           description: "El mismo secreto en Base32, para teclearlo si la camara falla"
       description: "Datos para dar de alta el segundo factor. El secreto solo se muestra\
         \ aqui, una vez."
+    SolicitudCambioClave:
+      type: object
+      properties:
+        claveActual:
+          minLength: 1
+          type: string
+          description: La clave de hoy. Sin ella un token robado bastaría para cambiarla.
+        claveNueva:
+          minLength: 1
+          type: string
+          description: "La nueva: de 12 a 128 caracteres y distinta de la actual."
+      description: Cambiar la propia clave con la sesión iniciada
     SolicitudCorte:
       required:
       - finPrometido
@@ -2221,6 +2473,14 @@ components:
           format: double
         coordenada:
           $ref: "#/components/schemas/IotCoordenada"
+    SolicitudReenvioVerificacion:
+      type: object
+      properties:
+        correo:
+          minLength: 1
+          type: string
+      description: "Pedir de nuevo el correo de verificación. Responde siempre 202,\
+        \ exista o no la cuenta."
     SolicitudRestablecer:
       type: object
       properties:
@@ -2468,6 +2728,14 @@ components:
           type: string
           description: Nombre del barrio segun el GeoJSON oficial
           example: BOCAGRANDE
+        poblacion:
+          type: integer
+          description: |-
+            Habitantes según el censo. **Nulo cuando el barrio no tiene dato censal** (27 de los 211): no es 0,
+            y no debe mostrarse como «0 habitantes».
+          format: int32
+          nullable: true
+          example: 12000
         estado:
           type: string
           description: |-
@@ -2599,16 +2867,12 @@ components:
         imagenUrl:
           type: string
           description: Portada del boletín. Nula si la fuente no la trae.
-        reportesSustento:
-          type: array
-          description: "RF011 — ids de los reportes ciudadanos que sostuvieron el\
-            \ cambio, en los eventos de consenso. Lista vacía en los demás. Permite\
-            \ contrastar el cambio con la evidencia."
-          items:
-            type: string
-            description: "RF011 — ids de los reportes ciudadanos que sostuvieron el\
-              \ cambio, en los eventos de consenso. Lista vacía en los demás. Permite\
-              \ contrastar el cambio con la evidencia."
+        cantidadReportesSustento:
+          type: integer
+          description: "RF011 — cuántos reportes ciudadanos sostuvieron el cambio,\
+            \ en los eventos de consenso; 0 en los demás. Los ids no viajan en el\
+            \ listado (pesaban cientos de KB por página): se piden con GET /api/bitacora/{id}/sustento."
+          format: int32
       description: "Evento de la bitácora pública, de solo anexado (RF026-RF028)"
   securitySchemes:
     bearerAuth:

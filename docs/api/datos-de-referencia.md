@@ -75,7 +75,7 @@ el token solo sirve para configurarlo).
 - El `id` de un sector es un *slug* del nombre: mayúsculas a minúsculas, sin tildes y con todo lo que no sea
   letra o número convertido en guion. Ejemplo: `ALAMEDA LA VICTORIA` → `alameda-la-victoria`. **No lo
   calcules en el cliente**: sale del listado y de la geometría.
-- 27 de los 211 no tienen población censal (184 sí); su población es `null` internamente (no 0).
+- 27 de los 211 no tienen población censal (184 sí); su `poblacion` viaja como `null` (no 0) en `GET /api/sectores`.
 - Geometría: `Polygon`, salvo **`zona-industrial` (`MultiPolygon`)**, el único.
 - Una **coordenada** válida es latitud entre −90 y 90 y longitud entre −180 y 180. Pero para **inferir un
   sector** (`POST /api/reportes` sin `sectorId`) debe caer **dentro de algún barrio de Cartagena**; si no,
@@ -117,12 +117,7 @@ colector se identifica siempre con un `User-Agent` con el nombre del proyecto y 
 Lo que el frontend **no** puede pedir hoy, para no buscarlo:
 
 - **Listar reportes ciudadanos públicamente.** Solo existe la cola de moderación (con sesión).
-- **La población de un sector** por la API pública.
-- **El histórico de cortes de un sector** sin sesión (`GET /api/veedor/cortes` exige `VER_PANEL`).
 - **Cerrar un corte detectado por la ingesta.**
-- **Reenviar** el correo de verificación o de invitación (invitar con el correo caído deja la cuenta creada
-  y sin forma de reenviar el enlace).
-- **Cambiar la propia clave con la sesión iniciada** (solo por el flujo de restablecer con correo).
 - **Refrescar el token del panel.**
 - **Avisos por WhatsApp o Telegram** (RF041): no está implementado; el adaptador de *push* solo escribe en el
   log. Requiere credenciales de terceros.

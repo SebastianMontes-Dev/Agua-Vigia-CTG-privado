@@ -28,10 +28,10 @@ los avisos de Acuacar con reportes ciudadanos georreferenciados y publica un **�
 
 | Qué | Valor | Cómo se comprobó |
 |---|---|---|
-| Pruebas de backend | **784** (1 solo corre a petición: regenerar el contrato) · 0 fallos | `./mvnw verify`, 2026-09-21 |
+| Pruebas de backend | **823** (1 solo corre a petición: regenerar el contrato) · 0 fallos | `./mvnw verify`, 2026-09-21 |
 | Cobertura | JaCoCo ≥ 85 % en `domain/` y `application/` | El propio `verify` lo exige |
 | Arquitectura | 5+ reglas ArchUnit en verde | `ReglaDeOroArchitectureTest` |
-| API | **58 operaciones** en 17 controladores, 34 esquemas | `backend/openapi.yaml` (generado) |
+| API | **65 operaciones** en 20 controladores, 36 esquemas | `backend/openapi.yaml` (generado) |
 | Persistencia | 10 colecciones Mongo, `2dsphere` en `sectores.geometry` | `IndicesMongo` |
 | Redis | consenso, cupo RF006, rate limit, revocación de sesión, caché, pub/sub SSE, bloqueo de jobs | — |
 | Jobs | ingesta cada 10 min, ventanas cada 60 s, limpieza de fotos y purga de evidencia (diarias) | `@Scheduled`, todos vía `EjecucionUnica` |
@@ -66,6 +66,10 @@ de bugs (`BUG-076` a `BUG-086`).
   rate limit en suscripciones y en `/segundo-factor/**`.
 - **Operación:** `liveness`/`readiness` sin fuentes externas ni correo; SMTP con credenciales y TLS en `prod`;
   el arranque en `prod` aborta si `APP_URL_PUBLICA` apunta a `localhost`.
+- **Contrato para el frontend** (`ADR-054`, `ADR-055`, `ADR-056`): confirmar y cancelar suscripción por `POST` (el `GET` solo
+  muestra un botón), la bitácora entrega el conteo de reportes de sustento y sus ids aparte, `poblacion` en los sectores,
+  histórico público de cortes por sector (`RF002`), cambio de clave con sesión y reenvío de verificación e invitación.
+- **Respaldos** (`BUG-088`): `backup-mongo.sh` y `restore-mongo.sh` fallaban contra el Mongo de producción (sin credenciales); corregidos y comprobados con un Mongo desechable con autenticación. **Sigue sin programarse** el respaldo ni se ha hecho el simulacro completo.
 - **Documentación:** [`docs/api/`](../api/README.md) completa, con la referencia de rutas **generada** desde el
   contrato y los `@PreAuthorize`.
 
@@ -81,13 +85,11 @@ de bugs (`BUG-076` a `BUG-086`).
 - **La observabilidad es mínima:** solo `health`; faltan métricas Prometheus (emisores SSE, pools, latencias).
 
 ### Brechas de contrato y funcionales conocidas
-- `GET`/`POST` de **confirmar y cancelar suscripción** cambian estado por `GET`: un antivirus que precargue el
-  enlace puede confirmar o cancelar solo (a diferencia de las páginas de cuentas, `ADR-030`).
-- Sin ruta para: **reenviar** verificación o invitación, **cambiar la propia clave** con sesión, **listar reportes**
-  públicamente, **cerrar cortes creados por la ingesta** (no entran al Índice de Cumplimiento).
+- Sin ruta para: **listar reportes** públicamente (a propósito, por privacidad) y **cerrar cortes creados por la
+  ingesta** (no entran al Índice de Cumplimiento).
 - Aprobar una propuesta de prensa **sin ventana declarada** responde 200 pero no cambia el sector; no hay guarda
   contra resolver dos veces una propuesta.
-- `RF002` (histórico por sector público) y `RNF006` (cola muerta de la ingesta) siguen parciales.
+- `RNF006` (cola muerta de la ingesta) sigue parcial.
 - Las confirmaciones y el consenso **no deduplican por IP**, solo por huella.
 
 ### Calidad
@@ -96,7 +98,7 @@ de bugs (`BUG-076` a `BUG-086`).
 - **Capas:** `ContextoHttp` e `IngestaSaludController` importan `infrastructure/` desde `api/`, y ArchUnit no lo vigila
   (ver `ADR-015`: que un controlador lea de un puerto de salida **no** es una violación). Falta una regla ArchUnit
   «todo `/api/veedor/**` lleva `@PreAuthorize`» (`RNF022`).
-- **Dependabot:** #5 (jjwt 0.13) y #9 (archunit 1.5) son fusionables; #7 (Spring Boot 4.1), #11 (springdoc 3.1) y #2
+- **Dependabot** (revisado el 2026-09-21; los 8 PR abiertos fallan `gitleaks` y «vulnerabilidades» por causas ajenas al cambio: `gitleaks` da «Resource not accessible by integration» porque los PR de Dependabot corren con un token de solo lectura, y el escaneo de vulnerabilidades corrió el 17 de septiembre, antes de corregir el CVE de Netty en `main`; hace falta `@dependabot rebase`). #5 (jjwt 0.13) y #9 (archunit 1.5) son fusionables; #7 (Spring Boot 4.1), #11 (springdoc 3.1) y #2
   (Testcontainers 2.0) **rompen la build**: Boot 4 es una migración grande y no se mezcla con esto.
 
 ### Housekeeping pendiente del dueño

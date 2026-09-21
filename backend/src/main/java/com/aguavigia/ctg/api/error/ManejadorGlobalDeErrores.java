@@ -19,6 +19,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.HttpMediaTypeNotAcceptableException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -239,6 +240,20 @@ public class ManejadorGlobalDeErrores {
             problema.setProperty("tiposSoportados", soportados.stream().map(MediaType::toString).toList());
         }
         return new ResponseEntity<>(problema, cabeceras, HttpStatus.UNSUPPORTED_MEDIA_TYPE);
+    }
+
+    /** El `Accept` pide un formato que la ruta no produce: 406, no 500. */
+    @ExceptionHandler(HttpMediaTypeNotAcceptableException.class)
+    public ResponseEntity<ProblemDetail> formatoNoAceptable(HttpMediaTypeNotAcceptableException e) {
+        ProblemDetail problema = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_ACCEPTABLE,
+                "Esta ruta no puede responder en el formato que pediste en la cabecera Accept.");
+        problema.setTitle("Formato no aceptable");
+        problema.setType(URI.create(BASE_TIPO + "formato-no-aceptable"));
+        List<MediaType> producibles = e.getSupportedMediaTypes();
+        if (!producibles.isEmpty()) {
+            problema.setProperty("tiposSoportados", producibles.stream().map(MediaType::toString).toList());
+        }
+        return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).contentType(MediaType.APPLICATION_PROBLEM_JSON).body(problema);
     }
 
     /** Falta un parametro de consulta declarado obligatorio. */

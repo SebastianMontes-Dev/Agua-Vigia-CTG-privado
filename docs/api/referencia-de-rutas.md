@@ -6,7 +6,7 @@
 >
 > Las **guías** de esta carpeta explican el porqué y los flujos; esta página es el catálogo exacto.
 
-**58 operaciones** en 54 rutas, más las páginas HTML de cortesía y el SSE.
+**65 operaciones** en 59 rutas, más las páginas HTML de cortesía y el SSE.
 
 Leyenda de **Acceso**: *Público* no exige token · *Sesión + `PERMISO`* exige `Authorization: Bearer <token>` de una
 cuenta que tenga ese permiso · *Sesión (cualquier cuenta)* exige token pero ningún permiso concreto.
@@ -14,18 +14,19 @@ Todo error sale en RFC 7807: ver [Errores y límites](errores-y-limites.md).
 
 ## Índice
 
-- [Bitácora](#bit-cora) (1)
+- [Bitácora](#bit-cora) (2)
 - [controlador-de-prueba-rate-limit](#controlador-de-prueba-rate-limit) (2)
-- [Cuentas](#cuentas) (11)
+- [Cuentas](#cuentas) (13)
 - [Cumplimiento](#cumplimiento) (5)
 - [Estadisticas](#estadisticas) (2)
 - [IoT](#iot) (1)
 - [Open311](#open311) (1)
 - [Reportes](#reportes) (3)
-- [Sectores](#sectores) (4)
-- [Suscripciones](#suscripciones) (3)
+- [Sectores](#sectores) (5)
+- [Suscripciones](#suscripciones) (5)
 - [Veedor](#veedor) (3)
 - [Veedor - Cortes](#veedor-cortes) (4)
+- [Veedor - Cuenta propia](#veedor-cuenta-propia) (1)
 - [Veedor - Cuentas](#veedor-cuentas) (8)
 - [Veedor - Ingesta](#veedor-ingesta) (4)
 - [Veedor - Moderación](#veedor-moderaci-n) (3)
@@ -48,6 +49,19 @@ Paginado: la bitácora es de solo anexado (RF028), así que crece sin cota. El t
 | **Parámetros** | `pagina` (query)<br>`tamano` (query) |
 | **Cuerpo** | — |
 | **Respuestas** | `200` Listado generado → lista de [EventoBitacoraRespuesta](#esquema-eventobitacorarespuesta) |
+
+### `GET /api/bitacora/{id}/sustento`
+
+**Los reportes que sustentan un evento de consenso (RF011)**
+
+Ids de los reportes ciudadanos que sostuvieron el cambio de estado, para contrastarlo con la evidencia. Van aparte del listado porque en una avería grande pueden ser miles. Paginado con las mismas cabeceras que el listado; por defecto 50 ids por página, máximo 200. Vacío en los eventos que no son de consenso.
+
+| | |
+|---|---|
+| **Acceso** | Público |
+| **Parámetros** | `id` (path, obligatorio)<br>`pagina` (query)<br>`tamano` (query) |
+| **Cuerpo** | — |
+| **Respuestas** | `200` Ids de la página pedida (vacía si se pasa del final) → lista de string<br>`404` No existe el evento → lista de string |
 
 ## controlador-de-prueba-rate-limit
 
@@ -215,6 +229,32 @@ Pasa la cuenta a PENDIENTE_APROBACION. Sigue sin poder entrar hasta que un ADMIN
 | **Parámetros** | `token` (query, obligatorio) |
 | **Cuerpo** | — |
 | **Respuestas** | `204` Correo confirmado<br>`400` Enlace invalido, vencido o ya usado |
+
+### `POST /api/cuentas/verificacion/reenvio`
+
+**Reenviar el correo de verificación**
+
+Para quien se registró y no recibió el enlace (o venció). Responde 202 **siempre**, exista o no la cuenta y ya esté verificada o no: no revela qué correos están registrados. Reenvía como mucho una vez cada 2 minutos por cuenta. El enlace anterior deja de servir.
+
+| | |
+|---|---|
+| **Acceso** | Público |
+| **Parámetros** | — |
+| **Cuerpo** | [SolicitudReenvioVerificacion](#esquema-solicitudreenvioverificacion) (`application/json`) |
+| **Respuestas** | `202` Si había algo que reenviar, el correo va en camino<br>`400` Correo mal formado |
+
+### `POST /api/veedor/usuarios/{id}/invitacion/reenvio`
+
+**Reenviar la invitación a una cuenta que aún no la aceptó**
+
+Requiere GESTIONAR_USUARIOS. El enlace anterior deja de servir y se reinicia su vigencia de 7 días.
+
+| | |
+|---|---|
+| **Acceso** | Sesión + `GESTIONAR_USUARIOS` |
+| **Parámetros** | `id` (path, obligatorio) |
+| **Cuerpo** | — |
+| **Respuestas** | `202` Invitación reenviada<br>`401` Sin sesión, token inválido, caducado o revocado → [ProblemDetail](#esquema-problemdetail)<br>`403` La sesión no tiene el permiso que exige esta operación → [ProblemDetail](#esquema-problemdetail)<br>`404` No existe la cuenta<br>`409` La cuenta ya aceptó la invitación (no está en estado INVITADA) |
 
 ## Cumplimiento
 
@@ -386,7 +426,7 @@ Permite subir una foto y asociarla a un reporte existente (M10).
 
 ## Sectores
 
-Estado del servicio de agua por sector de Cartagena
+Sectores de Cartagena y su estado del servicio
 
 ### `GET /api/sectores`
 
@@ -411,6 +451,19 @@ Devuelve los sectores de Cartagena (211 barrios sembrados desde el GeoJSON ofici
 | **Parámetros** | `id` (path, obligatorio) |
 | **Cuerpo** | — |
 | **Respuestas** | `200` Sector encontrado → [SectorRespuesta](#esquema-sectorrespuesta)<br>`404` No existe un sector con ese id → [ProblemDetail](#esquema-problemdetail) |
+
+### `GET /api/sectores/{sectorId}/cortes`
+
+**Histórico de cortes de un sector, del más reciente al más antiguo**
+
+Cortes oficiales que afectaron al sector, abiertos y cerrados. Paginado con las mismas cabeceras que la bitácora (`X-Total-Count`, `X-Total-Pages`, `X-Page`, `X-Page-Size`, `Link`); por defecto 50, máximo 200. Un sector sin cortes devuelve una lista vacía, no un 404.
+
+| | |
+|---|---|
+| **Acceso** | Público |
+| **Parámetros** | `sectorId` (path, obligatorio)<br>`pagina` (query)<br>`tamano` (query) |
+| **Cuerpo** | — |
+| **Respuestas** | `200` Cortes de la página pedida → lista de [CorteRespuesta](#esquema-corterespuesta)<br>`404` No existe el sector → lista de [CorteRespuesta](#esquema-corterespuesta) |
 
 ### `GET /api/sectores/geometria`
 
@@ -457,9 +510,22 @@ Crea la suscripción en PENDIENTE_CONFIRMACION y envía un correo de doble opt-i
 
 ### `GET /api/suscripciones/cancelar`
 
+**Pantalla del enlace de baja de todo correo (RF015)**
+
+Página a la que lleva el enlace del correo. Solo muestra un botón: NO cancela nada, porque un antivirus o una vista previa de enlaces abre los GET sin que nadie los pida (`ADR-054`). La acción ocurre al enviar el formulario, que hace POST a la misma ruta.
+
+| | |
+|---|---|
+| **Acceso** | Público |
+| **Parámetros** | `token` (query, obligatorio) |
+| **Cuerpo** | — |
+| **Respuestas** | `200` Página con el botón → string |
+
+### `POST /api/suscripciones/cancelar`
+
 **Darse de baja en un clic (RF015)**
 
-Sin pedir credenciales — el token que llega en cada correo es suficiente. Responde JSON o una página HTML de cortesía según el `Accept` de quien pide (mismo motivo que en {@code /confirmar}).
+Acción del botón de la página de baja (o de un cliente de API). Sin pedir credenciales: el token que llega en cada correo es suficiente. Responde JSON o una página HTML de cortesía según el `Accept` de quien pide (mismo motivo que en {@code /confirmar}).
 
 | | |
 |---|---|
@@ -470,9 +536,22 @@ Sin pedir credenciales — el token que llega en cada correo es suficiente. Resp
 
 ### `GET /api/suscripciones/confirmar`
 
+**Pantalla del enlace «Confirmar» del correo**
+
+Página a la que lleva el enlace del correo. Solo muestra un botón: NO confirma nada, porque un antivirus o una vista previa de enlaces abre los GET sin que nadie los pida (`ADR-054`). La acción ocurre al enviar el formulario, que hace POST a la misma ruta.
+
+| | |
+|---|---|
+| **Acceso** | Público |
+| **Parámetros** | `token` (query, obligatorio) |
+| **Cuerpo** | — |
+| **Respuestas** | `200` Página con el botón → string |
+
+### `POST /api/suscripciones/confirmar`
+
 **Confirmar la suscripción (doble opt-in)**
 
-Enlace del correo de confirmación. El token es de un solo enlace, no de un solo uso: confirmarla dos veces no falla (RF013). Responde JSON o una página HTML de cortesía según el `Accept` de quien pide — el mismo enlace del correo abre bien tanto en un navegador como desde un cliente de API.
+Acción del botón de la página de confirmación (o de un cliente de API). El token es de un solo enlace, no de un solo uso: confirmarla dos veces no falla (RF013). Responde JSON o una página HTML de cortesía según el `Accept` de quien pide: el formulario de la página responde HTML y un cliente de API responde JSON. `token` va como parámetro de consulta o del formulario.
 
 | | |
 |---|---|
@@ -573,6 +652,23 @@ Sectores afectados, inicio, fin prometido y causa (RF016). Origen VEEDOR.
 | **Parámetros** | `id` (path, obligatorio) |
 | **Cuerpo** | [SolicitudCierreCorte](#esquema-solicitudcierrecorte) (`application/json`) |
 | **Respuestas** | `200` Corte cerrado → [CorteRespuesta](#esquema-corterespuesta)<br>`401` Sin sesión, token inválido, caducado o revocado → [ProblemDetail](#esquema-problemdetail)<br>`403` La sesión no tiene el permiso que exige esta operación → [ProblemDetail](#esquema-problemdetail)<br>`404` El corte no existe → [ProblemDetail](#esquema-problemdetail)<br>`409` El corte ya estaba cerrado → [ProblemDetail](#esquema-problemdetail) |
+
+## Veedor - Cuenta propia
+
+Cambios que una persona hace sobre su propia cuenta
+
+### `POST /api/veedor/cuenta/clave`
+
+**Cambiar la propia clave**
+
+Exige la clave actual y comparte el contador de intentos fallidos con el inicio de sesión (5 fallos en 15 minutos bloquean la cuenta 15 minutos). Al cambiarla se cierran **todas** las sesiones, la actual incluida: el cliente debe volver a pedir `POST /api/veedor/sesion` con la clave nueva. Se avisa por correo del cambio.
+
+| | |
+|---|---|
+| **Acceso** | Sesión + `VER_PANEL` |
+| **Parámetros** | — |
+| **Cuerpo** | [SolicitudCambioClave](#esquema-solicitudcambioclave) (`application/json`) |
+| **Respuestas** | `204` Clave cambiada; todas las sesiones cerradas<br>`400` La clave actual no es correcta, la nueva no cumple la política (12 a 128 caracteres) o es igual a la actual<br>`401` Sin sesión, token inválido, caducado o revocado → [ProblemDetail](#esquema-problemdetail)<br>`403` La sesión no tiene el permiso que exige esta operación → [ProblemDetail](#esquema-problemdetail)<br>`423` Cuenta bloqueada por intentos fallidos |
 
 ## Veedor - Cuentas
 
@@ -927,7 +1023,7 @@ Evento de la bitácora pública, de solo anexado (RF026-RF028)
 | `estado` | string |  |  | Estado del servicio que afirma el evento: CON_SERVICIO, SIN_SERVICIO, PRESION_BAJA o CORTE_PROGRAMADO. Nulo si el evento no habla del servicio — presentarlo entonces como informativo, sin color de estado. |
 | `urlOriginal` | string |  |  | Boletín o nota que respalda el evento. Nulo si la fuente no lo trae. |
 | `imagenUrl` | string |  |  | Portada del boletín. Nula si la fuente no la trae. |
-| `reportesSustento` | lista de string |  |  | RF011 — ids de los reportes ciudadanos que sostuvieron el cambio, en los eventos de consenso. Lista vacía en los demás. Permite contrastar el cambio con la evidencia. |
+| `cantidadReportesSustento` | integer (int32) |  |  | RF011 — cuántos reportes ciudadanos sostuvieron el cambio, en los eventos de consenso; 0 en los demás. Los ids no viajan en el listado (pesaban cientos de KB por página): se piden con GET /api/bitacora/{id}/sustento. |
 
 <a id="esquema-indicecumplimientorespuesta"></a>
 
@@ -1095,6 +1191,7 @@ Sector de Cartagena con el estado conocido de su servicio de agua
 |---|---|---|---|---|
 | `id` | string |  |  | Identificador estable del sector |
 | `nombre` | string |  |  | Nombre del barrio segun el GeoJSON oficial |
+| `poblacion` | integer (int32) |  | sí | Habitantes según el censo. **Nulo cuando el barrio no tiene dato censal** (27 de los 211): no es 0, y no debe mostrarse como «0 habitantes». |
 | `estado` | enum(CON_SERVICIO, SIN_SERVICIO, PRESION_BAJA, CORTE_PROGRAMADO) |  | sí | Estado conocido del servicio. **Nulo cuando no hay dato verificado**: no se asume CON_SERVICIO por omision, porque publicar servicio normal sin verificarlo es el falso positivo que el proyecto evita (ADR-014). Presentarlo como "sin datos". |
 | `actualizadoEn` | string (date-time) |  | sí | Cuando se registro ese estado. Nulo si el sector no tiene estado. |
 
@@ -1113,6 +1210,17 @@ Sesion emitida para el panel del veedor (RNF011: expira en 8 horas)
 | `rol` | string |  |  | ADMIN, VEEDOR u OBSERVADOR |
 | `permisos` | lista de string |  |  | Permisos efectivos ya resueltos: rol mas concedidos menos revocados |
 | `alcance` | string |  |  | COMPLETO, o ALTA_SEGUNDO_FACTOR cuando la cuenta es ADMIN y todavia no dio de alta su TOTP. Con ese alcance el token solo sirve para /api/veedor/segundo-factor. |
+
+<a id="esquema-solicitudcambioclave"></a>
+
+### SolicitudCambioClave
+
+Cambiar la propia clave con la sesión iniciada
+
+| Campo | Tipo | Oblig. | Nulo | Descripción |
+|---|---|---|---|---|
+| `claveActual` | string |  |  | La clave de hoy. Sin ella un token robado bastaría para cambiarla. |
+| `claveNueva` | string |  |  | La nueva: de 12 a 128 caracteres y distinta de la actual. |
 
 <a id="esquema-solicitudcierrecorte"></a>
 
@@ -1191,6 +1299,16 @@ Rol de base mas los ajustes por persona. Los permisos del rol se aplican solos; 
 | `rol` | string |  |  | ADMIN, VEEDOR u OBSERVADOR |
 | `concedidos` | lista de string |  |  |  |
 | `revocados` | lista de string |  |  |  |
+
+<a id="esquema-solicitudreenvioverificacion"></a>
+
+### SolicitudReenvioVerificacion
+
+Pedir de nuevo el correo de verificación. Responde siempre 202, exista o no la cuenta.
+
+| Campo | Tipo | Oblig. | Nulo | Descripción |
+|---|---|---|---|---|
+| `correo` | string |  |  |  |
 
 <a id="esquema-solicitudregistro"></a>
 

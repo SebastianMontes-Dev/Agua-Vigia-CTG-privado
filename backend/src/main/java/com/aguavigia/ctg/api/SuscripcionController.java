@@ -28,11 +28,16 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/** M4 — RF012-RF015: suscribirse, confirmar por doble opt-in y darse de baja en 1 clic. */
+/**
+ * M4 — RF012-RF015: suscribirse, confirmar por doble opt-in y darse de baja en 1 clic. Los enlaces de los
+ * correos son GET que solo muestran un botón; confirmar y cancelar son POST (`ADR-054`).
+ */
 @Tag(name = "Suscripciones", description = "Alertas por correo cuando cambia el estado de un sector")
 @RestController
 @RequestMapping(value = "/api/suscripciones", produces = MediaType.APPLICATION_JSON_VALUE)
 public class SuscripcionController {
+
+    private static final String RUTA = "/api/suscripciones/";
 
     private final SuscribirseUseCase suscribirse;
     private final ConfirmarSuscripcionUseCase confirmarSuscripcion;
@@ -68,19 +73,31 @@ public class SuscripcionController {
         return ResponseEntity.status(HttpStatus.CREATED).body(mapper.aRespuesta(suscripcion));
     }
 
+    @Operation(summary = "Pantalla del enlace «Confirmar» del correo",
+            description = """
+                    Página a la que lleva el enlace del correo. Solo muestra un botón: NO confirma nada, porque un
+                    antivirus o una vista previa de enlaces abre los GET sin que nadie los pida (`ADR-054`). La
+                    acción ocurre al enviar el formulario, que hace POST a la misma ruta.""")
+    @ApiResponse(responseCode = "200", description = "Página con el botón")
+    @GetMapping(value = "/confirmar", produces = MediaType.TEXT_HTML_VALUE)
+    public ResponseEntity<String> pantallaConfirmar(@RequestParam String token) {
+        return PaginaDeCortesia.formulario(HttpStatus.OK, "Confirma tu suscripción",
+                "Un paso más: confirma que quieres recibir los avisos del estado del servicio.", RUTA + "confirmar", token, false, "Confirmar mi suscripción");
+    }
+
     @Operation(summary = "Confirmar la suscripción (doble opt-in)",
             description = """
-                    Enlace del correo de confirmación. El token es de un solo enlace, no de un solo uso:
+                    Acción del botón de la página de confirmación (o de un cliente de API). El token es de un solo enlace, no de un solo uso:
                     confirmarla dos veces no falla (RF013). Responde JSON o una página HTML de cortesía
-                    según el `Accept` de quien pide — el mismo enlace del correo abre bien tanto en un
-                    navegador como desde un cliente de API.""")
+                    según el `Accept` de quien pide: el formulario de la página responde HTML y un cliente de API
+                    responde JSON. `token` va como parámetro de consulta o del formulario.""")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Suscripción confirmada"),
             @ApiResponse(responseCode = "400", description = "Token inválido, inexistente o de una suscripción ya cancelada",
                     content = @Content(mediaType = "application/problem+json",
                             schema = @Schema(implementation = ProblemDetail.class)))
     })
-    @GetMapping(value = "/confirmar", produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.TEXT_HTML_VALUE})
+    @PostMapping(value = "/confirmar", produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.TEXT_HTML_VALUE})
     public ResponseEntity<?> confirmar(@RequestParam String token,
                                         @RequestHeader(value = HttpHeaders.ACCEPT, required = false) String accept) {
         if (prefiereHtml(accept)) {
@@ -96,9 +113,21 @@ public class SuscripcionController {
         return ResponseEntity.ok(mapper.aRespuesta(suscripcion));
     }
 
+    @Operation(summary = "Pantalla del enlace de baja de todo correo (RF015)",
+            description = """
+                    Página a la que lleva el enlace del correo. Solo muestra un botón: NO cancela nada, porque un
+                    antivirus o una vista previa de enlaces abre los GET sin que nadie los pida (`ADR-054`). La
+                    acción ocurre al enviar el formulario, que hace POST a la misma ruta.""")
+    @ApiResponse(responseCode = "200", description = "Página con el botón")
+    @GetMapping(value = "/cancelar", produces = MediaType.TEXT_HTML_VALUE)
+    public ResponseEntity<String> pantallaCancelar(@RequestParam String token) {
+        return PaginaDeCortesia.formulario(HttpStatus.OK, "Darte de baja",
+                "Si sigues, dejarás de recibir avisos de AguaVigía para ese sector.", RUTA + "cancelar", token, false, "Darme de baja");
+    }
+
     @Operation(summary = "Darse de baja en un clic (RF015)",
             description = """
-                    Sin pedir credenciales — el token que llega en cada correo es suficiente. Responde
+                    Acción del botón de la página de baja (o de un cliente de API). Sin pedir credenciales: el token que llega en cada correo es suficiente. Responde
                     JSON o una página HTML de cortesía según el `Accept` de quien pide (mismo motivo
                     que en {@code /confirmar}).""")
     @ApiResponses({
@@ -107,7 +136,7 @@ public class SuscripcionController {
                     content = @Content(mediaType = "application/problem+json",
                             schema = @Schema(implementation = ProblemDetail.class)))
     })
-    @GetMapping(value = "/cancelar", produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.TEXT_HTML_VALUE})
+    @PostMapping(value = "/cancelar", produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.TEXT_HTML_VALUE})
     public ResponseEntity<?> cancelar(@RequestParam String token,
                                        @RequestHeader(value = HttpHeaders.ACCEPT, required = false) String accept) {
         if (prefiereHtml(accept)) {

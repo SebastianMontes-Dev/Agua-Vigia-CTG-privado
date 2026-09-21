@@ -19,6 +19,10 @@ public record SectorRespuesta(
 
         @Schema(description = "Nombre del barrio segun el GeoJSON oficial", example = "BOCAGRANDE")
         String nombre,
+        @Schema(description = """
+                Habitantes según el censo. **Nulo cuando el barrio no tiene dato censal** (27 de los 211): no es 0,
+                y no debe mostrarse como «0 habitantes».""", example = "12000", nullable = true)
+        Integer poblacion,
 
         @Schema(description = """
                 Estado conocido del servicio. **Nulo cuando no hay dato verificado**: no se asume

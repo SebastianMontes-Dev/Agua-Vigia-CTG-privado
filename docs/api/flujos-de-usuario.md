@@ -70,9 +70,10 @@ Detalle: [Bitácora, estadísticas y cumplimiento](bitacora-estadisticas-cumplim
 
 ```
 1. POST /api/suscripciones             { correo, sectorIds[] }   → 201, estado PENDIENTE_CONFIRMACION
-2. (el usuario abre el enlace del correo)  GET /api/suscripciones/confirmar?token=…
+2. (el usuario abre el enlace del correo)  GET  /api/suscripciones/confirmar?token=…   → página con un botón
+   (el usuario pulsa el botón)               POST /api/suscripciones/confirmar?token=…   → 200
 3. (cada cambio de estado del sector)      el backend envía un correo con enlace de baja
-4. (baja)  GET /api/suscripciones/cancelar?token=…
+4. (baja)  GET → página con un botón · POST /api/suscripciones/cancelar?token=…  → 200
 ```
 
 Doble confirmación (*doble opt-in*): hasta que el usuario confirme, no se le envía nada más. **Todo

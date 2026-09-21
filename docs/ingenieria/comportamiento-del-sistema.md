@@ -43,6 +43,22 @@ cuándo?»— en menos de cinco segundos, sin leer, sin registrarse y sin hacer 
 estado actual de cada sector de Cartagena sobre un mapa, con una alternativa textual equivalente
 para quien no puede ver el mapa. Cubre M1 (RF001–RF004).
 
+### Requisito: Histórico público de cortes de un sector
+
+El sistema debe mostrar sin iniciar sesión los cortes oficiales que afectaron a un sector, del más reciente al
+más antiguo (RF002).
+
+#### Escenario: Consulta anónima del histórico
+
+- **Cuando** cualquiera consulta `GET /api/sectores/{id}/cortes`
+- **Entonces** obtiene los cortes abiertos y cerrados del sector, paginados, el más reciente primero
+- **Y** un sector sin cortes devuelve una lista vacía, y uno inexistente, 404
+
+#### Escenario: La población viaja nula si no hay dato censal
+
+- **Cuando** un sector no tiene dato censal
+- **Entonces** `GET /api/sectores` publica su `poblacion` como `null`, nunca como 0
+
 ### Requisito: Estado de todos los sectores en el mapa
 
 El sistema debe mostrar un mapa de Cartagena con todos los sectores coloreados según su estado
@@ -393,8 +409,15 @@ El sistema debe confirmar la suscripción mediante doble opt-in antes de enviar 
 #### Escenario: Confirmación desde el enlace del correo
 
 - **Cuando** el suscriptor abre el enlace de `GET /api/suscripciones/confirmar` con su token
-- **Entonces** la suscripción pasa a confirmada
-- **Y** la respuesta es HTML o JSON según la cabecera `Accept`, sin rutas separadas (ADR-030)
+- **Entonces** ve una página con un botón y la suscripción **no cambia** (un antivirus o una vista previa de enlaces
+  abre los GET sin que nadie los pida, `ADR-054`)
+- **Y** al pulsar el botón, `POST /api/suscripciones/confirmar` la pasa a confirmada; la respuesta es HTML o
+  JSON según la cabecera `Accept`, sin rutas separadas (ADR-030)
+
+#### Escenario: Un cliente de API pide JSON al GET del enlace
+
+- **Cuando** un cliente pide `GET /api/suscripciones/confirmar` con `Accept: application/json`
+- **Entonces** recibe `406` (el GET ya no actúa; debe usar `POST`)
 
 ### Requisito: Notificación al cambiar el estado del sector
 
@@ -419,7 +442,8 @@ Al darse de baja, el correo debe eliminarse (RNF009).
 #### Escenario: Baja desde el enlace
 
 - **Cuando** el suscriptor abre el enlace de `GET /api/suscripciones/cancelar` con su token
-- **Entonces** la suscripción se cancela sin pedirle contraseña ni datos adicionales
+- **Entonces** ve una página con un botón «Darme de baja» y la suscripción **no cambia**
+- **Y** al pulsarlo, `POST /api/suscripciones/cancelar` la cancela sin pedirle contraseña ni datos adicionales
 - **Y** su correo deja de estar almacenado (se sustituye por una dirección `.invalid`)
 
 #### Escenario: El correo de confirmación también lleva la baja
@@ -664,6 +688,13 @@ La bitácora debe ser consultable públicamente, sin autenticación.
 
 - **Cuando** cualquiera consulta `GET /api/bitacora` sin token
 - **Entonces** obtiene los eventos, paginados y en orden cronológico
+- **Y** de cada evento de consenso ve cuántos reportes lo sustentaron (`cantidadReportesSustento`), no sus ids
+
+#### Escenario: Detalle de los reportes que sustentan un evento
+
+- **Cuando** cualquiera consulta `GET /api/bitacora/{id}/sustento`
+- **Entonces** obtiene los ids de los reportes que sostuvieron ese cambio, paginados (`ADR-055`)
+- **Y** un evento inexistente responde 404 y una página fuera de rango, una lista vacía
 
 ### Requisito: Inmutabilidad de los eventos
 
@@ -1020,6 +1051,42 @@ desde qué IP.
 - **Cuando** una cuenta con permiso `VER_AUDITORIA` consulta `GET /api/veedor/auditoria`
 - **Entonces** obtiene los cambios de acceso con su autor, su destinatario, su instante y su IP de
   origen
+
+### Requisito: Cambio de clave con la sesión iniciada
+
+Una persona con sesión debe poder cambiar su propia clave sin pasar por el correo, sin que un token robado
+baste para hacerlo.
+
+#### Escenario: Cambio correcto
+
+- **Cuando** una sesión completa envía su clave actual y una clave nueva válida y distinta a `POST /api/veedor/cuenta/clave`
+- **Entonces** la clave cambia, se cierran **todas** las sesiones de la cuenta (la actual incluida) y se avisa por correo
+
+#### Escenario: Clave actual incorrecta
+
+- **Cuando** la clave actual no coincide
+- **Entonces** responde 400, la clave no cambia y el intento cuenta para el bloqueo por intentos fallidos (compartido con el inicio de sesión)
+
+#### Escenario: Cuenta bloqueada
+
+- **Cuando** la cuenta está bloqueada por intentos fallidos
+- **Entonces** responde 423 sin comprobar la clave
+
+### Requisito: Reenvío de los enlaces de cuenta
+
+Quien no recibió un enlace de verificación o de invitación debe poder pedirlo de nuevo sin volver a registrarse.
+
+#### Escenario: Reenvío de la verificación
+
+- **Cuando** alguien pide `POST /api/cuentas/verificacion/reenvio` con el correo de una cuenta pendiente de verificar
+- **Entonces** recibe un enlace nuevo y el anterior deja de servir
+- **Y** la respuesta es 202 exista o no la cuenta, y solo se reenvía una vez cada 2 minutos por cuenta
+
+#### Escenario: Reenvío de la invitación
+
+- **Cuando** un administrador pide `POST /api/veedor/usuarios/{id}/invitacion/reenvio` de una cuenta `INVITADA`
+- **Entonces** la persona recibe una invitación nueva y la anterior deja de servir
+- **Y** una cuenta que ya aceptó la invitación responde 409, y una inexistente 404
 
 ### Requisito: Restablecimiento de clave por enlace de un solo uso
 

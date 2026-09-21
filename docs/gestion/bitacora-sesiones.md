@@ -25,6 +25,10 @@ Referencias cruzadas: `ADR-NNN` · `BUG-NNN` · `RF0NN` · `archivo:línea`.
 
 ## Sprint 2
 
+### 2026-09-21 · `feat/ajustes-de-contrato-frontend`
+**Qué:** Se tomaron las decisiones delegadas: confirmar/cancelar suscripción por POST (`ADR-054`), bitácora con conteo de sustento y detalle aparte (`ADR-055`), histórico público de cortes, población, cambio de clave con sesión y reenvío de verificación/invitación (`ADR-056`); 406 en vez de 500 (`BUG-087`); respaldo y restauración de Mongo corregidos y probados con autenticación (`BUG-088`). Contrato en 65 rutas; `./mvnw verify`: 823 pruebas en verde. Dependabot revisado, sin tocar.
+**Sigue:** Commitear esta rama (nada commiteado) y publicar las 6 ramas. Sin hacer y solo del dueño: programar el respaldo, hosting/dominio/CDN, HA de Mongo y Redis, política de retención, cerrar el Sprint 2 (`REC-014`), `@dependabot rebase` y fusión de #1/#4/#5/#8/#9, RF041 y los 20 000 datos (falta saber de qué).
+
 ### 2026-09-21 · `chore/retirar-frontend`
 **Qué:** Se retiró el frontend (`ADR-048`) y se pulió el backend para RNF027 (50 000 usuarios): `ADR-049`–`ADR-053`, `BUG-076`–`BUG-086`, `docs/api/` + `openapi.yaml` para el frontend nuevo y `docs/ingenieria/escalabilidad.md`. `./mvnw verify`: 782 pruebas en verde. Medido a escala reducida (nginx ~3 700 req/s con el backend al ~6 % de un núcleo, 10 000 SSE, escritura 63 001 peticiones a p95 36 ms); la medición destapó `BUG-085` y `BUG-086`. **50 000 NO está demostrado.**
 **Sigue:** Hacer los commits (nada está commiteado; ramas sugeridas en el plan), borrar `frontend/` del disco a mano (`rm -rf` está denegado en `settings.json`), decidir cerrar el Sprint 2 (`REC-014`) y luego la prueba distribuida con ≥ 3 réplicas. Quedaron sin hacer: confirmar/cancelar suscripción sigue por GET, reenvío de verificación/invitación, cambio de clave con sesión, adaptador de fotos S3, Mongo/Redis con alta disponibilidad, RF041.
