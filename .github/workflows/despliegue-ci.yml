@@ -21,6 +21,9 @@ jobs:
       # Solo se analiza el compose; el job no arranca la base ni usa esta URI para conectarse.
       MONGODB_URI_PROD: mongodb://mongo:27017/aguavigia
       REDIS_PASSWORD: clave-ci-no-real
+      # El compose de produccion las exige (el correo es obligatorio en prod); aqui solo se valida.
+      MAIL_USERNAME: usuario-ci
+      MAIL_PASSWORD: clave-ci-no-real
     steps:
       - uses: actions/checkout@v4
 
