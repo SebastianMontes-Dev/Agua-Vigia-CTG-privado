@@ -10,6 +10,7 @@ import com.aguavigia.ctg.infrastructure.persistence.mongo.MarcaDeIngestaDocument
 import com.aguavigia.ctg.infrastructure.persistence.mongo.MarcaDeIngestaMongoRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.aguavigia.ctg.infrastructure.scheduling.EjecucionUnica;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -60,6 +61,7 @@ public class PipelineOrquestador {
     private final EstadoColectorRegistry estadoColectores;
     private final MarcaDeIngestaMongoRepository marcas;
     private final RelojPort reloj;
+    private final EjecucionUnica ejecucionUnica;
 
     public PipelineOrquestador(AcuacarApiCollector acuacarApiCollector,
                                RssCollector rssCollector,
@@ -69,7 +71,8 @@ public class PipelineOrquestador {
                                RegistrarPropuestaIngestaUseCase registrarPropuesta,
                                EstadoColectorRegistry estadoColectores,
                                MarcaDeIngestaMongoRepository marcas,
-                               RelojPort reloj) {
+                               RelojPort reloj,
+                               EjecucionUnica ejecucionUnica) {
         this.acuacarApiCollector = acuacarApiCollector;
         this.rssCollector = rssCollector;
         this.deduplicador = deduplicador;
@@ -79,6 +82,13 @@ public class PipelineOrquestador {
         this.estadoColectores = estadoColectores;
         this.marcas = marcas;
         this.reloj = reloj;
+        this.ejecucionUnica = ejecucionUnica;
+    }
+
+    /** Una sola réplica por ciclo: con varias, cada una ingería y duplicaba propuestas. Ver {@link EjecucionUnica}. */
+    @Scheduled(fixedDelayString = "${aguavigia.ingesta.intervalo-ms:600000}")
+    public void ejecutarCicloEnUnaReplica() {
+        ejecucionUnica.ejecutar("ingesta", Duration.ofMinutes(9), Duration.ofMinutes(5), this::ejecutarCiclo);
     }
 
     /**
@@ -88,7 +98,6 @@ public class PipelineOrquestador {
      * así que el ciclo no veía absolutamente nada y los boletines de corte de julio y agosto nunca
      * se ingirieron.
      */
-    @Scheduled(fixedDelayString = "${aguavigia.ingesta.intervalo-ms:600000}")
     public void ejecutarCiclo() {
         List<DocumentoCrudo> deAcuacar = recolectar("acuacar", () -> acuacarApiCollector.obtenerDesde(desdeDondeLeer("acuacar")));
         List<DocumentoCrudo> deRss = recolectar("rss", () -> rssCollector.obtenerDesde(desdeDondeLeer("rss")));

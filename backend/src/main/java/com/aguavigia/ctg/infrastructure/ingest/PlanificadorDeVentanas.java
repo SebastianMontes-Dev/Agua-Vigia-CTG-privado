@@ -3,8 +3,11 @@ package com.aguavigia.ctg.infrastructure.ingest;
 import com.aguavigia.ctg.domain.port.in.ActualizarEstadosPorVentanaUseCase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.aguavigia.ctg.infrastructure.scheduling.EjecucionUnica;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+
+import java.time.Duration;
 
 /**
  * Dispara el barrido de ventanas declaradas. El `@Scheduled` vive aquí y no en el servicio para que
@@ -22,12 +25,19 @@ public class PlanificadorDeVentanas {
     private static final Logger log = LoggerFactory.getLogger(PlanificadorDeVentanas.class);
 
     private final ActualizarEstadosPorVentanaUseCase actualizarEstados;
+    private final EjecucionUnica ejecucionUnica;
 
-    public PlanificadorDeVentanas(ActualizarEstadosPorVentanaUseCase actualizarEstados) {
+    public PlanificadorDeVentanas(ActualizarEstadosPorVentanaUseCase actualizarEstados, EjecucionUnica ejecucionUnica) {
         this.actualizarEstados = actualizarEstados;
+        this.ejecucionUnica = ejecucionUnica;
     }
 
+    /** Una sola réplica por ciclo: las demás lo omiten. Ver {@link EjecucionUnica}. */
     @Scheduled(fixedDelayString = "${aguavigia.ingesta.ventanas-intervalo-ms:60000}")
+    public void revisarVentanasEnUnaReplica() {
+        ejecucionUnica.ejecutar("ventanas", Duration.ofMinutes(1), Duration.ofSeconds(30), this::revisarVentanas);
+    }
+
     public void revisarVentanas() {
         try {
             int cambiados = actualizarEstados.aplicarVentanasVencidas();
