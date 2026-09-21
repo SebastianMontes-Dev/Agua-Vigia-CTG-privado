@@ -128,14 +128,14 @@ class IngestaRevisionControllerTest {
     }
 
     @Test
-    void debeResponder400EnFormatoRfc7807SiLaPropuestaNoExiste() throws Exception {
+    void debeResponder404EnFormatoRfc7807SiLaPropuestaNoExiste() throws Exception {
         autenticarComoVeedor();
         given(revisarPropuesta.aprobar(any()))
-                .willThrow(new IllegalArgumentException("No existe la propuesta 'no-existe'"));
+                .willThrow(new com.aguavigia.ctg.domain.EntidadNoEncontradaException("No existe la propuesta 'no-existe'"));
 
         mockMvc.perform(patch("/api/veedor/ingesta/propuestas/no-existe/aprobar").header("Authorization", TOKEN))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.title").value("Peticion invalida"));
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.title").value("Recurso no encontrado"));
     }
 
     /**

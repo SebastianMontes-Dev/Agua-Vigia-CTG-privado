@@ -55,11 +55,13 @@ public class ReporteController {
     @Operation(summary = "Registrar un reporte ciudadano",
             description = """
                     Sin registro ni cuenta (RF005). Limita automáticamente los reportes por
-                    dispositivo en la ventana vigente (RF006) — ver 429. La coordenada es opcional,
-                    solo si el usuario autorizó compartir su ubicación (RF007).""")
+                    dispositivo en la ventana vigente (RF006) — ver 429. Hace falta el `sectorId`, la
+                    `coordenada` o ambos (RF007): con solo la coordenada el servidor infiere el sector
+                    que la contiene y responde 400 si cae fuera de todo barrio de Cartagena. La
+                    coordenada se envía solo si el usuario autorizó compartir su ubicación.""")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Reporte registrado"),
-            @ApiResponse(responseCode = "400", description = "Sector inexistente o tipo de reporte inválido",
+            @ApiResponse(responseCode = "400", description = "Sector inexistente, tipo inválido, huella fuera de 32-128 caracteres, coordenada fuera de Cartagena o sin sector ni coordenada",
                     content = @Content(mediaType = "application/problem+json",
                             schema = @Schema(implementation = ProblemDetail.class))),
             @ApiResponse(responseCode = "429", description = "El dispositivo superó el límite de reportes para este sector",
@@ -75,9 +77,11 @@ public class ReporteController {
         // esSensor=false siempre: esta ruta es pública y sin cuenta (RF005), así que nada de lo
         // que llegue aquí puede otorgar el cupo de sensor — eso lo decide solo IotController,
         // tras validar X-IoT-Key.
+        SectorId sectorId = solicitud.sectorId() == null || solicitud.sectorId().isBlank()
+                ? null : new SectorId(solicitud.sectorId());
         var reporte = registrarReporte.registrar(
-                new SectorId(solicitud.sectorId()),
-                TipoReporte.valueOf(solicitud.tipo()),
+                sectorId,
+                tipoDe(solicitud.tipo()),
                 coordenada,
                 new HuellaDispositivo(solicitud.huella()),
                 false);
@@ -113,5 +117,15 @@ public class ReporteController {
             @Valid @RequestBody SolicitudConfirmar solicitud) {
         var reporte = confirmarReporte.confirmar(new ReporteId(id), new HuellaDispositivo(solicitud.huella()));
         return ResponseEntity.ok(mapper.aRespuesta(reporte));
+    }
+
+    /** Traduce el texto del cliente al enum sin exponer el mensaje de `valueOf`, que nombra la clase del dominio. */
+    private static TipoReporte tipoDe(String texto) {
+        try {
+            return TipoReporte.valueOf(texto);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Tipo de reporte inválido '" + texto + "'. Valores permitidos: "
+                    + java.util.Arrays.stream(TipoReporte.values()).map(Enum::name).collect(java.util.stream.Collectors.joining(", ")));
+        }
     }
 }

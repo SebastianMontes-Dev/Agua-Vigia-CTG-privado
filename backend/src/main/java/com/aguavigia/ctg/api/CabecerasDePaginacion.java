@@ -10,7 +10,7 @@ import java.util.List;
  * Publica los metadatos de paginación en **cabeceras**, no en el cuerpo.
  *
  * Envolver la respuesta en `{contenido: [...], total: N}` habría sido más convencional, pero rompe
- * a todo cliente que ya consume estas rutas como un arreglo JSON — y el contrato con D4 es aditivo.
+ * a todo cliente que ya consume estas rutas como un arreglo JSON — y el contrato con el frontend es aditivo.
  * Con cabeceras, un cliente que las ignore sigue funcionando igual y uno que las lea puede paginar.
  *
  * `X-Total-Count` es lo que espera la mayoría de clientes generados; `Link` con `rel="next"` es el

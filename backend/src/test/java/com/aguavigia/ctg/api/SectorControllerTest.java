@@ -5,6 +5,8 @@ import com.aguavigia.ctg.api.mapper.SectorApiMapperImpl;
 import com.aguavigia.ctg.domain.EstadoServicio;
 import com.aguavigia.ctg.domain.Sector;
 import com.aguavigia.ctg.domain.SectorId;
+import com.aguavigia.ctg.domain.GeometriaSector;
+import com.aguavigia.ctg.domain.port.out.GeometriaSectoresPort;
 import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.SectorRepository;
 import com.aguavigia.ctg.infrastructure.config.SecurityConfig;
@@ -52,6 +54,9 @@ class SectorControllerTest {
     private RelojPort reloj;
 
     @MockitoBean
+    private GeometriaSectoresPort geometrias;
+
+    @MockitoBean
     private JwtProvider jwtProvider;
 
     // RateLimitConfig implementa WebMvcConfigurer: @WebMvcTest lo detecta e instancia en
@@ -62,6 +67,34 @@ class SectorControllerTest {
 
     @MockitoBean
     private SseSectoresBroadcaster sseBroadcaster;
+
+    /** El frontend nuevo no tiene el GeoJSON: lo pide aquí, ya con el id que usa el resto de la API. */
+    @Test
+    void geometriaDebeDevolverUnFeatureCollectionConElIdDeCadaSector() throws Exception {
+        given(geometrias.listar()).willReturn(List.of(new GeometriaSector(
+                new SectorId("bocagrande"), "BOCAGRANDE",
+                java.util.Map.of("type", "Polygon", "coordinates", List.of()))));
+
+        mockMvc.perform(get("/api/sectores/geometria"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith("application/geo+json"))
+                .andExpect(jsonPath("$.type").value("FeatureCollection"))
+                .andExpect(jsonPath("$.features[0].type").value("Feature"))
+                .andExpect(jsonPath("$.features[0].id").value("bocagrande"))
+                .andExpect(jsonPath("$.features[0].properties.nombre").value("BOCAGRANDE"))
+                .andExpect(jsonPath("$.features[0].geometry.type").value("Polygon"));
+    }
+
+    /** Los polígonos no cambian entre siembras: un día de caché evita reenviar ~3 MB a cada visita. */
+    @Test
+    void geometriaDebeSerCacheableEnPublico() throws Exception {
+        given(geometrias.listar()).willReturn(List.of());
+
+        mockMvc.perform(get("/api/sectores/geometria"))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+                        .string("Cache-Control", org.hamcrest.Matchers.containsString("public")));
+    }
 
     @Test
     void debeDevolverElListadoConLaHoraEnQueSeGenero() throws Exception {
@@ -89,6 +122,20 @@ class SectorControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("\"estado\":null")))
                 .andExpect(jsonPath("$.sectores[0].estado").value(org.hamcrest.Matchers.nullValue()));
+    }
+
+    @Test
+    void debePublicarLaPoblacionCensalDelSectorYNuloSiNoHayDato() throws Exception {
+        given(reloj.ahora()).willReturn(INSTANTE_FIJO);
+        given(sectores.listarTodos()).willReturn(List.of(
+                new Sector(new SectorId("bocagrande"), "BOCAGRANDE", 12000, null),
+                new Sector(new SectorId("isla-fuerte"), "ISLA FUERTE", null, null)));
+
+        // Sin dato censal la población viaja en null, nunca en 0: un 0 se leería como «nadie vive ahí».
+        mockMvc.perform(get("/api/sectores"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.sectores[0].poblacion").value(12000))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("\"poblacion\":null")));
     }
 
     @Test

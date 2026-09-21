@@ -6,10 +6,12 @@ import com.aguavigia.ctg.domain.Pagina;
 import com.aguavigia.ctg.domain.ReporteCiudadano;
 import com.aguavigia.ctg.domain.ReporteId;
 import com.aguavigia.ctg.domain.SectorId;
+import com.aguavigia.ctg.domain.TipoReporte;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -19,6 +21,14 @@ public interface ReporteCiudadanoRepository {
 
     /** RF009-RF011 — sustento del consenso: excluye lo que el veedor ya descartó como spam. */
     List<ReporteCiudadano> listarRecientesPorSector(SectorId sectorId, Duration ventana);
+
+    /**
+     * RF009 — cuántos vecinos distintos votan por cada tipo de reporte en la ventana, sin traer los
+     * reportes: cada dispositivo cuenta una vez, con su reporte MÁS RECIENTE, y se excluye lo que el
+     * veedor descartó. Es lo que decide si hay consenso y hacia dónde; durante una avería masiva un
+     * sector acumula miles de reportes y cargarlos todos en cada POST agotaba el pool de conexiones.
+     */
+    Map<TipoReporte, Long> contarVotosRecientes(SectorId sectorId, Duration ventana);
 
     /**
      * RF006 — cupo de reportes por dispositivo. Cuenta TODO lo que el dispositivo envió en la

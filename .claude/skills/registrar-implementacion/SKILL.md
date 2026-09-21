@@ -1,16 +1,16 @@
 ---
 name: registrar-implementacion
-description: Registra en docs/gestion/registro-de-implementaciones.md una unidad de trabajo terminada y fusionada, con su requisito, su Pull Request y su prueba. Úsala al fusionar un PR a develop o cuando el usuario diga que terminó una funcionalidad.
+description: Registra en docs/gestion/registro-de-implementaciones.md una unidad de trabajo terminada y fusionada, con su requisito, su Pull Request y su prueba. Úsala al fusionar un PR a main o cuando el usuario diga que terminó una funcionalidad.
 ---
 
 # Registrar una implementación
 
 Convierte "ya está listo" en evidencia verificable: qué requisito quedó cubierto, con qué PR y con qué
-prueba. Es el insumo directo de la matriz de trazabilidad y del Capítulo IV del informe.
+prueba. Es el insumo directo de la matriz de trazabilidad.
 
 ## Cuándo usar esto
 
-Cuando un Pull Request se fusiona a `develop`. **No antes** — el código en una rama de trabajo todavía
+Cuando un Pull Request se fusiona a `main`. **No antes** — el código en una rama de trabajo todavía
 puede cambiar o descartarse.
 
 ## Paso 1 — Verificar la definición de terminado
@@ -19,10 +19,10 @@ Antes de escribir la fila, comprueba (`docs/gestion/README.md`, sección Definic
 
 - [ ] La build pasa completa: compila, tests, ArchUnit, linter
 - [ ] Hay prueba del flujo principal **y** de al menos un caso de borde
-- [ ] El PR tuvo al menos 1 revisor y enlaza su issue y su `RF`
+- [ ] El PR enlaza su issue y su `RF` (si el cambio no fue trivial y pasó por PR)
 
 **Si algo falta, dilo y no registres la fila.** Registrar como terminado lo que no lo está vuelve
-inútil la métrica de cobertura del Capítulo IV.
+inútil la métrica de cobertura.
 
 ## Paso 2 — Localizar el requisito
 
@@ -38,7 +38,7 @@ Busca el id en `docs/product-requirements.md`.
 En la tabla del sprint en curso de `docs/gestion/registro-de-implementaciones.md`:
 
 ```markdown
-| RF0NN | M<N> | <qué quedó funcionando, en pasado> | D<N> | #<PR> | <nombre de la prueba> |
+| RF0NN | func | <qué quedó funcionando, en pasado> | #<PR> | <nombre de la prueba> |
 ```
 
 Después actualiza la tabla **Estado de cobertura de requisitos** al final del archivo.
@@ -62,8 +62,8 @@ Después actualiza la tabla **Estado de cobertura de requisitos** al final del a
 
 ## Efecto en la Sala de control
 
-Esta fila alimenta la Sala de control (`docs/gestion/README.md`), que se regenera sola en cada push a
-`develop` — **el HTML no se edita a mano**. Si el PR además cerró un compromiso del sprint, marca su
+Esta fila alimenta la Sala de control (`docs/gestion/README.md`), que se regenera con
+`node scripts/generar-dashboard.mjs` — **el HTML no se edita a mano**. Si el PR además cerró un compromiso del sprint, marca su
 `docs/gestion/sprint-N.md` §2, con `✅`/`🟡` al inicio del Entregable: sin eso
 el tablero seguirá diciendo que el trabajo está sin empezar, y el avance del proyecto saldrá más bajo
 de lo que es.

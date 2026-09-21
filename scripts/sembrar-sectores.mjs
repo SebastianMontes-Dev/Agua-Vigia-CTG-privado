@@ -2,7 +2,7 @@
 //   - data/geoespacial/barrios-cartagena.geojson (213 barrios, geometria)
 //   - data/geoespacial/poblacion-barrios.json (poblacion 2018, DANE + CORVIVIENDA, via datos.gov.co)
 //
-// Tarea de Sprint 1 de D5 (docs/equipo/D5-devops-qa.md). Documentacion completa de las fuentes,
+// Tarea de Sprint 1. Documentacion completa de las fuentes,
 // la licencia y los problemas de datos: data/geoespacial/README.md — leerlo antes de tocar esto.
 //
 // Uso:
@@ -105,14 +105,14 @@ async function main() {
       nombre: p.NOMBRE,
       // poblacion: requerido por la entidad de dominio Sector (docs/ingenieria/modelo-de-dominio.md).
       // null cuando la fuente no cubre el barrio (mayoria corregimientos rurales/insulares —
-      // ver README). D2 decide como Sector maneja poblacion ausente; no se inventa un numero aqui.
+      // ver README). El dominio decide como Sector maneja poblacion ausente; no se inventa un numero aqui.
       poblacion,
       ucg: p.UCG,
       localidad: LOCALIDAD_POR_CODIGO[p.LOC] ?? p.LOC,
       zona: p.ZONA,
       codigoOrigen: p.CODIGO, // referencia al origen — no es unico, no usar como identidad
       geometry: f.geometry,
-      // Nota para D2/D3: estadoActual NO se siembra aqui — es estado dinamico de la aplicacion,
+      // Nota: estadoActual NO se siembra aqui — es estado dinamico de la aplicacion,
       // no dato de referencia. El adaptador de SectorRepository decide el valor inicial al leer
       // un sector que todavia no tiene estado registrado.
     };

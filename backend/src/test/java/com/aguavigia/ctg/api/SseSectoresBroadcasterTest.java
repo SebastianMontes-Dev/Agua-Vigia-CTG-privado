@@ -1,12 +1,7 @@
 package com.aguavigia.ctg.api;
 
-import com.aguavigia.ctg.api.dto.SectorRespuesta;
-import com.aguavigia.ctg.api.mapper.SectorApiMapper;
-import com.aguavigia.ctg.domain.EstadoServicio;
-import com.aguavigia.ctg.domain.Sector;
-import com.aguavigia.ctg.domain.SectorId;
+import com.aguavigia.ctg.domain.LimiteDePeticionesExcedidoException;
 import com.aguavigia.ctg.domain.port.out.RelojPort;
-import com.aguavigia.ctg.domain.port.out.SectorRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -19,10 +14,10 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.time.Instant;
-import java.util.List;
 
 import static com.aguavigia.ctg.api.SseSectoresBroadcaster.CANAL;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
@@ -32,13 +27,17 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 
 /**
- * estado-del-backend.md #6.1 — "SSE de una sola instancia". `MockMvcBuilders.standaloneSetup` con
- * un controlador de prueba deja driblar el ciclo de vida real de un SseEmitter (Servlet 3 async)
- * sin depender de clases internas de Spring como `ResponseBodyEmitter.Handler`, que no es pública.
+ * El SSE ya no empuja el estado de los sectores: avisa de que cambió (`actualizadoEn`) y el cliente
+ * lo pide con GET /api/sectores, que sí se cachea. Con 50 000 conexiones abiertas, enviar el
+ * listado completo a cada una en cada cambio eran ~1,25 GB por evento.
+ *
+ * `MockMvcBuilders.standaloneSetup` deja driblar el ciclo de vida real de un SseEmitter sin depender
+ * de clases internas de Spring. La difusión usa un Executor inyectable: aquí es síncrono.
  */
 class SseSectoresBroadcasterTest {
 
     private static final Instant INSTANTE = Instant.parse("2026-08-11T10:00:00Z");
+    private static final int MAXIMO = 2;
 
     @RestController
     static class ControladorDePrueba {
@@ -54,8 +53,6 @@ class SseSectoresBroadcasterTest {
         }
     }
 
-    private SectorRepository sectores;
-    private SectorApiMapper mapper;
     private RelojPort reloj;
     private RedisTemplate<String, String> redisTemplate;
     private SseSectoresBroadcaster broadcaster;
@@ -63,27 +60,36 @@ class SseSectoresBroadcasterTest {
 
     @BeforeEach
     void montar() {
-        sectores = mock(SectorRepository.class);
-        mapper = mock(SectorApiMapper.class);
         reloj = mock(RelojPort.class);
         redisTemplate = mock(RedisTemplate.class);
-        broadcaster = new SseSectoresBroadcaster(sectores, mapper, reloj, redisTemplate);
+        broadcaster = new SseSectoresBroadcaster(reloj, redisTemplate, Runnable::run, MAXIMO);
         mockMvc = MockMvcBuilders.standaloneSetup(new ControladorDePrueba(broadcaster)).build();
-
         given(reloj.ahora()).willReturn(INSTANTE);
-        given(sectores.listarTodos()).willReturn(List.of(
-                new Sector(new SectorId("manga"), "MANGA", 5000, EstadoServicio.PRESION_BAJA)));
-        given(mapper.aRespuestas(any())).willReturn(List.of(
-                new SectorRespuesta("manga", "MANGA", EstadoServicio.PRESION_BAJA, INSTANTE)));
+    }
+
+    private MvcResult conectar() throws Exception {
+        return mockMvc.perform(get("/stream-de-prueba")).andExpect(request().asyncStarted()).andReturn();
+    }
+
+    private static int eventos(MvcResult conexion) throws Exception {
+        String cuerpo = conexion.getResponse().getContentAsString();
+        return cuerpo.split("event:sectores", -1).length - 1;
     }
 
     @Test
-    void debeEnviarElEstadoActualAlRegistrarUnNuevoCliente() throws Exception {
-        MvcResult resultado = mockMvc.perform(get("/stream-de-prueba"))
-                .andExpect(request().asyncStarted())
-                .andReturn();
+    void alConectarDebeAvisarConLaHoraDelUltimoCambioSinEmpujarElListado() throws Exception {
+        MvcResult conexion = conectar();
 
-        assertThat(resultado.getResponse().getContentAsString()).contains("manga");
+        String cuerpo = conexion.getResponse().getContentAsString();
+        assertThat(cuerpo).contains("event:sectores").contains("actualizadoEn").contains("2026-08-11T10:00:00Z");
+        assertThat(cuerpo).doesNotContain("\"sectores\"");
+    }
+
+    @Test
+    void debeIndicarAlClienteCuantoEsperarAntesDeReconectar() throws Exception {
+        MvcResult conexion = conectar();
+
+        assertThat(conexion.getResponse().getContentAsString()).containsPattern("retry:\\d+");
     }
 
     @Test
@@ -93,24 +99,65 @@ class SseSectoresBroadcasterTest {
         verify(redisTemplate).convertAndSend(eq(CANAL), any());
     }
 
-    /**
-     * Simula lo que en producción dispara RedisMessageListenerContainer (SseConfig) al recibir un
-     * mensaje en el canal: cualquier instancia —incluida la que publicó— reconsulta el estado y
-     * empuja a sus clientes locales, no solo la que procesó el cambio original.
-     */
     @Test
-    void onMessageDebeEmpujarElEstadoActualizadoATodosLosClientesRegistrados() throws Exception {
-        MvcResult resultado = mockMvc.perform(get("/stream-de-prueba"))
-                .andExpect(request().asyncStarted())
-                .andReturn();
+    void debeRechazarUnaConexionNuevaAlAlcanzarElTope() throws Exception {
+        conectar();
+        conectar();
 
-        given(sectores.listarTodos()).willReturn(List.of(
-                new Sector(new SectorId("bocagrande"), "BOCAGRANDE", 12000, EstadoServicio.SIN_SERVICIO)));
-        given(mapper.aRespuestas(any())).willReturn(List.of(
-                new SectorRespuesta("bocagrande", "BOCAGRANDE", EstadoServicio.SIN_SERVICIO, INSTANTE)));
+        assertThatThrownBy(broadcaster::registrar)
+                .isInstanceOf(LimiteDePeticionesExcedidoException.class)
+                .hasMessageContaining("conexiones");
+        assertThat(broadcaster.conexionesActivas()).isEqualTo(MAXIMO);
+    }
+
+    /** Un mensaje de Redis solo marca que hay algo que difundir; quien envía es el barrido periódico. */
+    @Test
+    void onMessageNoDebeEnviarNadaHastaElBarridoPeriodico() throws Exception {
+        MvcResult conexion = conectar();
+        int alConectar = eventos(conexion);
 
         broadcaster.onMessage(null, null);
 
-        assertThat(resultado.getResponse().getContentAsString()).contains("bocagrande");
+        assertThat(eventos(conexion)).isEqualTo(alConectar);
+    }
+
+    @Test
+    void elBarridoDebeAvisarATodosLosClientesRegistrados() throws Exception {
+        MvcResult primero = conectar();
+        MvcResult segundo = conectar();
+        int antes = eventos(primero);
+
+        broadcaster.onMessage(null, null);
+        broadcaster.difundirPendiente();
+
+        assertThat(eventos(primero)).isEqualTo(antes + 1);
+        assertThat(eventos(segundo)).isEqualTo(antes + 1);
+    }
+
+    /** Una ráfaga de cambios (una avería masiva) cuesta un solo aviso por cliente, no uno por cambio. */
+    @Test
+    void variosMensajesSeguidosDebenCoalescerseEnUnSoloAviso() throws Exception {
+        MvcResult conexion = conectar();
+        int antes = eventos(conexion);
+
+        broadcaster.onMessage(null, null);
+        broadcaster.onMessage(null, null);
+        broadcaster.onMessage(null, null);
+        broadcaster.difundirPendiente();
+        broadcaster.difundirPendiente();
+
+        assertThat(eventos(conexion)).isEqualTo(antes + 1);
+    }
+
+    @Test
+    void elLatidoDebeMantenerVivaLaConexionSinAvisarDeUnCambio() throws Exception {
+        MvcResult conexion = conectar();
+        int antes = eventos(conexion);
+
+        broadcaster.enviarLatido();
+
+        String cuerpo = conexion.getResponse().getContentAsString();
+        assertThat(cuerpo).contains(":latido");
+        assertThat(eventos(conexion)).isEqualTo(antes);
     }
 }

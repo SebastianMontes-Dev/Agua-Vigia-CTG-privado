@@ -1,5 +1,6 @@
 package com.aguavigia.ctg.application;
 
+import com.aguavigia.ctg.domain.EntidadNoEncontradaException;
 import com.aguavigia.ctg.domain.AgregadoDuraciones;
 import com.aguavigia.ctg.domain.CorteAgua;
 import com.aguavigia.ctg.domain.CorteId;
@@ -37,7 +38,7 @@ public class CalcularCumplimientoService implements CalcularCumplimientoUseCase 
     @Override
     public IndiceCumplimiento porCorte(CorteId corteId) {
         CorteAgua corte = cortes.buscarPorId(corteId)
-                .orElseThrow(() -> new IllegalArgumentException("No existe el corte '" + corteId.valor() + "'"));
+                .orElseThrow(() -> new EntidadNoEncontradaException("No existe el corte '" + corteId.valor() + "'"));
 
         if (!corte.ventana().estaCerrada()) {
             throw new IllegalStateException("El corte '" + corteId.valor() + "' todavía no está cerrado");

@@ -7,7 +7,7 @@ info:
     Plataforma ciudadana e independiente: no esta afiliada a Aguas de Cartagena
     S.A. E.S.P. ni a ninguna entidad distrital.
   contact:
-    name: Equipo AguaVigia CTG — Tecnologico Comfenalco
+    name: AguaVigia CTG
   license:
     name: Proyecto de aula
   version: 1.0.0
@@ -17,8 +17,12 @@ servers:
 tags:
 - name: Suscripciones
   description: Alertas por correo cuando cambia el estado de un sector
+- name: Sectores
+  description: Sectores de Cartagena y su estado del servicio
 - name: Veedor - Moderación
   description: Moderar reportes ciudadanos pendientes (RF018)
+- name: Cuentas
+  description: Páginas HTML a las que llevan los enlaces de los correos de cuenta
 - name: Open311
   description: API abierta bajo el estándar Open311 GeoReport v2 (RF039)
 - name: Veedor - Ingesta
@@ -27,12 +31,16 @@ tags:
   description: Índice de Cumplimiento — prometido vs. real (RF020-RF022)
 - name: Estadisticas
   description: M7 — Estadísticas Públicas (RF023)
+- name: IoT
+  description: Telemetría de sensores de presión de la red (autenticada con X-IoT-Key)
 - name: Bitácora
   description: "Bitácora pública de eventos, de solo anexado (RF026-RF028)"
 - name: Cuentas
   description: "Alta, verificacion y recuperacion de cuentas del panel"
 - name: Sectores
   description: Estado del servicio de agua por sector de Cartagena
+- name: Veedor - Cuenta propia
+  description: Cambios que una persona hace sobre su propia cuenta
 - name: Veedor - Cortes
   description: Registro y cierre de cortes oficiales (RF016-RF017)
 - name: Reportes
@@ -46,6 +54,41 @@ tags:
 - name: Veedor
   description: Autenticacion del panel del veedor
 paths:
+  /api/veedor/usuarios/{id}/invitacion/reenvio:
+    post:
+      tags:
+      - Cuentas
+      summary: Reenviar la invitación a una cuenta que aún no la aceptó
+      description: Requiere GESTIONAR_USUARIOS. El enlace anterior deja de servir
+        y se reinicia su vigencia de 7 días.
+      operationId: reenviarInvitacion
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "202":
+          description: Invitación reenviada
+        "404":
+          description: No existe la cuenta
+        "409":
+          description: La cuenta ya aceptó la invitación (no está en estado INVITADA)
+        "401":
+          description: "Sin sesión, token inválido, caducado o revocado"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: La sesión no tiene el permiso que exige esta operación
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+      security:
+      - bearerAuth: []
   /api/veedor/usuarios/invitaciones:
     post:
       tags:
@@ -74,6 +117,20 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/UsuarioRespuesta"
+        "401":
+          description: "Sin sesión, token inválido, caducado o revocado"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: La sesión no tiene el permiso que exige esta operación
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+      security:
+      - bearerAuth: []
   /api/veedor/sesion:
     post:
       tags:
@@ -134,6 +191,20 @@ paths:
       responses:
         "204":
           description: No Content
+        "401":
+          description: "Sin sesión, token inválido, caducado o revocado"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: La sesión no tiene el permiso que exige esta operación
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+      security:
+      - bearerAuth: []
   /api/veedor/segundo-factor/confirmacion:
     post:
       tags:
@@ -169,6 +240,14 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SesionVeedor"
+        "403":
+          description: La sesión no tiene el permiso que exige esta operación
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+      security:
+      - bearerAuth: []
   /api/veedor/segundo-factor/baja:
     post:
       tags:
@@ -192,6 +271,14 @@ paths:
           description: El codigo no coincide
         "409":
           description: El rol ADMIN exige segundo factor
+        "403":
+          description: La sesión no tiene el permiso que exige esta operación
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+      security:
+      - bearerAuth: []
   /api/veedor/segundo-factor/alta:
     post:
       tags:
@@ -202,13 +289,77 @@ paths:
         empieza a hacerlo tras confirmar un codigo valido. El secreto se muestra una
         sola vez: no hay endpoint para volver a leerlo.
       operationId: iniciar
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SolicitudCodigo"
       responses:
         "200":
-          description: OK
+          description: "Secreto generado, pendiente de confirmar"
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/AltaSegundoFactorRespuesta"
+        "401":
+          description: El codigo actual no coincide
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AltaSegundoFactorRespuesta"
+        "409":
+          description: Ya tiene segundo factor y no envio el codigo actual
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AltaSegundoFactorRespuesta"
+        "403":
+          description: La sesión no tiene el permiso que exige esta operación
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+      security:
+      - bearerAuth: []
+  /api/veedor/cuenta/clave:
+    post:
+      tags:
+      - Veedor - Cuenta propia
+      summary: Cambiar la propia clave
+      description: |-
+        Exige la clave actual y comparte el contador de intentos fallidos con el inicio de sesión
+        (5 fallos en 15 minutos bloquean la cuenta 15 minutos). Al cambiarla se cierran **todas** las
+        sesiones, la actual incluida: el cliente debe volver a pedir `POST /api/veedor/sesion` con la
+        clave nueva. Se avisa por correo del cambio.
+      operationId: cambiarClave
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SolicitudCambioClave"
+        required: true
+      responses:
+        "204":
+          description: Clave cambiada; todas las sesiones cerradas
+        "400":
+          description: "La clave actual no es correcta, la nueva no cumple la polí\
+            tica (12 a 128 caracteres) o es igual a la actual"
+        "423":
+          description: Cuenta bloqueada por intentos fallidos
+        "401":
+          description: "Sin sesión, token inválido, caducado o revocado"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: La sesión no tiene el permiso que exige esta operación
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+      security:
+      - bearerAuth: []
   /api/veedor/cortes:
     get:
       tags:
@@ -230,6 +381,20 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/CorteRespuesta"
+        "401":
+          description: "Sin sesión, token inválido, caducado o revocado"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: La sesión no tiene el permiso que exige esta operación
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+      security:
+      - bearerAuth: []
     post:
       tags:
       - Veedor - Cortes
@@ -256,6 +421,20 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: "Sin sesión, token inválido, caducado o revocado"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: La sesión no tiene el permiso que exige esta operación
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+      security:
+      - bearerAuth: []
   /api/suscripciones:
     post:
       tags:
@@ -284,6 +463,131 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
+  /api/suscripciones/confirmar:
+    get:
+      tags:
+      - Suscripciones
+      summary: Pantalla del enlace «Confirmar» del correo
+      description: |-
+        Página a la que lleva el enlace del correo. Solo muestra un botón: NO confirma nada, porque un
+        antivirus o una vista previa de enlaces abre los GET sin que nadie los pida (`ADR-054`). La
+        acción ocurre al enviar el formulario, que hace POST a la misma ruta.
+      operationId: pantallaConfirmar
+      parameters:
+      - name: token
+        in: query
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Página con el botón
+          content:
+            text/html:
+              schema:
+                type: string
+            application/json:
+              schema:
+                type: string
+    post:
+      tags:
+      - Suscripciones
+      summary: Confirmar la suscripción (doble opt-in)
+      description: |-
+        Acción del botón de la página de confirmación (o de un cliente de API). El token es de un solo enlace, no de un solo uso:
+        confirmarla dos veces no falla (RF013). Responde JSON o una página HTML de cortesía
+        según el `Accept` de quien pide: el formulario de la página responde HTML y un cliente de API
+        responde JSON. `token` va como parámetro de consulta o del formulario.
+      operationId: confirmar_1
+      parameters:
+      - name: token
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: Accept
+        in: header
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Suscripción confirmada
+          content:
+            application/json:
+              schema:
+                type: object
+            text/html:
+              schema:
+                type: object
+        "400":
+          description: "Token inválido, inexistente o de una suscripción ya cancelada"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+  /api/suscripciones/cancelar:
+    get:
+      tags:
+      - Suscripciones
+      summary: Pantalla del enlace de baja de todo correo (RF015)
+      description: |-
+        Página a la que lleva el enlace del correo. Solo muestra un botón: NO cancela nada, porque un
+        antivirus o una vista previa de enlaces abre los GET sin que nadie los pida (`ADR-054`). La
+        acción ocurre al enviar el formulario, que hace POST a la misma ruta.
+      operationId: pantallaCancelar
+      parameters:
+      - name: token
+        in: query
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Página con el botón
+          content:
+            text/html:
+              schema:
+                type: string
+            application/json:
+              schema:
+                type: string
+    post:
+      tags:
+      - Suscripciones
+      summary: Darse de baja en un clic (RF015)
+      description: |-
+        Acción del botón de la página de baja (o de un cliente de API). Sin pedir credenciales: el token que llega en cada correo es suficiente. Responde
+        JSON o una página HTML de cortesía según el `Accept` de quien pide (mismo motivo
+        que en {@code /confirmar}).
+      operationId: cancelar
+      parameters:
+      - name: token
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: Accept
+        in: header
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Suscripción cancelada
+          content:
+            application/json:
+              schema:
+                type: object
+            text/html:
+              schema:
+                type: object
+        "400":
+          description: Token inválido o inexistente
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
   /api/reportes:
     post:
       tags:
@@ -291,8 +595,10 @@ paths:
       summary: Registrar un reporte ciudadano
       description: |-
         Sin registro ni cuenta (RF005). Limita automáticamente los reportes por
-        dispositivo en la ventana vigente (RF006) — ver 429. La coordenada es opcional,
-        solo si el usuario autorizó compartir su ubicación (RF007).
+        dispositivo en la ventana vigente (RF006) — ver 429. Hace falta el `sectorId`, la
+        `coordenada` o ambos (RF007): con solo la coordenada el servidor infiere el sector
+        que la contiene y responde 400 si cae fuera de todo barrio de Cartagena. La
+        coordenada se envía solo si el usuario autorizó compartir su ubicación.
       operationId: registrar_1
       requestBody:
         content:
@@ -308,7 +614,8 @@ paths:
               schema:
                 $ref: "#/components/schemas/ReporteRespuesta"
         "400":
-          description: Sector inexistente o tipo de reporte inválido
+          description: "Sector inexistente, tipo inválido, huella fuera de 32-128\
+            \ caracteres, coordenada fuera de Cartagena o sin sector ni coordenada"
           content:
             application/problem+json:
               schema:
@@ -368,7 +675,7 @@ paths:
       - Reportes
       summary: Confirmar un reporte
       description: Permite a otro vecino confirmar un reporte ciudadano (M11).
-      operationId: confirmar_1
+      operationId: confirmar_2
       parameters:
       - name: id
         in: path
@@ -403,7 +710,12 @@ paths:
   /api/iot/presion:
     post:
       tags:
-      - iot-controller
+      - IoT
+      summary: Registrar una lectura de presión de un sensor
+      description: |-
+        Una presión por debajo del umbral (15 psi por defecto) se registra como reporte de
+        PRESION_BAJA con el cupo de sensor. Una lectura normal responde 200 sin registrar
+        nada. Sin cuerpo de respuesta en el caso exitoso.
       operationId: reportarPresion
       parameters:
       - name: X-IoT-Key
@@ -419,7 +731,26 @@ paths:
         required: true
       responses:
         "200":
-          description: OK
+          description: Lectura recibida (haya generado reporte o no)
+        "400":
+          description: "Falta el sensor, el sector no existe o la coordenada es invá\
+            lida"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: X-IoT-Key ausente o incorrecta
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "503":
+          description: El servidor no tiene configurada la clave de sensores
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
   /api/cuentas/verificacion:
     post:
       tags:
@@ -439,6 +770,27 @@ paths:
           description: Correo confirmado
         "400":
           description: "Enlace invalido, vencido o ya usado"
+  /api/cuentas/verificacion/reenvio:
+    post:
+      tags:
+      - Cuentas
+      summary: Reenviar el correo de verificación
+      description: |-
+        Para quien se registró y no recibió el enlace (o venció). Responde 202 **siempre**, exista o no
+        la cuenta y ya esté verificada o no: no revela qué correos están registrados. Reenvía como mucho
+        una vez cada 2 minutos por cuenta. El enlace anterior deja de servir.
+      operationId: reenviarVerificacion
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SolicitudReenvioVerificacion"
+        required: true
+      responses:
+        "202":
+          description: "Si había algo que reenviar, el correo va en camino"
+        "400":
+          description: Correo mal formado
   /api/cuentas/restablecimiento:
     post:
       tags:
@@ -497,6 +849,141 @@ paths:
           description: Cuenta activa; ya puedes iniciar sesion
         "400":
           description: Enlace invalido o clave que no cumple la politica
+  /api/cuentas/enlaces/verificar:
+    get:
+      tags:
+      - Cuentas
+      summary: Pantalla del enlace «Confirmar mi correo»
+      description: "Muestra el botón de confirmación. No consume el token: eso ocurre\
+        \ al enviar el formulario."
+      operationId: pantallaVerificar
+      parameters:
+      - name: token
+        in: query
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            text/html:
+              schema:
+                type: string
+    post:
+      tags:
+      - Cuentas
+      summary: Confirmar el correo desde el formulario de la pantalla
+      description: "Mismo efecto que POST /api/cuentas/verificacion, pero recibe el\
+        \ formulario y responde HTML."
+      operationId: verificarCorreo_1
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            text/html:
+              schema:
+                type: string
+  /api/cuentas/enlaces/restablecer:
+    get:
+      tags:
+      - Cuentas
+      summary: Pantalla del enlace para restablecer la clave
+      description: Muestra el formulario para elegir la clave nueva. No consume el
+        token.
+      operationId: pantallaRestablecer
+      parameters:
+      - name: token
+        in: query
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            text/html:
+              schema:
+                type: string
+    post:
+      tags:
+      - Cuentas
+      summary: Restablecer la clave desde el formulario de la pantalla
+      description: "Mismo efecto que POST /api/cuentas/clave, pero recibe el formulario\
+        \ y responde HTML."
+      operationId: restablecerClave
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              required:
+              - clave
+              - token
+              type: object
+              properties:
+                token:
+                  type: string
+                clave:
+                  type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            text/html:
+              schema:
+                type: string
+  /api/cuentas/enlaces/invitacion:
+    get:
+      tags:
+      - Cuentas
+      summary: Pantalla del enlace de invitación
+      description: Muestra el formulario para elegir la clave. No consume el token.
+      operationId: pantallaInvitacion
+      parameters:
+      - name: token
+        in: query
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            text/html:
+              schema:
+                type: string
+    post:
+      tags:
+      - Cuentas
+      summary: Aceptar la invitación desde el formulario de la pantalla
+      description: "Mismo efecto que POST /api/cuentas/invitacion, pero recibe el\
+        \ formulario y responde HTML."
+      operationId: aceptarInvitacion
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              required:
+              - clave
+              - token
+              type: object
+              properties:
+                token:
+                  type: string
+                clave:
+                  type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            text/html:
+              schema:
+                type: string
   /api/cuentas/clave:
     post:
       tags:
@@ -541,6 +1028,20 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/UsuarioRespuesta"
+        "401":
+          description: "Sin sesión, token inválido, caducado o revocado"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: La sesión no tiene el permiso que exige esta operación
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+      security:
+      - bearerAuth: []
   /api/veedor/usuarios/{id}/rechazo:
     patch:
       tags:
@@ -560,6 +1061,20 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/UsuarioRespuesta"
+        "401":
+          description: "Sin sesión, token inválido, caducado o revocado"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: La sesión no tiene el permiso que exige esta operación
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+      security:
+      - bearerAuth: []
   /api/veedor/usuarios/{id}/reactivacion:
     patch:
       tags:
@@ -579,6 +1094,20 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/UsuarioRespuesta"
+        "401":
+          description: "Sin sesión, token inválido, caducado o revocado"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: La sesión no tiene el permiso que exige esta operación
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+      security:
+      - bearerAuth: []
   /api/veedor/usuarios/{id}/permisos:
     patch:
       tags:
@@ -614,6 +1143,20 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/UsuarioRespuesta"
+        "401":
+          description: "Sin sesión, token inválido, caducado o revocado"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: La sesión no tiene el permiso que exige esta operación
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+      security:
+      - bearerAuth: []
   /api/veedor/usuarios/{id}/aprobacion:
     patch:
       tags:
@@ -646,6 +1189,20 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/UsuarioRespuesta"
+        "401":
+          description: "Sin sesión, token inválido, caducado o revocado"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: La sesión no tiene el permiso que exige esta operación
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+      security:
+      - bearerAuth: []
   /api/veedor/reportes/{id}/descartar:
     patch:
       tags:
@@ -665,12 +1222,26 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ReporteModeracionRespuesta"
-        "400":
+        "404":
           description: El reporte no existe
           content:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: "Sin sesión, token inválido, caducado o revocado"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: La sesión no tiene el permiso que exige esta operación
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+      security:
+      - bearerAuth: []
   /api/veedor/reportes/{id}/aprobar:
     patch:
       tags:
@@ -690,12 +1261,26 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ReporteModeracionRespuesta"
-        "400":
+        "404":
           description: El reporte no existe
           content:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: "Sin sesión, token inválido, caducado o revocado"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: La sesión no tiene el permiso que exige esta operación
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+      security:
+      - bearerAuth: []
   /api/veedor/ingesta/propuestas/{id}/descartar:
     patch:
       tags:
@@ -717,12 +1302,26 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PropuestaIngestaRespuesta"
-        "400":
+        "404":
           description: La propuesta no existe
           content:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: "Sin sesión, token inválido, caducado o revocado"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: La sesión no tiene el permiso que exige esta operación
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+      security:
+      - bearerAuth: []
   /api/veedor/ingesta/propuestas/{id}/aprobar:
     patch:
       tags:
@@ -745,7 +1344,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PropuestaIngestaRespuesta"
-        "400":
+        "404":
           description: La propuesta no existe
           content:
             application/problem+json:
@@ -757,6 +1356,20 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: "Sin sesión, token inválido, caducado o revocado"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: La sesión no tiene el permiso que exige esta operación
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+      security:
+      - bearerAuth: []
   /api/veedor/cortes/{id}/cierre:
     patch:
       tags:
@@ -782,7 +1395,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CorteRespuesta"
-        "400":
+        "404":
           description: El corte no existe
           content:
             application/problem+json:
@@ -794,6 +1407,44 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: "Sin sesión, token inválido, caducado o revocado"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: La sesión no tiene el permiso que exige esta operación
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+      security:
+      - bearerAuth: []
+  /sin-proteger:
+    get:
+      tags:
+      - controlador-de-prueba-rate-limit
+      operationId: sinProteger
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: string
+  /protegida:
+    get:
+      tags:
+      - controlador-de-prueba-rate-limit
+      operationId: protegida
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: string
   /api/veedor/yo:
     get:
       tags:
@@ -810,6 +1461,20 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/UsuarioRespuesta"
+        "401":
+          description: "Sin sesión, token inválido, caducado o revocado"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: La sesión no tiene el permiso que exige esta operación
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+      security:
+      - bearerAuth: []
   /api/veedor/usuarios:
     get:
       tags:
@@ -846,6 +1511,20 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/UsuarioRespuesta"
+        "401":
+          description: "Sin sesión, token inválido, caducado o revocado"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: La sesión no tiene el permiso que exige esta operación
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+      security:
+      - bearerAuth: []
   /api/veedor/reportes/pendientes:
     get:
       tags:
@@ -877,6 +1556,20 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/ReporteModeracionRespuesta"
+        "401":
+          description: "Sin sesión, token inválido, caducado o revocado"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: La sesión no tiene el permiso que exige esta operación
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+      security:
+      - bearerAuth: []
   /api/veedor/ingesta/salud:
     get:
       tags:
@@ -904,6 +1597,14 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/SaludColectorRespuesta"
+        "403":
+          description: La sesión no tiene el permiso que exige esta operación
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+      security:
+      - bearerAuth: []
   /api/veedor/ingesta/propuestas:
     get:
       tags:
@@ -935,6 +1636,20 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/PropuestaIngestaRespuesta"
+        "401":
+          description: "Sin sesión, token inválido, caducado o revocado"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: La sesión no tiene el permiso que exige esta operación
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+      security:
+      - bearerAuth: []
   /api/veedor/cortes/{id}:
     get:
       tags:
@@ -960,6 +1675,20 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: "Sin sesión, token inválido, caducado o revocado"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: La sesión no tiene el permiso que exige esta operación
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+      security:
+      - bearerAuth: []
   /api/veedor/auditoria:
     get:
       tags:
@@ -990,6 +1719,20 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/EventoAuditoriaRespuesta"
+        "401":
+          description: "Sin sesión, token inválido, caducado o revocado"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: La sesión no tiene el permiso que exige esta operación
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+      security:
+      - bearerAuth: []
   /api/v2/requests.json:
     get:
       tags:
@@ -1009,81 +1752,6 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Open311Response"
-  /api/suscripciones/confirmar:
-    get:
-      tags:
-      - Suscripciones
-      summary: Confirmar la suscripción (doble opt-in)
-      description: |-
-        Enlace del correo de confirmación. El token es de un solo enlace, no de un solo uso:
-        confirmarla dos veces no falla (RF013). Responde JSON o una página HTML de cortesía
-        según el `Accept` de quien pide — el mismo enlace del correo abre bien tanto en un
-        navegador como desde un cliente de API.
-      operationId: confirmar_2
-      parameters:
-      - name: token
-        in: query
-        required: true
-        schema:
-          type: string
-      - name: Accept
-        in: header
-        required: false
-        schema:
-          type: string
-      responses:
-        "200":
-          description: Suscripción confirmada
-          content:
-            application/json:
-              schema:
-                type: object
-            text/html:
-              schema:
-                type: object
-        "400":
-          description: "Token inválido, inexistente o de una suscripción ya cancelada"
-          content:
-            application/problem+json:
-              schema:
-                $ref: "#/components/schemas/ProblemDetail"
-  /api/suscripciones/cancelar:
-    get:
-      tags:
-      - Suscripciones
-      summary: Darse de baja en un clic (RF015)
-      description: |-
-        Sin pedir credenciales — el token que llega en cada correo es suficiente. Responde
-        JSON o una página HTML de cortesía según el `Accept` de quien pide (mismo motivo
-        que en {@code /confirmar}).
-      operationId: cancelar
-      parameters:
-      - name: token
-        in: query
-        required: true
-        schema:
-          type: string
-      - name: Accept
-        in: header
-        required: false
-        schema:
-          type: string
-      responses:
-        "200":
-          description: Suscripción cancelada
-          content:
-            application/json:
-              schema:
-                type: object
-            text/html:
-              schema:
-                type: object
-        "400":
-          description: Token inválido o inexistente
-          content:
-            application/problem+json:
-              schema:
-                $ref: "#/components/schemas/ProblemDetail"
   /api/sectores:
     get:
       tags:
@@ -1101,6 +1769,51 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/RespuestaSectores"
+  /api/sectores/{sectorId}/cortes:
+    get:
+      tags:
+      - Sectores
+      summary: "Histórico de cortes de un sector, del más reciente al más antiguo"
+      description: |-
+        Cortes oficiales que afectaron al sector, abiertos y cerrados. Paginado con las mismas
+        cabeceras que la bitácora (`X-Total-Count`, `X-Total-Pages`, `X-Page`, `X-Page-Size`, `Link`);
+        por defecto 50, máximo 200. Un sector sin cortes devuelve una lista vacía, no un 404.
+      operationId: listar_1
+      parameters:
+      - name: sectorId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: pagina
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+      - name: tamano
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+      responses:
+        "200":
+          description: Cortes de la página pedida
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CorteRespuesta"
+        "404":
+          description: No existe el sector
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CorteRespuesta"
   /api/sectores/{id}:
     get:
       tags:
@@ -1130,18 +1843,37 @@ paths:
     get:
       tags:
       - Sectores
-      summary: Suscribirse a cambios en vivo mediante SSE
+      summary: Avisos en vivo de cambios de estado (SSE)
+      description: |-
+        Conexión abierta (`text/event-stream`) que AVISA de que algo cambió; no envía el
+        estado. Cada evento `sectores` trae `{"actualizadoEn": "..."}` y el cliente pide
+        entonces GET /api/sectores, que está cacheado. Un comentario `:latido` llega cada
+        25 s y `retry:` indica cuánto esperar antes de reconectar. El servidor agrupa los
+        cambios en un aviso por segundo como máximo y cierra la conexión cada ~10-12
+        minutos por diseño. Por encima del tope de conexiones responde 429 con `Retry-After`.
       operationId: streamSectores
       responses:
-        "200":
-          description: OK
+        "429":
+          description: Tope de conexiones en vivo alcanzado; reintentar tras Retry-After
           content:
-            text/event-stream:
+            application/problem+json:
               schema:
-                $ref: "#/components/schemas/SseEmitter"
-            application/json:
-              schema:
-                $ref: "#/components/schemas/SseEmitter"
+                $ref: "#/components/schemas/ProblemDetail"
+  /api/sectores/geometria:
+    get:
+      tags:
+      - Sectores
+      summary: Polígonos de todos los sectores (GeoJSON)
+      description: |-
+        FeatureCollection con un Feature por sector; `id` es el mismo que devuelve
+        GET /api/sectores. Los polígonos solo cambian al volver a sembrar, por eso la
+        respuesta se puede cachear un día.
+      operationId: geometria
+      responses:
+        "200":
+          description: Geometrías
+          content:
+            application/geo+json: {}
   /api/estadisticas:
     get:
       tags:
@@ -1310,7 +2042,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/IndiceCumplimientoRespuesta"
-        "400":
+        "404":
           description: El corte no existe
           content:
             application/problem+json:
@@ -1333,7 +2065,7 @@ paths:
         `X-Total-Count`, `X-Total-Pages`, `X-Page`, `X-Page-Size` y `Link` — el cuerpo
         sigue siendo un arreglo JSON, así que un cliente que las ignore no se rompe.
         Por defecto 50 eventos; el máximo por página es 200.
-      operationId: listar_1
+      operationId: listar_2
       parameters:
       - name: pagina
         in: query
@@ -1356,6 +2088,52 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/EventoBitacoraRespuesta"
+  /api/bitacora/{id}/sustento:
+    get:
+      tags:
+      - Bitácora
+      summary: Los reportes que sustentan un evento de consenso (RF011)
+      description: |-
+        Ids de los reportes ciudadanos que sostuvieron el cambio de estado, para contrastarlo con la
+        evidencia. Van aparte del listado porque en una avería grande pueden ser miles. Paginado con las
+        mismas cabeceras que el listado; por defecto 50 ids por página, máximo 200. Vacío en los
+        eventos que no son de consenso.
+      operationId: sustento
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: pagina
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+      - name: tamano
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+      responses:
+        "200":
+          description: Ids de la página pedida (vacía si se pasa del final)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+        "404":
+          description: No existe el evento
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
 components:
   schemas:
     SolicitudInvitacion:
@@ -1477,6 +2255,18 @@ components:
           description: "El mismo secreto en Base32, para teclearlo si la camara falla"
       description: "Datos para dar de alta el segundo factor. El secreto solo se muestra\
         \ aqui, una vez."
+    SolicitudCambioClave:
+      type: object
+      properties:
+        claveActual:
+          minLength: 1
+          type: string
+          description: La clave de hoy. Sin ella un token robado bastaría para cambiarla.
+        claveNueva:
+          minLength: 1
+          type: string
+          description: "La nueva: de 12 a 128 caracteres y distinta de la actual."
+      description: Cambiar la propia clave con la sesión iniciada
     SolicitudCorte:
       required:
       - finPrometido
@@ -1611,9 +2401,11 @@ components:
       type: object
       properties:
         sectorId:
-          minLength: 1
           type: string
-          description: Identificador del sector reportado
+          description: |-
+            Identificador del sector reportado. Opcional si viaja la coordenada: entonces el
+            servidor infiere el barrio que la contiene (RF007). Si no viaja ninguno, 400.
+          nullable: true
           example: bocagrande
         tipo:
           minLength: 1
@@ -1621,7 +2413,8 @@ components:
           description: "SIN_AGUA, PRESION_BAJA o SERVICIO_RESTABLECIDO"
           example: SIN_AGUA
         huella:
-          minLength: 1
+          maxLength: 128
+          minLength: 32
           type: string
           description: |-
             Huella anónima del dispositivo (ADR-007) — no es una cuenta ni un identificador
@@ -1680,6 +2473,14 @@ components:
           format: double
         coordenada:
           $ref: "#/components/schemas/IotCoordenada"
+    SolicitudReenvioVerificacion:
+      type: object
+      properties:
+        correo:
+          minLength: 1
+          type: string
+      description: "Pedir de nuevo el correo de verificación. Responde siempre 202,\
+        \ exista o no la cuenta."
     SolicitudRestablecer:
       type: object
       properties:
@@ -1927,6 +2728,14 @@ components:
           type: string
           description: Nombre del barrio segun el GeoJSON oficial
           example: BOCAGRANDE
+        poblacion:
+          type: integer
+          description: |-
+            Habitantes según el censo. **Nulo cuando el barrio no tiene dato censal** (27 de los 211): no es 0,
+            y no debe mostrarse como «0 habitantes».
+          format: int32
+          nullable: true
+          example: 12000
         estado:
           type: string
           description: |-
@@ -1945,12 +2754,6 @@ components:
           format: date-time
           nullable: true
       description: Sector de Cartagena con el estado conocido de su servicio de agua
-    SseEmitter:
-      type: object
-      properties:
-        timeout:
-          type: integer
-          format: int64
     EstadisticaSectorRespuesta:
       type: object
       properties:
@@ -2064,4 +2867,19 @@ components:
         imagenUrl:
           type: string
           description: Portada del boletín. Nula si la fuente no la trae.
+        cantidadReportesSustento:
+          type: integer
+          description: "RF011 — cuántos reportes ciudadanos sostuvieron el cambio,\
+            \ en los eventos de consenso; 0 en los demás. Los ids no viajan en el\
+            \ listado (pesaban cientos de KB por página): se piden con GET /api/bitacora/{id}/sustento."
+          format: int32
       description: "Evento de la bitácora pública, de solo anexado (RF026-RF028)"
+  securitySchemes:
+    bearerAuth:
+      type: http
+      description: |-
+        Token que devuelve POST /api/veedor/sesion, en la cabecera
+        `Authorization: Bearer <token>`. Caduca a las 8 horas y no se renueva: al
+        caducar hay que volver a iniciar sesión.
+      scheme: bearer
+      bearerFormat: JWT

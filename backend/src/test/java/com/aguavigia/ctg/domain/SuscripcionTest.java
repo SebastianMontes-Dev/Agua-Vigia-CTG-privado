@@ -82,4 +82,29 @@ class SuscripcionTest {
 
         assertThat(confirmada.cancelar().estado()).isEqualTo(EstadoSuscripcion.CANCELADA);
     }
+
+    /** RNF009 — darse de baja borra el correo: la suscripción cancelada no guarda un dato personal. */
+    @Test
+    void cancelarDebeEliminarElCorreoDelSuscriptor() {
+        Suscripcion confirmada = new Suscripcion(
+                new SuscripcionId("s1"), CORREO, List.of(new SectorId("bocagrande")),
+                EstadoSuscripcion.CONFIRMADA, "token-1", AHORA);
+
+        Suscripcion cancelada = confirmada.cancelar();
+
+        assertThat(cancelada.correo().valor()).doesNotContain(CORREO.valor());
+        assertThat(cancelada.correo().valor()).endsWith(".invalid");
+    }
+
+    @Test
+    void cancelarDosVecesDebeSerIdempotenteYSeguirSinCorreo() {
+        Suscripcion confirmada = new Suscripcion(
+                new SuscripcionId("s1"), CORREO, List.of(new SectorId("bocagrande")),
+                EstadoSuscripcion.CONFIRMADA, "token-1", AHORA);
+
+        Suscripcion dosVeces = confirmada.cancelar().cancelar();
+
+        assertThat(dosVeces.estado()).isEqualTo(EstadoSuscripcion.CANCELADA);
+        assertThat(dosVeces.correo()).isEqualTo(confirmada.cancelar().correo());
+    }
 }

@@ -23,7 +23,13 @@ if [ "$CONFIRMACION" != "restaurar" ]; then
   exit 1
 fi
 
-docker compose -f "$COMPOSE_FILE" exec -T mongo \
-  mongorestore --db "$BASE_DE_DATOS" --archive --gzip --drop < "$ARCHIVO"
+# Las credenciales se leen dentro del contenedor (ver backup-mongo.sh): en produccion Mongo exige usuario.
+docker compose -f "$COMPOSE_FILE" exec -T mongo sh -c '
+  if [ -n "${MONGO_INITDB_ROOT_USERNAME:-}" ]; then
+    exec mongorestore --username "$MONGO_INITDB_ROOT_USERNAME" --password "$MONGO_INITDB_ROOT_PASSWORD" \
+      --authenticationDatabase admin --nsInclude "$1.*" --archive --gzip --drop
+  fi
+  exec mongorestore --nsInclude "$1.*" --archive --gzip --drop
+' sh "$BASE_DE_DATOS" < "$ARCHIVO"
 
 echo "Restauracion de Mongo completa."

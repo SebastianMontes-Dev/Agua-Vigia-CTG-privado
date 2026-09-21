@@ -6,6 +6,7 @@ import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.ReporteCiudadanoRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.aguavigia.ctg.infrastructure.scheduling.EjecucionUnica;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -32,18 +33,26 @@ public class PurgaEvidenciaAntiguaJob {
     private final ReporteCiudadanoRepository reportes;
     private final RelojPort reloj;
     private final MantenimientoProperties propiedades;
+    private final EjecucionUnica ejecucionUnica;
 
     public PurgaEvidenciaAntiguaJob(AlmacenamientoPort almacenamiento,
                                      ReporteCiudadanoRepository reportes,
                                      RelojPort reloj,
-                                     MantenimientoProperties propiedades) {
+                                     MantenimientoProperties propiedades,
+                                     EjecucionUnica ejecucionUnica) {
         this.almacenamiento = almacenamiento;
         this.reportes = reportes;
         this.reloj = reloj;
         this.propiedades = propiedades;
+        this.ejecucionUnica = ejecucionUnica;
     }
 
+    /** Una sola réplica: dos purgas a la vez borrarían las mismas fotos. Ver {@link EjecucionUnica}. */
     @Scheduled(cron = "${aguavigia.mantenimiento.retencion-evidencia.cron:0 30 3 * * *}")
+    public void purgarEnUnaReplica() {
+        ejecucionUnica.ejecutar("purga-evidencia", Duration.ofHours(1), Duration.ofMinutes(10), this::purgar);
+    }
+
     public void purgar() {
         if (!propiedades.retencionEvidencia().habilitada()) {
             return;

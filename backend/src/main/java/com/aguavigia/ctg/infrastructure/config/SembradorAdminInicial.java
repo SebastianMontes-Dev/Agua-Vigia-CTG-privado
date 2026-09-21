@@ -27,9 +27,9 @@ import java.util.UUID;
  * puede entrar, nadie puede aprobar a nadie.
  *
  * Reutiliza VEEDOR_PASSWORD_HASH, la credencial compartida de ADR-016, en lugar de pedir una
- * variable nueva: el equipo ya la tiene en su `.env` y así la migración no exige repartir
+ * variable nueva: ya está en el `.env` y así la migración no exige repartir
  * credenciales. Deja de servir en cuanto existe la primera cuenta — a partir de ahí la clave
- * pertenece a una persona con nombre y correo, no al equipo entero.
+ * pertenece a una persona con nombre y correo, no a una credencial compartida.
  *
  * La cuenta nace ADMIN y, por tanto, obligada a dar de alta su segundo factor antes de poder hacer
  * nada: su primera sesión tendrá alcance ALTA_SEGUNDO_FACTOR (ver AlcanceSesion).
@@ -68,7 +68,7 @@ public class SembradorAdminInicial {
         try {
             // Basta con saber si existe alguna cuenta, sea cual sea su estado: sembrar por segunda
             // vez sobre un sistema que ya tuvo administradores volveria a abrir una credencial que
-            // el equipo pudo haber retirado a proposito.
+            // se pudo haber retirado a proposito.
             if (usuarios.listar(null, 0, 1).totalElementos() > 0) {
                 return;
             }

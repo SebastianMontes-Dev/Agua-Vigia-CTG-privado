@@ -1,6 +1,7 @@
 package com.aguavigia.ctg.domain;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -34,8 +35,12 @@ public final class EventoBitacoraFactory {
                 "Corte restablecido en '%s'".formatted(sectorId.valor()));
     }
 
+    /**
+     * RF011 — `reportesQueSustentan` viaja en el evento: la bitácora es de solo anexado (RF028) y un
+     * conteo suelto no permite contrastar el cambio con la evidencia que lo sostuvo.
+     */
     public static EventoBitacora consensoConfirmado(SectorId sectorId, EstadoServicio nuevoEstado,
-                                                      int cantidadReportes, Instant ahora) {
+                                                      List<ReporteId> reportesQueSustentan, Instant ahora) {
         return new EventoBitacora(
                 new EventoId(UUID.randomUUID().toString()),
                 TipoEvento.CORTE_CONFIRMADO_POR_CIUDADANOS,
@@ -43,7 +48,11 @@ public final class EventoBitacoraFactory {
                 null,
                 ahora,
                 "%d reportes ciudadanos independientes confirmaron %s en '%s'"
-                        .formatted(cantidadReportes, nuevoEstado, sectorId.valor()));
+                        .formatted(reportesQueSustentan.size(), nuevoEstado, sectorId.valor()),
+                nuevoEstado,
+                null,
+                null,
+                reportesQueSustentan);
     }
 
     /**

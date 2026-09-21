@@ -1,20 +1,17 @@
 # CLAUDE.local.md — contexto personal
 
 > Copia este archivo a `CLAUDE.local.md` y ajústalo. **No se versiona** (está en `.gitignore`):
-> es tuyo, no del equipo.
+> es solo de tu máquina.
 >
-> Aquí va lo que es cierto **para ti y tu máquina**. Lo que vale para todo el equipo va en
-> `CLAUDE.md`, y si lo escribes aquí, tus compañeros no lo verán.
+> Aquí va lo que es cierto **para ti y tu máquina**. Lo que vale para el proyecto va en
+> `CLAUDE.md`.
 
 ---
 
-## Quién soy en este proyecto
+## Mi entorno
 
-**Rol:** D<N> — <Backend Dominio / Backend Infraestructura / Frontend / DevOps-QA / Notificaciones>
-**Módulos de los que soy dueño:** M<N>, M<N>
-**Capas que toco:** <`domain/` y `application/` · `frontend/` · …>
-
-Mi ficha completa: `docs/equipo/D<N>-*.md`
+- **Sistema y shell:** <Windows + Git Bash, macOS + zsh…>
+- **Trampas locales:** <puertos ocupados, contenedores de otros proyectos…>
 
 ---
 
@@ -48,7 +45,6 @@ Ejemplos — quédate con los que apliquen y borra el resto:
 - **Comandos que uso a diario:**
   ```
   ./mvnw test
-  npm run dev
   docker compose up -d
   ```
 

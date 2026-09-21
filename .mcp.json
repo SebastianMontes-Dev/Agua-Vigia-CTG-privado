@@ -1,9 +1,9 @@
 {
   "$comment": [
     "Servidores MCP del proyecto AguaVigia CTG.",
-    "Este archivo SI se versiona: define los conectores que todo el equipo comparte.",
+    "Este archivo SI se versiona: define los conectores del proyecto.",
     "Los secretos NUNCA van aqui. Se referencian como variables de entorno con la sintaxis ${VAR}",
-    "y cada quien las define en su propio .env local (que esta en .gitignore).",
+    "y se definen en el .env local (que esta en .gitignore).",
     "",
     "Para activar un servidor: descomentalo, instala su paquete y define sus variables.",
     "Verifica con: claude mcp list"
@@ -24,7 +24,7 @@
       "NO hay servidor MCP de git aqui a proposito. El paquete npm",
       "@modelcontextprotocol/server-git NO existe (verificado 2026-08-07: npm devuelve E404);",
       "el servidor oficial es de Python (uvx mcp-server-git) y agregaria una dependencia",
-      "de Python al entorno de las 5 personas del equipo.",
+      "de Python al entorno del proyecto.",
       "El historial de git ya esta disponible via Bash(git log/diff/show), permitidos en",
       "settings.json. No reintroducir sin verificar que el paquete exista."
     ],

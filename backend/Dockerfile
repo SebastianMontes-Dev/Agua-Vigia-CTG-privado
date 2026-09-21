@@ -18,7 +18,7 @@ FROM eclipse-temurin:21-jre AS runtime
 WORKDIR /app
 
 # curl: eclipse-temurin:21-jre no lo trae por defecto y lo necesita el
-# HEALTHCHECK de docker-compose.yml contra /actuator/health.
+# HEALTHCHECK de docker-compose.yml contra /actuator/health/readiness.
 RUN apt-get update && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/*
 
@@ -32,4 +32,7 @@ RUN chown -R aguavigia:aguavigia /app
 USER aguavigia
 
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# MaxRAMPercentage: el heap por defecto es el 25 % de la memoria del contenedor, y con miles de
+# conexiones SSE abiertas se queda corto mientras el 75 % restante duerme sin usar. ExitOnOutOfMemory:
+# ante un OutOfMemoryError es mejor que el contenedor muera y se reinicie que quedar a medias.
+ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75", "-XX:+ExitOnOutOfMemoryError", "-jar", "app.jar"]

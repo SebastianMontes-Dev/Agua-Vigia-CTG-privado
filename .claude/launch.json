@@ -2,13 +2,13 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "frontend-dev",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
-      "cwd": "frontend",
-      "port": 5173,
+      "name": "backend-dev",
+      "runtimeExecutable": "./mvnw.cmd",
+      "runtimeArgs": ["spring-boot:run"],
+      "cwd": "backend",
+      "port": 8099,
       "env": {
-        "VITE_BACKEND_PROXY_TARGET": "http://localhost:8081"
+        "SERVER_PORT": "8099"
       }
     }
   ]
