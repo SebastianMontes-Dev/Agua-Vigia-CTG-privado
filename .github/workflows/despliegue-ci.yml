@@ -25,7 +25,7 @@ jobs:
       MAIL_USERNAME: usuario-ci
       MAIL_PASSWORD: clave-ci-no-real
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Detecta un YAML inválido o una variable sin definir antes de gastar tiempo construyendo.
       - name: Validar la sintaxis de ambos compose
@@ -77,7 +77,7 @@ jobs:
     name: Vulnerabilidades conocidas en dependencias
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Configurar JDK 21
         uses: actions/setup-java@v6
