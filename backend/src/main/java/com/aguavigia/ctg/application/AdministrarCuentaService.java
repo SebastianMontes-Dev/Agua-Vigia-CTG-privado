@@ -1,5 +1,6 @@
 package com.aguavigia.ctg.application;
 
+import com.aguavigia.ctg.domain.EntidadNoEncontradaException;
 import com.aguavigia.ctg.domain.AccionAuditada;
 import com.aguavigia.ctg.domain.ContextoDeAccion;
 import com.aguavigia.ctg.domain.PermisosEfectivos;
@@ -139,7 +140,7 @@ public class AdministrarCuentaService implements AdministrarCuentaUseCase {
                             + "Pídeselo a otro administrador.");
         }
         return usuarios.buscarPorId(sujetoId)
-                .orElseThrow(() -> new IllegalArgumentException("No existe esa cuenta"));
+                .orElseThrow(() -> new EntidadNoEncontradaException("No existe esa cuenta"));
     }
 
     /** `rolDestino` nulo significa que la cuenta va a dejar de estar activa (suspensión). */

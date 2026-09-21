@@ -43,8 +43,15 @@ public record Suscripcion(
         return new Suscripcion(id, correo, sectorIds, EstadoSuscripcion.CONFIRMADA, tokenConfirmacion, creadaEn);
     }
 
-    /** RF015 — baja en 1 clic, sin pedir credenciales. Idempotente si ya estaba cancelada. */
+    /**
+     * RF015 — baja en 1 clic, sin pedir credenciales. Idempotente si ya estaba cancelada.
+     *
+     * RNF009 — la baja elimina el correo: el registro se conserva (qué sectores, cuándo) pero ya no
+     * lleva un dato personal. Se sustituye por una dirección `.invalid` (TLD reservado por RFC 2606,
+     * nunca entregable) derivada del id, para que el objeto de valor siga siendo válido.
+     */
     public Suscripcion cancelar() {
-        return new Suscripcion(id, correo, sectorIds, EstadoSuscripcion.CANCELADA, tokenConfirmacion, creadaEn);
+        return new Suscripcion(id, CorreoElectronico.eliminadoDe(id), sectorIds, EstadoSuscripcion.CANCELADA,
+                tokenConfirmacion, creadaEn);
     }
 }

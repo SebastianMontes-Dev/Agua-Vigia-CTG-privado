@@ -33,4 +33,6 @@ public class EventoBitacoraDocumento {
     private String urlOriginal;
     /** Portada del boletín, para que la bitácora no dependa de pedírsela a Acuacar. */
     private String imagenUrl;
+    /** RF011 — ids de los reportes que sustentaron un cambio por consenso. Ausente en eventos anteriores. */
+    private java.util.List<String> reportesSustento;
 }

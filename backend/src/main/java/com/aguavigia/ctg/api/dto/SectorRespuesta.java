@@ -6,9 +6,10 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
 
 /**
- * Un sector tal como lo ve el mapa (M1). Replica a proposito la forma que el frontend ya
- * declaro en frontend/src/types/tipos-dominio.ts, para que el cliente generado desde este
- * contrato encaje con los componentes que el frontend escribio contra sus mocks.
+ * Un sector tal como lo ve el mapa (M1). Replica a proposito la forma que el frontend declaraba
+ * en frontend/src/types/tipos-dominio.ts (el frontend se retiro, ADR-048; el codigo sigue en la
+ * etiqueta git pre-retiro-frontend), asi que cualquier cliente generado desde este contrato
+ * encaja con esa forma.
  */
 @Schema(description = "Sector de Cartagena con el estado conocido de su servicio de agua")
 public record SectorRespuesta(
@@ -18,6 +19,10 @@ public record SectorRespuesta(
 
         @Schema(description = "Nombre del barrio segun el GeoJSON oficial", example = "BOCAGRANDE")
         String nombre,
+        @Schema(description = """
+                Habitantes según el censo. **Nulo cuando el barrio no tiene dato censal** (27 de los 211): no es 0,
+                y no debe mostrarse como «0 habitantes».""", example = "12000", nullable = true)
+        Integer poblacion,
 
         @Schema(description = """
                 Estado conocido del servicio. **Nulo cuando no hay dato verificado**: no se asume

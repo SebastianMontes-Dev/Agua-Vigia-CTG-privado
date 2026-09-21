@@ -70,7 +70,7 @@ public class ModeracionReporteController {
     @Operation(summary = "Aprobar un reporte")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Reporte aprobado"),
-            @ApiResponse(responseCode = "400", description = "El reporte no existe",
+            @ApiResponse(responseCode = "404", description = "El reporte no existe",
                     content = @Content(mediaType = "application/problem+json",
                             schema = @Schema(implementation = ProblemDetail.class)))
     })
@@ -83,7 +83,7 @@ public class ModeracionReporteController {
     @Operation(summary = "Descartar un reporte")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Reporte descartado"),
-            @ApiResponse(responseCode = "400", description = "El reporte no existe",
+            @ApiResponse(responseCode = "404", description = "El reporte no existe",
                     content = @Content(mediaType = "application/problem+json",
                             schema = @Schema(implementation = ProblemDetail.class)))
     })

@@ -1,8 +1,8 @@
 # Sprint 2 — Reporte ciudadano y consenso
 
-**Abierto:** 2026-08-09 · **Cerrado:** — *(sin Review formal — `docs/gestion/` se retiró el
-2026-08-12, ver §4. El objetivo sí se cumplió, verificable contra el código y contra
-`matriz-trazabilidad.md`)*
+**Abierto:** 2026-08-09 · **Cerrado:** 2026-09-21 — un vecino reporta sin cuenta y el consenso cambia el
+estado del sector; comprobado corriendo contra Mongo, Redis y Mailhog reales (ver §4). Cierre decidido por el
+dueño (`REC-014`). Sin retrospectiva formal: `docs/gestion/` se retiró el 2026-08-12, ver §4.
 
 > **Este sprint también abre con parte de su alcance ya entregada**, igual que pasó con el Sprint 1.
 > La hoja de ruta original le asignaba tres tareas de calidad — Testcontainers, JaCoCo en CI, y que
@@ -33,7 +33,7 @@ ya acumula reportes por sector en Redis, pero nada los lee para decidir un cambi
 | RF005–RF008 | ✅ Entregado — `POST /api/reportes` expone `RegistrarReporteService`. `@Cacheable` sobre `GET /api/sectores` y las reglas de rate limiting (`/api/veedor/sesion`, `/api/reportes`) 🟡 en revisión — PR #112 | Dominio y puertos ✅ · `RegistrarReporteService` ✅ (Sprint 1) · PR #104 |
 | RF009–RF011 | ✅ Entregado — `EvaluarConsensoService` con patrón Strategy (`UmbralFijoEstrategiaConsenso`, `UmbralProporcionalEstrategiaConsenso`), leyendo `ContadorReportesPort.contarRecientes`. Anexa el evento a `eventos_bitacora` en vez de publicar un evento de dominio aparte (más simple, mismo resultado observable) | Dominio y puertos ✅ · `ContadorReportesPort` ✅ (Sprint 1, PR #57) · PR #106 |
 | RF013 (completo) · RF015 | ✅ Entregado — `GET /api/suscripciones/confirmar` y `GET /api/suscripciones/cancelar`, probados extremo a extremo (confirmar dos veces no falla, token inválido → 400 real) | Dominio y puertos ✅ · `SuscribirseService` ✅ (Sprint 1, PR #78) · PR #107 |
-| RF008 (frontend) | ✅ Implementado en `fix/integrar-formulario-reportes`, pendiente de revisión y fusión — `FormularioReporte` consume `POST /api/reportes`, genera una huella anónima SHA-256 estable, permite coordenada opcional y solo confirma éxito después del `201` real. Sin fallback ni datos simulados | `POST /api/reportes` ✅ (este sprint) |
+| RF008 (frontend) | 🟡 Retirado por alcance el 2026-09-21 (`ADR-048`: el frontend salió del repositorio y lo rehará otra persona; el contrato `POST /api/reportes` sí está entregado y documentado en `docs/api/reportes.md`). Antes: ✅ Implementado en `fix/integrar-formulario-reportes`, pendiente de revisión y fusión — `FormularioReporte` consume `POST /api/reportes`, genera una huella anónima SHA-256 estable, permite coordenada opcional y solo confirma éxito después del `201` real. Sin fallback ni datos simulados | `POST /api/reportes` ✅ (este sprint) |
 
 La columna **Depende de** es la importante: es donde se ve qué tiene que existir antes. Se escribe
 con el artefacto concreto que falta, no con una intención.
@@ -78,10 +78,16 @@ compromisos de la tabla §2 sí se entregaron — verificable contra el código 
 métricas o una retrospectiva de una ceremonia que no ocurrió sería inventar evidencia, exactamente
 lo que este proyecto existe para no hacer.
 
+**Verificación del 2026-09-21** (backend real contra Mongo 7, Redis 7 y Mailhog en Docker; solo lo que se vio correr):
+
 | RF/RNF | Qué se demostró | ¿Aceptado? |
 |---|---|---|
+| RF005–RF008 | `POST /api/reportes` sin `sectorId` infiere el sector de la coordenada (`manga`), una coordenada en el mar da 400 y una huella corta da 400 con `errores`. Con carga: 63 001 reportes a 525 req/s medias, sin errores y p95 de 36 ms. | ✅ |
+| RF009–RF011 | El consenso cambió estados de sector con 84 000 reportes de prueba: 1 411 eventos en la bitácora, ninguno duplicado y todos con los reportes que los sustentan. | ✅ |
+| RF013 · RF015 | El correo de suscripción llegó a Mailhog con los enlaces de confirmar y de baja; al darse de baja, el correo real desapareció de Mongo (`baja-<id>@correo-eliminado.invalid`). | ✅ |
+| RF008 (frontend) | Retirado por alcance (`ADR-048`): el frontend salió de `main`. El contrato `POST /api/reportes` sí está entregado. | Retirado |
 
-**Comprometido:** — · **Entregado:** — · **Arrastrado al siguiente sprint:** —
+**Comprometido:** 4 · **Entregado:** 3 (el cuarto se retiró por alcance) · **Arrastrado al siguiente sprint:** —
 
 ---
 
@@ -89,11 +95,11 @@ lo que este proyecto existe para no hacer.
 
 | Métrica | Valor |
 |---|---|
-| Requisitos entregados / comprometidos | |
-| PRs fusionados | |
+| Requisitos entregados / comprometidos | 3 / 4 (RF008 frontend, retirado por alcance, `ADR-048`) |
+| PRs fusionados | *(no se llevó la cuenta por sprint; el 2026-09-21 se publicaron #16 a #21)* |
 | Bugs abiertos / cerrados | *(al abrir: 11 abiertos / 21 cerrados — `registro-de-bugs.md`)* |
 | Cobertura `domain/` + `application/` | *(al abrir: `domain/` 74,3% · `application/` 100% — ambas ya superan `RNF017`)* |
-| Build en verde al cierre | |
+| Build en verde al cierre | `./mvnw verify` del 2026-09-21: 823 pruebas, 0 fallos, ArchUnit y JaCoCo en verde |
 
 ---
 

@@ -68,10 +68,9 @@ public class RegistrarReporteService implements RegistrarReporteUseCase {
     }
 
     @Override
-    public ReporteCiudadano registrar(SectorId sectorId, TipoReporte tipo, Coordenada coordenada,
+    public ReporteCiudadano registrar(SectorId sectorDeclarado, TipoReporte tipo, Coordenada coordenada,
                                        HuellaDispositivo huella, boolean esSensor) {
-        sectores.buscarPorId(sectorId)
-                .orElseThrow(() -> new IllegalArgumentException("No existe el sector '" + sectorId.valor() + "'"));
+        SectorId sectorId = resolverSector(sectorDeclarado, coordenada);
 
         // Un sensor de M13 y un celular anónimo no son el mismo actor: el sensor se autentica con
         // X-IoT-Key y reporta cada pocos minutos por diseño, así que con el cupo ciudadano se
@@ -109,5 +108,26 @@ public class RegistrarReporteService implements RegistrarReporteUseCase {
         contadorReportes.registrar(sectorId, huella);
         evaluarConsenso.evaluar(sectorId);
         return guardado;
+    }
+
+    /**
+     * RF007. Un sector declarado por el cliente manda y solo se comprueba que exista; la
+     * coordenada, entonces, es un dato del reporte y no se contrasta con el polígono (una consulta
+     * geoespacial más en cada POST que hoy nadie pide). Sin sector declarado, la coordenada lo
+     * decide, y una que no cae en ningún barrio se rechaza: es un punto fuera de Cartagena.
+     */
+    private SectorId resolverSector(SectorId sectorDeclarado, Coordenada coordenada) {
+        if (sectorDeclarado != null) {
+            sectores.buscarPorId(sectorDeclarado).orElseThrow(
+                    () -> new IllegalArgumentException("No existe el sector '" + sectorDeclarado.valor() + "'"));
+            return sectorDeclarado;
+        }
+        if (coordenada == null) {
+            throw new IllegalArgumentException("Indica el sector del reporte o una coordenada para ubicarlo");
+        }
+        return sectores.buscarPorCoordenada(coordenada)
+                .map(sector -> sector.id())
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "La coordenada no cae en ningún sector de Cartagena"));
     }
 }
