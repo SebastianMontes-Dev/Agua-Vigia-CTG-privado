@@ -10,7 +10,7 @@
 Plataforma web ciudadana de monitoreo y trazabilidad del acueducto en **Cartagena de Indias,
 Colombia**. Cruza los avisos oficiales de Acuacar con reportes ciudadanos georreferenciados y publica
 un **Índice de Cumplimiento** que compara la duración prometida de cada corte con la real.
-**Proyecto de aula** — Tecnológico Comfenalco, 5 personas, 6 meses, Scrum. Detalle en `docs/brief.md`.
+**Proyecto personal**, de un solo desarrollador. Detalle en `docs/brief.md`.
 
 **El problema que resuelve no es hidráulico, es informativo.** No reparamos tuberías; cerramos el
 vacío de información que multiplica el daño. Toda decisión de alcance se juzga contra eso.
@@ -19,12 +19,15 @@ vacío de información que multiplica el daño. Toda decisión de alcance se juz
 
 ## Estado actual
 
-**Sprint 0 y 1 cerrados; Sprint 2 abierto.** El andamiaje terminó: M1–M15 están construidos, backend
-y frontend conectados, y `ADR-009` ya no aplica — implementar un `RF` es el trabajo normal ahora.
+**Sprint 0, 1 y 2 cerrados.** M1–M15 están construidos en el backend. **El frontend se retiró de `main`
+(`ADR-048`; su código sigue en la etiqueta git `pre-retiro-frontend`) y se rehace en otras ramas de este mismo
+repositorio** desde la guía `docs/api/`, para juntarlo todo después. **Es un proyecto académico que corre en local**
+(`ADR-057`): sin hosting, dominio ni CDN. Requisito de escalabilidad: **50 000 usuarios simultáneos** (`ADR-049`,
+`docs/ingenieria/escalabilidad.md`), que en local solo puede medirse a escala reducida.
 Falta `RF041` (webhook real de WhatsApp/Telegram), que depende de credenciales de terceros.
-**563 pruebas de backend** (16 exigen Docker y no corren sin él) **y 95 de frontend**.
+**823 pruebas de backend** (las de integración exigen Docker y no corren sin él).
 
-⚠️ **La gestión de sprints va por detrás del código:** `sprint-2.md` sigue abierto y el repositorio
+⚠️ **La gestión de sprints va por detrás del código:** `sprint-2.md` se cerró el 2026-09-21 y el repositorio
 ya entregó M10–M15. Antes de planear, contrasta contra el código, no contra la tabla.
 
 **7 sprints: Sprint 0 (preparación) + Sprints 1–6. Un sprint no cierra por calendario: cierra cuando
@@ -36,10 +39,9 @@ su entregable se demuestra funcionando.** Los 7 entregables, en `docs/gestion/RE
 
 **Backend** Spring Boot 3.5.16 · Java 21 · Maven · MongoDB (documentos + geoespacial `2dsphere`) ·
 Redis (caché, rate limiting, ventana de consenso, pub/sub). **Sin SDK de IA**: se descartó en `ADR-025`
-**Frontend** React 19 · Vite · TypeScript · Tailwind · Leaflet/react-leaflet · Recharts · TanStack Query
-**Infraestructura** Docker multi-etapa + docker compose · GitHub Actions
+**Infraestructura** Docker multi-etapa + docker compose · nginx (proxy y micro-caché, `infra/nginx/`) · GitHub Actions
 
-**Backend y frontend son proyectos separados** dentro del mismo repositorio (`/backend`, `/frontend`).
+**No hay frontend en el repositorio.** El contrato es `backend/openapi.yaml`; cómo consumirlo, en `docs/api/`.
 
 ---
 
@@ -85,13 +87,14 @@ Al proponer código, verifica mentalmente esta regla antes de escribir el import
 
 ## Convenciones de Git
 
-- Ramas: `main` ← `develop` ← `feature/*`, `fix/*`. `develop` se fusiona a `main` **al cerrar cada
-  sprint**, por PR y con etiqueta `sprint-N`. Fuera de eso, `main` no se toca.
-- Commits en formato **Conventional Commits**: `feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `chore:`.
-  Mensaje en español, imperativo: `feat: agregar cálculo del índice de cumplimiento`. Fecha del
-  proyecto = **hora local de Cartagena (UTC-5)**, no UTC.
-- Todo cambio entra por Pull Request con al menos **1 revisor**, enlazando su issue y su historia de
-  usuario. **Es política, no un candado técnico**: no hay branch protection en GitHub (`ADR-010`).
+Repo privado, de un solo desarrollador. Commits, ramas y PRs siguen las reglas de siempre en mis
+proyectos, documentadas en [`CONTRIBUTING.md`](CONTRIBUTING.md) — no las repito acá para no duplicar
+la fuente de verdad. Resumen: Conventional Commits en español, ramas
+`tipo/slug-corto-en-espanol-kebab-case` sobre `main`, squash-merge por defecto, CI en verde antes de
+mergear. No hay rama `develop` ni revisor obligatorio: el PR es recomendado para cambios no
+triviales, no obligatorio.
+
+Las fechas del proyecto se escriben en **hora local de Cartagena (UTC-5)**, no UTC.
 
 ### Autoría — regla no negociable
 
@@ -100,10 +103,9 @@ firma *"Generated with Claude Code"*, ni como autor o revisor de un PR, issue o 
 mecánico: `includeCoAuthoredBy: false` en `.claude/settings.json`; si aun así ves un trailer de
 coautoría en un mensaje que vas a escribir, quítalo.
 
-**Por qué:** la autoría es de las cinco personas, que responden por el proyecto ante el docente. La IA
-es una herramienta y se documenta como tal en el Capítulo III. Firmar los commits enturbiaría el
-registro de contribución individual, que es evidencia evaluable. Esto **no** oculta el uso de IA:
-está declarado en la documentación académica y en el rol de D1.
+**Por qué:** la autoría del proyecto es mía. La IA es una herramienta, y que firme los commits
+enturbiaría el registro de lo que realmente escribí yo. Esto **no** oculta el uso de IA: está
+declarado abiertamente en este mismo archivo y en la bitácora de sesiones.
 
 ---
 
@@ -134,71 +136,42 @@ afirmar que una fuente está bloqueada o disponible, verifícalo con una petici�
 ```
 /                       CLAUDE.md · DESIGN.md · MEMORY.md · README.md · .mcp.json
 .claude/                skills/ · agents/ · settings.json
-openspec/               specs/ — qué hace el sistema hoy, validable con `openspec validate` (`ADR-040`)
-docs/                   brief.md · product-requirements.md (46 RF, 25 RNF) · design-decisions.md (ADR)
-docs/equipo/            Titulares D1–D5, tareas por sprint y secuencia de trabajo
-docs/ingenieria/        Pipeline de datos, auditoría de fuentes, matriz de trazabilidad
-docs/gestion/           Scrum, bitácora, bugs, implementaciones, bloqueos y compuertas
-docs/informe-metodologico/ · docs/anexos/   Los 4 capítulos y los 6 anexos académicos
-frontend/ · backend/    React 19 + Vite · Spring Boot — ambos completos y conectados
+docs/                   brief.md · product-requirements.md (46 RF, 27 RNF) · design-decisions.md (ADR)
+docs/api/               Guía para construir el frontend: flujos, rutas, errores, escala (referencia generada)
+docs/ingenieria/        Pipeline de datos, auditoría de fuentes, matriz de trazabilidad, comportamiento del sistema, escalabilidad
+docs/gestion/           Sprints, bitácora, bugs e implementaciones
+backend/ · infra/       Spring Boot · nginx del proxy de producción
+scripts/                Siembra de datos, pruebas de carga (`carga/`), generador de la referencia de la API
 ```
-
----
-
-## Formato académico obligatorio
-
-Plantilla del Tecnológico Comfenalco: **4 capítulos + 6 anexos + referencias APA 7**. No inventes
-secciones ni las renombres — el docente evalúa contra esa plantilla. Enfoque **proyectivo, mixto**,
-validado con **Alfa de Cronbach ≥ 0.75**. Detalle y estado en `docs/informe-metodologico/README.md`.
-
----
-
-## Secuencia de trabajo — obligatoria
-
-Orden: **D5 → D2 → D3 y D1 → D4 → D5 (QA)**. Entre etapas hay **compuertas**: un artefacto
-verificable que separa a quien lo produce de quien lo consume. Compuertas, titulares y protocolo en
-`docs/equipo/secuencia-de-trabajo.md` §2 y §5; estado vivo en `docs/gestion/registro-de-bloqueos.md`.
-
-**Antes de la primera línea de cualquier tarea:**
-
-1. **Verifica con su comando** la compuerta de la que depende esa tarea. No de memoria, y no
-   confiando en la tabla de estado: la tabla se desactualiza, el repositorio no.
-2. Abierta → avanzas. **Cerrada → te detienes**: registras el bloqueo (skill `registrar-bloqueo`),
-   **lo avisas en el chat** con el formato de la skill y ofreces el trabajo alterno que no la cruza.
-3. **Nunca rodees un bloqueo** inventando el insumo que falta (tipos escritos a mano, DTOs
-   "provisionales", simulaciones que nadie retira) ni escribiendo en la capa de otro rol. Única
-   excepción: desbloqueo temporal autorizado por el titular, con caducidad y registro.
-4. Si la tarea es de **otro rol**, no la ejecutas: lo dices. Si no sabes de qué depende, preguntas.
-   Al **abrir** una compuerta, la verificas, la marcas y la anuncias igual.
 
 ---
 
 ## Qué se registra siempre — regla del proyecto
 
-No es opcional: es parte de la definición de terminado y el insumo del Capítulo IV.
+No es opcional: es parte de la definición de terminado.
 
 | Ocurre | Se registra en | Con la skill |
 |---|---|---|
-| Se fusiona un PR a `develop` | `docs/gestion/registro-de-implementaciones.md` | `registrar-implementacion` |
+| Se fusiona un PR a `main` | `docs/gestion/registro-de-implementaciones.md` | `registrar-implementacion` |
 | Se encuentra un bug (aunque se arregle en el acto) | `docs/gestion/registro-de-bugs.md` | `registrar-bug` |
 | Termina una sesión de trabajo con IA | `docs/gestion/bitacora-sesiones.md` | `cerrar-sesion` |
 | Se elige entre alternativas técnicas | `docs/design-decisions.md` | `registrar-decision` |
-| Cambia el comportamiento del sistema | `openspec/specs/<capacidad>/spec.md`, en el mismo PR | `/opsx:propose` |
+| Cambia el comportamiento del sistema | `docs/ingenieria/comportamiento-del-sistema.md`, en el mismo PR | — |
 | Se verifica una fuente de datos | `docs/ingenieria/auditoria-fuentes-de-datos.md` | `verificar-fuente` |
-| Una tarea no puede avanzar por falta del insumo de otro rol | `docs/gestion/registro-de-bloqueos.md` **+ aviso en el chat** | `registrar-bloqueo` |
 | Avanza un compromiso del sprint (entregado o a medias) | `docs/gestion/sprint-N.md` §2 — `✅`/`🟡` al inicio del Entregable | — |
 
-**Quien avanza, actualiza su registro — humano o IA, sin excepción.** La Sala de control que los cinco
-miran (`https://carlosbecharadev.github.io/Agua-Vigia-CTG/`) **se genera sola de estas filas y nadie
-edita su HTML**: lo que no se registre aquí, allá no existe. Detalle: `docs/gestion/README.md`.
+**Quien avanza, actualiza el registro — yo o la IA, sin excepción.** La Sala de control
+(`dist-dashboard/index.html`, ignorado por git) **se genera sola de estas filas y nadie edita su HTML**: lo que no se registre
+aquí, allá no existe. Se regenera a mano con `node scripts/generar-dashboard.mjs` y se abre en local;
+ya no se publica. Detalle: `docs/gestion/README.md`.
 
 ---
 
-## Cómo colaborar conmigo (el equipo, contigo el agente)
+## Cómo colaborar conmigo
 
 - **Antes de tu primera sesión, lee `docs/gestion/protocolo-de-contexto.md`**: dónde vive cada dato y
-  el presupuesto de líneas de los archivos permanentes. Cada línea que agregues aquí la pagan las
-  cinco personas del equipo, en cada una de sus sesiones.
+  el presupuesto de líneas de los archivos permanentes. Cada línea que agregues aquí se paga en cada
+  sesión de trabajo.
 - **Un dato vive en un solo archivo.** Si lo encuentras duplicado, es un defecto: detalle en uno,
   puntero en el otro.
 - **No repitas contexto**: lo decidido está en `docs/design-decisions.md`. Léelo antes de proponer una

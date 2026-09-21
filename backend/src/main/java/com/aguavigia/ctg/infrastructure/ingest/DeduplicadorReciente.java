@@ -9,9 +9,8 @@ import java.time.Duration;
 /**
  * Mitad "rapida" de la deduplicacion (pipeline-ingesta-datos.md §3, etapa 2): "Set de hashes
  * recientes en Redis para el chequeo rapido". Deliberadamente NO permanente ni autoritativa — la
- * otra mitad del diseño ("¿el hash ya existe en Mongo? -> descartar") depende de donde el equipo
- * decida persistir los documentos u eventos procesados, decision todavia sin tomar (BL-004 en
- * registro-de-bloqueos.md). Este componente sirve igual mientras tanto: evita reprocesar el mismo
+ * otra mitad del diseño ("¿el hash ya existe en Mongo? -> descartar") depende de donde se
+ * decida persistir los documentos u eventos procesados, decision todavia sin tomar. Este componente sirve igual mientras tanto: evita reprocesar el mismo
  * boletin republicado en la misma semana, que es el caso mas comun y mas barato de evitar.
  */
 @Component

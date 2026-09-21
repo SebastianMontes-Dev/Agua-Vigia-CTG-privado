@@ -123,7 +123,7 @@ class SuscripcionControllerTest {
                 "token-1", AHORA);
         given(confirmarSuscripcion.confirmar("token-1")).willReturn(confirmada);
 
-        mockMvc.perform(get("/api/suscripciones/confirmar").param("token", "token-1"))
+        mockMvc.perform(post("/api/suscripciones/confirmar").param("token", "token-1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.estado").value("CONFIRMADA"));
     }
@@ -133,7 +133,7 @@ class SuscripcionControllerTest {
         given(confirmarSuscripcion.confirmar("no-existe"))
                 .willThrow(new IllegalArgumentException("Token de confirmación inválido o inexistente"));
 
-        mockMvc.perform(get("/api/suscripciones/confirmar").param("token", "no-existe"))
+        mockMvc.perform(post("/api/suscripciones/confirmar").param("token", "no-existe"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.detail").value("Token de confirmación inválido o inexistente"));
     }
@@ -146,7 +146,7 @@ class SuscripcionControllerTest {
                 "token-1", AHORA);
         given(cancelarSuscripcion.cancelar("token-1")).willReturn(cancelada);
 
-        mockMvc.perform(get("/api/suscripciones/cancelar").param("token", "token-1"))
+        mockMvc.perform(post("/api/suscripciones/cancelar").param("token", "token-1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.estado").value("CANCELADA"));
     }
@@ -156,7 +156,7 @@ class SuscripcionControllerTest {
         given(cancelarSuscripcion.cancelar("no-existe"))
                 .willThrow(new IllegalArgumentException("Token de suscripción inválido o inexistente"));
 
-        mockMvc.perform(get("/api/suscripciones/cancelar").param("token", "no-existe"))
+        mockMvc.perform(post("/api/suscripciones/cancelar").param("token", "no-existe"))
                 .andExpect(status().isBadRequest());
     }
 
@@ -168,7 +168,7 @@ class SuscripcionControllerTest {
                 "token-1", AHORA);
         given(confirmarSuscripcion.confirmar("token-1")).willReturn(confirmada);
 
-        mockMvc.perform(get("/api/suscripciones/confirmar").param("token", "token-1")
+        mockMvc.perform(post("/api/suscripciones/confirmar").param("token", "token-1")
                         .accept("text/html,application/xhtml+xml,*/*;q=0.8"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_HTML))
@@ -180,7 +180,7 @@ class SuscripcionControllerTest {
         given(confirmarSuscripcion.confirmar("no-existe"))
                 .willThrow(new IllegalArgumentException("Token de confirmación inválido o inexistente"));
 
-        mockMvc.perform(get("/api/suscripciones/confirmar").param("token", "no-existe")
+        mockMvc.perform(post("/api/suscripciones/confirmar").param("token", "no-existe")
                         .accept("text/html,application/xhtml+xml,*/*;q=0.8"))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_HTML))
@@ -195,10 +195,45 @@ class SuscripcionControllerTest {
                 "token-1", AHORA);
         given(cancelarSuscripcion.cancelar("token-1")).willReturn(cancelada);
 
-        mockMvc.perform(get("/api/suscripciones/cancelar").param("token", "token-1")
+        mockMvc.perform(post("/api/suscripciones/cancelar").param("token", "token-1")
                         .accept("text/html,application/xhtml+xml,*/*;q=0.8"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_HTML))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("Baja confirmada")));
+    }
+    /**
+     * Un antivirus o un vista previa de enlaces abre los GET de los correos sin que nadie los pida: si el GET
+     * confirmara o cancelara, la suscripción se movería sola. Por eso el GET solo muestra un botón (`ADR-054`).
+     */
+    @Test
+    void elEnlaceDeConfirmarDelCorreoSoloDebeMostrarLaPaginaSinConfirmar() throws Exception {
+        mockMvc.perform(get("/api/suscripciones/confirmar").param("token", "token-1")
+                        .accept("text/html,application/xhtml+xml,*/*;q=0.8"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_HTML))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("action=\"/api/suscripciones/confirmar\"")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("token-1")));
+
+        org.mockito.Mockito.verifyNoInteractions(confirmarSuscripcion);
+    }
+
+    @Test
+    void elEnlaceDeBajaDelCorreoSoloDebeMostrarLaPaginaSinCancelar() throws Exception {
+        mockMvc.perform(get("/api/suscripciones/cancelar").param("token", "token-1")
+                        .accept("text/html,application/xhtml+xml,*/*;q=0.8"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_HTML))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("action=\"/api/suscripciones/cancelar\"")));
+
+        org.mockito.Mockito.verifyNoInteractions(cancelarSuscripcion);
+    }
+
+    @Test
+    void elGetNoDebeOfrecerJsonPorqueYaNoActuaYLosClientesDebenUsarPost() throws Exception {
+        mockMvc.perform(get("/api/suscripciones/confirmar").param("token", "token-1")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotAcceptable());
+
+        org.mockito.Mockito.verifyNoInteractions(confirmarSuscripcion);
     }
 }

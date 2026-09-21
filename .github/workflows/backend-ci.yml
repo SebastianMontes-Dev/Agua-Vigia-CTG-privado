@@ -26,7 +26,7 @@ jobs:
           java-version: "21"
           cache: maven
 
-      # ArchUnit corre como parte de `./mvnw verify` (ver docs/D2, Regla de Oro de la arquitectura):
+      # ArchUnit corre como parte de `./mvnw verify` (ver CLAUDE.md, Regla de Oro de la arquitectura):
       # si domain/ importa Spring o MongoDB, este paso falla la build.
       - name: Build y pruebas (incluye ArchUnit)
         run: ./mvnw --batch-mode verify

@@ -22,5 +22,9 @@ public record EventoBitacoraRespuesta(
         @Schema(description = "Boletín o nota que respalda el evento. Nulo si la fuente no lo trae.")
         String urlOriginal,
         @Schema(description = "Portada del boletín. Nula si la fuente no la trae.")
-        String imagenUrl) {
+        String imagenUrl,
+        @Schema(description = "RF011 — cuántos reportes ciudadanos sostuvieron el cambio, en los eventos de consenso; "
+                + "0 en los demás. Los ids no viajan en el listado (pesaban cientos de KB por página): se piden "
+                + "con GET /api/bitacora/{id}/sustento.")
+        int cantidadReportesSustento) {
 }

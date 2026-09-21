@@ -31,7 +31,7 @@ import java.util.List;
 /**
  * RF019: el panel del veedor exige token; el resto de la plataforma es publico. Por eso la regla
  * por defecto es permitAll y solo /api/veedor/** (menos el login) exige autenticacion — así
- * cualquier endpoint publico que D2/D1/D3 agreguen despues queda publico sin tocar este archivo.
+ * cualquier endpoint publico que se agreguen despues queda publico sin tocar este archivo.
  *
  * Esta cadena decide *si hace falta una sesion*; qué puede hacer esa sesión lo deciden los
  * `@PreAuthorize` de cada controlador contra un Permiso concreto (@EnableMethodSecurity). Están

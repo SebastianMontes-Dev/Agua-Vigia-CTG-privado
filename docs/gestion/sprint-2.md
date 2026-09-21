@@ -1,18 +1,14 @@
 # Sprint 2 — Reporte ciudadano y consenso
 
-**Abierto:** 2026-08-09 · **Cerrado:** — *(sin Review formal — `docs/gestion/` se retiró el
-2026-08-12, ver §4. El objetivo sí se cumplió, verificable contra el código y contra
-`matriz-trazabilidad.md`)* · **Scrum Master del sprint:** Sebastián Montes Olivera (D3) — le toca
-por rotación normal (`roles-y-tareas.md` § Scrum Master, retomada desde este sprint). Convocado por
-Yordy Pardo Pajaro (D5), Scrum Master saliente, por instrucción explícita del usuario para no dejar
-el planning sin abrir — Sebastián toma la posta desde aquí.
+**Abierto:** 2026-08-09 · **Cerrado:** 2026-09-21 — un vecino reporta sin cuenta y el consenso cambia el
+estado del sector; comprobado corriendo contra Mongo, Redis y Mailhog reales (ver §4). Cierre decidido por el
+dueño (`REC-014`). Sin retrospectiva formal: `docs/gestion/` se retiró el 2026-08-12, ver §4.
 
 > **Este sprint también abre con parte de su alcance ya entregada**, igual que pasó con el Sprint 1.
-> La hoja de ruta (`../equipo/secuencia-de-trabajo.md` §4) le asigna a D5 tres tareas para este
-> sprint — Testcontainers, JaCoCo en CI, y que ArchUnit tumbe la build — **las tres ya están
-> construidas** desde el Sprint 0/1 (`backend-ci.yml` ya corre `./mvnw verify` con Testcontainers
-> real y publica el reporte JaCoCo; ArchUnit es parte de esa misma verificación). D5 no tiene
-> compromiso nuevo este sprint: queda disponible para QA del resto.
+> La hoja de ruta original le asignaba tres tareas de calidad — Testcontainers, JaCoCo en CI, y que
+> ArchUnit tumbe la build — **las tres ya están construidas** desde el Sprint 0/1 (`backend-ci.yml`
+> ya corre `./mvnw verify` con Testcontainers real y publica el reporte JaCoCo; ArchUnit es parte de
+> esa misma verificación). No hay compromiso nuevo por ese frente.
 
 ---
 
@@ -24,48 +20,45 @@ independientes coincidan en una ventana de tiempo.**
 
 El Sprint 1 dejó `RegistrarReporteService` construido y probado en `application/` (RF005–RF008,
 incluido RF006 real — límite de reportes por dispositivo), pero **sin `POST /api/reportes`**: la API
-queda cerrada a propósito hasta este sprint (`registro-de-bloqueos.md` §1, alcance de C2). Ese es el
-primer entregable. El segundo es `EvaluarConsensoService` (RF009–RF011): hoy `ContadorReportesPort`
+queda cerrada a propósito hasta este sprint (el contrato OpenAPI solo cubría `/api/sectores`). Ese es
+el primer entregable. El segundo es `EvaluarConsensoService` (RF009–RF011): hoy `ContadorReportesPort`
 ya acumula reportes por sector en Redis, pero nada los lee para decidir un cambio de estado.
 
 ---
 
 ## 2. Compromisos
 
-| Resp. | RF/RNF | Entregable | Depende de |
-|---|---|---|---|
-| D3 (Sebastián) | RF005–RF008 | ✅ Entregado — `POST /api/reportes` expone `RegistrarReporteService`. `@Cacheable` sobre `GET /api/sectores` y las reglas de rate limiting (`/api/veedor/sesion`, `/api/reportes`) 🟡 en revisión — [PR #112](https://github.com/CarlosBecharaDev/Agua-Vigia-CTG/pull/112), pendiente de un revisor. Escrito y fusionado por D5 (Yordy) directo, decisión explícita — no pasó por revisión de Sebastián | C1 ✅ · `RegistrarReporteService` ✅ (Sprint 1) · [PR #104](https://github.com/CarlosBecharaDev/Agua-Vigia-CTG/pull/104) |
-| D2 (Carlos) | RF009–RF011 | ✅ Entregado — `EvaluarConsensoService` con patrón Strategy (`UmbralFijoEstrategiaConsenso`, `UmbralProporcionalEstrategiaConsenso`), leyendo `ContadorReportesPort.contarRecientes`. Anexa el evento a `eventos_bitacora` en vez de publicar un evento de dominio aparte (más simple, mismo resultado observable). Escrito y fusionado por D5 (Yordy) directo, decisión explícita — no pasó por revisión de Carlos | C1 ✅ · `ContadorReportesPort` ✅ (Sprint 1, PR #57) · [PR #106](https://github.com/CarlosBecharaDev/Agua-Vigia-CTG/pull/106) |
-| D1 (Rafael) | RF013 (completo) · RF015 | ✅ Entregado — `GET /api/suscripciones/confirmar` y `GET /api/suscripciones/cancelar`, probados extremo a extremo (confirmar dos veces no falla, token inválido → 400 real). Escrito y fusionado por D5 (Yordy) directo, decisión explícita — no pasó por revisión de Rafael | C1 ✅ · `SuscribirseService` ✅ (Sprint 1, PR #78) · [PR #107](https://github.com/CarlosBecharaDev/Agua-Vigia-CTG/pull/107) |
-| D4 (José) | RF008 | ✅ Implementado en `fix/integrar-formulario-reportes`, pendiente de revisión y fusión — `FormularioReporte` consume `POST /api/reportes`, genera una huella anónima SHA-256 estable, permite coordenada opcional y solo confirma éxito después del `201` real. Sin fallback ni datos simulados | `POST /api/reportes` ✅ (D3, este sprint) |
-| D5 (Yordy) | — | Nada nuevo comprometido: Testcontainers, JaCoCo en CI y ArchUnit-rompe-build, los tres ya entregados en Sprint 0/1. Disponible para QA de lo que entregue el resto | — *(no depende de nadie)* |
+| RF/RNF | Entregable | Depende de |
+|---|---|---|
+| RF005–RF008 | ✅ Entregado — `POST /api/reportes` expone `RegistrarReporteService`. `@Cacheable` sobre `GET /api/sectores` y las reglas de rate limiting (`/api/veedor/sesion`, `/api/reportes`) 🟡 en revisión — PR #112 | Dominio y puertos ✅ · `RegistrarReporteService` ✅ (Sprint 1) · PR #104 |
+| RF009–RF011 | ✅ Entregado — `EvaluarConsensoService` con patrón Strategy (`UmbralFijoEstrategiaConsenso`, `UmbralProporcionalEstrategiaConsenso`), leyendo `ContadorReportesPort.contarRecientes`. Anexa el evento a `eventos_bitacora` en vez de publicar un evento de dominio aparte (más simple, mismo resultado observable) | Dominio y puertos ✅ · `ContadorReportesPort` ✅ (Sprint 1, PR #57) · PR #106 |
+| RF013 (completo) · RF015 | ✅ Entregado — `GET /api/suscripciones/confirmar` y `GET /api/suscripciones/cancelar`, probados extremo a extremo (confirmar dos veces no falla, token inválido → 400 real) | Dominio y puertos ✅ · `SuscribirseService` ✅ (Sprint 1, PR #78) · PR #107 |
+| RF008 (frontend) | 🟡 Retirado por alcance el 2026-09-21 (`ADR-048`: el frontend salió del repositorio y lo rehará otra persona; el contrato `POST /api/reportes` sí está entregado y documentado en `docs/api/reportes.md`). Antes: ✅ Implementado en `fix/integrar-formulario-reportes`, pendiente de revisión y fusión — `FormularioReporte` consume `POST /api/reportes`, genera una huella anónima SHA-256 estable, permite coordenada opcional y solo confirma éxito después del `201` real. Sin fallback ni datos simulados | `POST /api/reportes` ✅ (este sprint) |
 
-La columna **Depende de** es la importante: es donde se ven los bloqueos antes de que ocurran.
-Cadena de dependencias y compuertas: [`../equipo/secuencia-de-trabajo.md`](../equipo/secuencia-de-trabajo.md) §1 y §2.
+La columna **Depende de** es la importante: es donde se ve qué tiene que existir antes. Se escribe
+con el artefacto concreto que falta, no con una intención.
 
 ### Ya entregado antes de abrir el sprint (adelantado desde Sprint 0/1)
 
-| Frente | Quién | Dónde | Estado |
-|---|---|---|---|
-| Testcontainers real en pruebas de integración | D5 | `backend-ci.yml`, 8 clases de test | ✅ |
-| Cobertura JaCoCo publicada en CI | D5 | `backend-ci.yml` | ✅ |
-| Build falla si ArchUnit falla | D5 | `backend-ci.yml` (`./mvnw verify`) | ✅ |
-| `RegistrarReporteService` + RF006 real | D5 (en capa de D2, Sprint 1) | PR #84, #89 | ✅ — falta solo el endpoint |
-| Ventana deslizante de consenso en Redis (`ContadorReportesPort`) | D3 | PR #57 (Sprint 1) | ✅ — falta quien la lea |
-| Rate limiting Redis (`RateLimitingInterceptor`) | D3 | PR #60 (Sprint 1) | 🟡 reglas activas desde [PR #112](https://github.com/CarlosBecharaDev/Agua-Vigia-CTG/pull/112), pendiente de fusionar |
-| Caché sobre Redis (`@EnableCaching`) | D3 | PR #61 (Sprint 1) | 🟡 en uso desde [PR #112](https://github.com/CarlosBecharaDev/Agua-Vigia-CTG/pull/112), pendiente de fusionar |
-| Colectores de ingesta M9 (`AcuacarApiCollector`, `RssCollector`) | D3 | PR #98 (Sprint 1, adelantado de Sprint 4) | ✅ — capa de IA sigue bloqueada por `BL-005` |
+| Frente | Dónde | Estado |
+|---|---|---|
+| Testcontainers real en pruebas de integración | `backend-ci.yml`, 8 clases de test | ✅ |
+| Cobertura JaCoCo publicada en CI | `backend-ci.yml` | ✅ |
+| Build falla si ArchUnit falla | `backend-ci.yml` (`./mvnw verify`) | ✅ |
+| `RegistrarReporteService` + RF006 real | PR #84, #89 | ✅ — falta solo el endpoint |
+| Ventana deslizante de consenso en Redis (`ContadorReportesPort`) | PR #57 (Sprint 1) | ✅ — falta quien la lea |
+| Rate limiting Redis (`RateLimitingInterceptor`) | PR #60 (Sprint 1) | 🟡 reglas activas desde PR #112, pendiente de fusionar |
+| Caché sobre Redis (`@EnableCaching`) | PR #61 (Sprint 1) | 🟡 en uso desde PR #112, pendiente de fusionar |
+| Colectores de ingesta M9 (`AcuacarApiCollector`, `RssCollector`) | PR #98 (Sprint 1, adelantado de Sprint 4) | ✅ — la capa de IA se descartó (`ADR-025`) |
 
-**Lo que no adelantó nadie, y es el corazón de este sprint:** la API de reportes y la lógica de
+**Lo que no estaba adelantado, y es el corazón de este sprint:** la API de reportes y la lógica de
 consenso. Son los dos entregables que de verdad cierran M2 y abren M3.
 
 ---
 
-## 3. Bloqueos del sprint — resumen
+## 3. Obstáculos del sprint — resumen
 
-| ID | Compuerta | Quién quedó detenido | Días | Cómo se resolvió |
-|---|---|---|---|---|
-| BL-005 | — | D3 (capa de IA de M9, Sprint 4) | — | Sigue abierto — falta `ANTHROPIC_API_KEY`. No bloquea este sprint: M9-IA es Sprint 4 |
+Ninguno registrado en este sprint.
 
 ---
 
@@ -85,10 +78,16 @@ compromisos de la tabla §2 sí se entregaron — verificable contra el código 
 métricas o una retrospectiva de una ceremonia que no ocurrió sería inventar evidencia, exactamente
 lo que este proyecto existe para no hacer.
 
+**Verificación del 2026-09-21** (backend real contra Mongo 7, Redis 7 y Mailhog en Docker; solo lo que se vio correr):
+
 | RF/RNF | Qué se demostró | ¿Aceptado? |
 |---|---|---|
+| RF005–RF008 | `POST /api/reportes` sin `sectorId` infiere el sector de la coordenada (`manga`), una coordenada en el mar da 400 y una huella corta da 400 con `errores`. Con carga: 63 001 reportes a 525 req/s medias, sin errores y p95 de 36 ms. | ✅ |
+| RF009–RF011 | El consenso cambió estados de sector con 84 000 reportes de prueba: 1 411 eventos en la bitácora, ninguno duplicado y todos con los reportes que los sustentan. | ✅ |
+| RF013 · RF015 | El correo de suscripción llegó a Mailhog con los enlaces de confirmar y de baja; al darse de baja, el correo real desapareció de Mongo (`baja-<id>@correo-eliminado.invalid`). | ✅ |
+| RF008 (frontend) | Retirado por alcance (`ADR-048`): el frontend salió de `main`. El contrato `POST /api/reportes` sí está entregado. | Retirado |
 
-**Comprometido:** — · **Entregado:** — · **Arrastrado al siguiente sprint:** —
+**Comprometido:** 4 · **Entregado:** 3 (el cuarto se retiró por alcance) · **Arrastrado al siguiente sprint:** —
 
 ---
 
@@ -96,11 +95,11 @@ lo que este proyecto existe para no hacer.
 
 | Métrica | Valor |
 |---|---|
-| Requisitos entregados / comprometidos | |
-| PRs fusionados | |
+| Requisitos entregados / comprometidos | 3 / 4 (RF008 frontend, retirado por alcance, `ADR-048`) |
+| PRs fusionados | *(no se llevó la cuenta por sprint; el 2026-09-21 se publicaron #16 a #21)* |
 | Bugs abiertos / cerrados | *(al abrir: 11 abiertos / 21 cerrados — `registro-de-bugs.md`)* |
 | Cobertura `domain/` + `application/` | *(al abrir: `domain/` 74,3% · `application/` 100% — ambas ya superan `RNF017`)* |
-| Build en verde al cierre | |
+| Build en verde al cierre | `./mvnw verify` del 2026-09-21: 823 pruebas, 0 fallos, ArchUnit y JaCoCo en verde |
 
 ---
 
@@ -114,5 +113,5 @@ lo que este proyecto existe para no hacer.
 
 **Acciones para el próximo sprint**
 
-| Acción | Resp. | Para cuándo |
-|---|---|---|
+| Acción | Para cuándo |
+|---|---|

@@ -25,8 +25,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
 /**
- * Prueba de integracion contra un Redis real (DoD de D3). Misma imagen que docker-compose.yml
- * (redis:7-alpine) para que lo que pasa aqui pase tambien en el entorno del equipo.
+ * Prueba de integracion contra un Redis real. Misma imagen que docker-compose.yml
+ * (redis:7-alpine) para que lo que pasa aqui pase tambien en el entorno de desarrollo.
  */
 @Testcontainers
 @DataRedisTest

@@ -28,7 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Prueba de integracion del adaptador contra un MongoDB real (DoD de D3, punto 1), igual que
+ * Prueba de integracion del adaptador contra un MongoDB real, igual que
  * SectorMongoAdapterTest.
  */
 @Testcontainers

@@ -2,7 +2,10 @@ package com.aguavigia.ctg.api;
 
 import com.aguavigia.ctg.api.dto.EventoBitacoraRespuesta;
 import com.aguavigia.ctg.api.mapper.EventoBitacoraApiMapper;
+import com.aguavigia.ctg.domain.EntidadNoEncontradaException;
 import com.aguavigia.ctg.domain.EventoBitacora;
+import com.aguavigia.ctg.domain.EventoId;
+import com.aguavigia.ctg.domain.ReporteId;
 import com.aguavigia.ctg.domain.Pagina;
 import com.aguavigia.ctg.domain.port.out.EventoBitacoraRepository;
 import io.swagger.v3.oas.annotations.Operation;
@@ -11,6 +14,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -57,5 +61,34 @@ public class BitacoraController {
 
         return CabecerasDePaginacion.respuesta(
                 resultado, mapper.aRespuestas(resultado.contenido()), "/api/bitacora");
+    }
+
+    @Operation(summary = "Los reportes que sustentan un evento de consenso (RF011)",
+            description = """
+                    Ids de los reportes ciudadanos que sostuvieron el cambio de estado, para contrastarlo con la
+                    evidencia. Van aparte del listado porque en una avería grande pueden ser miles. Paginado con las
+                    mismas cabeceras que el listado; por defecto 50 ids por página, máximo 200. Vacío en los
+                    eventos que no son de consenso.""")
+    @ApiResponse(responseCode = "200", description = "Ids de la página pedida (vacía si se pasa del final)")
+    @ApiResponse(responseCode = "404", description = "No existe el evento")
+    @GetMapping("/{id}/sustento")
+    public ResponseEntity<List<String>> sustento(
+            @PathVariable String id,
+            @RequestParam(required = false) Integer pagina,
+            @RequestParam(required = false) Integer tamano) {
+
+        EventoBitacora evento = eventos.buscarPorId(new EventoId(id))
+                .orElseThrow(() -> new EntidadNoEncontradaException("No existe el evento '" + id + "'"));
+
+        int paginaPedida = Pagina.paginaValida(pagina);
+        int tamanoPedido = Pagina.tamanoValido(tamano);
+        List<ReporteId> todos = evento.reportesSustento();
+        int desde = (int) Math.min((long) paginaPedida * tamanoPedido, todos.size());
+        int hasta = Math.min(desde + tamanoPedido, todos.size());
+        List<String> ids = todos.subList(desde, hasta).stream().map(ReporteId::valor).toList();
+
+        return CabecerasDePaginacion.respuesta(
+                new Pagina<>(ids, paginaPedida, tamanoPedido, todos.size()), ids,
+                "/api/bitacora/" + id + "/sustento");
     }
 }

@@ -6,13 +6,13 @@ description: Registra un defecto en docs/gestion/registro-de-bugs.md con severid
 # Registrar un bug
 
 Se registra **al encontrarlo**, no al arreglarlo. Un bug que se corrige en cinco minutos y nunca se
-escribe es un bug que el equipo no aprendió y que el informe final no puede contar.
+escribe es un bug que no se aprendió y que ninguna métrica puede contar.
 
 ## Cuándo usar esto
 
 - El sistema hace algo distinto de lo que dice su requisito
 - Una prueba que pasaba empieza a fallar
-- Un compañero reporta un comportamiento raro, aunque todavía no se reproduzca
+- Se observa un comportamiento raro, aunque todavía no se reproduzca
 - Se cierra un bug ya registrado (actualizar su fila y comprimir su detalle)
 
 **No** para: tareas pendientes (van a issues), mejoras deseables (van al backlog), ni deuda técnica
@@ -39,7 +39,7 @@ Agrega la fila a la tabla de estado **y** el detalle en la sección de bugs abie
 ```markdown
 ### BUG-NNN — <título: describe el síntoma, no la causa que supones>
 
-- **Fecha:** AAAA-MM-DD · **Severidad:** S<N> · **Módulo:** M<N> · **Responsable:** D<N>
+- **Fecha:** AAAA-MM-DD · **Severidad:** S<N> · **Módulo:** M<N>
 - **Estado:** Abierto
 
 **Síntoma:** qué se observó. Hechos, no interpretación.
@@ -71,6 +71,6 @@ Agrega la fila a la tabla de estado **y** el detalle en la sección de bugs abie
 ## Efecto en la Sala de control
 
 La tabla de estado de `registro-de-bugs.md` es la fuente de la sección de bugs de la Sala de control
-(`docs/gestion/README.md`), que se regenera sola en cada push a `develop`. Mantén las columnas `Sev`,
-`Estado` y `Responsable` con los valores esperados (`S1`–`S4`, `Abierto`/`Cerrado`): el tablero
-ordena por severidad y le atribuye el bug a su responsable a partir de ahí.
+(`docs/gestion/README.md`), que se regenera con `node scripts/generar-dashboard.mjs`. Mantén las columnas `Sev` y
+`Estado` con los valores esperados (`S1`–`S4`, `Abierto`/`Cerrado`): el tablero ordena por
+severidad a partir de ahí.

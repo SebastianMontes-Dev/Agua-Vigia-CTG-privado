@@ -1,6 +1,6 @@
 # Diagrama de Clases del Dominio y Principios SOLID
 
-Este documento detalla el Diagrama de Clases del Dominio de Agua-Vigía y la justificación de cómo se aplican los principios SOLID en el contexto de nuestra Arquitectura Limpia (Clean Architecture). Este entregable es parte del Sprint 6 (D2 - Dominio).
+Este documento detalla el Diagrama de Clases del Dominio de Agua-Vigía y la justificación de cómo se aplican los principios SOLID en el contexto de nuestra Arquitectura Limpia (Clean Architecture).
 
 ## 1. Diagrama de Clases (Dominio)
 

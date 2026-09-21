@@ -84,7 +84,7 @@ class ReporteControllerTest {
         mockMvc.perform(post("/api/reportes")
                         .contentType("application/json")
                         .content("""
-                                {"sectorId":"bocagrande","tipo":"SIN_AGUA","huella":"hash-1",
+                                {"sectorId":"bocagrande","tipo":"SIN_AGUA","huella":"huella-de-prueba-de-32-caracteres-x",
                                  "coordenada":{"latitud":10.39,"longitud":-75.48}}"""))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value("r1"))
@@ -102,7 +102,7 @@ class ReporteControllerTest {
         mockMvc.perform(post("/api/reportes")
                         .contentType("application/json")
                         .content("""
-                                {"sectorId":"bocagrande","tipo":"PRESION_BAJA","huella":"hash-2"}"""))
+                                {"sectorId":"bocagrande","tipo":"PRESION_BAJA","huella":"huella-de-prueba-de-32-caracteres-x"}"""))
                 .andExpect(status().isCreated());
     }
 
@@ -121,7 +121,7 @@ class ReporteControllerTest {
         mockMvc.perform(post("/api/reportes")
                         .contentType("application/json")
                         .content("""
-                                {"sectorId":"bocagrande","tipo":"SIN_AGUA","huella":"IoT-cualquiera"}"""))
+                                {"sectorId":"bocagrande","tipo":"SIN_AGUA","huella":"IoT-huella-de-prueba-de-sensor-larga"}"""))
                 .andExpect(status().isCreated());
 
         verify(registrarReporte).registrar(any(), any(), any(), any(), eq(false));
@@ -135,7 +135,7 @@ class ReporteControllerTest {
         mockMvc.perform(post("/api/reportes")
                         .contentType("application/json")
                         .content("""
-                                {"sectorId":"no-existe","tipo":"SIN_AGUA","huella":"hash-1"}"""))
+                                {"sectorId":"no-existe","tipo":"SIN_AGUA","huella":"huella-de-prueba-de-32-caracteres-x"}"""))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.detail").value("No existe el sector 'no-existe'"));
     }
@@ -145,7 +145,7 @@ class ReporteControllerTest {
         mockMvc.perform(post("/api/reportes")
                         .contentType("application/json")
                         .content("""
-                                {"sectorId":"bocagrande","tipo":"NO_EXISTE","huella":"hash-1"}"""))
+                                {"sectorId":"bocagrande","tipo":"NO_EXISTE","huella":"huella-de-prueba-de-32-caracteres-x"}"""))
                 .andExpect(status().isBadRequest());
     }
 
@@ -157,9 +157,47 @@ class ReporteControllerTest {
         mockMvc.perform(post("/api/reportes")
                         .contentType("application/json")
                         .content("""
-                                {"sectorId":"bocagrande","tipo":"SIN_AGUA","huella":"hash-1"}"""))
+                                {"sectorId":"bocagrande","tipo":"SIN_AGUA","huella":"huella-de-prueba-de-32-caracteres-x"}"""))
                 .andExpect(status().isTooManyRequests())
                 .andExpect(jsonPath("$.title").value("Límite de reportes excedido"));
+    }
+
+    @Test
+    void debeResponder400SiLaHuellaEsDemasiadoCorta() throws Exception {
+        mockMvc.perform(post("/api/reportes")
+                        .contentType("application/json")
+                        .content("""
+                                {"sectorId":"bocagrande","tipo":"SIN_AGUA","huella":"x"}"""))
+                .andExpect(status().isBadRequest());
+    }
+
+    /** RF007: sin sectorId el cliente puede mandar solo la coordenada y el servidor infiere el barrio. */
+    @Test
+    void debeAceptarUnReporteSinSectorSiViajaLaCoordenada() throws Exception {
+        ReporteCiudadano creado = new ReporteCiudadano(
+                new ReporteId("r4"), new SectorId("bocagrande"), TipoReporte.SIN_AGUA,
+                new Coordenada(10.39, -75.48), new HuellaDispositivo("hash-4"), AHORA);
+        given(registrarReporte.registrar(isNull(), any(), any(), any(), anyBoolean())).willReturn(creado);
+
+        mockMvc.perform(post("/api/reportes")
+                        .contentType("application/json")
+                        .content("""
+                                {"tipo":"SIN_AGUA","huella":"huella-de-prueba-de-32-caracteres-x",
+                                 "coordenada":{"latitud":10.39,"longitud":-75.48}}"""))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.sectorId").value("bocagrande"));
+    }
+
+    @Test
+    void elDetalleDelTipoInvalidoNoDebeFiltrarElNombreDeLaClaseDelDominio() throws Exception {
+        mockMvc.perform(post("/api/reportes")
+                        .contentType("application/json")
+                        .content("""
+                                {"sectorId":"bocagrande","tipo":"NO_EXISTE","huella":"huella-de-prueba-de-32-caracteres-x"}"""))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.not(
+                        org.hamcrest.Matchers.containsString("com.aguavigia"))))
+                .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("SIN_AGUA")));
     }
 
     @Test

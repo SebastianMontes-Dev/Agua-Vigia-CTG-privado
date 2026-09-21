@@ -112,6 +112,15 @@ class MailNotificacionAdapterTest {
                 .contains(URL_PUBLICA + "/api/suscripciones/cancelar?token=" + TOKEN);
     }
 
+    /** Sin frontend (ADR-048) "ver mi sector" apunta a la propia API, no a una pantalla que ya no existe. */
+    @Test
+    void elEnlaceParaVerElSectorDebeApuntarALaApi() throws Exception {
+        adaptador.avisarCambioDeEstado(suscripcion(), sector(EstadoServicio.SIN_SERVICIO));
+
+        assertThat(cuerpoEnviado()).contains(URL_PUBLICA + "/api/sectores/manga")
+                .doesNotContain(URL_PUBLICA + "/sectores/manga");
+    }
+
     @Test
     void debeMostrarLaFechaDelCambioEnHoraDeCartagenaYNoEnUtc() throws Exception {
         adaptador.avisarCambioDeEstado(suscripcion(), sector(EstadoServicio.SIN_SERVICIO));
@@ -146,6 +155,14 @@ class MailNotificacionAdapterTest {
                 .contains(URL_PUBLICA + "/api/suscripciones/confirmar?token=" + TOKEN)
                 .contains("48")
                 .doesNotContain("{{");
+    }
+
+    /** RF015 — la baja en un clic va en TODO correo, también en el de confirmación (Ley 1581/2012). */
+    @Test
+    void elCorreoDeConfirmacionDebeIncluirElEnlaceDeBaja() throws Exception {
+        adaptador.enviarConfirmacionSuscripcion(suscripcion(), List.of(sector(EstadoServicio.SIN_SERVICIO)));
+
+        assertThat(cuerpoEnviado()).contains(URL_PUBLICA + "/api/suscripciones/cancelar?token=" + TOKEN);
     }
 
     @Test

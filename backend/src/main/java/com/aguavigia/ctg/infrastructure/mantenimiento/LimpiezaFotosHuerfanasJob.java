@@ -4,6 +4,7 @@ import com.aguavigia.ctg.domain.port.out.AlmacenamientoPort;
 import com.aguavigia.ctg.domain.port.out.ReporteCiudadanoRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.aguavigia.ctg.infrastructure.scheduling.EjecucionUnica;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -30,16 +31,24 @@ public class LimpiezaFotosHuerfanasJob {
     private final AlmacenamientoPort almacenamiento;
     private final ReporteCiudadanoRepository reportes;
     private final MantenimientoProperties propiedades;
+    private final EjecucionUnica ejecucionUnica;
 
     public LimpiezaFotosHuerfanasJob(AlmacenamientoPort almacenamiento,
                                       ReporteCiudadanoRepository reportes,
-                                      MantenimientoProperties propiedades) {
+                                      MantenimientoProperties propiedades,
+                                      EjecucionUnica ejecucionUnica) {
         this.almacenamiento = almacenamiento;
         this.reportes = reportes;
         this.propiedades = propiedades;
+        this.ejecucionUnica = ejecucionUnica;
     }
 
+    /** Una sola réplica: dos limpiezas a la vez se pisarían al borrar. Ver {@link EjecucionUnica}. */
     @Scheduled(cron = "${aguavigia.mantenimiento.fotos-huerfanas.cron:0 0 3 * * *}")
+    public void limpiarEnUnaReplica() {
+        ejecucionUnica.ejecutar("fotos-huerfanas", Duration.ofHours(1), Duration.ofMinutes(10), this::limpiar);
+    }
+
     public void limpiar() {
         if (!propiedades.fotosHuerfanas().habilitada()) {
             return;

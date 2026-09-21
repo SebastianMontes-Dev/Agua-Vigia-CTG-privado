@@ -1,6 +1,6 @@
 /**
  * Script para sembrar cortes de agua y reportes ciudadanos históricos (Mayo - Julio 2026).
- * Tarea del Sprint 6 - D5 (DevOps/QA).
+ * Tarea del Sprint 6 (DevOps/QA).
  * 
  * Uso:
  *   cd scripts && npm install

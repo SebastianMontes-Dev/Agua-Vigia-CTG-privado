@@ -28,7 +28,7 @@ class LimpiezaFotosHuerfanasJobTest {
 
     private void conPropiedades(MantenimientoProperties.FotosHuerfanas fotosHuerfanas) {
         job = new LimpiezaFotosHuerfanasJob(almacenamiento, reportes,
-                new MantenimientoProperties(fotosHuerfanas, null));
+                new MantenimientoProperties(fotosHuerfanas, null), (nombre, maximo, minimo, tarea) -> tarea.run());
     }
 
     @Test

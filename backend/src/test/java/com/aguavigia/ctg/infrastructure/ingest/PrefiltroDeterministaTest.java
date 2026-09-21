@@ -51,8 +51,8 @@ class PrefiltroDeterministaTest {
     @Test
     void limitacionConocidaDelListadoAprobado_noCubreVocabularioFueraDeLas9Palabras() {
         // Titular real del propio diseño (pipeline-ingesta-datos.md §1) que SÍ es una interrupción,
-        // pero "emergencia"/"rotura"/"conducción" no están en las 9 palabras aprobadas por el
-        // equipo. No se corrige aquí ampliando la lista por cuenta propia — ver el comentario de
+        // pero "emergencia"/"rotura"/"conducción" no están en las 9 palabras aprobadas.
+        // No se corrige aquí ampliando la lista por cuenta propia — ver el comentario de
         // clase de PrefiltroDeterminista. Este caso lo cubre el conjunto dorado cuando se valide.
         String titular = "EMERGENCIA EN TIERRA BAJA: ROTURA DE CONDUCCIÓN TERRESTRE";
 

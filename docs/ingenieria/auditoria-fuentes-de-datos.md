@@ -41,7 +41,7 @@ Varios medios colombianos añadieron en 2024–2025 bloqueos explícitos a `GPTB
 | **El Tiempo** | `Disallow: /` explícito para `ClaudeBot`, `Claude-Web`, `anthropic-ai`, `GPTBot`, `CCBot`, `ChatGPT Agent`, `ChatGPT-User`, `OAI-SearchBot`, más el bloque `# Meta IA` (`FacebookBot`, `Meta-ExternalAgent`) | Su feed regional (`/rss/colombia_barranquilla.xml`) técnicamente responde, y cubre el Caribe pero no es Cartagena-específico | ❌ **Excluido**, pese a que la petición de prueba funcionó — el bloqueo cubre el sitio completo para agentes de IA y no depende de qué ruta se pida. |
 | **El Heraldo** (Barranquilla, cubre el Caribe) | Bloquea agentes de IA (mismo patrón) | — | ❌ Excluido por la misma regla |
 | **Blu Radio** | Bloquea agentes de IA | — | ❌ Excluido |
-| **RCN Radio** | `User-agent: *` → `Allow: /`, sin bloqueo a IA, `Sitemap: /sitemap.xml` | Reverificado 2026-08-08: `/rss.xml` redirige a la portada HTML de `newsroom.rcnradio.com` (no es un feed); `/feed`, `/arc/outboundfeeds/rss/` y `/arc/outboundfeeds/google-news-feed/` devuelven `200` pero `Content-Type: text/html`, no XML. Cuatro rutas probadas, ninguna es un feed real. | ⚠️ Permitido pero sin RSS localizado — confirmado con evidencia, no solo con la ruta estándar. Requiere que alguien del equipo lo ubique manualmente en el sitio o se descarte esta fuente |
+| **RCN Radio** | `User-agent: *` → `Allow: /`, sin bloqueo a IA, `Sitemap: /sitemap.xml` | Reverificado 2026-08-08: `/rss.xml` redirige a la portada HTML de `newsroom.rcnradio.com` (no es un feed); `/feed`, `/arc/outboundfeeds/rss/` y `/arc/outboundfeeds/google-news-feed/` devuelven `200` pero `Content-Type: text/html`, no XML. Cuatro rutas probadas, ninguna es un feed real. | ⚠️ Permitido pero sin RSS localizado — confirmado con evidencia, no solo con la ruta estándar. Requiere ubicarlo manualmente en el sitio o se descarte esta fuente |
 | **Caracol Radio** | Solo bloquea `PetalBot` (Huawei) y rutas específicas — **incluye `Disallow: /feed.aspx`**, que era la ruta legacy que se había asumido | Reverificado 2026-08-08: el feed real vive en `/arc/outboundfeeds/google-news-feed/?outputType=xml` (CMS Arc/PEP), **no bloqueado por `robots.txt`**. `GET` → **HTTP 200**, RSS 2.0 válido, `sy:updateFrequency` cada hora, ítems con `title`/`link`/`guid`/`dc:creator` | ✅ **Verificado y funcional** — la ruta `/rss/` que se probó antes nunca existió; era necesario descubrir el patrón real de Arc Publishing |
 | **W Radio** | Mismo CMS y patrón de `robots.txt` que Caracol (Prisa Media): bloquea `PetalBot` y rutas específicas, **incluye `Disallow: /feed.aspx`** | Reverificado 2026-08-08: mismo patrón, `https://www.wradio.com.co/arc/outboundfeeds/google-news-feed/?outputType=xml` → **HTTP 200**, RSS 2.0 válido, no bloqueado por `robots.txt` | ✅ **Verificado y funcional** |
 | **Zona Cero** (Cartagena) | Sin bloqueo a IA | `GET /rss.xml` → **HTTP 200**, `application/rss+xml`, 3 ítems | ✅ **Verificado y funcional** |
@@ -52,7 +52,7 @@ Que El Universal y El Tiempo —dos de las coberturas más relevantes para Carta
 de raíz **no es un obstáculo que se sortea, es una señal que se respeta**. El propio patrón de bloqueo
 (dueños de contenido protegiendo su información de terceros no autorizados) es, irónicamente, el mismo
 principio que sostiene por qué este proyecto nunca tocaría los sistemas internos de Acuacar sin permiso.
-Se documenta como ADR y se defiende en la sustentación como coherencia de principios, no como limitación.
+Se documenta como ADR y se mantiene como coherencia de principios, no como limitación.
 
 ---
 
@@ -99,7 +99,7 @@ escribir al contacto que la propia API sugiere para consultas de mayor volumen.
 | Fuente | Verificación | Resultado |
 |---|---|---|
 | **datos.gov.co** (portal Socrata) | `GET /api/catalog/v1?q=acueducto` | **HTTP 200**, 322 conjuntos de datos relacionados con "acueducto" a nivel nacional, ninguno específico de Cartagena/Acuacar en la búsqueda inicial — requiere refinar la consulta (`q=Bolivar+acueducto`, `q=Acuacar`) en el sprint de implementación |
-| **SUI — Superintendencia de Servicios Públicos** | `GET /` y subdominio SUI | **Bloqueado por Incapsula/Imperva** (protección anti-bot con desafío JavaScript) | ❌ No accesible programáticamente. Es la fuente regulatoria oficial de indicadores de continuidad del servicio — se usa como **referencia humana** para el marco teórico y legal (Capítulo II), no como fuente automatizada |
+| **SUI — Superintendencia de Servicios Públicos** | `GET /` y subdominio SUI | **Bloqueado por Incapsula/Imperva** (protección anti-bot con desafío JavaScript) | ❌ No accesible programáticamente. Es la fuente regulatoria oficial de indicadores de continuidad del servicio — se usa como **referencia humana** para el marco legal, no como fuente automatizada |
 | **Alcaldía de Cartagena** (cartagena.gov.co) | `GET /` | **HTTP 403 Forbidden** incluso con `User-Agent` de navegador | ❌ No accesible programáticamente en esta prueba. Sus comunicados sobre la crisis del agua (como el fallo judicial) sí aparecen indexados en Google News — se cubre por esa vía indirecta |
 | **CRA** (Comisión de Regulación de Agua Potable) | `GET /` | **HTTP 200** | ✅ Accesible; útil para el marco legal (normativa de continuidad del servicio), no para datos operativos en tiempo real |
 | **IDEAM** | `GET /` | **HTTP 200** | ✅ Accesible; relevante solo si se documenta el fenómeno de El Niño como causa estructural en el marco contextual, no como fuente de eventos de corte |
@@ -113,8 +113,8 @@ gratuita y legítima de scraping directo** para Facebook, Instagram o X/Twitter:
 
 - **Facebook / Instagram**: CrowdTangle cerrado (agosto 2024); Graph API exige revisión de app y
   verificación de empresa para leer contenido público de terceros. Vía legítima: **Meta Content
-  Library** (acceso académico vía ICPSR) — se solicita en Sprint 0, sin garantía de aprobación en
-  el plazo del proyecto.
+  Library** (acceso académico vía ICPSR, exige afiliación institucional) — sin garantía de
+  aprobación.
 - **X/Twitter**: el nivel gratuito de la API no permite búsqueda de publicaciones.
 
 **Reemplazo estructural, no parche:** la capa L4 (reportes ciudadanos dentro de la propia plataforma)
@@ -191,5 +191,5 @@ si la capa pasa a ser mixta y cómo se le declara eso al usuario.
    entorno; queda pendiente probar desde otra red o escribir al contacto que la propia API sugiere.
 4. Refinar la búsqueda en el catálogo de `datos.gov.co` con términos específicos de Bolívar/Cartagena.
 5. Redactar el ADR "Por qué respetamos los bloqueos de `robots.txt` a agentes de IA incluso cuando
-   técnicamente podríamos evadirlos" — es defendible académicamente y coherente con la tesis del
+   técnicamente podríamos evadirlos" — es defendible y coherente con la tesis del
    proyecto sobre transparencia y buen gobierno de la información.

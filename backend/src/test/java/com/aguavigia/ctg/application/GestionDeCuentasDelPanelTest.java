@@ -36,6 +36,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -251,7 +252,7 @@ class GestionDeCuentasDelPanelTest {
         given(usuarios.buscarPorId(ID)).willReturn(Optional.of(cuenta(EstadoCuenta.ACTIVA, RolVeedor.ADMIN)));
 
         var alta = segundoFactor(totp, mock(EmisorDeSesionPort.class), mock(RevocacionSesionPort.class))
-                .iniciar(ID, CONTEXTO);
+                .iniciar(ID, null, CONTEXTO);
 
         assertThat(alta.uri()).startsWith("otpauth://");
         assertThat(alta.secreto()).isEqualTo("GEZDGNBVGY3TQOJQ");
@@ -259,6 +260,54 @@ class GestionDeCuentasDelPanelTest {
         ArgumentCaptor<Usuario> guardado = ArgumentCaptor.forClass(Usuario.class);
         verify(usuarios).guardar(guardado.capture());
         assertThat(guardado.getValue().tieneSegundoFactorConfirmado()).isFalse();
+    }
+
+    private Usuario cuentaConSegundoFactorConfirmado() {
+        return cuenta(EstadoCuenta.ACTIVA, RolVeedor.ADMIN)
+                .iniciarSegundoFactor(new SecretoTotp("GEZDGNBVGY3TQOJQ"), AHORA)
+                .confirmarSegundoFactor(AHORA);
+    }
+
+    /**
+     * Con el segundo factor ya confirmado, rehacer el alta sustituye el secreto: sin pedir el código
+     * actual, un token robado podía dejar la cuenta sin la defensa que precisamente lo neutraliza.
+     */
+    @Test
+    void rehacerElAltaConSegundoFactorConfirmadoDebeExigirElCodigoActual() {
+        given(usuarios.buscarPorId(ID)).willReturn(Optional.of(cuentaConSegundoFactorConfirmado()));
+
+        assertThatIllegalStateException().isThrownBy(() -> segundoFactor(mock(SegundoFactorPort.class),
+                mock(EmisorDeSesionPort.class), mock(RevocacionSesionPort.class)).iniciar(ID, null, CONTEXTO))
+                .withMessageContaining("código actual");
+
+        verify(usuarios, never()).guardar(any());
+    }
+
+    @Test
+    void rehacerElAltaConUnCodigoActualIncorrectoDebeFallarSinTocarElSecreto() {
+        SegundoFactorPort totp = mock(SegundoFactorPort.class);
+        given(totp.codigoEsValido(any(), eq("000000"))).willReturn(false);
+        given(usuarios.buscarPorId(ID)).willReturn(Optional.of(cuentaConSegundoFactorConfirmado()));
+
+        assertThatThrownBy(() -> segundoFactor(totp, mock(EmisorDeSesionPort.class),
+                mock(RevocacionSesionPort.class)).iniciar(ID, "000000", CONTEXTO))
+                .isInstanceOf(CredencialInvalidaException.class);
+
+        verify(usuarios, never()).guardar(any());
+    }
+
+    @Test
+    void rehacerElAltaConElCodigoActualCorrectoDebeGenerarUnSecretoNuevo() {
+        SegundoFactorPort totp = mock(SegundoFactorPort.class);
+        given(totp.codigoEsValido(any(), eq("123456"))).willReturn(true);
+        given(totp.uriDeAlta(any(), any())).willReturn("otpauth://totp/...");
+        given(usuarios.buscarPorId(ID)).willReturn(Optional.of(cuentaConSegundoFactorConfirmado()));
+
+        var alta = segundoFactor(totp, mock(EmisorDeSesionPort.class), mock(RevocacionSesionPort.class))
+                .iniciar(ID, "123456", CONTEXTO);
+
+        assertThat(alta.secreto()).isEqualTo("GEZDGNBVGY3TQOJQ");
+        verify(usuarios).guardar(any(Usuario.class));
     }
 
     /** Canjea la sesión restringida por una completa: si no, habría que reescribir la clave. */
@@ -343,7 +392,7 @@ class GestionDeCuentasDelPanelTest {
         given(usuarios.buscarPorId(ID)).willReturn(Optional.empty());
 
         assertThatIllegalStateException().isThrownBy(() -> segundoFactor(mock(SegundoFactorPort.class),
-                mock(EmisorDeSesionPort.class), mock(RevocacionSesionPort.class)).iniciar(ID, CONTEXTO));
+                mock(EmisorDeSesionPort.class), mock(RevocacionSesionPort.class)).iniciar(ID, null, CONTEXTO));
     }
 
     // --- Cierre de sesión y consultas ---
