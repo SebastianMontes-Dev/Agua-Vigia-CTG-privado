@@ -17,7 +17,7 @@ falta un requisito por escribir — ambas cosas hay que resolverlas antes de agr
 | **RF/RNF** | El id de `docs/product-requirements.md`. Obligatorio **para todo lo que implemente funcionalidad**. El andamiaje del Sprint 0 y el trabajo de proceso llevan `—` (ver `ADR-009`). |
 | **Tipo** | `func` funcionalidad · `infra` infraestructura · `datos` conjunto de datos · `andamio` estructura sin funcionalidad · `proceso` reglas y documentación de trabajo. Solo `func` cuenta para la cobertura de requisitos. |
 | **Qué** | Una frase en pasado. `Endpoint POST /api/reportes con rate limiting`, no `trabajo en reportes`. |
-| **PR** | Número del Pull Request. Es la traza a cuándo y por qué entró el cambio. |
+| **PR** | Número del Pull Request. Es la traza a cuándo y por qué entró el cambio. Los `#N` anteriores al 2026-09-17 son del repositorio público anterior; desde el 2026-09-17 son del repositorio privado, donde la numeración reinició en #1 (por eso `#16`–`#25` existen en ambos, con cambios distintos). |
 | **Prueba** | Cómo se verifica. `RegistrarReporteServiceTest`, `E2E reporte.spec.ts`. Sin prueba, no está terminado. Para `proceso`, el comando o el documento que lo evidencia. |
 
 ---
@@ -168,26 +168,57 @@ simulados se retiraron al cerrar el Sprint 1 (`sprint-1.md`).
 
 ---
 
+## Repositorio privado — serie del 2026-09-21 (cierre del Sprint 2)
+
+PR fusionados a `main` en el repositorio privado. Sus pruebas son las que constan en la descripción de
+cada PR y en `estado-del-backend.md` (`./mvnw verify`: 823 pruebas, 0 fallos).
+
+| RF/RNF | Tipo | Qué | PR | Prueba |
+|---|---|---|---|---|
+| — | infra | Frontend retirado de `main` (queda en la etiqueta `pre-retiro-frontend`, `ADR-048`) y proxy de producción llevado a `infra/nginx/` | #16 | `docker compose config -q` en ambos compose y `nginx -t` (repetidos en CI) · micro-caché MISS → HIT con el backend real |
+| RF007, RF011, RF015, RNF009 | func | Brechas de requisitos y de contrato cerradas antes de rehacer el frontend (`ADR-050`, `ADR-051`, `ADR-052`) | #17 | `./mvnw verify`: 823 pruebas, 0 fallos · verificado en vivo contra Mongo, Redis y Mailhog |
+| RNF027 | infra | Backend preparado para 50 000 usuarios simultáneos (micro-caché nginx, avisos SSE, jobs de una sola réplica, rate limit atómico; `ADR-049`, `ADR-053`) y medido a escala local | #18 | `scripts/carga/`: ~3 700 req/s con micro-caché, 10 000 conexiones SSE, escritura a 3× la carga sin errores (p95 36 ms) |
+| — | proceso | Guía `docs/api/` para el frontend nuevo y registros de la ronda de pulido | #19 | La referencia de rutas se regenera sin diferencias contra `openapi.yaml` · `generar-dashboard.mjs` corre sin error |
+| — | infra | Índices de Mongo para la cola de moderación y la bitácora por sector | #20 | `IndicesMongoTest` · la página 1 de la cola pasa de 84 000 documentos examinados a 20 |
+| RF002 | func | Rutas y ajustes de contrato para el frontend nuevo (`ADR-054`, `ADR-055`, `ADR-056`), incluido el histórico público de cortes, y respaldo de Mongo con autenticación (`BUG-088`) | #21 | `./mvnw verify`: 823 pruebas, 0 fallos · respaldo y restauración (`--drop`) contra un Mongo desechable con autenticación |
+| — | proceso | Alcance académico local (`ADR-057`), retención de reportes a 12 meses con índice TTL (`ADR-058`) y cierre del Sprint 2 | #22 | `IndicesMongoTest`: TTL a 365 días y desactivado con 0 · ⚠️ el CORS de `dev` cambió sin prueba automática |
+| — | datos | Sembrador de 20 000 cuentas de demostración para la presentación (`scripts/sembrar-usuarios-demo.mjs`) | #23 | Contra el backend real: `GET /api/veedor/usuarios` devuelve `X-Total-Count: 20001` en 101 páginas · una cuenta VEEDOR y una OBSERVADOR sembradas inician sesión con sus permisos; una suspendida recibe 403 |
+| — | infra | Actions del CI actualizadas: `checkout` 4→7, `setup-java` 4→6, `upload-artifact` 4→7 y `gitleaks-action` 2→3 (Dependabot) | #4, #24, #1, #8 | CI en verde sobre el `main` nuevo (imágenes y compose, Trivy, gitleaks por `push`) · ⚠️ `gitleaks` por `pull_request` fallaba por `BUG-089`, ajeno al cambio |
+| — | infra | Dependencias del backend: jjwt 0.12.6→0.13.0 y ArchUnit 1.3.0→1.5.0 (Dependabot) | #5, #9 | `Backend CI` completo (`./mvnw verify`) en verde sobre el `main` nuevo |
+| — | proceso | Dependabot ignora los saltos mayores de Spring Boot y springdoc (`ADR-059`); matriz, cobertura, plan de pruebas y recomendaciones alineados con `ADR-048` y `ADR-057`; corregido el extractor de cobertura de la Sala de control (`BUG-090`) | #25 | `generarDatos()` devuelve 46/40 RF, 27/17 RNF y 15 módulos con su avance · `node scripts/generar-dashboard.mjs`: 54 ADR, 1 bug abierto, 5 recomendaciones pendientes |
+
+---
+
 ## Estado de cobertura de requisitos
 
-Se actualiza al cerrar cada sprint — y esta vez también a media sesión, porque el salto fue grande y
-dejar la tabla en el estado del Sprint 1 habría sido activamente engañoso. Es el insumo directo de
-`docs/ingenieria/matriz-trazabilidad.md`. Verificado contra el código (endpoints, controladores y
-casos de uso existentes), no contra lo que los PRs afirman en su descripción.
+Se actualiza al cerrar cada sprint. Es el insumo directo de `docs/ingenieria/matriz-trazabilidad.md` y
+debe coincidir con ella: **46 RF = 40 implementados + 5 descartados (RF032–RF036) + 1 pendiente (RF041)**.
+Los descartados cuentan en «Requisitos» pero no en «Implementados». Recalculada el 2026-09-21 desde la
+matriz, no desde lo que los PR afirman en su descripción.
 
 | Módulo | Requisitos | Implementados | % |
 |---|---|---|---|
 | M1 Mapa en vivo | 4 | 4 (RF001–RF004) | 100% |
 | M2 Reporte ciudadano | 4 | 4 (RF005–RF008) | 100% — `POST /api/reportes` (PR #104), RF006 real con límite por dispositivo |
 | M3 Consenso automático | 3 | 3 (RF009–RF011) | 100% — `EvaluarConsensoService`, patrón Strategy, sustento trazado en la bitácora |
-| M4 Alertas por correo | 4 | 3 (RF012, RF013, RF015) | 75% — falta RF014: `NotificacionPort` solo se dispara en la suscripción (`SuscribirseService`), nadie avisa al suscriptor cuando su sector cambia de estado — `EvaluarConsensoService` y `GestionarCorteOficialService` no lo llaman |
+| M4 Alertas por correo | 4 | 4 (RF012–RF015) | 100% — RF014 (aviso al suscriptor al cambiar el estado del sector) marcado ✅ en la matriz de trazabilidad |
 | M5 Panel del veedor | 4 | 4 (RF016–RF019) | 100% — CRUD de cortes (PR #116), moderación de reportes (PR #121, `ADR-023`), login JWT |
 | M6 Índice de Cumplimiento ⭐ | 3 | 3 (RF020–RF022) | 100% — `CalcularCumplimientoService`, `ADR-022` (PR #118) |
-| M7 Estadísticas | 3 | 0 | 0% — el frontend deriva métricas de Acuacar en el cliente; sin agregación propia en el backend |
+| M7 Estadísticas | 3 | 3 (RF023–RF025) | 100% — `EstadisticasMongoAdapterTest`, serie del índice y exportación CSV en el backend |
 | M8 Bitácora pública | 3 | 3 (RF026–RF028) | 100% — `GET /api/bitacora` público (PR #120), eventos de todo el ciclo de vida del corte anexados (PR #119), inmutable por diseño del puerto (sin editar ni eliminar) |
-| M9 Ingesta con IA ⭐ | 8 | 4 (RF029–RF031, RF036) | 50% — colectores y deduplicación reales (PR #59, #98); RF032–RF035 (clasificación IA) descartados (`ADR-025`) |
-| **Total funcionales** | **36** | **28** | **78%** |
-| **No funcionales** | **20** | **6 verificados** (RNF008, RNF010, RNF011, RNF017, RNF018, RNF020) | **30% verificado** — el resto no se auditó esta sesión; `RNF003` (caché de sectores) está implementado desde el PR #112 pero falta verificarlo formalmente aquí |
+| M9 Ingesta con IA ⭐ | 8 | 3 (RF029–RF031) | 38% — colectores y deduplicación reales (PR #59, #98); RF032–RF036 descartados (`ADR-025`) |
+| M10 Evidencia multimedia | 1 | 1 (RF037) | 100% |
+| M11 Validación comunitaria | 1 | 1 (RF038) | 100% |
+| M12 API abierta Open311 | 1 | 1 (RF039) | 100% |
+| M13 Integración IoT pasiva | 1 | 1 (RF040) | 100% |
+| M14 Alertas push | 1 | 0 | 0% — RF041 pendiente: `NotificadorPushWebhookAdapter` solo registra un log; exige credenciales de WhatsApp Business o Telegram |
+| M15 Cuentas y permisos | 5 | 5 (RF042–RF046) | 100% |
+| **Total funcionales** | **46** | **40** | **87%** |
+| **No funcionales** | **27** | **17** | **63%** |
+
+Los 17 RNF verificados: RNF002–RNF011, RNF017, RNF018, RNF020 y RNF022–RNF025. Los otros diez: RNF001 y
+RNF012–RNF016 **retirados por alcance** (interfaz, `ADR-048`) · RNF019 descartado (`ADR-025`) · RNF021 y RNF027
+parciales · RNF026 sin verificar, no aplica al entorno local (`ADR-057`).
 
 ---
 
