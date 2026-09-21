@@ -17,7 +17,7 @@ falta un requisito por escribir — ambas cosas hay que resolverlas antes de agr
 | **RF/RNF** | El id de `docs/product-requirements.md`. Obligatorio **para todo lo que implemente funcionalidad**. El andamiaje del Sprint 0 y el trabajo de proceso llevan `—` (ver `ADR-009`). |
 | **Tipo** | `func` funcionalidad · `infra` infraestructura · `datos` conjunto de datos · `andamio` estructura sin funcionalidad · `proceso` reglas y documentación de trabajo. Solo `func` cuenta para la cobertura de requisitos. |
 | **Qué** | Una frase en pasado. `Endpoint POST /api/reportes con rate limiting`, no `trabajo en reportes`. |
-| **PR** | Número del Pull Request. Es la traza a cuándo y por qué entró el cambio. Los `#N` anteriores al 2026-09-17 son del repositorio público anterior; desde el 2026-09-17 son del repositorio privado, donde la numeración reinició en #1 (por eso `#16`–`#25` existen en ambos, con cambios distintos). |
+| **PR** | Número del Pull Request. Es la traza a cuándo y por qué entró el cambio. Los `#N` anteriores al 2026-09-17 son del repositorio público anterior; desde el 2026-09-17 son del repositorio privado, donde la numeración reinició en #1 (por eso un mismo `#N` puede ser un cambio distinto en cada repositorio). |
 | **Prueba** | Cómo se verifica. `RegistrarReporteServiceTest`, `E2E reporte.spec.ts`. Sin prueba, no está terminado. Para `proceso`, el comando o el documento que lo evidencia. |
 
 ---
