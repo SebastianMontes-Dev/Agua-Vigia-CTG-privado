@@ -29,13 +29,13 @@ una restricción externa, una decisión de diseño no trivial).
 | `chore` | Mantenimiento (dependencias, configuración, tooling) |
 | `perf` | Mejora de rendimiento |
 | `style` | Formato/estilo sin efecto en lógica |
-| `build` | Cambios en el sistema de build (Maven, Vite, Docker) |
+| `build` | Cambios en el sistema de build (Maven, Docker) |
 | `ci` | Cambios en workflows de GitHub Actions |
 | `revert` | Revertir un commit anterior |
 
 **Scope** (opcional, entre paréntesis): el nombre del área o módulo real que tocaste, en español,
 igual que aparece en el código — no hay una lista cerrada. Ejemplos ya usados en este proyecto:
-`frontend`, `seguridad`, `ingesta`, `veedor`, `mapa`, `estadisticas`, `bitacora`, `gestion`,
+`api`, `seguridad`, `ingesta`, `veedor`, `mapa`, `estadisticas`, `bitacora`, `gestion`,
 `estilos`, `ci`.
 
 Ejemplos:
@@ -43,7 +43,7 @@ Ejemplos:
 feat(veedor): agregar verificación en dos pasos al login
 fix(mapa): corregir el z-index del panel de detalle sobre Leaflet
 docs(gestion): registrar ADR-045
-chore: actualizar vite a 6.x
+chore: actualizar springdoc a 2.8.x
 ```
 
 Nunca agregar `Co-Authored-By: Claude` (ni ninguna variante de atribución a la IA) — los commits y
@@ -59,7 +59,7 @@ Mismos `tipo` que los commits (`feat`, `fix`, `chore`, `docs`, `refactor`, `test
 un resumen de 2-4 palabras en español, minúsculas, separadas por guiones, sin tildes. Se crean desde
 `main` y se mergean de vuelta a `main`.
 
-Ejemplos: `feat/verificacion-dos-pasos`, `fix/zindex-panel-detalle`, `chore/actualizar-vite`.
+Ejemplos: `feat/verificacion-dos-pasos`, `fix/limite-reportes-por-sector`, `chore/actualizar-springdoc`.
 
 ## Pull Requests
 

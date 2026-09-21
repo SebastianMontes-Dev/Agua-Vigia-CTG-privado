@@ -141,3 +141,7 @@ que no cede desde este entorno. Pendiente: otra red, u contacto sugerido por la 
   la API de catálogo de Socrata:** `https://api.us.socrata.com/api/catalog/v1?q=...` (responde bien).
   La búsqueda genérica por "acueducto" da 322 datasets nacionales, ninguno específico de
   Cartagena/Acuacar — falta refinar con términos de Bolívar.
+- **Pruebas de carga en Windows con Docker Desktop**: k6 contra un puerto publicado o `host.docker.internal`
+  se satura en ~1 200 req/s y da p95 de segundos que **no son del sistema**; correr k6 en la misma red de Docker que
+  nginx. La micro-caché de nginx solo se prueba **contra el backend real** (el de Spring responde `no-store`;
+  un backend de mentira ocultó `BUG-085`). Detalle: `docs/ingenieria/escalabilidad.md`.
