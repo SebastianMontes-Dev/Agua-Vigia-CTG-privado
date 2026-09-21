@@ -80,7 +80,7 @@ public class CorteController {
     @Operation(summary = "Cerrar un corte con la hora real de restablecimiento (RF017)")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Corte cerrado"),
-            @ApiResponse(responseCode = "400", description = "El corte no existe",
+            @ApiResponse(responseCode = "404", description = "El corte no existe",
                     content = @Content(mediaType = "application/problem+json",
                             schema = @Schema(implementation = ProblemDetail.class))),
             @ApiResponse(responseCode = "409", description = "El corte ya estaba cerrado",

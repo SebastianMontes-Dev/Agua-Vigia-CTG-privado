@@ -140,11 +140,12 @@ public class MailCuentaAdapter implements NotificacionCuentaPort {
     }
 
     /**
-     * Apunta al frontend y no a la API: la persona necesita una pantalla donde escribir su clave,
-     * no una respuesta JSON. Es el frontend quien llama después al endpoint con el token.
+     * Apunta a las pantallas HTML del propio backend (EnlacesDeCuentaController): la persona
+     * necesita un formulario donde confirmar o escribir su clave, no una respuesta JSON. Desde que
+     * el frontend se retiró (ADR-048) no hay otro sitio que las pinte.
      */
     private String enlace(String ruta, String tokenEnClaro) {
-        return urlBasePublica + "/cuentas/" + ruta + "?token="
+        return urlBasePublica + "/api/cuentas/enlaces/" + ruta + "?token="
                 + URLEncoder.encode(tokenEnClaro, StandardCharsets.UTF_8);
     }
 

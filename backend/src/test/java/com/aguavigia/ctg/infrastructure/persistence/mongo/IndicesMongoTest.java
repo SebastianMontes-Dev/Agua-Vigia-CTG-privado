@@ -41,6 +41,15 @@ class IndicesMongoTest {
         return indices.stream().map(IndexInfo::getName).collect(Collectors.toSet());
     }
 
+    /** Las agregaciones del Indice de Cumplimiento filtran cortes cerrados (`finReal` no nulo). */
+    @Test
+    void debeAsegurarElIndiceDeFinRealDeLosCortes() {
+        indicesMongo.asegurarIndices();
+
+        Set<String> indicesCortes = nombresDeIndices(mongoTemplate.indexOps(CorteAguaDocumento.class).getIndexInfo());
+        assertThat(indicesCortes).contains("sectoresAfectados_1", "finReal_1");
+    }
+
     @Test
     void debeAsegurarLosIndicesDeReportesSuscripcionesYBitacora() {
         indicesMongo.asegurarIndices();

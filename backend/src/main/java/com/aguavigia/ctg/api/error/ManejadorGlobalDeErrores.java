@@ -1,5 +1,6 @@
 package com.aguavigia.ctg.api.error;
 
+import com.aguavigia.ctg.domain.EntidadNoEncontradaException;
 import com.aguavigia.ctg.domain.CredencialInvalidaException;
 import com.aguavigia.ctg.domain.CuentaBloqueadaException;
 import com.aguavigia.ctg.domain.CuentaNoHabilitadaException;
@@ -46,11 +47,20 @@ public class ManejadorGlobalDeErrores {
     private static final Logger log = LoggerFactory.getLogger(ManejadorGlobalDeErrores.class);
     private static final String BASE_TIPO = "https://aguavigia.example/errores/";
 
-    @ExceptionHandler(RecursoNoEncontradoException.class)
-    public ProblemDetail noEncontrado(RecursoNoEncontradoException e) {
+    @ExceptionHandler({RecursoNoEncontradoException.class, EntidadNoEncontradaException.class})
+    public ProblemDetail noEncontrado(RuntimeException e) {
         ProblemDetail problema = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, e.getMessage());
         problema.setTitle("Recurso no encontrado");
         problema.setType(URI.create(BASE_TIPO + "recurso-no-encontrado"));
+        return problema;
+    }
+
+    /** La ruta existe pero este servidor no está configurado para atenderla (p. ej. IoT sin clave). */
+    @ExceptionHandler(ServicioNoDisponibleException.class)
+    public ProblemDetail servicioNoDisponible(ServicioNoDisponibleException e) {
+        ProblemDetail problema = ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE, e.getMessage());
+        problema.setTitle("Servicio no disponible");
+        problema.setType(URI.create(BASE_TIPO + "servicio-no-disponible"));
         return problema;
     }
 

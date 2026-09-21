@@ -53,11 +53,22 @@ public class ConfigurarSegundoFactorService implements ConfigurarSegundoFactorUs
     }
 
     @Override
-    public AltaSegundoFactor iniciar(UsuarioId usuarioId, ContextoDeAccion contexto) {
+    public AltaSegundoFactor iniciar(UsuarioId usuarioId, String codigoActual, ContextoDeAccion contexto) {
         Usuario usuario = cargar(usuarioId);
 
-        // Se genera uno nuevo aunque ya tuviera: rehacer el alta es justamente lo que hace alguien
-        // que perdió el teléfono, y reutilizar el secreto viejo no le serviría de nada.
+        // Si ya tenía uno confirmado, rehacer el alta lo sustituye: se exige el código vigente para
+        // que una sesión robada no pueda cambiarlo por un secreto que ya conoce el atacante. Quien
+        // perdió el teléfono no puede pasar por aquí: eso lo resuelve un ADMIN, no esta ruta.
+        if (usuario.tieneSegundoFactorConfirmado()) {
+            if (codigoActual == null || codigoActual.isBlank()) {
+                throw new IllegalStateException(
+                        "Esta cuenta ya tiene segundo factor: escribe tu código actual para rehacer el alta");
+            }
+            if (!segundoFactor.codigoEsValido(usuario.segundoFactor().secreto(), codigoActual)) {
+                throw new CredencialInvalidaException("El código no coincide.");
+            }
+        }
+
         SecretoTotp secreto = generador.generarSecretoTotp();
         usuarios.guardar(usuario.iniciarSegundoFactor(secreto, reloj.ahora()));
 

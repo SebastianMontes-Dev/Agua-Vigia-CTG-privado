@@ -15,6 +15,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.aggregation.Aggregation;
+import org.springframework.data.mongodb.core.aggregation.AggregationOptions;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
@@ -22,7 +24,9 @@ import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -68,6 +72,29 @@ public class ReporteCiudadanoMongoAdapter implements ReporteCiudadanoRepository 
                         sectorId.valor(), desde, EstadoModeracion.DESCARTADO.name()).stream()
                 .map(ReporteCiudadanoMongoAdapter::aDominio)
                 .toList();
+    }
+
+    /**
+     * La ordenación por `timestamp` descendente sigue el índice `sectorId+timestamp`, así que Mongo no
+     * ordena en memoria; `allowDiskUse` es solo la red de seguridad si el plan cambiara. El resultado
+     * son como mucho tres filas, sea cual sea el tamaño de la ventana.
+     */
+    @Override
+    public Map<TipoReporte, Long> contarVotosRecientes(SectorId sectorId, Duration ventana) {
+        var desde = reloj.ahora().minus(ventana);
+        Aggregation agregacion = Aggregation.newAggregation(
+                Aggregation.match(Criteria.where("sectorId").is(sectorId.valor())
+                        .and("timestamp").gte(desde)
+                        .and("estadoModeracion").ne(EstadoModeracion.DESCARTADO.name())),
+                Aggregation.sort(Sort.Direction.DESC, "timestamp"),
+                Aggregation.group("huella").first("tipo").as("tipo"),
+                Aggregation.group("tipo").count().as("votos"))
+                .withOptions(AggregationOptions.builder().allowDiskUse(true).build());
+        Map<TipoReporte, Long> votos = new EnumMap<>(TipoReporte.class);
+        mongoTemplate.aggregate(agregacion, "reportes", org.bson.Document.class).getMappedResults()
+                .forEach(fila -> votos.put(TipoReporte.valueOf(fila.getString("_id")),
+                        ((Number) fila.get("votos")).longValue()));
+        return votos;
     }
 
     @Override

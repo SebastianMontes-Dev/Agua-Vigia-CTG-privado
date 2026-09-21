@@ -10,8 +10,14 @@ import com.aguavigia.ctg.domain.UsuarioId;
  */
 public interface ConfigurarSegundoFactorUseCase {
 
-    /** Devuelve la URI `otpauth://` para pintar el QR. El secreto queda guardado sin confirmar. */
-    AltaSegundoFactor iniciar(UsuarioId usuarioId, ContextoDeAccion contexto);
+    /**
+     * Devuelve la URI `otpauth://` para pintar el QR. El secreto queda guardado sin confirmar.
+     *
+     * {@code codigoActual} solo hace falta cuando la cuenta ya tiene un segundo factor confirmado:
+     * rehacer el alta sustituye el secreto, y sin pedir el código vigente un token robado podía
+     * dejar la cuenta sin la defensa que lo neutraliza. En un alta primera vez se ignora.
+     */
+    AltaSegundoFactor iniciar(UsuarioId usuarioId, String codigoActual, ContextoDeAccion contexto);
 
     /** Devuelve una sesión nueva de alcance completo cuando el alta cierra el paso pendiente. */
     String confirmar(UsuarioId usuarioId, String codigo, ContextoDeAccion contexto);

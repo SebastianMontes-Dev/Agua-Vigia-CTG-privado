@@ -5,6 +5,7 @@ import com.aguavigia.ctg.domain.EstadoServicio;
 import com.aguavigia.ctg.domain.EventoBitacora;
 import com.aguavigia.ctg.domain.EventoId;
 import com.aguavigia.ctg.domain.Pagina;
+import com.aguavigia.ctg.domain.ReporteId;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.TipoEvento;
 import com.aguavigia.ctg.domain.port.out.EventoBitacoraRepository;
@@ -13,6 +14,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.UUID;
 
 @Component
@@ -36,6 +38,7 @@ public class EventoBitacoraMongoAdapter implements EventoBitacoraRepository {
         documento.setEstado(evento.estado() != null ? evento.estado().name() : null);
         documento.setUrlOriginal(evento.urlOriginal());
         documento.setImagenUrl(evento.imagenUrl());
+        documento.setReportesSustento(evento.reportesSustento().stream().map(ReporteId::valor).toList());
 
         repositorio.save(documento);
         return evento;
@@ -64,6 +67,8 @@ public class EventoBitacoraMongoAdapter implements EventoBitacoraRepository {
                 documento.getDescripcion(),
                 documento.getEstado() != null ? EstadoServicio.valueOf(documento.getEstado()) : null,
                 documento.getUrlOriginal(),
-                documento.getImagenUrl());
+                documento.getImagenUrl(),
+                documento.getReportesSustento() == null ? List.of()
+                        : documento.getReportesSustento().stream().map(ReporteId::new).toList());
     }
 }

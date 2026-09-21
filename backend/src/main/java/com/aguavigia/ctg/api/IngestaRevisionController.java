@@ -77,7 +77,7 @@ public class IngestaRevisionController {
                     (RF026). Es el único camino por el que la ingesta llega al mapa.""")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Propuesta aprobada y estado aplicado"),
-            @ApiResponse(responseCode = "400", description = "La propuesta no existe",
+            @ApiResponse(responseCode = "404", description = "La propuesta no existe",
                     content = @Content(mediaType = "application/problem+json",
                             schema = @Schema(implementation = ProblemDetail.class))),
             @ApiResponse(responseCode = "409", description = "El sector de la propuesta ya no existe",
@@ -94,7 +94,7 @@ public class IngestaRevisionController {
             description = "No toca el sector. La propuesta se archiva como descartada, no se borra.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Propuesta descartada"),
-            @ApiResponse(responseCode = "400", description = "La propuesta no existe",
+            @ApiResponse(responseCode = "404", description = "La propuesta no existe",
                     content = @Content(mediaType = "application/problem+json",
                             schema = @Schema(implementation = ProblemDetail.class)))
     })

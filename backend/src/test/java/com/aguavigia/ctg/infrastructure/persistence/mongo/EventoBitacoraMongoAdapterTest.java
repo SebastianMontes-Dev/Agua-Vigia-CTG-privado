@@ -58,6 +58,30 @@ class EventoBitacoraMongoAdapterTest {
     }
 
     @Test
+    void debeGuardarYRecuperarLosReportesQueSustentanElCambio() {
+        adaptador.guardar(new EventoBitacora(new EventoId("e1"), TipoEvento.CORTE_CONFIRMADO_POR_CIUDADANOS,
+                new SectorId("bocagrande"), null, AHORA, "3 reportes confirmaron SIN_SERVICIO",
+                com.aguavigia.ctg.domain.EstadoServicio.SIN_SERVICIO, null, null,
+                List.of(new com.aguavigia.ctg.domain.ReporteId("r1"), new com.aguavigia.ctg.domain.ReporteId("r2"))));
+
+        EventoBitacora leido = adaptador.listar(0, 50).contenido().get(0);
+
+        assertThat(leido.reportesSustento()).extracting(r -> r.valor()).containsExactly("r1", "r2");
+    }
+
+    /** Los eventos guardados antes de RF011 no traen el campo: deben leerse como sin sustento, no fallar. */
+    @Test
+    void unEventoAnteriorAlCampoDebeLeerseSinReportesDeSustento() {
+        mongoTemplate.getDb().getCollection("eventos_bitacora").insertOne(new org.bson.Document()
+                .append("_id", "viejo").append("tipo", "CORTE_ANUNCIADO").append("sectorId", "manga")
+                .append("timestamp", java.util.Date.from(AHORA)).append("descripcion", "anuncio previo"));
+
+        EventoBitacora leido = adaptador.listar(0, 50).contenido().get(0);
+
+        assertThat(leido.reportesSustento()).isEmpty();
+    }
+
+    @Test
     void debeListarLosEventosDelMasRecienteAlMasViejo() {
         adaptador.guardar(new EventoBitacora(new EventoId("e1"), TipoEvento.CORTE_CONFIRMADO_POR_CIUDADANOS,
                 new SectorId("bocagrande"), null, AHORA, "primero"));

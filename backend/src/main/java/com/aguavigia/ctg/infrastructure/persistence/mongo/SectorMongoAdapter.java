@@ -1,5 +1,6 @@
 package com.aguavigia.ctg.infrastructure.persistence.mongo;
 
+import com.aguavigia.ctg.domain.Coordenada;
 import com.aguavigia.ctg.domain.EstadoServicio;
 import com.aguavigia.ctg.domain.Sector;
 import com.aguavigia.ctg.domain.SectorId;
@@ -9,6 +10,13 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.geo.Point;
+import org.springframework.data.mongodb.core.FindAndModifyOptions;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.geo.GeoJsonPoint;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Component;
 
 import com.aguavigia.ctg.application.SectorActualizadoEvent;
@@ -28,18 +36,37 @@ import java.util.Optional;
 public class SectorMongoAdapter implements SectorRepository {
 
     private final SectorMongoRepository repositorio;
+    private final MongoTemplate mongoTemplate;
     private final RelojPort reloj;
     private final ApplicationEventPublisher eventPublisher;
 
-    public SectorMongoAdapter(SectorMongoRepository repositorio, RelojPort reloj, ApplicationEventPublisher eventPublisher) {
+    public SectorMongoAdapter(SectorMongoRepository repositorio, MongoTemplate mongoTemplate, RelojPort reloj,
+                              ApplicationEventPublisher eventPublisher) {
         this.repositorio = repositorio;
+        this.mongoTemplate = mongoTemplate;
         this.reloj = reloj;
         this.eventPublisher = eventPublisher;
     }
 
     @Override
     public Optional<Sector> buscarPorId(SectorId id) {
-        return repositorio.findBySlug(id.valor()).map(SectorMongoAdapter::aDominio);
+        return repositorio.leerSinGeometriaPorSlug(id.valor()).map(SectorMongoAdapter::aDominio);
+    }
+
+    /**
+     * RF007. `$geoIntersects` sobre el índice `2dsphere` de `geometry`; sirve igual para Polygon y
+     * MultiPolygon. Se excluye `geometry` de la proyección: el polígono de un barrio pesa kilobytes
+     * y aquí solo hace falta saber cuál es.
+     */
+    @Override
+    public Optional<Sector> buscarPorCoordenada(Coordenada coordenada) {
+        // GeoJSON es (longitud, latitud); Coordenada es (latitud, longitud).
+        Query consulta = Query.query(Criteria.where("geometry")
+                        .intersects(new GeoJsonPoint(new Point(coordenada.longitud(), coordenada.latitud()))))
+                .limit(1);
+        consulta.fields().exclude("geometry");
+        return Optional.ofNullable(mongoTemplate.findOne(consulta, SectorDocumento.class))
+                .map(SectorMongoAdapter::aDominio);
     }
 
     /**
@@ -50,9 +77,11 @@ public class SectorMongoAdapter implements SectorRepository {
      * concreta del valor, y ImmutableCollections$ListN no se puede reconstruir al leerla de vuelta.
      */
     @Override
-    @Cacheable("sectores")
+    // sync=true: al expirar la entrada, una sola peticion recalcula y las demas esperan, en vez de
+    // que todas las que llegan en ese instante golpeen Mongo a la vez (estampida).
+    @Cacheable(value = "sectores", sync = true)
     public List<Sector> listarTodos() {
-        return new ArrayList<>(repositorio.findAll(Sort.by(Sort.Direction.ASC, "nombre")).stream()
+        return new ArrayList<>(repositorio.listarSinGeometria(Sort.by(Sort.Direction.ASC, "nombre")).stream()
                 .map(SectorMongoAdapter::aDominio)
                 .toList());
     }
@@ -90,6 +119,29 @@ public class SectorMongoAdapter implements SectorRepository {
             eventPublisher.publishEvent(new SectorActualizadoEvent(guardado));
         }
         return guardado;
+    }
+
+    /**
+     * `findAndModify` con el estado esperado en el filtro: Mongo lo aplica de forma atomica, asi que
+     * de dos llamadas simultaneas solo una encuentra el documento con el estado esperado.
+     * `Criteria.is(null)` casa tambien con un documento sin el campo, que es un sector sin estado.
+     */
+    @Override
+    @CacheEvict(value = "sectores", allEntries = true)
+    public boolean cambiarEstadoSiEs(SectorId id, EstadoServicio esperado, EstadoServicio nuevo) {
+        Query condicion = Query.query(Criteria.where("slug").is(id.valor())
+                .and("estadoActual").is(esperado == null ? null : esperado.name()));
+        Update cambio = new Update()
+                .set("estadoActual", nuevo.name())
+                .set("estadoActualizadoEn", reloj.ahora());
+
+        SectorDocumento actualizado = mongoTemplate.findAndModify(
+                condicion, cambio, FindAndModifyOptions.options().returnNew(true), SectorDocumento.class);
+        if (actualizado == null) {
+            return false;
+        }
+        eventPublisher.publishEvent(new SectorActualizadoEvent(aDominio(actualizado)));
+        return true;
     }
 
     private static Sector aDominio(SectorDocumento documento) {
