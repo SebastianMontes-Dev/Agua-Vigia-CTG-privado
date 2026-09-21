@@ -44,16 +44,21 @@ public class IndicesMongo {
 
             var indicesCortes = mongoTemplate.indexOps(CorteAguaDocumento.class);
             indicesCortes.ensureIndex(new Index().on("sectoresAfectados", Sort.Direction.ASC));
-            log.info("Indices de `cortes` asegurados: sectoresAfectados");
+            // El Indice de Cumplimiento y las estadisticas agregan solo los cortes cerrados (`finReal`
+            // no nulo); sin este indice cada agregacion recorria la coleccion entera.
+            indicesCortes.ensureIndex(new Index().on("finReal", Sort.Direction.ASC));
+            log.info("Indices de `cortes` asegurados: sectoresAfectados y finReal");
 
-            // RegistrarReporteService.registrar() y EvaluarConsensoService llaman ambos
-            // listarRecientesPorSector en cada POST /api/reportes — sin este compuesto, cada
-            // llamada es un collection scan completo sobre una coleccion que solo crece.
+            // Cada POST /api/reportes cuenta lo que el dispositivo ya envio (cupo RF006) y evalua el
+            // consenso (votos por tipo): sin estos compuestos, cada llamada recorre la ventana entera
+            // del sector, que en una averia masiva son miles de documentos.
             var indicesReportes = mongoTemplate.indexOps(ReporteCiudadanoDocumento.class);
             indicesReportes.ensureIndex(new CompoundIndexDefinition(
                     new Document("sectorId", 1).append("timestamp", -1)));
+            indicesReportes.ensureIndex(new CompoundIndexDefinition(
+                    new Document("sectorId", 1).append("huella", 1).append("timestamp", -1)));
             indicesReportes.ensureIndex(new Index().on("estadoModeracion", Sort.Direction.ASC));
-            log.info("Indices de `reportes` asegurados: sectorId+timestamp (compuesto) y estadoModeracion");
+            log.info("Indices de `reportes` asegurados: sectorId+timestamp, sectorId+huella+timestamp y estadoModeracion");
 
             var indicesSuscripciones = mongoTemplate.indexOps(SuscripcionDocumento.class);
             indicesSuscripciones.ensureIndex(new Index().on("tokenConfirmacion", Sort.Direction.ASC).unique());

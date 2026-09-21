@@ -1,13 +1,10 @@
 package com.aguavigia.ctg.api;
 
-import com.aguavigia.ctg.api.dto.IotPresionRequest;
 import com.aguavigia.ctg.api.error.ManejadorGlobalDeErrores;
-import com.aguavigia.ctg.domain.port.in.RegistrarReporteUseCase;
-import com.aguavigia.ctg.domain.port.out.SectorRepository;
+import com.aguavigia.ctg.domain.port.in.RegistrarLecturaDePresionUseCase;
+import com.aguavigia.ctg.domain.port.out.RevocacionSesionPort;
 import com.aguavigia.ctg.infrastructure.config.SecurityConfig;
 import com.aguavigia.ctg.infrastructure.security.JwtProvider;
-import com.aguavigia.ctg.domain.port.out.RevocacionSesionPort;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -18,35 +15,31 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/**
- * Caso separado del resto de IotControllerTest porque necesita su propio contexto sin
- * `aguavigia.iot.key` configurada (mismo patrón que VeedorAuthController: 503 y no una clave
- * adivinable por defecto).
- */
+/** Sin `IOT_KEY` el endpoint no atiende a nadie: ni siquiera con una clave que «coincida» con la vacía. */
 @WebMvcTest(IotController.class)
 @Import({ManejadorGlobalDeErrores.class, SecurityConfig.class})
-@TestPropertySource(properties = "aguavigia.rate-limit.reglas=")
+@TestPropertySource(properties = {
+        "aguavigia.rate-limit.reglas=",
+        "aguavigia.iot.key="
+})
 class IotControllerSinClaveTest {
 
-    // SecurityConfig construye JwtAuthenticationFilter con este puerto: el filtro consulta la
-    // revocacion en cada peticion con token (ADR-039). Sin el bean, el contexto del slice no carga.
     @MockitoBean
     private RevocacionSesionPort revocacion;
 
     @Autowired
     private MockMvc mockMvc;
 
-    @Autowired
-    private ObjectMapper objectMapper;
-
     @MockitoBean
-    private RegistrarReporteUseCase registrarReporte;
-
-    @MockitoBean
-    private SectorRepository sectores;
+    private RegistrarLecturaDePresionUseCase lecturas;
 
     @MockitoBean
     private JwtProvider jwtProvider;
@@ -55,13 +48,15 @@ class IotControllerSinClaveTest {
     private RedisTemplate<String, String> redisTemplateMock;
 
     @Test
-    void debeResponder503SiNoHayClaveConfigurada() throws Exception {
-        IotPresionRequest cuerpo = new IotPresionRequest("sensor-1", "manga", 10.0, null);
-
+    void debeResponder503ConRfc7807SiElServidorNoTieneClaveConfigurada() throws Exception {
         mockMvc.perform(post("/api/iot/presion")
-                        .header("X-IoT-Key", "cualquier-cosa")
+                        .header("X-IoT-Key", "")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(cuerpo)))
-                .andExpect(status().isServiceUnavailable());
+                        .content("{\"sensorId\":\"s\",\"sectorId\":\"bocagrande\",\"presionPsi\":10.0}"))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
+                .andExpect(jsonPath("$.status").value(503));
+
+        verify(lecturas, never()).registrar(any(), any(), any(), any());
     }
 }

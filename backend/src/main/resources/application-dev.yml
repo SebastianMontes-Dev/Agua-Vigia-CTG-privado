@@ -13,13 +13,10 @@ spring:
 
 aguavigia:
   cors:
-    # Solo en dev. El camino normal es el proxy /api del dev server de Vite (vite.config.ts),
-    # que deja todo en el mismo origen y no necesita CORS; esto cubre al que prefiera apuntar
-    # VITE_API_BASE_URL directo a http://localhost:8080/api. En docker y prod la lista queda
-    # vacia porque nginx hace de proxy — ver CorsProperties.
-    origenes-permitidos:
-      - http://localhost:5173
-      - http://127.0.0.1:5173
+    # Vacia desde que el frontend se retiro (ADR-048): sin un cliente de navegador en otro origen no
+    # hace falta CORS. El mecanismo sigue disponible (CorsProperties) para quien levante uno:
+    # basta listar aqui su origen, por ejemplo http://localhost:3000.
+    origenes-permitidos: []
 
 management:
   endpoint:

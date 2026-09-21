@@ -77,10 +77,10 @@ class IndiceCumplimientoControllerTest {
     @Test
     void debeResponder400ConFormatoRfc7807SiElCorteNoExiste() throws Exception {
         given(calcularCumplimiento.porCorte(any()))
-                .willThrow(new IllegalArgumentException("No existe el corte 'no-existe'"));
+                .willThrow(new com.aguavigia.ctg.domain.EntidadNoEncontradaException("No existe el corte 'no-existe'"));
 
         mockMvc.perform(get("/api/cumplimiento/cortes/no-existe"))
-                .andExpect(status().isBadRequest())
+                .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.detail").value("No existe el corte 'no-existe'"));
     }
 

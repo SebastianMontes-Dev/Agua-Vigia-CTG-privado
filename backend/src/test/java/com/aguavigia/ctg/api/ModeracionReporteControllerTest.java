@@ -111,13 +111,13 @@ class ModeracionReporteControllerTest {
     }
 
     @Test
-    void debeResponder400ConFormatoRfc7807SiElReporteNoExiste() throws Exception {
+    void debeResponder404ConFormatoRfc7807SiElReporteNoExiste() throws Exception {
         autenticarComoVeedor();
         given(moderarReporte.aprobar(new ReporteId("no-existe")))
-                .willThrow(new IllegalArgumentException("No existe el reporte 'no-existe'"));
+                .willThrow(new com.aguavigia.ctg.domain.EntidadNoEncontradaException("No existe el reporte 'no-existe'"));
 
         mockMvc.perform(patch("/api/veedor/reportes/no-existe/aprobar").header("Authorization", TOKEN))
-                .andExpect(status().isBadRequest())
+                .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.detail").value("No existe el reporte 'no-existe'"));
     }
 }

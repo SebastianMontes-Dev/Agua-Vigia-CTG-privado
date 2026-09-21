@@ -123,6 +123,21 @@ class BitacoraControllerTest {
     }
 
     @Test
+    void debePublicarLosReportesQueSustentanUnEventoDeConsenso() throws Exception {
+        given(eventos.listar(anyInt(), anyInt())).willReturn(pagina(List.of(
+                new EventoBitacora(new EventoId("evento-2"), TipoEvento.CORTE_CONFIRMADO_POR_CIUDADANOS,
+                        new SectorId("manga"), null, TIMESTAMP, "3 reportes confirmaron SIN_SERVICIO",
+                        com.aguavigia.ctg.domain.EstadoServicio.SIN_SERVICIO, null, null,
+                        List.of(new com.aguavigia.ctg.domain.ReporteId("r1"),
+                                new com.aguavigia.ctg.domain.ReporteId("r2"))))));
+
+        mockMvc.perform(get("/api/bitacora"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].reportesSustento[0]").value("r1"))
+                .andExpect(jsonPath("$[0].reportesSustento[1]").value("r2"));
+    }
+
+    @Test
     void debeListarLosEventosSinAutenticacion() throws Exception {
         given(eventos.listar(anyInt(), anyInt())).willReturn(pagina(List.of(
                 new EventoBitacora(new EventoId("evento-1"), TipoEvento.CORTE_ANUNCIADO,

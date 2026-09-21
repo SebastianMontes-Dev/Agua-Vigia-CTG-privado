@@ -3,6 +3,7 @@ package com.aguavigia.ctg.api.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.Instant;
+import java.util.List;
 
 @Schema(description = "Evento de la bitácora pública, de solo anexado (RF026-RF028)")
 public record EventoBitacoraRespuesta(
@@ -22,5 +23,8 @@ public record EventoBitacoraRespuesta(
         @Schema(description = "Boletín o nota que respalda el evento. Nulo si la fuente no lo trae.")
         String urlOriginal,
         @Schema(description = "Portada del boletín. Nula si la fuente no la trae.")
-        String imagenUrl) {
+        String imagenUrl,
+        @Schema(description = "RF011 — ids de los reportes ciudadanos que sostuvieron el cambio, en los eventos "
+                + "de consenso. Lista vacía en los demás. Permite contrastar el cambio con la evidencia.")
+        List<String> reportesSustento) {
 }

@@ -48,7 +48,7 @@ public class IndiceCumplimientoController {
     @Operation(summary = "Índice de un corte cerrado")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Índice calculado"),
-            @ApiResponse(responseCode = "400", description = "El corte no existe",
+            @ApiResponse(responseCode = "404", description = "El corte no existe",
                     content = @Content(mediaType = "application/problem+json",
                             schema = @Schema(implementation = ProblemDetail.class))),
             @ApiResponse(responseCode = "409", description = "El corte todavía no está cerrado",
