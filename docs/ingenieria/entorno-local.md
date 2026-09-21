@@ -146,6 +146,31 @@ VEEDOR_PASSWORD_HASH`); un `401` significa que la clave no coincide con el hash 
 | `IOT_KEY` | Clave que deben mandar los sensores IoT (M13) en `POST /api/iot/presion` | Solo si vas a probar ese endpoint — vacía, responde 503 y el resto de la app sigue igual |
 | `MONGODB_URI`, `REDIS_HOST/PORT`, `MAIL_HOST/PORT` | Ya apuntan a los servicios de `docker-compose.yml` | No tocar salvo que cambies la topología de contenedores |
 
+## 7. Datos de demostración: 20 000 cuentas para la presentación
+
+Para mostrar una base grande y variada, `scripts/sembrar-usuarios-demo.mjs` siembra **20 000 cuentas** en la colección
+`usuarios`: nombres completos **todos distintos**, correos con estilos y proveedores variados, los seis estados de cuenta
+(`ACTIVA`, `PENDIENTE_APROBACION`, `PENDIENTE_VERIFICACION`, `INVITADA`, `SUSPENDIDA`, `RECHAZADA`), los roles `OBSERVADOR` y `VEEDOR`
+(con algunos permisos sueltos) y fechas de alta repartidas en los últimos 18 meses.
+
+**El orden importa**: el ADMIN inicial solo se crea si **no existe ninguna cuenta**. Primero arranca el backend con
+`ADMIN_INICIAL_CORREO` y `VEEDOR_PASSWORD_HASH` (sección 2) y **después** siembra:
+
+```bash
+docker compose up -d mongo redis mailhog     # y arranca el backend con las dos variables del ADMIN
+cd scripts && npm install                    # solo la primera vez
+node sembrar-usuarios-demo.mjs               # 20 000 cuentas en ~3 s; --cantidad y --semilla opcionales
+```
+
+- **Idempotente y seguro:** antes de insertar borra solo lo que él mismo sembró (marca `datosDeDemostracion`); no toca al ADMIN
+  ni a cuentas reales. Se niega a correr contra una base que no sea local.
+- **Determinista:** la misma semilla da las mismas cuentas.
+- **Entrar como una cuenta sembrada:** las `ACTIVA` (VEEDOR y OBSERVADOR, nunca ADMIN) usan la clave `DemoAguaVigia-2026`.
+- **Cómo verlas:** como ADMIN, `GET /api/veedor/usuarios?pagina=0&tamano=200` devuelve `X-Total-Count: 20001` (las 20 000 más el
+  ADMIN) y 101 páginas; se puede filtrar con `?estado=ACTIVA`.
+- **Comprobado el 2026-09-21** contra el backend real: 20 001 cuentas, páginas y filtros en 17–58 ms, inicio de sesión de un
+  VEEDOR y un OBSERVADOR sembrados, y una cuenta suspendida rechazada con 403.
+
 ---
 
 Documentos relacionados: [`../api/README.md`](../api/README.md)

@@ -25,6 +25,10 @@ Referencias cruzadas: `ADR-NNN` · `BUG-NNN` · `RF0NN` · `archivo:línea`.
 
 ## Sprint 2
 
+### 2026-09-21 · `feat/datos-de-demostracion`
+**Qué:** Se publicaron 6 PR encadenados (#16 a #21) y se respondieron las decisiones del dueño: proyecto académico local sin hosting ni CDN (`ADR-057`), reportes 12 meses y eventos permanentes con índice TTL (`ADR-058`), Sprint 2 cerrado (`REC-014`), `aviso-corte.html` borrado, CORS abierto solo en `dev` para el frontend. Sembrador de 20 000 cuentas de demostración (nombres únicos, seis estados, dos roles), comprobado por la API: `X-Total-Count: 20001`, páginas y filtros en 17–58 ms. El CI encontró dos fallos de la rama 1 (`MAIL_USERNAME` sin definir en la validación del compose) y del workflow de secretos.
+**Sigue:** Fusionar los PR en orden con squash, `@dependabot rebase` y fusionar #1, #4, #5, #8, #9. Pendiente del dueño: añadir `permissions: contents: read, pull-requests: read` a `secret-scan.yml` (no puedo abrirlo por tu regla sobre archivos «secret»), el token de Telegram (RF041) y borrar `frontend/` del disco.
+
 ### 2026-09-21 · `feat/ajustes-de-contrato-frontend`
 **Qué:** Se tomaron las decisiones delegadas: confirmar/cancelar suscripción por POST (`ADR-054`), bitácora con conteo de sustento y detalle aparte (`ADR-055`), histórico público de cortes, población, cambio de clave con sesión y reenvío de verificación/invitación (`ADR-056`); 406 en vez de 500 (`BUG-087`); respaldo y restauración de Mongo corregidos y probados con autenticación (`BUG-088`). Contrato en 65 rutas; `./mvnw verify`: 823 pruebas en verde. Dependabot revisado, sin tocar.
 **Sigue:** Commitear esta rama (nada commiteado) y publicar las 6 ramas. Sin hacer y solo del dueño: programar el respaldo, hosting/dominio/CDN, HA de Mongo y Redis, política de retención, cerrar el Sprint 2 (`REC-014`), `@dependabot rebase` y fusión de #1/#4/#5/#8/#9, RF041 y los 20 000 datos (falta saber de qué).
