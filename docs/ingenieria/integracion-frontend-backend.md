@@ -1,5 +1,10 @@
 # Integración frontend-backend
 
+> **Estado: documento histórico.** El `frontend/` se retiró del repositorio (ADR-048); este contrato se
+> conserva porque describe qué endpoints consumía la SPA y cuáles quedaron "deliberadamente sin
+> conectar". El código del frontend sigue disponible en la etiqueta git `pre-retiro-frontend`.
+> Las referencias a `npm`, Vite y `src/api/generated/schema.ts` describen el estado anterior al retiro.
+
 El frontend consume siempre la API real del backend en `/api` — no hay modo simulación.
 En desarrollo, Vite hace de proxy hacia el backend local (ver `vite.config.ts`); en
 producción, Nginx lo hace bajo el mismo origen (ver `nginx.conf`).
@@ -14,7 +19,7 @@ producción, Nginx lo hace bajo el mismo origen (ver `nginx.conf`).
 Todo lo anterior es suficiente para el mapa y el resto de pantallas públicas. Para el panel
 del veedor (`PaginaVeedor` — login, moderación, cortes oficiales) el backend necesita
 `JWT_SECRET` y `VEEDOR_PASSWORD_HASH` en su `.env`, vacías por defecto — ver
-[`../docs/ingenieria/entorno-local.md`](../docs/ingenieria/entorno-local.md).
+[`../docs/ingenieria/entorno-local.md`](entorno-local.md).
 
 ## Endpoints que consume el frontend
 
@@ -54,7 +59,7 @@ Antes de cambiar un contrato, regenerar los tipos con `npm run api:sync` (lee
 `ADR-030` — respuesta HTML/JSON en `/confirmar` y `/cancelar` según `Accept` — nunca se
 regeneró). Regenerado desde `GET /v3/api-docs.yaml` y sincronizado `src/api/generated/schema.ts`
 con `npm run api:sync`; detalle completo en
-[`../docs/ingenieria/estado-del-backend.md`](../docs/ingenieria/estado-del-backend.md) (nota de
+[`../docs/ingenieria/estado-del-backend.md`](estado-del-backend.md) (nota de
 sesión). `npm run api:check` no lo detectó porque solo compara `openapi.yaml` ↔ `schema.ts` entre
 sí, no contra un backend corriendo — ambos estaban desactualizados de forma consistente.
 

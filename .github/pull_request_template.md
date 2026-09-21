@@ -30,7 +30,6 @@
 
 - [ ] Si tomé una decisión de diseño → **ADR** en `docs/design-decisions.md`
 - [ ] Si descubrí algo que costó descubrir → línea en `MEMORY.md`
-- [ ] Si toqué interfaz → cumple el checklist de `DESIGN.md` §10
 - [ ] Si arreglé un bug → registrado en `docs/gestion/registro-de-bugs.md` con causa raíz
 
 ## Al fusionar (no antes)

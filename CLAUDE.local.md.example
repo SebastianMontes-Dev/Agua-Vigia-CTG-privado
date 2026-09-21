@@ -45,7 +45,6 @@ Ejemplos — quédate con los que apliquen y borra el resto:
 - **Comandos que uso a diario:**
   ```
   ./mvnw test
-  npm run dev
   docker compose up -d
   ```
 

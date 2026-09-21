@@ -32,10 +32,6 @@
       "Bash(./mvnw verify:*)",
       "Bash(./mvnw compile:*)",
 
-      "Bash(npm run test:*)",
-      "Bash(npm run lint:*)",
-      "Bash(npm run build:*)",
-
       "Bash(docker compose ps)",
       "Bash(docker compose logs:*)",
 
