@@ -55,12 +55,35 @@ class IndicesMongoTest {
         indicesMongo.asegurarIndices();
 
         Set<String> indicesReportes = nombresDeIndices(mongoTemplate.indexOps(ReporteCiudadanoDocumento.class).getIndexInfo());
-        assertThat(indicesReportes).contains("sectorId_1_timestamp_-1", "estadoModeracion_1");
+        assertThat(indicesReportes).contains("sectorId_1_timestamp_-1", "sectorId_1_huella_1_timestamp_-1", "estadoModeracion_1_timestamp_1");
 
         Set<String> indicesSuscripciones = nombresDeIndices(mongoTemplate.indexOps(SuscripcionDocumento.class).getIndexInfo());
         assertThat(indicesSuscripciones).contains("tokenConfirmacion_1", "sectorIds_1");
 
         Set<String> indicesBitacora = nombresDeIndices(mongoTemplate.indexOps(EventoBitacoraDocumento.class).getIndexInfo());
-        assertThat(indicesBitacora).contains("timestamp_-1");
+        assertThat(indicesBitacora).contains("timestamp_-1", "sectorId_1_timestamp_-1");
+    }
+    /**
+     * La cola de moderación pide PENDIENTE (o sin campo) ordenada por antigüedad: con `estadoModeracion+timestamp`
+     * Mongo lee solo la página; con el índice de un solo campo examinaba TODOS los pendientes y ordenaba en
+     * memoria (84 000 reportes: 87 ms y creciendo). El de un solo campo queda como prefijo del compuesto.
+     */
+    @Test
+    void noDebeDejarElIndiceDeEstadoModeracionSoloPorSerPrefijoDelCompuesto() {
+        mongoTemplate.getCollection("reportes").createIndex(new org.bson.Document("estadoModeracion", 1));
+
+        indicesMongo.asegurarIndices();
+
+        Set<String> indicesReportes = nombresDeIndices(mongoTemplate.indexOps(ReporteCiudadanoDocumento.class).getIndexInfo());
+        assertThat(indicesReportes).doesNotContain("estadoModeracion_1").contains("estadoModeracion_1_timestamp_1");
+    }
+
+    @Test
+    void asegurarIndicesDebeSerIdempotente() {
+        indicesMongo.asegurarIndices();
+        indicesMongo.asegurarIndices();
+
+        Set<String> indicesReportes = nombresDeIndices(mongoTemplate.indexOps(ReporteCiudadanoDocumento.class).getIndexInfo());
+        assertThat(indicesReportes).contains("estadoModeracion_1_timestamp_1");
     }
 }

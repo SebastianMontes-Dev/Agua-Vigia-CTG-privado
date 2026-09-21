@@ -7,7 +7,7 @@ AguaVigía cruza los avisos oficiales con reportes ciudadanos georreferenciados 
 > Cartagena de Indias · 2026
 
 **Estado actual:** backend, bases de datos e infraestructura completos salvo RF041 (webhook real de
-WhatsApp/Telegram), que depende de credenciales de terceros. **782 pruebas** de backend en verde, con la
+WhatsApp/Telegram), que depende de credenciales de terceros. **784 pruebas** de backend en verde, con la
 cobertura de `domain/` y `application/` por encima del 85% que exige la build (`./mvnw verify` con Docker
 abierto). El detalle requisito por requisito, con el nombre de la prueba que sostiene cada uno, está en la
 [matriz de trazabilidad](docs/ingenieria/matriz-trazabilidad.md).
@@ -103,7 +103,7 @@ origen en `application-dev.yml` o servirlo detrás del mismo proxy. Detalle en
 
 ## 🧪 Pruebas y Aseguramiento de Calidad (QA)
 
-El backend de AguaVigía cuenta con **782 pruebas unitarias y de integración**, y la build falla si la
+El backend de AguaVigía cuenta con **784 pruebas unitarias y de integración**, y la build falla si la
 cobertura de `domain/` o `application/` baja del 85% (RNF017) o si se viola una capa de la
 arquitectura (RNF018, ArchUnit).
 
