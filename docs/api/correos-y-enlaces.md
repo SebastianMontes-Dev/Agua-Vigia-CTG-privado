@@ -54,8 +54,8 @@ token no quede en cachés ni se filtre por la cabecera `Referer`.
 | Verificar correo | `POST /api/cuentas/verificacion?token=…` |
 | Aceptar invitación | `POST /api/cuentas/invitacion` `{ token, clave }` |
 | Restablecer clave | `POST /api/cuentas/clave` `{ token, clave }` |
-| Confirmar suscripción | `GET /api/suscripciones/confirmar?token=…` con `Accept: application/json` |
-| Darse de baja | `GET /api/suscripciones/cancelar?token=…` con `Accept: application/json` |
+| Confirmar suscripción | `POST /api/suscripciones/confirmar?token=…` con `Accept: application/json`, **al pulsar un botón** |
+| Darse de baja | `POST /api/suscripciones/cancelar?token=…` con `Accept: application/json`, **al pulsar un botón** |
 
 3. **Quita el `token` de la URL** después de leerlo (`history.replaceState`) y no cargues scripts de
    terceros en esas pantallas.

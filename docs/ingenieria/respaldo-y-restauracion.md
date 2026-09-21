@@ -64,6 +64,17 @@ fotos correspondiente (mismo rango de tiempo) deja `fotoUrl` huérfanas — no h
 automática de que ambos respaldos vengan del mismo momento, así que verificar la marca de tiempo
 en el nombre del archivo antes de correr ambos scripts.
 
+## Autenticación de Mongo
+
+En producción Mongo exige usuario (`MONGO_INITDB_ROOT_USERNAME` y `MONGO_INITDB_ROOT_PASSWORD`). Los dos scripts leen
+esas credenciales **dentro del contenedor**, donde ya están como variables de entorno: no pasan por la línea de comandos
+del host. Antes de `BUG-088` ninguno de los dos funcionaba contra producción (fallaban con `Unauthorized`). El respaldo se
+escribe primero a un `.parcial` y solo se renombra si `mongodump` terminó bien y `gzip -t` lo valida.
+
+**Verificado el 2026-09-21** contra un Mongo desechable con autenticación: respaldo, restauración y `--drop`. Sigue
+pendiente el simulacro completo de abajo (con el backend y las fotos), que nadie ha hecho, y que **nada programa** el
+respaldo: hay que crear la tarea de cron o del Programador de tareas.
+
 ## 5. Simulacro de restauración
 
 Un respaldo que nunca se restauró no es un respaldo confiable. Antes de depender de esto en

@@ -29,7 +29,17 @@ Esquemas exactos en [`referencia-de-rutas.md`](referencia-de-rutas.md).
 - **`estado: null` es «sin datos»**, no «con servicio». Mientras nadie verifique nada de un sector, su
   estado es nulo, y con él `actualizadoEn`. Pintarlo como normal sería afirmar algo que no sabemos.
 - Va ordenado por nombre.
-- **No trae la población ni la geometría.** La geometría sale de `/geometria`.
+- **`poblacion`** son los habitantes según el censo. **Es `null` cuando el barrio no tiene dato censal** (27 de los 211): no es 0; no lo muestres como «0 habitantes».
+- **No trae la geometría.** Sale de `/geometria`.
+- El histórico de cortes de un sector se pide aparte: `GET /api/sectores/{id}/cortes` (abajo).
+
+## `GET /api/sectores/{id}/cortes` — histórico de cortes (RF002)
+
+Público, sin sesión. Los cortes oficiales que afectaron al sector, **del más reciente al más antiguo**, abiertos y
+cerrados. Es un arreglo de objetos con la misma forma que los del panel (`id`, `sectoresAfectados`, `inicio`,
+`finPrometido`, `finReal`, `causa`, `origen`, `estado`; `finReal` es `null` mientras el corte sigue abierto).
+Paginado por cabeceras (`?pagina=0&tamano=50`, máximo 200). Un sector sin cortes devuelve `[]`, no `404`; un
+sector inexistente, `404`. Pídelo **al abrir la ficha del sector**, no en segundo plano.
 
 ## `GET /api/sectores/geometria`
 

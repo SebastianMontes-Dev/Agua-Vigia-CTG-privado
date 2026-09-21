@@ -2187,8 +2187,95 @@ funcionar hasta que el backend emita sus propias cabeceras).
 
 ---
 
+## ADR-054 — Confirmar y cancelar una suscripción es un POST; el GET del enlace del correo solo muestra un botón
+
+- **Fecha:** 2026-09-21
+- **Estado:** Aceptada
+- **Decide:** Dueño del proyecto (delegó las decisiones de contrato: «las que puedas tomar tú, hazlas»)
+
+### Contexto
+`GET /api/suscripciones/confirmar` y `/cancelar` cambiaban el estado de la suscripción (`ADR-030`). Los enlaces de los
+correos son GET y un antivirus, un filtro de correo o una vista previa de enlaces los abre sin que nadie los pida: podían
+confirmar o, peor, **dar de baja** solas a una persona. Las páginas de cuentas ya lo evitaban (GET muestra, POST actúa).
+
+### Alternativas consideradas
+| Opción | A favor | En contra |
+|---|---|---|
+| Dejar el GET que actúa | Sin cambios | Un precargador confirma o cancela por su cuenta |
+| Token de un solo uso en el GET | Sin pantalla nueva | El precargador consume el token antes que la persona |
+| **GET muestra una página con botón; POST actúa** | Igual que en cuentas; los enlaces ya enviados siguen funcionando | Un clic más para la persona; los clientes que llamaban al GET con JSON deben usar POST |
+
+### Decisión
+`GET …/confirmar` y `…/cancelar` devuelven solo HTML con un botón (con `Accept: application/json` responden 406); el botón hace
+`POST` a la misma ruta, que ejecuta la acción y responde HTML o JSON según el `Accept`.
+
+### Consecuencias
+- **Gana:** un precargador ya no mueve suscripciones; los enlaces de correos ya enviados siguen abriendo (ahora con botón).
+- **Pierde:** un clic adicional; cambia el contrato (`GET` con JSON → `POST`); no hay clientes que dependieran de ello tras el retiro del frontend.
+- **Efecto colateral:** al probarlo apareció que un `Accept` no soportado daba 500 (`BUG-087`); ahora es 406.
+
+### Cómo se revierte
+Volver a mover la lógica del POST al GET en `SuscripcionController` y quitar la página del botón.
+
+---
+
+## ADR-055 — La bitácora pública entrega cuántos reportes sustentan un evento y sus ids en un detalle paginado
+
+- **Fecha:** 2026-09-21
+- **Estado:** Aceptada
+- **Decide:** Dueño del proyecto (delegó las decisiones de contrato)
+
+### Contexto
+RF011 hizo que cada evento de consenso guardara los ids de los reportes que lo sustentan y el listado público los devolvía
+todos. Medido con datos de prueba: una página de 20 eventos pesó **205 KB** (frente a 11 KB de `/api/sectores`, con 4 449 ids)
+y crece con cada avería grande (miles de ids por evento).
+
+### Decisión
+`GET /api/bitacora` devuelve `cantidadReportesSustento` (un número) y ya no la lista; los ids salen por
+`GET /api/bitacora/{id}/sustento`, paginado (50 por defecto, 200 máximo) y con 404 si el evento no existe.
+`EventoBitacoraRepository` gana `buscarPorId`. La trazabilidad de RF011 no cambia: el evento sigue guardando los ids.
+
+### Consecuencias
+- **Gana:** el listado que más se pide pesa lo mismo con 3 reportes que con 30 000; el detalle se pide solo si alguien lo abre.
+- **Pierde:** un cliente que leía `reportesSustento` del listado debe pedir el detalle (no hay ninguno tras el retiro del frontend).
+
+### Cómo se revierte
+Volver a mapear la lista en `EventoBitacoraRespuesta` y quitar el endpoint de detalle.
+
+---
+
+## ADR-056 — Cuatro rutas que el frontend nuevo necesitaba: histórico público de cortes, población, cambio de clave con sesión y reenvío de enlaces
+
+- **Fecha:** 2026-09-21
+- **Estado:** Aceptada
+- **Decide:** Dueño del proyecto (delegó las decisiones de contrato)
+
+### Contexto
+Quien rehace el frontend no podía: ver el histórico de cortes de un sector sin sesión (RF002 quedaba parcial), mostrar la población
+de un barrio, cambiar su propia clave estando dentro (solo por el flujo del correo) ni reenviar un correo de verificación o
+invitación que no llegó (invitar con el correo caído dejaba la cuenta creada y sin forma de reenviar el enlace).
+
+### Decisión
+- `GET /api/sectores/{id}/cortes` (público, paginado, el más reciente primero; lista vacía si no hay cortes, 404 si el sector no existe).
+- `poblacion` en `SectorRespuesta`, `null` (nunca 0) cuando el barrio no tiene dato censal.
+- `POST /api/veedor/cuenta/clave`: exige la clave actual, comparte el contador de intentos con el inicio de sesión, cierra todas
+  las sesiones y avisa por correo; una sesión de alcance `ALTA_SEGUNDO_FACTOR` no llega (pide `VER_PANEL`).
+- `POST /api/cuentas/verificacion/reenvio` (público, 202 siempre, una vez cada 2 minutos por cuenta) y
+  `POST /api/veedor/usuarios/{id}/invitacion/reenvio` (`GESTIONAR_USUARIOS`, 404/409). Reemitir invalida el enlace anterior.
+- **No** se añade una lista pública de reportes: expone huellas y ubicaciones y no hay caso de uso que la exija.
+
+### Consecuencias
+- **Gana:** ningún flujo de cuenta queda sin salida; RF002 completo; el mapa puede mostrar habitantes.
+- **Pierde:** más superficie de API que mantener (5 rutas, 65 en total) y más frenos que calibrar.
+- **Riesgo aceptado:** el reenvío público podría usarse para molestar a un correo ajeno; lo acota el enfriamiento por cuenta y el límite por IP.
+
+### Cómo se revierte
+Quitar los controladores `HistorialDeCortesController`, `CuentaPropiaController` y `ReenvioDeEnlacesController` y sus casos de uso.
+
+---
+
 <!--
-Siguiente número disponible: ADR-054
+Siguiente número disponible: ADR-057
 Para agregar: usa la skill `registrar-decision`.
 Recuerda: append-only. Las entradas viejas solo cambian de estado, no de contenido.
 -->

@@ -12,6 +12,7 @@ administradores; el ciudadano no tiene cuenta.
 | `POST /api/veedor/sesion` | Iniciar sesión. | `200` con la sesión |
 | `POST /api/cuentas/registro` | Pedir una cuenta. | `202`, sin cuerpo |
 | `POST /api/cuentas/verificacion?token=…` | Verificar el correo. | `204` |
+| `POST /api/cuentas/verificacion/reenvio` | Reenviar el correo de verificación (`{ correo }`). | `202`, siempre |
 | `POST /api/cuentas/invitacion` | Aceptar una invitación y fijar la clave. | `204` |
 | `POST /api/cuentas/restablecimiento` | Pedir restablecer la clave. | `202`, siempre |
 | `POST /api/cuentas/clave` | Fijar la clave nueva con el token del correo. | `204` |
@@ -23,6 +24,7 @@ administradores; el ciudadano no tiene cuenta.
 |---|---|
 | `POST /api/veedor/sesion/cierre` | solo autenticado |
 | `GET /api/veedor/yo` | solo autenticado |
+| `POST /api/veedor/cuenta/clave` | cualquier sesión completa (`VER_PANEL`) |
 | `POST /api/veedor/segundo-factor/alta` \| `/confirmacion` \| `/baja` | `CONFIGURAR_SEGUNDO_FACTOR` |
 | `GET/POST/PATCH /api/veedor/usuarios/**`, `/auditoria` | ver [Panel del veedor](panel-veedor.md) |
 
@@ -108,6 +110,27 @@ mensaje.** Luego `POST /api/cuentas/clave` `{ token, clave }` → `204`, y **se 
 de esa cuenta.
 
 Las cuentas tienen un límite propio: `/api/cuentas/**` admite **10 peticiones por IP cada 10 minutos**.
+
+### Reenviar el correo de verificación
+
+Quien se registró y no recibió el enlace (o venció) usa `POST /api/cuentas/verificacion/reenvio` `{ correo }`.
+Responde **siempre `202`**, exista o no la cuenta y esté o no verificada: **muestra siempre el mismo mensaje**
+(«si hay una solicitud pendiente, te reenviamos el correo»). Reenvía como mucho **una vez cada 2 minutos por
+cuenta** y el enlace anterior deja de servir. No pidas al usuario que se registre otra vez.
+
+### Cambiar la propia clave con la sesión iniciada
+
+`POST /api/veedor/cuenta/clave` `{ claveActual, claveNueva }` → `204`. Exige la clave actual (un token robado no
+debe bastar). La nueva tiene de 12 a 128 caracteres y debe ser distinta. **Cierra todas las sesiones, la actual
+incluida**: tras el `204` el cliente debe llevar al usuario a iniciar sesión con la clave nueva. Se avisa por correo.
+
+| Código | Cuándo |
+|---|---|
+| `400` | La clave actual no es correcta (**cuenta como intento fallido**), la nueva no cumple la política o es igual a la actual. |
+| `423` | Cuenta bloqueada (5 fallos en 15 minutos, compartidos con el inicio de sesión); trae `segundosRestantes`. |
+| `403` | La sesión es de alcance `ALTA_SEGUNDO_FACTOR` (un ADMIN que aún no configuró su TOTP): primero debe configurarlo. |
+
+Límite: 10 peticiones por IP cada 5 minutos en `/api/veedor/cuenta/**`.
 
 ## Segundo factor (TOTP)
 

@@ -8,8 +8,10 @@ correo. **Doble confirmación** (*doble opt-in*): el correo no recibe nada hasta
 | Método y ruta | Para qué | Límite por IP |
 |---|---|---|
 | `POST /api/suscripciones` | Pedir avisos. `201`. | 10 / 10 min |
-| `GET /api/suscripciones/confirmar?token=…` | Confirmar (el enlace del correo). | 10 / 10 min |
-| `GET /api/suscripciones/cancelar?token=…` | Darse de baja (el enlace de **todo** correo). | 10 / 10 min |
+| `GET /api/suscripciones/confirmar?token=…` | **Página** con un botón «Confirmar» (el enlace del correo). No confirma nada. | 10 / 10 min |
+| `POST /api/suscripciones/confirmar?token=…` | Confirmar de verdad (lo que hace el botón). | 10 / 10 min |
+| `GET /api/suscripciones/cancelar?token=…` | **Página** con un botón «Darme de baja» (el enlace de **todo** correo). No cancela nada. | 10 / 10 min |
+| `POST /api/suscripciones/cancelar?token=…` | Darse de baja de verdad. | 10 / 10 min |
 
 ## `POST /api/suscripciones`
 
@@ -42,29 +44,25 @@ PENDIENTE_CONFIRMACION ──confirmar──▶ CONFIRMADA ──cancelar──�
 - Confirmar una suscripción ya confirmada es idempotente. Confirmar una **cancelada** da `409`.
 - Cancelar es idempotente.
 
-## Los enlaces del correo: `GET` con dos respuestas
+## Los enlaces del correo: el `GET` muestra, el `POST` actúa
 
-`confirmar` y `cancelar` son `GET` porque son el enlace que el usuario abre desde su correo. Responden
-según la cabecera `Accept`:
+Los enlaces de los correos son `GET`, y un antivirus o una vista previa de enlaces los abre sin que nadie los
+pida. Por eso el `GET` **no cambia nada**: devuelve una página HTML con un botón, y el botón hace `POST` a la
+misma ruta (`ADR-054`). Un enlace ya enviado antes de este cambio sigue funcionando: ahora abre la página con el botón.
 
-| `Accept` | Respuesta |
-|---|---|
-| `text/html` (un navegador) | Una **página de cortesía** del backend («Suscripción confirmada»). |
-| `application/json` | El JSON de la suscripción (o el error RFC 7807). |
+| Llamada | Qué hace | `Accept` |
+|---|---|---|
+| `GET …/confirmar?token=…` o `…/cancelar?token=…` | Página con el botón; no consume el token. | Solo `text/html`. Con `application/json` responde `406`. |
+| `POST …/confirmar?token=…` o `…/cancelar?token=…` (el token puede ir también como campo del formulario) | Ejecuta la acción. | `text/html` → página de resultado; `application/json` → el JSON de la suscripción (o el error RFC 7807). |
 
 Un frontend propio puede:
 1. **Dejar las páginas del backend** tal cual (cero trabajo), o
-2. **Servir su propia pantalla** y llamar a estas rutas con `Accept: application/json`. En ese caso, el
+2. **Servir su propia pantalla** con un botón que llame a `POST` con `Accept: application/json`. En ese caso, el
    correo debe apuntar a esa pantalla: la base de los enlaces sale de `AGUAVIGIA_APP_URL_PUBLICA`
-   (ver [Correos y enlaces](correos-y-enlaces.md)).
+   (ver [Correos y enlaces](correos-y-enlaces.md)). **La llamada se hace al pulsar el botón, no al cargar la pantalla.**
 
 Errores: `400` con `type: peticion-invalida` si el token no existe o venció; `409` si intentas confirmar
 una suscripción ya cancelada.
-
-> **Aviso de seguridad conocido.** Confirmar y cancelar cambian estado con un `GET`. Un antivirus de
-> correo que precargue los enlaces podría confirmar o cancelar sin que el usuario lo pida. Si el frontend
-> nuevo sirve su propia pantalla, conviene que esa pantalla muestre un botón y haga la llamada al pulsarlo,
-> no al cargar.
 
 ## Qué reciben y cuándo
 

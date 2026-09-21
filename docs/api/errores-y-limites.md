@@ -31,7 +31,7 @@ Propiedades extra según el error:
 | `estado` | `403 cuenta-no-habilitada` | El estado de la cuenta (`PENDIENTE_APROBACION`, `SUSPENDIDA`…). |
 | `segundosRestantes` | `423 cuenta-bloqueada` | Cuánto falta para poder reintentar. |
 | `metodosPermitidos` | `405` | Los verbos que sí acepta la ruta (también en la cabecera `Allow`). |
-| `tiposSoportados` | `415` | Los `Content-Type` que sí acepta la ruta. |
+| `tiposSoportados` | `415` y `406` | Los `Content-Type` que sí acepta la ruta (415) o los formatos que produce (406). |
 
 ## Catálogo de tipos
 
@@ -49,6 +49,7 @@ se pueda visitar**.
 | `cuenta-no-habilitada` | 403 | La cuenta no puede iniciar sesión. Ver la propiedad `estado`. |
 | `recurso-no-encontrado` | 404 | El recurso de la URL no existe (o la ruta no existe). |
 | `metodo-no-permitido` | 405 | La ruta existe, pero no con ese verbo. |
+| `formato-no-aceptable` | 406 | El `Accept` pide un formato que la ruta no produce (p. ej. JSON en el `GET` de una página HTML). Trae `tiposSoportados`. |
 | `conflicto-de-estado` | 409 | La petición está bien formada, pero no aplica al estado actual del recurso. |
 | `tipo-de-contenido-no-soportado` | 415 | El cuerpo no es JSON (o no es del tipo que la ruta acepta). |
 | `archivo-demasiado-grande` | 413 | La foto pasa de 10 MB. |
@@ -78,6 +79,7 @@ segundos) y `type: limite-de-peticiones-excedido`.
 |---|---|---|
 | `POST /api/veedor/sesion` | 5 | 5 min |
 | `/api/veedor/segundo-factor/**` | 10 | 5 min |
+| `/api/veedor/cuenta/**` | 10 | 5 min |
 | `/api/reportes/**` | 30 | 1 min |
 | `/api/iot/presion` | 60 | 1 min |
 | `/api/cuentas/**` | 10 | 10 min |
@@ -115,7 +117,7 @@ Las listas paginadas devuelven **un arreglo JSON** (no un objeto envoltorio) y p
 Parámetros: `?pagina=0&tamano=50`. Tamaño por defecto **50**, máximo **200** (un valor mayor se recorta, no
 falla). Una página negativa se trata como la primera.
 
-Rutas paginadas: `GET /api/bitacora`, `/api/veedor/reportes/pendientes`, `/api/veedor/ingesta/propuestas`,
+Rutas paginadas: `GET /api/bitacora`, `/api/bitacora/{id}/sustento`, `/api/sectores/{id}/cortes`, `/api/veedor/reportes/pendientes`, `/api/veedor/ingesta/propuestas`,
 `/api/veedor/usuarios` y `/api/veedor/auditoria`.
 
 Se envía `Access-Control-Expose-Headers` con esas cabeceras, para que un navegador en otro origen pueda

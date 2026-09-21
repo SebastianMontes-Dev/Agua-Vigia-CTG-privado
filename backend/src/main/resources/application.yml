@@ -105,6 +105,10 @@ aguavigia:
       - ruta: /api/veedor/segundo-factor/**
         limite: 10
         ventana-segundos: 300
+      # Cambiar la clave exige adivinar la actual: mismo freno que el segundo factor, ademas del bloqueo por cuenta.
+      - ruta: /api/veedor/cuenta/**
+        limite: 10
+        ventana-segundos: 300
   mantenimiento:
     fotos-huerfanas:
       # Reconciliacion disco-vs-Mongo: borra archivos en data/fotos que ningun reporte referencia.

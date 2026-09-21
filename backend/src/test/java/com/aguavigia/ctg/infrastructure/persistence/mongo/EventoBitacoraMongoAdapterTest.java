@@ -1,7 +1,9 @@
 package com.aguavigia.ctg.infrastructure.persistence.mongo;
 
+import com.aguavigia.ctg.domain.EstadoServicio;
 import com.aguavigia.ctg.domain.EventoBitacora;
 import com.aguavigia.ctg.domain.EventoId;
+import com.aguavigia.ctg.domain.ReporteId;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.TipoEvento;
 import org.junit.jupiter.api.BeforeEach;
@@ -91,5 +93,16 @@ class EventoBitacoraMongoAdapterTest {
         List<EventoBitacora> eventos = adaptador.listar(0, 50).contenido();
 
         assertThat(eventos).extracting(e -> e.id().valor()).containsExactly("e2", "e1");
+    }
+    @Test
+    void debeBuscarUnEventoPorIdConSusReportesDeSustento() {
+        adaptador.guardar(new EventoBitacora(
+                new EventoId("e-sustento"), TipoEvento.CORTE_CONFIRMADO_POR_CIUDADANOS,
+                new SectorId("bocagrande"), null, AHORA, "consenso", EstadoServicio.SIN_SERVICIO, null, null,
+                List.of(new ReporteId("r1"), new ReporteId("r2"))));
+
+        assertThat(adaptador.buscarPorId(new EventoId("e-sustento")))
+                .get().extracting(e -> e.reportesSustento().size()).isEqualTo(2);
+        assertThat(adaptador.buscarPorId(new EventoId("no-existe"))).isEmpty();
     }
 }

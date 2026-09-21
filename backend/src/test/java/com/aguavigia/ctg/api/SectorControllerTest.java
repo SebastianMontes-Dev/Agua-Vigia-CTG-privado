@@ -125,6 +125,20 @@ class SectorControllerTest {
     }
 
     @Test
+    void debePublicarLaPoblacionCensalDelSectorYNuloSiNoHayDato() throws Exception {
+        given(reloj.ahora()).willReturn(INSTANTE_FIJO);
+        given(sectores.listarTodos()).willReturn(List.of(
+                new Sector(new SectorId("bocagrande"), "BOCAGRANDE", 12000, null),
+                new Sector(new SectorId("isla-fuerte"), "ISLA FUERTE", null, null)));
+
+        // Sin dato censal la población viaja en null, nunca en 0: un 0 se leería como «nadie vive ahí».
+        mockMvc.perform(get("/api/sectores"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.sectores[0].poblacion").value(12000))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("\"poblacion\":null")));
+    }
+
+    @Test
     void debeDevolverUnSectorPorSuIdentificador() throws Exception {
         given(sectores.buscarPorId(any(SectorId.class))).willReturn(Optional.of(
                 new Sector(new SectorId("manga"), "MANGA", 5000, EstadoServicio.PRESION_BAJA)));
