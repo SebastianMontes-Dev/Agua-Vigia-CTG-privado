@@ -89,6 +89,23 @@ test('el panel barrial usa el tema claro y no presenta ceros cuando la API no en
   await expect(panel.getByText('Esperando datos validados')).toHaveCount(4)
 })
 
+test('la barra superior dice «calculando» y no «undefined» cuando la API no entregó sectores', async ({ page }) => {
+  await page.goto('/')
+
+  // Por clase y no por rol: entre 1025 y 1500px el CSS oculta el indicador, y getByRole no
+  // encuentra lo oculto, pero el texto que le llega sigue siendo el que hay que comprobar.
+  const telemetria = page.locator('.navbar-telemetria')
+  await expect(telemetria).toContainText('Red Distrital: calculando')
+  await expect(telemetria).not.toContainText('undefined')
+})
+
+test('«Reportar afectación» del llamado a veedores abre el formulario de reporte', async ({ page }) => {
+  await page.goto('/')
+
+  await page.locator('.llamado-veedor-btn-terciario').click()
+  await expect(page.getByRole('dialog', { name: 'Reportar estado' })).toBeVisible()
+})
+
 test('el mapa rotula barrios y conserva una sola selección ante clics rápidos', async ({ page }) => {
   const errores: Error[] = []
   page.on('pageerror', (error) => errores.push(error))

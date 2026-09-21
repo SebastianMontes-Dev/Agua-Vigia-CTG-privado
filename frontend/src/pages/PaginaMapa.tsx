@@ -35,6 +35,7 @@ import type { EstadoServicio, Sector } from '../types/tipos-dominio'
 import { useDatosEnVivo } from '../hooks/useDatosEnVivo'
 import { useConsultaMedios } from '../hooks/useConsultaMedios'
 import { desplazarAlMapa } from '../utils/desplazarAlMapa'
+import { resumirServicio } from '../utils/resumenServicio'
 import type { useTheme } from '../hooks/useTheme'
 
 // Cargados aparte del bundle de esta página, no antes de que haga falta: los tres arrastran
@@ -79,6 +80,13 @@ const PaginaMapa: FC<Props> = ({ temaActivo, onAlternarTema }) => {
     { estado: 'CORTE_PROGRAMADO' as const, n: sectores.filter(s => s.estado === 'CORTE_PROGRAMADO').length },
     { estado: 'CON_SERVICIO' as const, n: sectores.filter(s => s.estado === 'CON_SERVICIO').length },
   ]
+
+  const { datosDisponibles, porcentajeOperativo } = resumirServicio(sectores)
+
+  const abrirReporte = useCallback(() => {
+    setSectorReporte('')
+    setModalAbierto(true)
+  }, [])
 
   const alSeleccionarSector = useCallback((sector: Sector | null) => {
     setDireccionCarrusel(sector ? 1 : -1)
@@ -169,10 +177,9 @@ const PaginaMapa: FC<Props> = ({ temaActivo, onAlternarTema }) => {
         seccionActiva={seccionActiva}
         busquedaBitacora={busquedaBitacora}
         onCambiarBusquedaBitacora={setBusquedaBitacora}
-        onReportar={() => {
-          setSectorReporte('')
-          setModalAbierto(true)
-        }}
+        onReportar={abrirReporte}
+        porcentajeOperativo={porcentajeOperativo}
+        conexionViva={conexionViva}
       />
 
       {/* Portada de teléfono y tableta. En escritorio este mismo panel flota a la izquierda,
@@ -302,6 +309,8 @@ const PaginaMapa: FC<Props> = ({ temaActivo, onAlternarTema }) => {
                     resumen={conteos}
                     estadoDestacado={estadoDestacado}
                     onAlternar={alAlternarEstadoDestacado}
+                    temaActivo={temaActivo}
+                    datosDisponibles={datosDisponibles}
                   />
                 ) : (
                   <BuscadorBarrios
@@ -353,6 +362,7 @@ const PaginaMapa: FC<Props> = ({ temaActivo, onAlternarTema }) => {
       <LlamadoVeedor
         onSuscribirse={() => setSuscripcionAbierta(true)}
         onAbrirPanel={() => setLoginVeedorAbierto(true)}
+        onReportar={abrirReporte}
       />
 
       <Suspense fallback={<div className="seccion-cargando" role="status">Cargando veeduría…</div>}>
