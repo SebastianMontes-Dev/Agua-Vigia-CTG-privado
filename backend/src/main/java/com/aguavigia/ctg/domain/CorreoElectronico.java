@@ -20,6 +20,11 @@ public record CorreoElectronico(String valor) {
         }
     }
 
+    /** RNF009 — marcador de un correo ya eliminado: sintácticamente válido y nunca entregable (`.invalid`, RFC 2606). */
+    public static CorreoElectronico eliminadoDe(SuscripcionId id) {
+        return new CorreoElectronico("baja-" + id.valor() + "@correo-eliminado.invalid");
+    }
+
     /**
      * Minúsculas y sin espacios alrededor. La identidad de acceso de una cuenta es el correo, y
      * sin esto `Ana@x.com` y `ana@x.com` serían dos cuentas distintas para el sistema y la misma

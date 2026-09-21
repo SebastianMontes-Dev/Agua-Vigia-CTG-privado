@@ -24,6 +24,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -167,6 +168,42 @@ class ReporteCiudadanoMongoAdapterTest {
                 new SectorId("bocagrande"), Duration.ofMinutes(30), huella);
 
         assertThat(conteo).isEqualTo(1);
+    }
+
+    private void guardarReporte(String id, String sector, String huella, TipoReporte tipo, Instant instante) {
+        adaptador.guardar(new ReporteCiudadano(new ReporteId(id), new SectorId(sector), tipo, null,
+                new HuellaDispositivo(huella), instante));
+    }
+
+    @Test
+    void contarVotosRecientes_debeContarCadaDispositivoUnaVezConSuReporteMasReciente() {
+        guardarReporte("v1", "bocagrande", "dispositivo-1", TipoReporte.SIN_AGUA, AHORA.minus(Duration.ofMinutes(20)));
+        guardarReporte("v2", "bocagrande", "dispositivo-1", TipoReporte.SERVICIO_RESTABLECIDO, AHORA.minus(Duration.ofMinutes(5)));
+        guardarReporte("v3", "bocagrande", "dispositivo-2", TipoReporte.SIN_AGUA, AHORA.minus(Duration.ofMinutes(4)));
+        guardarReporte("v4", "bocagrande", "dispositivo-3", TipoReporte.SIN_AGUA, AHORA.minus(Duration.ofMinutes(3)));
+
+        Map<TipoReporte, Long> votos = adaptador.contarVotosRecientes(new SectorId("bocagrande"), Duration.ofMinutes(30));
+
+        assertThat(votos).containsExactlyInAnyOrderEntriesOf(
+                Map.of(TipoReporte.SIN_AGUA, 2L, TipoReporte.SERVICIO_RESTABLECIDO, 1L));
+    }
+
+    @Test
+    void contarVotosRecientes_debeExcluirDescartadosLoQueEstaFueraDeLaVentanaYOtrosSectores() {
+        guardarReporte("w1", "bocagrande", "dispositivo-1", TipoReporte.SIN_AGUA, AHORA.minus(Duration.ofMinutes(5)));
+        guardarReporte("w2", "bocagrande", "dispositivo-2", TipoReporte.SIN_AGUA, AHORA.minus(Duration.ofMinutes(5)));
+        adaptador.guardar(adaptador.buscarPorId(new ReporteId("w2")).orElseThrow().descartar());
+        guardarReporte("w3", "bocagrande", "dispositivo-3", TipoReporte.SIN_AGUA, AHORA.minus(Duration.ofHours(2)));
+        guardarReporte("w4", "manga", "dispositivo-4", TipoReporte.SIN_AGUA, AHORA.minus(Duration.ofMinutes(5)));
+
+        Map<TipoReporte, Long> votos = adaptador.contarVotosRecientes(new SectorId("bocagrande"), Duration.ofMinutes(30));
+
+        assertThat(votos).containsExactly(Map.entry(TipoReporte.SIN_AGUA, 1L));
+    }
+
+    @Test
+    void contarVotosRecientes_debeDevolverUnMapaVacioSinReportes() {
+        assertThat(adaptador.contarVotosRecientes(new SectorId("bocagrande"), Duration.ofMinutes(30))).isEmpty();
     }
 
     @Test

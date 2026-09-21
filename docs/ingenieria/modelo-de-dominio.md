@@ -1,10 +1,10 @@
-# Modelo de dominio — D2 (M3 · Consenso, M6 · Índice de Cumplimiento)
+# Modelo de dominio (M3 · Consenso, M6 · Índice de Cumplimiento)
 
-> Diseño de `domain/` y `application/` adelantado en Sprint 0, mientras **C0** sigue cerrada (no
-> existe `/backend` todavía). Documentación pura — nada de esto es código. Cuando C0 abra, este
+> Diseño de `domain/` y `application/` adelantado en Sprint 0, antes de que existiera `/backend`.
+> Documentación pura — nada de esto es código. Este
 > documento se traduce directo a Java 21 (`record`, sin Lombok, cero imports de Spring/MongoDB).
 >
-> **Titular:** D2 (Carlos Bechara Arias) · **Trazabilidad:** RF009–RF011, RF016–RF017, RF020–RF022
+> **Trazabilidad:** RF009–RF011, RF016–RF017, RF020–RF022
 > (`docs/product-requirements.md`) · **Restricciones heredadas:** ADR-003, ADR-007
 > (`docs/design-decisions.md`).
 
@@ -23,8 +23,8 @@
 
 | Entidad | Campos clave | Nota |
 |---|---|---|
-| `Sector` | `id`, `nombre`, `poblacion: Integer?`, `estadoActual: EstadoServicio` | La geometría GeoJSON es dato de infraestructura (D3); el dominio solo necesita identidad, población y estado. `poblacion` es nulable: §3.1. |
-| `CorteAgua` | `id`, `sectoresAfectados: List<SectorId>`, `ventana: VentanaTiempo`, `causa`, `origen` (`OFICIAL_ACUACAR`\|`INGESTA_IA`\|`VEEDOR`), `estado` (`ANUNCIADO`\|`CONFIRMADO`\|`RESTABLECIDO`) | Se construye con **Builder** — impide `finPrometido < inicio` (recomendación explícita de `D2-backend-dominio.md` §4) y valida que `estado`/`ventana.finReal()` sean coherentes. Expone `cerrar(Instant finReal)` como única transición autorizada a `RESTABLECIDO` — cierra la ventana y marca el estado atómicamente, así ningún caller puede dejarlos inconsistentes. |
+| `Sector` | `id`, `nombre`, `poblacion: Integer?`, `estadoActual: EstadoServicio` | La geometría GeoJSON es dato de infraestructura; el dominio solo necesita identidad, población y estado. `poblacion` es nulable: §3.1. |
+| `CorteAgua` | `id`, `sectoresAfectados: List<SectorId>`, `ventana: VentanaTiempo`, `causa`, `origen` (`OFICIAL_ACUACAR`\|`INGESTA_IA`\|`VEEDOR`), `estado` (`ANUNCIADO`\|`CONFIRMADO`\|`RESTABLECIDO`) | Se construye con **Builder** — impide `finPrometido < inicio` y valida que `estado`/`ventana.finReal()` sean coherentes. Expone `cerrar(Instant finReal)` como única transición autorizada a `RESTABLECIDO` — cierra la ventana y marca el estado atómicamente, así ningún caller puede dejarlos inconsistentes. |
 | `ReporteCiudadano` | `id`, `sectorId`, `tipo` (`SIN_AGUA`\|`PRESION_BAJA`\|`SERVICIO_RESTABLECIDO`), `coordenada?`, `huella: HuellaDispositivo`, `timestamp` | RF005–RF007. |
 | `EventoBitacora` | `id`, `tipo`, `sectorId?`, `corteId?`, `timestamp`, `descripcion` | Inmutable, solo anexado. La creación de negocio pasa por `EventoBitacoraFactory`; el constructor del record sigue público solo para que `EventoBitacoraMongoAdapter` rehidrate eventos ya existentes — RF026–028. |
 
@@ -39,7 +39,7 @@
 
 ### 3.1 Decisión — `Sector.poblacion` es nulable
 
-El PR #13 (D5, siembra de sectores) encontró que **27 de 211 barrios no tienen población** en la
+El PR #13 (siembra de sectores) encontró que **27 de 211 barrios no tienen población** en la
 fuente censal (DANE 2018 + CORVIVIENDA) — corregimientos rurales/insulares que el censo no cubre. No
 se inventa un número.
 
@@ -60,7 +60,7 @@ se queda sin consenso posible, usa el umbral fijo como respaldo. Se documenta as
 | `CalcularCumplimientoUseCase` | `porCorte(corteId)`, `porSector(sectorId)`, `global()` | RF020–RF022 |
 | `RegistrarEventoBitacoraUseCase` | `(evento) -> void` | RF026 |
 
-**`port/out`** (lo que `application/` necesita de infraestructura, lo implementa D3):
+**`port/out`** (lo que `application/` necesita de infraestructura, lo implementa infraestructura):
 
 | Puerto | Responsabilidad | Adaptador esperado |
 |---|---|---|
@@ -68,15 +68,7 @@ se queda sin consenso posible, usa el umbral fijo como respaldo. Se documenta as
 | `ContadorReportesPort` | Ventana deslizante de reportes por sector | Redis (ADR-003) |
 | `RelojPort` | `Instant.now()` inyectable | Reloj del sistema — sin esto, las invariantes de `VentanaTiempo` no son testeables sin mockear tiempo real |
 
-## 5. Contradicción resuelta — `SuscribirseService`
-
-`D2-backend-dominio.md` (Sprint 3) tenía "Implementar `SuscribirseService`" duplicado con
-`D1-notificaciones-bitacora.md`, dueño real de M4 (tabla "Resumen del equipo" en `roles-y-tareas.md`:
-D1 posee `application/`, `infrastructure/mail/`, `api/` y `frontend/` para M4 completo, suscripción
-incluida). Era un error de copiado al armar las tablas de sprint, no una decisión entre alternativas.
-**Corregido 2026-08-07**: se quitó la línea de `D2-backend-dominio.md`. D2 no toca `SuscribirseService`.
-
-## 6. Diagrama de clases (borrador)
+## 5. Diagrama de clases (borrador)
 
 ```mermaid
 classDiagram

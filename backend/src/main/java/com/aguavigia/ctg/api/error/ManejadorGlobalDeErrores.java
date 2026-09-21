@@ -1,5 +1,6 @@
 package com.aguavigia.ctg.api.error;
 
+import com.aguavigia.ctg.domain.EntidadNoEncontradaException;
 import com.aguavigia.ctg.domain.CredencialInvalidaException;
 import com.aguavigia.ctg.domain.CuentaBloqueadaException;
 import com.aguavigia.ctg.domain.CuentaNoHabilitadaException;
@@ -18,6 +19,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.HttpMediaTypeNotAcceptableException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -46,11 +48,20 @@ public class ManejadorGlobalDeErrores {
     private static final Logger log = LoggerFactory.getLogger(ManejadorGlobalDeErrores.class);
     private static final String BASE_TIPO = "https://aguavigia.example/errores/";
 
-    @ExceptionHandler(RecursoNoEncontradoException.class)
-    public ProblemDetail noEncontrado(RecursoNoEncontradoException e) {
+    @ExceptionHandler({RecursoNoEncontradoException.class, EntidadNoEncontradaException.class})
+    public ProblemDetail noEncontrado(RuntimeException e) {
         ProblemDetail problema = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, e.getMessage());
         problema.setTitle("Recurso no encontrado");
         problema.setType(URI.create(BASE_TIPO + "recurso-no-encontrado"));
+        return problema;
+    }
+
+    /** La ruta existe pero este servidor no está configurado para atenderla (p. ej. IoT sin clave). */
+    @ExceptionHandler(ServicioNoDisponibleException.class)
+    public ProblemDetail servicioNoDisponible(ServicioNoDisponibleException e) {
+        ProblemDetail problema = ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE, e.getMessage());
+        problema.setTitle("Servicio no disponible");
+        problema.setType(URI.create(BASE_TIPO + "servicio-no-disponible"));
         return problema;
     }
 
@@ -231,6 +242,20 @@ public class ManejadorGlobalDeErrores {
         return new ResponseEntity<>(problema, cabeceras, HttpStatus.UNSUPPORTED_MEDIA_TYPE);
     }
 
+    /** El `Accept` pide un formato que la ruta no produce: 406, no 500. */
+    @ExceptionHandler(HttpMediaTypeNotAcceptableException.class)
+    public ResponseEntity<ProblemDetail> formatoNoAceptable(HttpMediaTypeNotAcceptableException e) {
+        ProblemDetail problema = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_ACCEPTABLE,
+                "Esta ruta no puede responder en el formato que pediste en la cabecera Accept.");
+        problema.setTitle("Formato no aceptable");
+        problema.setType(URI.create(BASE_TIPO + "formato-no-aceptable"));
+        List<MediaType> producibles = e.getSupportedMediaTypes();
+        if (!producibles.isEmpty()) {
+            problema.setProperty("tiposSoportados", producibles.stream().map(MediaType::toString).toList());
+        }
+        return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).contentType(MediaType.APPLICATION_PROBLEM_JSON).body(problema);
+    }
+
     /** Falta un parametro de consulta declarado obligatorio. */
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public ProblemDetail parametroFaltante(MissingServletRequestParameterException e) {
@@ -299,7 +324,7 @@ public class ManejadorGlobalDeErrores {
 
     /**
      * Mongo caido o inalcanzable. Se responde 503 y no 500: el servicio no esta roto, esta sin
-     * su base de datos, y un cliente puede reintentar. DoD de D3: fallar sin mentir.
+     * su base de datos, y un cliente puede reintentar. Criterio: fallar sin mentir.
      */
     @ExceptionHandler(DataAccessException.class)
     public ProblemDetail baseDeDatosNoDisponible(DataAccessException e) {

@@ -30,9 +30,10 @@
       bzip2 de netty-codec-compression) se corrige en 4.1.136. Netty entra aqui como transitiva de
       Lettuce, el cliente de Redis, y este backend no descomprime bzip2 en ninguna parte — pero
       sobreescribir una version de parche cuesta una linea y deja el escaneo del CI en verde sin
-      excepciones que alguien tenga que recordar despues.
+      excepciones que alguien tenga que recordar despues. Despues aparecio CVE-2026-75595 (critica,
+      en netty-handler), corregida en 4.1.137.
     -->
-    <netty.version>4.1.136.Final</netty.version>
+    <netty.version>4.1.137.Final</netty.version>
     <!--
       Spring Boot 3.5.16 fija tomcat-embed 10.1.55, y el escaneo del CI encontro tres criticas:
       CVE-2026-65182 (bypass de restriccion de seguridad por control de acceso indebido),
@@ -94,34 +95,34 @@
       <artifactId>spring-boot-starter-actuator</artifactId>
     </dependency>
 
-    <!-- Envío de correo de M4 (D1, Sprint 1) — JavaMailSender contra Mailhog/SMTP real -->
+    <!-- Envío de correo de M4 (Sprint 1) — JavaMailSender contra Mailhog/SMTP real -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-mail</artifactId>
     </dependency>
 
-    <!-- Mappers DTO <-> dominio (D3, Sprint 1) -->
+    <!-- Mappers DTO <-> dominio (Sprint 1) -->
     <dependency>
       <groupId>org.mapstruct</groupId>
       <artifactId>mapstruct</artifactId>
       <version>${mapstruct.version}</version>
     </dependency>
 
-    <!-- Contrato OpenAPI publicado para D4 (D3, Sprint 1 - compuerta C2) -->
+    <!-- Contrato OpenAPI publicado para los clientes de la API -->
     <dependency>
       <groupId>org.springdoc</groupId>
       <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
       <version>2.8.6</version>
     </dependency>
 
-    <!-- Circuit breakers y reintentos del pipeline de ingesta (D3, Sprint 3-4) -->
+    <!-- Circuit breakers y reintentos del pipeline de ingesta (Sprint 3-4) -->
     <dependency>
       <groupId>io.github.resilience4j</groupId>
       <artifactId>resilience4j-spring-boot3</artifactId>
       <version>2.3.0</version>
     </dependency>
 
-    <!-- JWT del panel del veedor (D3, Sprint 3 - RF019, RNF011). BCryptPasswordEncoder tambien
+    <!-- JWT del panel del veedor (Sprint 3 - RF019, RNF011). BCryptPasswordEncoder tambien
          viene de aqui (spring-security-crypto), para no depender de una libreria aparte. -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
@@ -163,7 +164,7 @@
       <scope>test</scope>
     </dependency>
 
-    <!-- Pruebas de integración de adaptadores Mongo/Redis (DoD de D3) -->
+    <!-- Pruebas de integración de adaptadores Mongo/Redis -->
     <!-- Aporta @ServiceConnection: apunta Spring al contenedor sin @DynamicPropertySource -->
     <dependency>
       <groupId>org.springframework.boot</groupId>

@@ -1,4 +1,4 @@
-# Matriz de trazabilidad
+⛔ Retirado por alcance (`ADR-048`): aplica al frontend nuevo |⛔ Retirado por alcance (`ADR-048`): aplica al frontend nuevo |⛔ Retirado por alcance (`ADR-048`): aplica al frontend nuevo |⛔ Retirado por alcance (`ADR-048`): aplica al frontend nuevo |⛔ Retirado por alcance (`ADR-048`): aplica al frontend nuevo |# Matriz de trazabilidad
 
 > Cadena completa: **objetivo específico → requisito → historia de usuario → caso de prueba →
 > implementación**. Es la evidencia de que nada se construyó de más y nada quedó sin verificar.
@@ -43,7 +43,7 @@
 
 ## Nivel 2 — Requisitos funcionales
 
-### M1 — Mapa en vivo · D4
+### M1 — Mapa en vivo
 
 | RF | Historia | Caso de prueba | Obj. | Sprint | Estado |
 |---|---|---|---|---|---|
@@ -52,7 +52,7 @@
 | RF003 Antigüedad del dato visible por sector | HU003 | CP003 | 3 | 2 | ✅ (`SectorMongoAdapterTest.debeDevolverLaFechaDelEstadoAlLeerElSector`) |
 | RF004 Lista textual accesible alternativa al mapa | HU004 | CP004 | 3, 4 | 1 | ✅ |
 
-### M2 — Reporte ciudadano · D3 + D4
+### M2 — Reporte ciudadano
 
 | RF | Historia | Caso de prueba | Obj. | Sprint | Estado |
 |---|---|---|---|---|---|
@@ -61,7 +61,7 @@
 | RF007 Coordenada del reporte e inferencia de sector | HU007 | CP007 | 2, 3 | 2 | ✅ |
 | RF008 Reporte en máximo dos toques | HU008 | CP008 | 3, 4 | 2 | ✅ |
 
-### M3 — Consenso automático · D2
+### M3 — Consenso automático
 
 | RF | Historia | Caso de prueba | Obj. | Sprint | Estado |
 |---|---|---|---|---|---|
@@ -69,7 +69,7 @@
 | RF010 Dos estrategias de consenso intercambiables | HU010 | CP010 | 3 | 2 | ✅ |
 | RF011 Registro de los reportes que sustentaron el cambio | HU011 | CP011 | 3, 4 | 2 | ✅ |
 
-### M4 — Alertas por correo · D1
+### M4 — Alertas por correo
 
 | RF | Historia | Caso de prueba | Obj. | Sprint | Estado |
 |---|---|---|---|---|---|
@@ -78,7 +78,7 @@
 | RF014 Notificación al cambiar el estado del sector | HU014 | CP014 | 3 | 3 | ✅ |
 | RF015 Baja en un clic sin credenciales | HU015 | CP015 | 3 | 2 | ✅ |
 
-### M5 — Panel del veedor · D3 + D4
+### M5 — Panel del veedor
 
 | RF | Historia | Caso de prueba | Obj. | Sprint | Estado |
 |---|---|---|---|---|---|
@@ -87,7 +87,7 @@
 | RF018 Moderar reportes dudosos | HU018 | CP018 | 3 | 3 | ✅ |
 | RF019 Autenticación con token para el panel | HU019 | CP019 | 3 | 3 | ✅ |
 
-### M6 — Índice de Cumplimiento ⭐ · D2
+### M6 — Índice de Cumplimiento ⭐
 
 | RF | Historia | Caso de prueba | Obj. | Sprint | Estado |
 |---|---|---|---|---|---|
@@ -95,7 +95,7 @@
 | RF021 Índice agregado por sector y global | HU021 | CP021 | 3, 4 | 4 | ✅ |
 | RF022 Presentación como comparación, no como puntaje | HU022 | CP022 | 3 | 4 | ✅ |
 
-### M7 — Estadísticas · D5 + D4
+### M7 — Estadísticas
 
 | RF | Historia | Caso de prueba | Obj. | Sprint | Estado |
 |---|---|---|---|---|---|
@@ -103,7 +103,7 @@
 | RF024 Evolución del índice en el tiempo | HU024 | CP024 | 4 | 4 | ✅ (`GET /api/cumplimiento/serie` · `SerieMensualCumplimientoTest`) |
 | RF025 Exportación en CSV | HU025 | CP025 | 3 | 5 | ✅ (`/api/estadisticas/exportar.csv` y `/api/cumplimiento/serie.csv` · `EscritorCsvTest`) |
 
-### M8 — Bitácora pública · D1
+### M8 — Bitácora pública
 
 | RF | Historia | Caso de prueba | Obj. | Sprint | Estado |
 |---|---|---|---|---|---|
@@ -111,7 +111,7 @@
 | RF027 Consulta pública sin autenticación | HU027 | CP027 | 3 | 4 | ✅ |
 | RF028 Inmutabilidad: no se edita ni se elimina | HU028 | CP028 | 2, 3 | 3 | ✅ |
 
-### M9 — Ingesta automática con IA ⭐ · D3
+### M9 — Ingesta automática con IA ⭐
 
 | RF | Historia | Caso de prueba | Obj. | Sprint | Estado |
 |---|---|---|---|---|---|
@@ -172,7 +172,7 @@ Los RNF no llevan historia de usuario: se verifican con una medición, no con un
 
 | RNF | Umbral | Cómo se verifica | Sprint | Estado |
 |---|---|---|---|---|
-| RNF001 | Mapa completo < 3 s en 3G | Lighthouse con throttling | 6 | 🟡 **Medido y corregido en parte, 2026-08-12.** Primera medición (Regular 3G dura: 300 ms RTT, 400 Kbps, CPU 4×): puntaje 27/100, FCP 21.3 s, LCP 46.4 s, 6.04 MB de página — culpa principal, `logo-aguavigia-animado.gif` de **4.5 MB** (75% del peso) más el chunk `PaginaMapa` sin dividir (715 KB). Corrección aplicada: el logo pasó a WebP animado a 200 px (mismos 120 frames y transparencia, **404 KB**, −91%), `PaginaMapa` se dividió con `lazy()`+`Suspense` (`PanelDetalleSector`, `SeccionBitacora`, `SeccionEstadisticas`), sacando `recharts` del bundle inicial (715 KB → **355 KB**), y se agregó `<link rel="preconnect">`/`dns-prefetch` a los dominios de tiles del mapa (`index.html`) — el elemento del LCP bajo throttling duro es un tile de CartoDB/OSM (`img.leaflet-tile`), no algo servido por nuestro origen. Con el throttling estándar de Lighthouse (1.6 Mbps/150 ms, más representativo de un "3G" real): **puntaje 42/100, FCP 3.9 s, LCP 9.7 s** — mejora real, pero sigue sin cumplir el umbral de 3 s. **Lo que queda:** bajo el throttling duro (400 Kbps compartidos entre *todo* lo que carga la página), 2.03 MB tarda >40 s solo en transferencia — el preconnect a los tiles ayudó al FCP (17.4 s → 13.2 s) pero apenas movió el LCP, porque el cuello de botella ya no es la latencia de conexión sino el ancho de banda total disponible. Cerrar esto del todo exigiría bajar el peso total muy por debajo de lo que cualquier mapa interactivo con tiles externos puede pesar, o aceptar que 3 s sobre 400 Kbps reales es un presupuesto que ninguna SPA con mapa cumple hoy |
+| RNF001 | Mapa completo < 3 s en 3G | Lighthouse con throttling | 6 | ⛔ **Retirado por alcance (`ADR-048`).** Antes: 🟡 **Medido y corregido en parte, 2026-08-12.** Primera medición (Regular 3G dura: 300 ms RTT, 400 Kbps, CPU 4×): puntaje 27/100, FCP 21.3 s, LCP 46.4 s, 6.04 MB de página — culpa principal, `logo-aguavigia-animado.gif` de **4.5 MB** (75% del peso) más el chunk `PaginaMapa` sin dividir (715 KB). Corrección aplicada: el logo pasó a WebP animado a 200 px (mismos 120 frames y transparencia, **404 KB**, −91%), `PaginaMapa` se dividió con `lazy()`+`Suspense` (`PanelDetalleSector`, `SeccionBitacora`, `SeccionEstadisticas`), sacando `recharts` del bundle inicial (715 KB → **355 KB**), y se agregó `<link rel="preconnect">`/`dns-prefetch` a los dominios de tiles del mapa (`index.html`) — el elemento del LCP bajo throttling duro es un tile de CartoDB/OSM (`img.leaflet-tile`), no algo servido por nuestro origen. Con el throttling estándar de Lighthouse (1.6 Mbps/150 ms, más representativo de un "3G" real): **puntaje 42/100, FCP 3.9 s, LCP 9.7 s** — mejora real, pero sigue sin cumplir el umbral de 3 s. **Lo que queda:** bajo el throttling duro (400 Kbps compartidos entre *todo* lo que carga la página), 2.03 MB tarda >40 s solo en transferencia — el preconnect a los tiles ayudó al FCP (17.4 s → 13.2 s) pero apenas movió el LCP, porque el cuello de botella ya no es la latencia de conexión sino el ancho de banda total disponible. Cerrar esto del todo exigiría bajar el peso total muy por debajo de lo que cualquier mapa interactivo con tiles externos puede pesar, o aceptar que 3 s sobre 400 Kbps reales es un presupuesto que ninguna SPA con mapa cumple hoy |
 | RNF002 | Confirmación de reporte < 1 s | Prueba de carga | 5 | ✅ **Medido 2026-08-11** — k6 (`scripts/carga/rnf002-registrar-reporte.js`), 20 solicitudes/min durante 2 min contra el stack de `docker compose`: p(95)=16.49 ms, 0% de errores |
 | RNF003 | Caché del mapa con TTL ≤ 60 s | Inspección de Redis | 2 | ✅ (TTL de 15 s en `application.yml` · `SectorMongoAdapterCacheTest`) |
 | RNF004 | Fuente caída no tumba el sistema | Prueba de caos | 4 | ✅ (`PipelineOrquestadorTest.unColectorCaidoNoDebeImpedirQueSeLeaElOtro`) |
@@ -198,6 +198,7 @@ Los RNF no llevan historia de usuario: se verifican con una medición, no con un
 | RNF024 | Registro, ingreso y restablecimiento no revelan qué correos tienen cuenta (ni por mensaje ni por tiempo) | Pruebas de igualdad de respuesta y de tiempo equivalente | Fase 2 | ✅ (`AltaYRecuperacionDeCuentaTest.pedirRestablecimientoDeUnCorreoInexistenteNoDebeFallarNiMandarNada`, `AutenticarUsuarioServiceTest.debeBuscarLaCuentaPorElCorreoNormalizado`; tiempo equivalente en `CifradorClavePort.gastarTiempoEquivalente`, según `ADR-039`) |
 | RNF025 | Cuentas `ADMIN` exigen segundo factor TOTP (RFC 6238) | Vectores de prueba del propio RFC | Fase 2 | ✅ (`UsuarioTest.unAdminSinSegundoFactorDebeTenerQueCompletarSuAlta`, `.unAdminNoDebePoderDesactivarSuSegundoFactor`, `AutenticarUsuarioServiceTest.debeEmitirSesionConElCodigoCorrecto`) |
 | RNF026 | Transporte HTTPS/TLS 1.2+ en cualquier despliegue accesible fuera de la máquina de desarrollo | Inspección del certificado y de las cabeceras del despliegue real | — | ⬜ **Sin verificar — no aplica al entorno local.** `docker-compose.yml` sirve solo `:80`; no hay todavía un despliegue público sobre el que inspeccionar certificado o cabeceras. Ver `docs/ingenieria/estado-del-backend.md` §7 |
+| RNF027 | Backend soporta ≥ 50 000 usuarios simultáneos en lecturas públicas y SSE | Prueba de carga (`scripts/carga/`) | Fase 2 | 🟡 **Diseñado y medido a escala reducida, no probado a 50 000** (`ADR-049`, `docs/ingenieria/escalabilidad.md`) |
 
 ---
 
@@ -218,7 +219,7 @@ Se revisa al cerrar cada sprint. Un hueco aquí es un hallazgo del docente esper
 | Ningún endpoint paginaba: `/api/bitacora` devolvía la bitácora entera, que por RF028 crece sin cota | 2026-08-11 | ✅ **Cerrado 2026-08-11** — paginación con metadatos en cabeceras en bitácora y las dos colas del veedor |
 | El cupo por dispositivo (RF006) contaba y luego guardaba: dos peticiones simultáneas del mismo dispositivo pasaban ambas | 2026-08-11 | ✅ **Cerrado 2026-08-11** — reserva atómica con INCR de Redis, con prueba de 50 hilos concurrentes |
 | RNF020 marcado ✅ sin verificación: el CI no construía las imágenes ni validaba los compose | 2026-08-11 | ✅ **Cerrado 2026-08-11** — `despliegue-ci.yml`, que además falla si producción publica un puerto de base de datos |
-| RNF001 y RNF002 marcados ✅ sin ninguna medición | 2026-08-11 | 🟡 **RNF001 sigue abierto** (es de frontend, D4) · ✅ **RNF002 cerrado 2026-08-11** — k6 midió p(95)=16.49 ms contra el umbral de 1 s |
+| RNF001 y RNF002 marcados ✅ sin ninguna medición | 2026-08-11 | 🟡 **RNF001 sigue abierto** (es de frontend) · ✅ **RNF002 cerrado 2026-08-11** — k6 midió p(95)=16.49 ms contra el umbral de 1 s |
 | El backend paginó `/api/veedor/reportes/pendientes` y `/api/veedor/ingesta/propuestas` (fila anterior), pero el frontend nunca leyó `X-Total-Count`: un reporte o propuesta más allá del elemento 50 era invisible para el veedor, sin aviso | 2026-08-12 | ✅ **Cerrado 2026-08-12** — ambas colas piden el máximo (`tamano=200`) y el panel avisa si aun así sobra más de lo mostrado (`PanelVeedor.tsx`) |
 | M15 (cuentas individuales, roles, permisos y TOTP) está construido y probado en el backend desde el 2026-08-31 (`ADR-039`), pero nunca entró a la cadena académica: `product-requirements.md` §4 no citaba `RF037`–`RF046` ni `RNF020`–`RNF026`, esta matriz no tenía Nivel 1 ni sección M15 para RF042–RF046 y llegaba solo hasta RNF021 en Nivel 3, y esta misma matriz citaba `HU037`–`HU041` para M10–M14 sin que `anexo-4-historias-de-usuario.md` las tuviera escritas (solo cubría HU001–HU036) | 2026-09-05 | ✅ **Cerrado 2026-09-05** — `anexo-4` incorpora HU037–HU041 (M10–M14) y HU042–HU046 (M15); `anexo-5` incorpora CP042–CP046; `product-requirements.md` §4 y esta matriz citan RF037–RF046 y RNF020–RNF026. **Pendiente de verificar por un humano:** los nombres de los métodos JUnit citados en CP042–CP046 y en las filas RNF022–RNF025 se tomaron de una lectura estática del código (`Grep`), sin ejecutar `mvnw test` en esta sesión — confirmar que compilan y pasan antes de cerrar el sprint |
 

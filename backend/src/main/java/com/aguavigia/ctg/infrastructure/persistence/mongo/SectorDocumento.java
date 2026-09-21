@@ -10,7 +10,7 @@ import org.springframework.data.mongodb.core.mapping.Field;
 import java.time.Instant;
 
 /**
- * Documento de la coleccion `sectores`, sembrada por scripts/sembrar-sectores.mjs (D5).
+ * Documento de la coleccion `sectores`, sembrada por scripts/sembrar-sectores.mjs.
  * Los nombres de campo replican los del sembrador: cambiarlos aqui rompe la lectura de los
  * 213 barrios ya cargados.
  *
@@ -45,7 +45,7 @@ public class SectorDocumento {
 
     /**
      * Nulo mientras nadie haya registrado un estado para el sector. El sembrador no lo escribe
-     * porque es estado dinamico, no dato de referencia (ver nota de D5 en sembrar-sectores.mjs).
+     * porque es estado dinamico, no dato de referencia (ver nota en sembrar-sectores.mjs).
      */
     private String estadoActual;
 

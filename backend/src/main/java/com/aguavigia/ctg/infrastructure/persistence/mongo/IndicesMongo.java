@@ -2,6 +2,7 @@ package com.aguavigia.ctg.infrastructure.persistence.mongo;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -15,9 +16,11 @@ import org.springframework.stereotype.Component;
 
 import org.bson.Document;
 
+import java.time.Duration;
+
 /**
  * Asegura los indices de `sectores` al arrancar. Spring Data no los crea solo (la creacion
- * automatica esta desactivada por defecto desde 3.0) y el sembrador de D5 solo corre a mano,
+ * automatica esta desactivada por defecto desde 3.0) y el sembrador solo corre a mano,
  * asi que sin esto un despliegue limpio quedaria sin el 2dsphere que necesitan las consultas
  * geoespaciales de M2.
  *
@@ -29,9 +32,12 @@ public class IndicesMongo {
     private static final Logger log = LoggerFactory.getLogger(IndicesMongo.class);
 
     private final MongoTemplate mongoTemplate;
+    private final long diasRetencionReportes;
 
-    public IndicesMongo(MongoTemplate mongoTemplate) {
+    public IndicesMongo(MongoTemplate mongoTemplate,
+                        @Value("${aguavigia.retencion.reportes-dias:365}") long diasRetencionReportes) {
         this.mongoTemplate = mongoTemplate;
+        this.diasRetencionReportes = diasRetencionReportes;
     }
 
     @EventListener(ApplicationReadyEvent.class)
@@ -44,16 +50,27 @@ public class IndicesMongo {
 
             var indicesCortes = mongoTemplate.indexOps(CorteAguaDocumento.class);
             indicesCortes.ensureIndex(new Index().on("sectoresAfectados", Sort.Direction.ASC));
-            log.info("Indices de `cortes` asegurados: sectoresAfectados");
+            // El Indice de Cumplimiento y las estadisticas agregan solo los cortes cerrados (`finReal`
+            // no nulo); sin este indice cada agregacion recorria la coleccion entera.
+            indicesCortes.ensureIndex(new Index().on("finReal", Sort.Direction.ASC));
+            log.info("Indices de `cortes` asegurados: sectoresAfectados y finReal");
 
-            // RegistrarReporteService.registrar() y EvaluarConsensoService llaman ambos
-            // listarRecientesPorSector en cada POST /api/reportes — sin este compuesto, cada
-            // llamada es un collection scan completo sobre una coleccion que solo crece.
+            // Cada POST /api/reportes cuenta lo que el dispositivo ya envio (cupo RF006) y evalua el
+            // consenso (votos por tipo): sin estos compuestos, cada llamada recorre la ventana entera
+            // del sector, que en una averia masiva son miles de documentos.
             var indicesReportes = mongoTemplate.indexOps(ReporteCiudadanoDocumento.class);
             indicesReportes.ensureIndex(new CompoundIndexDefinition(
                     new Document("sectorId", 1).append("timestamp", -1)));
-            indicesReportes.ensureIndex(new Index().on("estadoModeracion", Sort.Direction.ASC));
-            log.info("Indices de `reportes` asegurados: sectorId+timestamp (compuesto) y estadoModeracion");
+            indicesReportes.ensureIndex(new CompoundIndexDefinition(
+                    new Document("sectorId", 1).append("huella", 1).append("timestamp", -1)));
+            // La cola de moderacion pide PENDIENTE (o sin campo) por antiguedad. Con este compuesto Mongo lee
+            // solo la pagina; con el de un solo campo examinaba todos los pendientes y ordenaba en memoria.
+            indicesReportes.ensureIndex(new CompoundIndexDefinition(
+                    new Document("estadoModeracion", 1).append("timestamp", 1)));
+            // El de un solo campo (bases creadas antes) es prefijo del compuesto: solo encarece cada insercion.
+            retirarIndiceSiExiste(indicesReportes, "estadoModeracion_1");
+            log.info("Indices de `reportes` asegurados: sectorId+timestamp, sectorId+huella+timestamp y estadoModeracion+timestamp");
+            asegurarRetencionDeReportes(indicesReportes);
 
             var indicesSuscripciones = mongoTemplate.indexOps(SuscripcionDocumento.class);
             indicesSuscripciones.ensureIndex(new Index().on("tokenConfirmacion", Sort.Direction.ASC).unique());
@@ -62,7 +79,10 @@ public class IndicesMongo {
 
             var indicesBitacora = mongoTemplate.indexOps(EventoBitacoraDocumento.class);
             indicesBitacora.ensureIndex(new Index().on("timestamp", Sort.Direction.DESC));
-            log.info("Indices de `eventos_bitacora` asegurados: timestamp");
+            // La bitacora de un sector: sin esto recorria todos los eventos y filtraba por sector.
+            indicesBitacora.ensureIndex(new CompoundIndexDefinition(
+                    new Document("sectorId", 1).append("timestamp", -1)));
+            log.info("Indices de `eventos_bitacora` asegurados: timestamp y sectorId+timestamp");
 
             // La cola del veedor se lee filtrando por estadoRevision y ordenando por detectadaEn, y
             // el pipeline pregunta existePendiente(sector, estado) por cada documento de cada ciclo.
@@ -95,9 +115,38 @@ public class IndicesMongo {
             indicesAuditoria.ensureIndex(new Index().on("ocurrioEn", Sort.Direction.DESC));
             log.info("Indices de `auditoria_cuentas` asegurados: ocurrioEn");
         } catch (DataAccessException noHayMongo) {
-            // El backend no debe caerse porque Mongo no este disponible al arrancar (DoD de D3,
-            // punto 2). Se registra y se sigue: las consultas fallaran con su propio error.
+            // El backend no debe caerse porque Mongo no este disponible al arrancar.
+            // Se registra y se sigue: las consultas fallaran con su propio error.
             log.warn("No se pudieron asegurar los indices: {}", noHayMongo.getMessage());
+        }
+    }
+    /**
+     * Retencion de reportes: Mongo los borra solo pasados `diasRetencionReportes` (indice TTL sobre
+     * `timestamp`). Los eventos de la bitacora son permanentes y conservan los ids de sus reportes de sustento,
+     * que pasado ese plazo apuntan a reportes que ya no existen. 0 desactiva la retencion.
+     *
+     * Va aparte del resto: cambiar el plazo en una base ya creada hace que Mongo rechace el indice (mismo nombre,
+     * otra caducidad), y eso no debe impedir que se creen los demas.
+     */
+    private void asegurarRetencionDeReportes(org.springframework.data.mongodb.core.index.IndexOperations indicesReportes) {
+        if (diasRetencionReportes <= 0) {
+            return;
+        }
+        try {
+            indicesReportes.ensureIndex(new Index().on("timestamp", Sort.Direction.ASC)
+                    .expire(Duration.ofDays(diasRetencionReportes)));
+            log.info("Retencion de `reportes`: se borran solos a los {} dias", diasRetencionReportes);
+        } catch (DataAccessException e) {
+            log.warn("No se pudo asegurar la retencion de reportes ({} dias); si ya existia con otro plazo, "
+                    + "hay que retirar el indice `timestamp_1` a mano: {}", diasRetencionReportes, e.getMessage());
+        }
+    }
+
+    private static void retirarIndiceSiExiste(org.springframework.data.mongodb.core.index.IndexOperations indices, String nombre) {
+        boolean existe = indices.getIndexInfo().stream().anyMatch(indice -> nombre.equals(indice.getName()));
+        if (existe) {
+            indices.dropIndex(nombre);
+            log.info("Indice redundante `{}` retirado", nombre);
         }
     }
 }

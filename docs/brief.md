@@ -132,18 +132,8 @@ Restricciones deliberadas. Si algo de esta lista se propone, se rechaza citando 
 | Un vecino responde "¿tengo agua?" sin leer ni registrarse | < 5 segundos |
 | Reportes ciudadanos necesarios para confirmar un corte por consenso | 3, en ventana de 30 min |
 | Cortes con Índice de Cumplimiento calculado | 100% de los que tengan hora prometida |
-| Satisfacción de usuarios (instrumento, Alfa de Cronbach) | ≥ 4.0 / 5.0, α ≥ 0.75 |
 
 *(Este documento tenía un indicador de "precisión del clasificador de IA ≥ 90%" que nunca se
 actualizó tras descartarse la clasificación por IA — `ADR-025`, `docs/design-decisions.md`. Se quitó
-en vez de dejarlo prometiendo medir algo que el equipo decidió no construir.)*
+en vez de dejarlo prometiendo medir algo que se decidió no construir.)*
 
----
-
-## Contexto académico
-
-Proyecto de aula — Fundación Universitaria Tecnológico Comfenalco, Tecnología en Desarrollo de
-Software. 5 integrantes, 6 meses, Scrum. Investigación **proyectiva** con **enfoque mixto**.
-
-El producto debe funcionar de verdad **y** el proceso debe quedar documentado según la plantilla
-institucional (4 capítulos + 6 anexos + APA 7).

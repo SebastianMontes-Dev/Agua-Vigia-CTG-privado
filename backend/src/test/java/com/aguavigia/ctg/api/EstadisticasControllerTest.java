@@ -83,7 +83,7 @@ class EstadisticasControllerTest {
 
         assertThat(csv).contains("sector_id;nombre;cantidad_cortes;duracion_promedio_horas_ciudad");
         // Coma decimal fijada en es-CO, no heredada del locale del servidor: el archivo tiene que
-        // salir igual en la maquina de cualquiera del equipo y en el contenedor de produccion.
+        // salir igual en cualquier maquina y en el contenedor de produccion.
         assertThat(csv).contains("manga;Manga;5;4,5");
     }
 }

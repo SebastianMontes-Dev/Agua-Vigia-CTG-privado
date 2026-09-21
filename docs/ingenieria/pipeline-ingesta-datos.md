@@ -230,7 +230,7 @@ semana. Esto **no** es un problema de escala; es un problema de precisión.
 
 Sin esto, la capa de IA es fe ciega:
 
-- **Conjunto dorado**: 100 boletines históricos etiquetados a mano por el equipo (sí/no + campos).
+- **Conjunto dorado**: 100 boletines históricos etiquetados a mano (sí/no + campos).
   Es trabajo de una tarde entre cinco personas y se convierte en un anexo del informe.
 - **Métricas**: precisión, exhaustividad y F1 sobre ese conjunto. Se reportan en el Capítulo IV.
 - **Prueba de regresión**: el conjunto dorado corre en CI. Si un cambio de prompt baja el F1, la build falla.
@@ -254,15 +254,15 @@ para un proyecto de aula, y honestamente inviable para casi cualquiera.
 **Existe una vía legítima y encaja perfecto con el proyecto: Meta Content Library.** Es el reemplazo
 oficial de CrowdTangle, diseñado específicamente para **investigadores de instituciones académicas**.
 Da acceso a contenido público de Facebook e Instagram para investigación. El acceso se solicita a
-través del ICPSR y exige afiliación institucional — que ustedes tienen.
+través del ICPSR y exige afiliación institucional — que este proyecto no tiene.
 
 **Plan realista:**
 
-1. **Sprint 0**: el Scrum Master solicita el acceso, respaldado por el Tecnológico Comfenalco. Es un
-   trámite, no una garantía, y toma semanas.
+1. **Solicitud**: requiere respaldo institucional, que este proyecto no tiene; solo se intenta si
+   aparece ese respaldo. Es un trámite, no una garantía, y toma semanas.
 2. **Si lo aprueban**: se implementa `MetaLibraryCollector` como una fuente L3 más. Es material
-   excelente para la sustentación.
-3. **Si no lo aprueban** (lo más probable en el plazo del proyecto): **la capa L4 lo reemplaza**. Los
+   excelente.
+3. **Si no se consigue** (lo más probable): **la capa L4 lo reemplaza**. Los
    reportes ciudadanos dentro de la propia plataforma cumplen exactamente la misma función —
    capturar la voz del vecino en tiempo real — sin depender del permiso de una empresa extranjera y
    sin recolectar datos personales de terceros.

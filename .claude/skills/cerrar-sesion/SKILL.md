@@ -5,8 +5,7 @@ description: Cierra una sesión de trabajo dejando registro en la bitácora del 
 
 # Cerrar una sesión de trabajo
 
-La conversación se pierde; la bitácora no. El objetivo es que la próxima sesión —de esta persona o de
-otro compañero del equipo— arranque en tres líneas en vez de reconstruir horas de contexto.
+La conversación se pierde; la bitácora no. El objetivo es que la próxima sesión arranque en tres líneas en vez de reconstruir horas de contexto.
 
 ## Procedimiento
 
@@ -26,7 +25,7 @@ Esto es lo que evita que la bitácora se convierta en el basurero donde va todo.
 | Se eligió entre alternativas técnicas | `docs/design-decisions.md` | skill `registrar-decision` |
 | Se descubrió un hecho verificado que costó descubrir | `MEMORY.md` | Edición directa, 3 líneas |
 | Se encontró un defecto | `docs/gestion/registro-de-bugs.md` | skill `registrar-bug` |
-| Se fusionó un PR a `develop` | `docs/gestion/registro-de-implementaciones.md` | skill `registrar-implementacion` |
+| Se fusionó un PR a `main` | `docs/gestion/registro-de-implementaciones.md` | skill `registrar-implementacion` |
 | Se verificó una fuente de datos | `docs/ingenieria/auditoria-fuentes-de-datos.md` | skill `verificar-fuente` |
 | Nada de lo anterior — solo avance de trabajo | Solo la bitácora | Paso 3 |
 
@@ -38,7 +37,7 @@ Esto es lo que evita que la bitácora se convierta en el basurero donde va todo.
 Va en `docs/gestion/bitacora-sesiones.md`, **arriba de la entrada más reciente** del sprint en curso.
 
 ```markdown
-### AAAA-MM-DD · D<N> · `rama`
+### AAAA-MM-DD · `rama`
 **Qué:** <resultado en pasado, máximo 2 líneas>
 **Sigue:** <siguiente paso concreto, una línea>
 ```

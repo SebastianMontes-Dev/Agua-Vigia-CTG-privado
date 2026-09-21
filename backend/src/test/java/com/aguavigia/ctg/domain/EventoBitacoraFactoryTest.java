@@ -57,12 +57,45 @@ class EventoBitacoraFactoryTest {
         SectorId sectorId = new SectorId("bocagrande");
 
         EventoBitacora evento = EventoBitacoraFactory.consensoConfirmado(
-                sectorId, EstadoServicio.SIN_SERVICIO, 5, ahora);
+                sectorId, EstadoServicio.SIN_SERVICIO, ids("r1", "r2", "r3", "r4", "r5"), ahora);
 
         assertThat(evento.tipo()).isEqualTo(TipoEvento.CORTE_CONFIRMADO_POR_CIUDADANOS);
         assertThat(evento.sectorId()).isEqualTo(sectorId);
         assertThat(evento.corteId()).isNull();
         assertThat(evento.timestamp()).isEqualTo(ahora);
         assertThat(evento.descripcion()).contains("5").contains("bocagrande").contains("SIN_SERVICIO");
+    }
+
+    /**
+     * RF011 — el evento debe poder responder «¿qué reportes sostuvieron este cambio?». Sin los ids
+     * quedaba solo un conteo, y un veedor no podía contrastar el cambio con la evidencia.
+     */
+    @Test
+    void elEventoDeConsensoDebeConservarLosReportesQueSustentanElCambio() {
+        EventoBitacora evento = EventoBitacoraFactory.consensoConfirmado(
+                new SectorId("bocagrande"), EstadoServicio.SIN_SERVICIO, ids("r1", "r2", "r3"), ahora);
+
+        assertThat(evento.reportesSustento()).containsExactly(
+                new ReporteId("r1"), new ReporteId("r2"), new ReporteId("r3"));
+    }
+
+    @Test
+    void elEventoDeConsensoDebeAfirmarElEstadoAlQueCambio() {
+        EventoBitacora evento = EventoBitacoraFactory.consensoConfirmado(
+                new SectorId("bocagrande"), EstadoServicio.SIN_SERVICIO, ids("r1", "r2", "r3"), ahora);
+
+        assertThat(evento.estado()).isEqualTo(EstadoServicio.SIN_SERVICIO);
+    }
+
+    @Test
+    void unEventoSinSustentoNoDebeTenerListaNula() {
+        EventoBitacora evento = new EventoBitacora(new EventoId("e1"), TipoEvento.CORTE_ANUNCIADO,
+                new SectorId("manga"), null, ahora, "anuncio");
+
+        assertThat(evento.reportesSustento()).isEmpty();
+    }
+
+    private static java.util.List<ReporteId> ids(String... valores) {
+        return java.util.Arrays.stream(valores).map(ReporteId::new).toList();
     }
 }

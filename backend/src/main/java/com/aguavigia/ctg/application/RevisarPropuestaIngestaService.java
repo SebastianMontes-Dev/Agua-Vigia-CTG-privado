@@ -1,5 +1,6 @@
 package com.aguavigia.ctg.application;
 
+import com.aguavigia.ctg.domain.EntidadNoEncontradaException;
 import com.aguavigia.ctg.domain.CorteId;
 import com.aguavigia.ctg.domain.EstadoCorte;
 import com.aguavigia.ctg.domain.EventoBitacoraFactory;
@@ -115,7 +116,7 @@ public class RevisarPropuestaIngestaService implements RevisarPropuestaIngestaUs
 
     private PropuestaIngesta buscarOLanzar(PropuestaId id) {
         return propuestas.buscarPorId(id)
-                .orElseThrow(() -> new IllegalArgumentException(
+                .orElseThrow(() -> new EntidadNoEncontradaException(
                         "No existe la propuesta '" + id.valor() + "'"));
     }
 }

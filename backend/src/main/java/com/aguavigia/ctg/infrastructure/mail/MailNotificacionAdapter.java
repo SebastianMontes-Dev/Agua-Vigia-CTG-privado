@@ -68,6 +68,7 @@ public class MailNotificacionAdapter implements NotificacionPort {
         String html = plantillaConfirmacion.renderizar(java.util.Map.of(
                 "nombreSector", nombresSectores,
                 "urlConfirmacion", urlConfirmacion,
+                "urlBaja", urlBasePublica + "/api/suscripciones/cancelar?token=" + suscripcion.tokenConfirmacion(),
                 "horasVigencia", String.valueOf(horasVigenciaToken)));
 
         try {
@@ -106,7 +107,7 @@ public class MailNotificacionAdapter implements NotificacionPort {
                 Map.entry("estadoColorFondo", estado.colorFondo()),
                 Map.entry("estadoColorBorde", estado.colorBorde()),
                 Map.entry("actualizadoLegible", fechaLegible(sector.estadoActualizadoEn())),
-                Map.entry("urlReportar", urlBasePublica + "/sectores/" + sector.id().valor()),
+                Map.entry("urlReportar", urlBasePublica + "/api/sectores/" + sector.id().valor()),
                 // RF015 — baja en 1 clic en cada correo, no solo en el de confirmación.
                 Map.entry("urlBaja", urlBasePublica + "/api/suscripciones/cancelar?token="
                         + suscripcion.tokenConfirmacion())));

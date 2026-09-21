@@ -1,5 +1,6 @@
 package com.aguavigia.ctg.infrastructure.persistence.mongo;
 
+import com.aguavigia.ctg.domain.Coordenada;
 import com.aguavigia.ctg.domain.EstadoServicio;
 import com.aguavigia.ctg.domain.Sector;
 import com.aguavigia.ctg.domain.SectorId;
@@ -22,9 +23,9 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Prueba de integracion del adaptador contra un MongoDB real (DoD de D3, punto 1).
+ * Prueba de integracion del adaptador contra un MongoDB real.
  * Se llama *Test y no *IT a proposito: el pom no configura failsafe, asi que un *IT no lo
- * ejecutaria nadie ni en local ni en el CI. Requiere Docker, que ya exige la compuerta C0.
+ * ejecutaria nadie ni en local ni en el CI. Requiere Docker.
  */
 @Testcontainers
 @DataMongoTest
@@ -173,5 +174,113 @@ class SectorMongoAdapterTest {
     @Test
     void buscarPorIdDebeDevolverVacioCuandoElSectorNoExiste() {
         assertThat(adaptador.buscarPorId(new SectorId("no-existe"))).isEmpty();
+    }
+
+    @Test
+    void cambiarEstadoSiEsDebeCambiarCuandoElEstadoEsElEsperado() {
+        sembrar("manga", "MANGA", 5000);
+        adaptador.guardar(adaptador.buscarPorId(new SectorId("manga")).orElseThrow()
+                .conEstado(EstadoServicio.CON_SERVICIO));
+
+        boolean cambio = adaptador.cambiarEstadoSiEs(
+                new SectorId("manga"), EstadoServicio.CON_SERVICIO, EstadoServicio.SIN_SERVICIO);
+
+        assertThat(cambio).isTrue();
+        Sector leido = adaptador.buscarPorId(new SectorId("manga")).orElseThrow();
+        assertThat(leido.estadoActual()).isEqualTo(EstadoServicio.SIN_SERVICIO);
+        assertThat(leido.estadoActualizadoEn()).isEqualTo(INSTANTE_FIJO);
+    }
+
+    @Test
+    void cambiarEstadoSiEsNoDebeCambiarSiElEstadoYaNoEsElEsperado() {
+        sembrar("manga", "MANGA", 5000);
+        adaptador.guardar(adaptador.buscarPorId(new SectorId("manga")).orElseThrow()
+                .conEstado(EstadoServicio.PRESION_BAJA));
+
+        boolean cambio = adaptador.cambiarEstadoSiEs(
+                new SectorId("manga"), EstadoServicio.CON_SERVICIO, EstadoServicio.SIN_SERVICIO);
+
+        assertThat(cambio).isFalse();
+        assertThat(adaptador.buscarPorId(new SectorId("manga")).orElseThrow().estadoActual())
+                .isEqualTo(EstadoServicio.PRESION_BAJA);
+    }
+
+    /** Un sector recién sembrado no tiene `estadoActual`: «esperado nulo» debe casar con eso. */
+    @Test
+    void cambiarEstadoSiEsDebeAceptarUnEsperadoNuloParaUnSectorSinEstado() {
+        sembrar("manga", "MANGA", 5000);
+
+        boolean cambio = adaptador.cambiarEstadoSiEs(new SectorId("manga"), null, EstadoServicio.SIN_SERVICIO);
+
+        assertThat(cambio).isTrue();
+    }
+
+    /** La carrera real: N peticiones leen el mismo estado y las N intentan cambiarlo. Solo una debe ganar. */
+    @Test
+    void cambiarEstadoSiEsConPeticionesSimultaneasDebeTenerUnUnicoGanador() throws Exception {
+        sembrar("manga", "MANGA", 5000);
+        adaptador.guardar(adaptador.buscarPorId(new SectorId("manga")).orElseThrow()
+                .conEstado(EstadoServicio.CON_SERVICIO));
+        int peticiones = 16;
+        var listos = new java.util.concurrent.CountDownLatch(peticiones);
+        var salida = new java.util.concurrent.CountDownLatch(1);
+        var ganadores = new java.util.concurrent.atomic.AtomicInteger();
+
+        try (var pool = java.util.concurrent.Executors.newFixedThreadPool(peticiones)) {
+            var tareas = new java.util.ArrayList<java.util.concurrent.Future<?>>();
+            for (int i = 0; i < peticiones; i++) {
+                tareas.add(pool.submit(() -> {
+                    listos.countDown();
+                    salida.await();
+                    if (adaptador.cambiarEstadoSiEs(
+                            new SectorId("manga"), EstadoServicio.CON_SERVICIO, EstadoServicio.SIN_SERVICIO)) {
+                        ganadores.incrementAndGet();
+                    }
+                    return null;
+                }));
+            }
+            listos.await();
+            salida.countDown();
+            for (var tarea : tareas) {
+                tarea.get(30, java.util.concurrent.TimeUnit.SECONDS);
+            }
+        }
+
+        assertThat(ganadores.get()).isEqualTo(1);
+    }
+
+    @Test
+    void buscarPorCoordenadaDebeDevolverElSectorCuyoPoligonoLaContiene() {
+        sembrar("manga", "MANGA", 5000);
+
+        var encontrado = adaptador.buscarPorCoordenada(new Coordenada(10.405, -75.541));
+
+        assertThat(encontrado).isPresent();
+        assertThat(encontrado.get().id()).isEqualTo(new SectorId("manga"));
+    }
+
+    @Test
+    void buscarPorCoordenadaDebeDevolverVacioCuandoCaeFueraDeTodoSector() {
+        sembrar("manga", "MANGA", 5000);
+
+        assertThat(adaptador.buscarPorCoordenada(new Coordenada(10.50, -75.60))).isEmpty();
+    }
+
+    /** `zona-industrial` es el único MultiPolygon de los 211 (ver SectorDocumento). */
+    @Test
+    void buscarPorCoordenadaDebeFuncionarConUnMultiPolygon() {
+        mongoTemplate.getDb().getCollection("sectores").insertOne(new org.bson.Document()
+                .append("slug", "la-boquilla")
+                .append("nombre", "LA BOQUILLA")
+                .append("geometry", new org.bson.Document("type", "MultiPolygon")
+                        .append("coordinates", List.of(List.of(List.of(
+                                List.of(-75.49, 10.45), List.of(-75.48, 10.45),
+                                List.of(-75.48, 10.46), List.of(-75.49, 10.46),
+                                List.of(-75.49, 10.45))))))) ;
+
+        var encontrado = adaptador.buscarPorCoordenada(new Coordenada(10.455, -75.485));
+
+        assertThat(encontrado).isPresent();
+        assertThat(encontrado.get().id()).isEqualTo(new SectorId("la-boquilla"));
     }
 }
