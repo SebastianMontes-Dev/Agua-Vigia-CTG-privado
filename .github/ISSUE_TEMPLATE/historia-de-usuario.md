@@ -39,4 +39,3 @@ Escenario: <caso de borde — siempre al menos uno>
 - [ ] PR fusionado
 - [ ] Fila en `docs/gestion/registro-de-implementaciones.md`
 - [ ] Fila actualizada en `docs/ingenieria/matriz-trazabilidad.md`
-- [ ] Si toca interfaz: checklist de `DESIGN.md` §10

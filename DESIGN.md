@@ -35,10 +35,11 @@ Los cuatro son más oscuros en el tema claro que la paleta viva de la que salier
 `#ff453a`, `#ff9f0a`, `#98989d`): esa versión daba entre 2.0:1 y 3.3:1 sobre superficie clara y no
 pasaba el AA que exige §7. Medido y decidido en `ADR-042`.
 
-**Una sola fuente por token.** Estos valores viven en `--color-estado-*` de `frontend/src/index.css`
-y en `COLOR_POR_ESTADO` de `frontend/src/types/tipos-dominio.ts` — el CSS pinta la leyenda y el TS
-pinta los polígonos del mapa. **Si divergen, el mismo estado sale de un color en el mapa y de otro
-en la leyenda, y el color deja de significar algo.** Cambiarlos es cambiar los dos a la vez.
+**Una sola fuente por token.** Estos valores viven aquí, en esta tabla. El frontend se retiró de
+este repositorio (`ADR-048`) y lo rehará otra persona: deberá definir cada color una sola vez y
+reutilizarlo en el mapa y en la leyenda. **Si divergen, el mismo estado sale de un color en el mapa
+y de otro en la leyenda, y el color deja de significar algo.** El backend usa estos mismos valores
+en las plantillas de correo y en `EstadoServicio`; cambiarlos es cambiar todos a la vez.
 
 **Regla estricta:** estos cuatro colores están reservados para el estado del servicio. La interfaz
 usa el acento turquesa para todo lo demás. Si un botón de "guardar" es verde, el mapa pierde su
@@ -64,8 +65,8 @@ Superficie        #fbfdfc            #0c2830
 Fondo             #f2f7f6            #061c23
 ```
 
-Fuente única: `:root` de `frontend/src/index.css`. Esta tabla es su copia legible — si difieren,
-manda el CSS y esta tabla es el defecto.
+Fuente única: esta tabla. Con el frontend retirado (`ADR-048`) ya no hay un CSS que la contradiga;
+el frontend nuevo debe declararla tal cual en su `:root`.
 
 Los neutros tienen un sesgo azulado sutil, no son grises puros. Es una decisión: el gris neutro se lee
 como plantilla sin criterio; un neutro con temperatura se lee como elegido.

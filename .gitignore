@@ -19,14 +19,11 @@ target/
 *.war
 hs_err_pid*
 
-# ─── Node / React ───
+# ─── Node (solo scripts/) ───
 node_modules/
 dist/
-dist-ssr/
-.vite/
 *.local
 coverage/
-.eslintcache
 
 # ─── IDEs ───
 .idea/
