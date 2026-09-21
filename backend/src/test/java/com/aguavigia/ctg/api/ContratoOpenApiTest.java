@@ -26,7 +26,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * `backend/openapi.yaml` es la compuerta C2: el contrato versionado del que D4 genera su cliente.
+ * `backend/openapi.yaml` es el contrato versionado del que el frontend genera su cliente.
  * Se genera con la aplicación corriendo y se comitea a mano, así que nada garantizaba que siguiera
  * al día — un endpoint nuevo sin regenerar y el frontend queda programando contra un contrato que
  * ya no existe.
@@ -67,6 +67,30 @@ class ContratoOpenApiTest {
     @Autowired
     private MockMvc mockMvc;
 
+    /**
+     * Regenera `backend/openapi.yaml` desde el código, sin levantar la aplicación:
+     *   ./mvnw test -Dtest=ContratoOpenApiTest -Dopenapi.regenerar=true
+     * Después revisar el diff y comitear. No es un test: si no se pide, no hace nada.
+     */
+    @Test
+    void regenerarElContratoSoloCuandoSePide() throws Exception {
+        org.junit.jupiter.api.Assumptions.assumeTrue(System.getProperty("openapi.regenerar") != null,
+                "Se regenera solo con -Dopenapi.regenerar=true");
+
+        String yaml = mockMvc.perform(get("/v3/api-docs.yaml"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        Files.writeString(CONTRATO, yaml, java.nio.charset.StandardCharsets.UTF_8);
+
+        // Copia en JSON, sin versionar (target/): la lee scripts/generar-referencia-api.mjs, que no
+        // trae un parser de YAML.
+        String json = mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        Files.createDirectories(Path.of("target"));
+        Files.writeString(Path.of("target", "openapi.json"), json, java.nio.charset.StandardCharsets.UTF_8);
+    }
+
     @Test
     void elContratoVersionadoDebeCoincidirConLoQueElBackendExponeDeVerdad() throws Exception {
         String contratoVivo = mockMvc.perform(get("/v3/api-docs"))
@@ -79,10 +103,37 @@ class ContratoOpenApiTest {
         assertThat(rutasReales)
                 .as("""
                         backend/openapi.yaml quedó desincronizado con el código.
-                        Regeneralo con la aplicación corriendo:
-                          curl -s http://localhost:8080/v3/api-docs.yaml -o backend/openapi.yaml
+                        Regeneralo (no hace falta levantar la aplicación):
+                          cd backend && ./mvnw test -Dtest=ContratoOpenApiTest -Dopenapi.regenerar=true
                         """)
                 .isEqualTo(rutasVersionadas);
+    }
+
+    /**
+     * Sin esto, un cliente generado desde el contrato no sabe que el panel exige sesión: ningún
+     * endpoint de `/api/veedor/**` figuraba como protegido y el 401/403 no estaba documentado.
+     */
+    @Test
+    void elContratoDebeDeclararQueElPanelExigeElTokenBearer() throws Exception {
+        mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers
+                        .jsonPath("$.components.securitySchemes.bearerAuth.scheme").value("bearer"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers
+                        .jsonPath("$.paths['/api/veedor/cortes'].post.security[0].bearerAuth").exists())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers
+                        .jsonPath("$.paths['/api/veedor/cortes'].post.responses['401']").exists())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers
+                        .jsonPath("$.paths['/api/veedor/cortes'].post.responses['403']").exists());
+    }
+
+    /** Ni el login ni las rutas públicas piden token: marcarlas como protegidas confundiría al cliente. */
+    @Test
+    void elLoginYLasRutasPublicasNoDebenExigirToken() throws Exception {
+        mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers
+                        .jsonPath("$.paths['/api/veedor/sesion'].post.security").doesNotExist())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers
+                        .jsonPath("$.paths['/api/sectores'].get.security").doesNotExist());
     }
 
     @Test

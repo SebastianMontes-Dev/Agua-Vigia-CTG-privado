@@ -66,7 +66,8 @@ export default function (data) {
     const sectorId = data.sectores[Math.floor(Math.random() * data.sectores.length)];
     const tipo = TIPOS[Math.floor(Math.random() * TIPOS.length)];
     // Un "vecino" simulado distinto por solicitud — ver comentario de cabecera sobre RF006.
-    const huella = `k6-${__VU}-${__ITER}-${Date.now()}`;
+    // padEnd: la API exige entre 32 y 128 caracteres (SolicitudReporte.huella).
+    const huella = `k6-${__VU}-${__ITER}-${Date.now()}`.padEnd(40, '0');
 
     const payload = JSON.stringify({ sectorId, tipo, huella });
     const params = { headers: { 'Content-Type': 'application/json' } };

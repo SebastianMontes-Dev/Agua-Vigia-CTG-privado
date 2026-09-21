@@ -1,6 +1,6 @@
 ---
 name: registrar-decision
-description: Registra una decisión de diseño o arquitectura en la bitácora del proyecto (docs/design-decisions.md) con el formato ADR acordado. Úsala cuando el equipo escoja entre alternativas, descarte un enfoque, cambie una decisión previa, o cuando se descubra algo que invalide un supuesto anterior.
+description: Registra una decisión de diseño o arquitectura en la bitácora del proyecto (docs/design-decisions.md) con el formato ADR acordado. Úsala cuando se escoja entre alternativas, descarte un enfoque, cambie una decisión previa, o cuando se descubra algo que invalide un supuesto anterior.
 ---
 
 # Registrar una decisión (ADR)

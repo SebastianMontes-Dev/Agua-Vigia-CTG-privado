@@ -1,5 +1,5 @@
 #!/bin/sh
-# Script para liberar puertos comunes de desarrollo (8080, 8081, 5173)
+# Script para liberar puertos comunes de desarrollo (8080, 8081)
 PUERTOS=""
 for puerto in $PUERTOS; do
   pid=$(lsof -ti:$puerto 2>/dev/null)

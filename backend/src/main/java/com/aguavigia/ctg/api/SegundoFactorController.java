@@ -46,9 +46,16 @@ public class SegundoFactorController {
                     El secreto queda guardado sin confirmar y todavia no se exige al entrar. Solo
                     empieza a hacerlo tras confirmar un codigo valido. El secreto se muestra una
                     sola vez: no hay endpoint para volver a leerlo.""")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Secreto generado, pendiente de confirmar"),
+            @ApiResponse(responseCode = "401", description = "El codigo actual no coincide"),
+            @ApiResponse(responseCode = "409", description = "Ya tiene segundo factor y no envio el codigo actual")
+    })
     @PostMapping("/alta")
-    public AltaSegundoFactorRespuesta iniciar(HttpServletRequest peticion) {
-        var alta = configurar.iniciar(ContextoHttp.usuarioActual(), ContextoHttp.de(peticion));
+    public AltaSegundoFactorRespuesta iniciar(@RequestBody(required = false) SolicitudCodigo solicitud,
+                                              HttpServletRequest peticion) {
+        String codigoActual = solicitud == null ? null : solicitud.codigo();
+        var alta = configurar.iniciar(ContextoHttp.usuarioActual(), codigoActual, ContextoHttp.de(peticion));
         return new AltaSegundoFactorRespuesta(alta.uri(), alta.secreto());
     }
 

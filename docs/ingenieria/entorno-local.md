@@ -3,9 +3,9 @@
 > **Para qué sirve este archivo.** `.env` nunca se versiona (`.gitignore`), así que cada
 > persona que clona el repo empieza con dos variables vacías —`JWT_SECRET` y
 > `VEEDOR_PASSWORD_HASH`— y el panel del veedor responde 503 hasta configurarlas. Esto quedó
-> sin resolver durante varias sesiones seguidas de integración frontend-backend, siempre
+> sin resolver durante varias sesiones seguidas de integración, siempre
 > pospuesto por ser "solo config, no código". Esta nota es el único lugar que hace falta leer
-> para dejarlo funcionando, con una clave de equipo lista para copiar y pegar.
+> para dejarlo funcionando, con una clave de desarrollo lista para copiar y pegar.
 >
 > **Última actualización:** 2026-08-12
 
@@ -29,22 +29,21 @@ Con esto el mapa, los reportes, las suscripciones, la bitácora, las estadístic
 | `JWT_SECRET` | Firma el token de sesión del veedor (RNF011, HS256, mínimo 32 bytes) | `POST /api/veedor/sesion` responde `503` — *"El servidor no tiene configurado JWT_SECRET"* |
 | `VEEDOR_PASSWORD_HASH` | Hash BCrypt de la clave del **primer administrador** — **nunca la clave en texto plano**. Desde `ADR-039` ya no es una credencial compartida: solo siembra esa primera cuenta y deja de usarse en cuanto existe alguna | Sin ella no se siembra ningún administrador y el panel queda sin acceso |
 | `ADMIN_INICIAL_CORREO` | Correo con el que se crea ese primer administrador. En local, `veedor@aguavigia.local` | Sin él tampoco se siembra: el arranque lo dice en el log y sigue |
-| `APP_URL_PUBLICA` | Base desde la que se arman los enlaces que salen por correo. Debe apuntar al **sitio**, no a la API: en local, `http://localhost:5173` | Los correos llevan a respuestas JSON en vez de a una pantalla |
+| `APP_URL_PUBLICA` | Base desde la que se arman los enlaces que salen por correo. Sin frontend (`ADR-048`) apunta a la propia API: en local, `http://localhost:8081`. En producción es **obligatoria** y no puede ser `localhost` | Los enlaces de los correos salen rotos |
 
 Ambas se leen en `VeedorAuthController.java` (`backend/src/main/java/.../api/VeedorAuthController.java`).
 Son credenciales de **desarrollo local**, no de producción: el perfil `prod` exige las suyas
-propias y aborta el arranque si faltan (`ValidacionDeSecretosProd` — ver
-`docs/anexos/anexo-5-manual-tecnico.md`, sección de despliegue, para ese caso).
+propias y aborta el arranque si faltan (`ValidacionDeSecretosProd`).
 
-## 3. La vía rápida — copiar la clave de equipo
+## 3. La vía rápida — copiar la clave de desarrollo
 
-Para desarrollo local, todo el equipo puede compartir la misma clave. Pega esto en tu `.env`:
+Para desarrollo local, se puede usar esta misma clave. Pega esto en tu `.env`:
 
 ```bash
 JWT_SECRET=jHZczrMtY+dNWbYoCFZe3ZOvDUl8j7rWqVDeEeLMfIQ=
 VEEDOR_PASSWORD_HASH=$$2a$$10$$IUf9Q.qBPoWuaiCNq9PEVusG7eHYzMP4IAnUjNcl7RiMSwp46MKPu
 ADMIN_INICIAL_CORREO=veedor@aguavigia.local
-APP_URL_PUBLICA=http://localhost:5173
+APP_URL_PUBLICA=http://localhost:8081
 ```
 
 Clave del veedor para entrar al panel (`/veedor`): **`AguaVigia-Dev-2026`**
@@ -107,7 +106,7 @@ Borra únicamente las cuentas del panel: reportes, boletines y cortes quedan int
 
 ## 4. La vía propia — generar tu propia clave
 
-Si prefieres no compartir la del equipo:
+Si prefieres generar una propia:
 
 ```bash
 # JWT_SECRET — 32 bytes al azar
@@ -146,11 +145,34 @@ VEEDOR_PASSWORD_HASH`); un `401` significa que la clave no coincide con el hash 
 | `INGESTA_INTERVALO_MS` | Cada cuánto corre el ciclo de ingesta automatizada (M9), en milisegundos | Bajarlo si necesitas ver una propuesta de ingesta sin esperar 10 minutos |
 | `IOT_KEY` | Clave que deben mandar los sensores IoT (M13) en `POST /api/iot/presion` | Solo si vas a probar ese endpoint — vacía, responde 503 y el resto de la app sigue igual |
 | `MONGODB_URI`, `REDIS_HOST/PORT`, `MAIL_HOST/PORT` | Ya apuntan a los servicios de `docker-compose.yml` | No tocar salvo que cambies la topología de contenedores |
-| `VITE_API_BASE_URL` | Base de la API que consume el frontend (`/api`, mismo origen vía proxy) | No tocar — `frontend/INTEGRACION-BACKEND.md` explica por qué |
+
+## 7. Datos de demostración: 20 000 cuentas para la presentación
+
+Para mostrar una base grande y variada, `scripts/sembrar-usuarios-demo.mjs` siembra **20 000 cuentas** en la colección
+`usuarios`: nombres completos **todos distintos**, correos con estilos y proveedores variados, los seis estados de cuenta
+(`ACTIVA`, `PENDIENTE_APROBACION`, `PENDIENTE_VERIFICACION`, `INVITADA`, `SUSPENDIDA`, `RECHAZADA`), los roles `OBSERVADOR` y `VEEDOR`
+(con algunos permisos sueltos) y fechas de alta repartidas en los últimos 18 meses.
+
+**El orden importa**: el ADMIN inicial solo se crea si **no existe ninguna cuenta**. Primero arranca el backend con
+`ADMIN_INICIAL_CORREO` y `VEEDOR_PASSWORD_HASH` (sección 2) y **después** siembra:
+
+```bash
+docker compose up -d mongo redis mailhog     # y arranca el backend con las dos variables del ADMIN
+cd scripts && npm install                    # solo la primera vez
+node sembrar-usuarios-demo.mjs               # 20 000 cuentas en ~3 s; --cantidad y --semilla opcionales
+```
+
+- **Idempotente y seguro:** antes de insertar borra solo lo que él mismo sembró (marca `datosDeDemostracion`); no toca al ADMIN
+  ni a cuentas reales. Se niega a correr contra una base que no sea local.
+- **Determinista:** la misma semilla da las mismas cuentas.
+- **Entrar como una cuenta sembrada:** las `ACTIVA` (VEEDOR y OBSERVADOR, nunca ADMIN) usan la clave `DemoAguaVigia-2026`.
+- **Cómo verlas:** como ADMIN, `GET /api/veedor/usuarios?pagina=0&tamano=200` devuelve `X-Total-Count: 20001` (las 20 000 más el
+  ADMIN) y 101 páginas; se puede filtrar con `?estado=ACTIVA`.
+- **Comprobado el 2026-09-21** contra el backend real: 20 001 cuentas, páginas y filtros en 17–58 ms, inicio de sesión de un
+  VEEDOR y un OBSERVADOR sembrados, y una cuenta suspendida rechazada con 403.
 
 ---
 
-Documentos relacionados: [`../../frontend/INTEGRACION-BACKEND.md`](../../frontend/INTEGRACION-BACKEND.md)
-(qué endpoint usa cada pantalla) · [`estado-del-backend.md`](estado-del-backend.md) §6.2
-(por qué esto quedó pendiente tanto tiempo) · [`../anexos/anexo-5-manual-tecnico.md`](../anexos/anexo-5-manual-tecnico.md)
-(las mismas variables, pero para producción).
+Documentos relacionados: [`../api/README.md`](../api/README.md)
+(la guía de la API para el frontend) · [`estado-del-backend.md`](estado-del-backend.md) §6.2
+(por qué esto quedó pendiente tanto tiempo).

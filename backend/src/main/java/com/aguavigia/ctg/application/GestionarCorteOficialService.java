@@ -1,5 +1,6 @@
 package com.aguavigia.ctg.application;
 
+import com.aguavigia.ctg.domain.EntidadNoEncontradaException;
 import com.aguavigia.ctg.domain.CorteAgua;
 import com.aguavigia.ctg.domain.CorteId;
 import com.aguavigia.ctg.domain.EstadoServicio;
@@ -87,7 +88,7 @@ public class GestionarCorteOficialService implements GestionarCorteOficialUseCas
     @Override
     public CorteAgua cerrar(CorteId corteId, Instant horaReal) {
         CorteAgua corte = cortes.buscarPorId(corteId)
-                .orElseThrow(() -> new IllegalArgumentException(
+                .orElseThrow(() -> new EntidadNoEncontradaException(
                         "No existe el corte '" + corteId.valor() + "'"));
 
         CorteAgua cerrado = corte.cerrar(horaReal);

@@ -1,11 +1,11 @@
 ---
 name: registrar-recomendacion
-description: Registra en docs/gestion/recomendaciones-ia.md una observación de mejora que Claude detecta al trabajar en el repositorio — algo que se está haciendo mal o podría hacerse mejor, para que el equipo la valide. Aparece automáticamente en la Sala de control (sección Recomendaciones) en la próxima regeneración. Úsala en el momento en que se nota algo, no al final de la sesión.
+description: Registra en docs/gestion/recomendaciones-ia.md una observación de mejora que Claude detecta al trabajar en el repositorio — algo que se está haciendo mal o podría hacerse mejor, para que el usuario la valide. Aparece automáticamente en la Sala de control (sección Recomendaciones) en la próxima regeneración. Úsala en el momento en que se nota algo, no al final de la sesión.
 ---
 
 # Registrar una recomendación
 
-Es una lectura para que el equipo valide, no un veredicto ni una tarea asignada. Se distingue de los
+Es una lectura para que el usuario valide, no un veredicto ni una tarea asignada. Se distingue de los
 otros registros por lo que NO es:
 
 - No es un defecto → eso es la skill `registrar-bug`.
@@ -15,8 +15,8 @@ otros registros por lo que NO es:
 ## Cuándo usar esto
 
 Al notar, en el trabajo normal de una sesión, algo que se está haciendo peor de lo que podría ser —un
-riesgo, una inconsistencia, una deuda que crece, un cuello de botella entre roles. No hace falta que
-sea grave ni que se pueda arreglar ahora mismo: el punto es dejarlo escrito para que el equipo lo vea
+riesgo, una inconsistencia, una deuda que crece, un cuello de botella. No hace falta que
+sea grave ni que se pueda arreglar ahora mismo: el punto es dejarlo escrito para que el usuario lo vea
 y decida, no resolverlo en silencio ni quedárselo para el resumen final.
 
 ## Paso 1 — Escribir la entrada
@@ -43,16 +43,16 @@ dónde verificarla.>
 Verifica la fecha con `date`, no con la que traigas en contexto — la misma regla de
 `protocolo-de-contexto.md` §3 aplica aquí igual que en los bugs.
 
-## Paso 3 — Cuando el equipo la resuelve
+## Paso 3 — Cuando el usuario la resuelve
 
-Alguien del equipo —no Claude— cambia el `Estado` a `Validada`, `Descartada` (con el motivo en una
+El usuario —no Claude— cambia el `Estado` a `Validada`, `Descartada` (con el motivo en una
 línea) o `Resuelta`. No cambies tú ese estado a menos que el usuario te diga explícitamente en el
 chat que la validó o descartó: es su lectura la que cuenta, no la tuya sobre la tuya.
 
 ## Reglas de escritura
 
-- **El título es la conclusión, no la causa que supones.** `El ROSTER está duplicado entre el script
-  y roles-y-tareas.md`, no `hay que refactorizar el script`.
+- **El título es la conclusión, no la causa que supones.** `El extractor de la Sala de control falla en silencio cuando
+  cambia el formato de una tabla`, no `hay que refactorizar el script`.
 - **Sin exagerar severidad.** Esto no es un bug: no uses S1–S4 ni digas "urgente" a menos que de
   verdad bloquee algo.
 - **Máximo un párrafo corto por entrada.** Si necesita más espacio, probablemente es un ADR o un

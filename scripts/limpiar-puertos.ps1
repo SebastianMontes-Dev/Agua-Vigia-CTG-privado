@@ -1,6 +1,6 @@
-﻿# Script para liberar puertos comunes de desarrollo (8080, 8081, 5173, 8025, 1025)
+﻿# Script para liberar puertos comunes de desarrollo (8080, 8081, 8025, 1025)
 param (
-    [int[]]$Puertos = @(8080, 8081, 5173, 8025, 1025)
+    [int[]]$Puertos = @(8080, 8081, 8025, 1025)
 )
 
 Write-Host "Verificando puertos ocupados: $($Puertos -join ', ')..." -ForegroundColor Cyan

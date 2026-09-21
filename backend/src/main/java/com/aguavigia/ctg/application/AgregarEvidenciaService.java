@@ -1,5 +1,6 @@
 package com.aguavigia.ctg.application;
 
+import com.aguavigia.ctg.domain.EntidadNoEncontradaException;
 import com.aguavigia.ctg.domain.ReporteCiudadano;
 import com.aguavigia.ctg.domain.ReporteId;
 import com.aguavigia.ctg.domain.port.in.AgregarEvidenciaUseCase;
@@ -34,7 +35,7 @@ public class AgregarEvidenciaService implements AgregarEvidenciaUseCase {
     public ReporteCiudadano agregarEvidencia(String reporteId, String contentType, byte[] contenido) {
         ReporteId id = new ReporteId(reporteId);
         ReporteCiudadano reporte = reportes.buscarPorId(id)
-                .orElseThrow(() -> new IllegalArgumentException("No existe el reporte '" + reporteId + "'"));
+                .orElseThrow(() -> new EntidadNoEncontradaException("No existe el reporte '" + reporteId + "'"));
 
         String extension = contentType == null ? null : TIPOS_PERMITIDOS.get(contentType);
         if (extension == null) {

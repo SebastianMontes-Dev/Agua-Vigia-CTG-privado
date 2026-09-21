@@ -1,5 +1,6 @@
 package com.aguavigia.ctg.application;
 
+import com.aguavigia.ctg.domain.EntidadNoEncontradaException;
 import com.aguavigia.ctg.domain.ReporteCiudadano;
 import com.aguavigia.ctg.domain.ReporteId;
 import com.aguavigia.ctg.domain.port.in.ModerarReporteUseCase;
@@ -30,6 +31,6 @@ public class ModerarReporteService implements ModerarReporteUseCase {
 
     private ReporteCiudadano buscarOLanzar(ReporteId id) {
         return reportes.buscarPorId(id)
-                .orElseThrow(() -> new IllegalArgumentException("No existe el reporte '" + id.valor() + "'"));
+                .orElseThrow(() -> new EntidadNoEncontradaException("No existe el reporte '" + id.valor() + "'"));
     }
 }

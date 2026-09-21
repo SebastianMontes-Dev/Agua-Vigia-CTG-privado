@@ -3,12 +3,15 @@ package com.aguavigia.ctg.api.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 @Schema(description = "Reporte ciudadano sin registro (RF005-RF008)")
 public record SolicitudReporte(
 
-        @NotBlank
-        @Schema(description = "Identificador del sector reportado", example = "bocagrande")
+        @Schema(description = """
+                Identificador del sector reportado. Opcional si viaja la coordenada: entonces el
+                servidor infiere el barrio que la contiene (RF007). Si no viaja ninguno, 400.""",
+                example = "bocagrande", nullable = true)
         String sectorId,
 
         @NotBlank
@@ -16,6 +19,7 @@ public record SolicitudReporte(
         String tipo,
 
         @NotBlank
+        @Size(min = 32, max = 128, message = "La huella debe tener entre 32 y 128 caracteres")
         @Schema(description = """
                 Huella anónima del dispositivo (ADR-007) — no es una cuenta ni un identificador
                 personal. El cliente la genera una vez (p. ej. un UUID persistido en el dispositivo,

@@ -1,6 +1,7 @@
 package com.aguavigia.ctg.domain;
 
 import java.time.Instant;
+import java.util.List;
 
 /**
  * RF026-028 — inmutable, solo anexado. La creación de negocio pasa siempre por
@@ -31,7 +32,19 @@ public record EventoBitacora(
          */
         String urlOriginal,
         /** Portada del boletín que respalda el evento, cuando la fuente la trae. */
-        String imagenUrl) {
+        String imagenUrl,
+        /**
+         * RF011 — los reportes ciudadanos que sostuvieron el cambio, cuando el evento nace de un
+         * consenso. Vacía (nunca nula) en los demás. Permite contrastar el cambio con la evidencia.
+         */
+        List<ReporteId> reportesSustento) {
+
+    /** Para los eventos que no nacen de un consenso: sin reportes que los sustenten. */
+    public EventoBitacora(EventoId id, TipoEvento tipo, SectorId sectorId, CorteId corteId,
+                           Instant timestamp, String descripcion, EstadoServicio estado,
+                           String urlOriginal, String imagenUrl) {
+        this(id, tipo, sectorId, corteId, timestamp, descripcion, estado, urlOriginal, imagenUrl, List.of());
+    }
 
     /** Para los eventos que no afirman un estado del servicio ni citan una fuente externa. */
     public EventoBitacora(EventoId id, TipoEvento tipo, SectorId sectorId, CorteId corteId,
@@ -49,5 +62,6 @@ public record EventoBitacora(
         if (descripcion == null || descripcion.isBlank()) {
             throw new IllegalArgumentException("El evento debe tener descripción");
         }
+        reportesSustento = reportesSustento == null ? List.of() : List.copyOf(reportesSustento);
     }
 }

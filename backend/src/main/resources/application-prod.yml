@@ -11,6 +11,17 @@ spring:
   mail:
     host: ${MAIL_HOST}
     port: ${MAIL_PORT}
+    # Un SMTP publico exige autenticacion y TLS: sin esto los correos de cuentas y avisos se
+    # enviaban en claro o el servidor los rechazaba en silencio.
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: ${MAIL_STARTTLS_OBLIGATORIO:true}
 
 aguavigia:
   mantenimiento:

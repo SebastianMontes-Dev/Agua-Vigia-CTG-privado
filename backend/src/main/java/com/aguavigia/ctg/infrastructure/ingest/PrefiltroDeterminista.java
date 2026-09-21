@@ -7,7 +7,7 @@ import java.util.List;
  * Etapa 3 del pipeline (docs/ingenieria/pipeline-ingesta-datos.md §3): descarta ~70% del volumen
  * antes de gastar un token de IA. Sin costo, sin red, sin estado.
  *
- * Las 9 palabras son exactamente las del diseño ya aprobado por el equipo. Ampliarlas es decision
+ * Las 9 palabras son exactamente las del diseño ya aprobado. Ampliarlas es decision
  * de quien valide el conjunto dorado (100 boletines etiquetados a mano, §4 del mismo documento),
  * no algo que este prefiltro decida solo — un prefiltro que se autoexpande deja de ser determinista.
  */
