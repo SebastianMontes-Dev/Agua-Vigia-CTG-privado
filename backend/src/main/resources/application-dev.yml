@@ -13,10 +13,13 @@ spring:
 
 aguavigia:
   cors:
-    # Vacia desde que el frontend se retiro (ADR-048): sin un cliente de navegador en otro origen no
-    # hace falta CORS. El mecanismo sigue disponible (CorsProperties) para quien levante uno:
-    # basta listar aqui su origen, por ejemplo http://localhost:3000.
-    origenes-permitidos: []
+    # Solo en desarrollo: el frontend nuevo vive en este mismo repositorio (otras ramas) y se sirve con su
+    # propio servidor local, en otro origen que el backend. Los puertos habituales: 5173 (Vite), 3000
+    # (React/Next) y 4200 (Angular). En produccion sigue cerrado: todo pasa por el mismo proxy (infra/nginx).
+    origenes-permitidos:
+      - http://localhost:5173
+      - http://localhost:3000
+      - http://localhost:4200
 
 management:
   endpoint:

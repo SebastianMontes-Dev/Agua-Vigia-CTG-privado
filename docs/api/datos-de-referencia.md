@@ -98,6 +98,7 @@ el token solo sirve para configurarlo).
 | Clave de una cuenta | 12 a 128 caracteres |
 | Bloqueo de cuenta | 5 fallos en 15 min → bloqueada 15 min |
 | Retención de fotos | 365 días en producción (se borra el binario, no el reporte) |
+| Retención de reportes | **12 meses**: Mongo los borra solos (`ADR-058`). Los eventos de la bitácora son permanentes |
 
 ## De dónde salen los datos
 

@@ -109,6 +109,11 @@ aguavigia:
       - ruta: /api/veedor/cuenta/**
         limite: 10
         ventana-segundos: 300
+  retencion:
+    # Decision del dueno (2026-09-21): los reportes se conservan 12 meses y Mongo los borra solos (indice TTL).
+    # Los eventos de la bitacora son permanentes; sus ids de sustento quedan apuntando a reportes ya borrados.
+    # 0 desactiva la retencion.
+    reportes-dias: 365
   mantenimiento:
     fotos-huerfanas:
       # Reconciliacion disco-vs-Mongo: borra archivos en data/fotos que ningun reporte referencia.

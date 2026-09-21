@@ -70,6 +70,7 @@ public class IndicesMongo {
             // El de un solo campo (bases creadas antes) es prefijo del compuesto: solo encarece cada insercion.
             retirarIndiceSiExiste(indicesReportes, "estadoModeracion_1");
             log.info("Indices de `reportes` asegurados: sectorId+timestamp, sectorId+huella+timestamp y estadoModeracion+timestamp");
+            asegurarRetencionDeReportes(indicesReportes);
 
             var indicesSuscripciones = mongoTemplate.indexOps(SuscripcionDocumento.class);
             indicesSuscripciones.ensureIndex(new Index().on("tokenConfirmacion", Sort.Direction.ASC).unique());
@@ -119,6 +120,28 @@ public class IndicesMongo {
             log.warn("No se pudieron asegurar los indices: {}", noHayMongo.getMessage());
         }
     }
+    /**
+     * Retencion de reportes: Mongo los borra solo pasados `diasRetencionReportes` (indice TTL sobre
+     * `timestamp`). Los eventos de la bitacora son permanentes y conservan los ids de sus reportes de sustento,
+     * que pasado ese plazo apuntan a reportes que ya no existen. 0 desactiva la retencion.
+     *
+     * Va aparte del resto: cambiar el plazo en una base ya creada hace que Mongo rechace el indice (mismo nombre,
+     * otra caducidad), y eso no debe impedir que se creen los demas.
+     */
+    private void asegurarRetencionDeReportes(org.springframework.data.mongodb.core.index.IndexOperations indicesReportes) {
+        if (diasRetencionReportes <= 0) {
+            return;
+        }
+        try {
+            indicesReportes.ensureIndex(new Index().on("timestamp", Sort.Direction.ASC)
+                    .expire(Duration.ofDays(diasRetencionReportes)));
+            log.info("Retencion de `reportes`: se borran solos a los {} dias", diasRetencionReportes);
+        } catch (DataAccessException e) {
+            log.warn("No se pudo asegurar la retencion de reportes ({} dias); si ya existia con otro plazo, "
+                    + "hay que retirar el indice `timestamp_1` a mano: {}", diasRetencionReportes, e.getMessage());
+        }
+    }
+
     private static void retirarIndiceSiExiste(org.springframework.data.mongodb.core.index.IndexOperations indices, String nombre) {
         boolean existe = indices.getIndexInfo().stream().anyMatch(indice -> nombre.equals(indice.getName()));
         if (existe) {
