@@ -186,6 +186,7 @@ cada PR y en `estado-del-backend.md` (`./mvnw verify`: 823 pruebas, 0 fallos).
 | — | infra | Actions del CI actualizadas: `checkout` 4→7, `setup-java` 4→6, `upload-artifact` 4→7 y `gitleaks-action` 2→3 (Dependabot) | #4, #24, #1, #8 | CI en verde sobre el `main` nuevo (imágenes y compose, Trivy, gitleaks por `push`) · ⚠️ `gitleaks` por `pull_request` fallaba por `BUG-089`, ajeno al cambio |
 | — | infra | Dependencias del backend: jjwt 0.12.6→0.13.0 y ArchUnit 1.3.0→1.5.0 (Dependabot) | #5, #9 | `Backend CI` completo (`./mvnw verify`) en verde sobre el `main` nuevo |
 | — | proceso | Dependabot ignora los saltos mayores de Spring Boot y springdoc (`ADR-059`); matriz, cobertura, plan de pruebas y recomendaciones alineados con `ADR-048` y `ADR-057`; corregido el extractor de cobertura de la Sala de control (`BUG-090`) | #25 | `generarDatos()` devuelve 46/40 RF, 27/17 RNF y 15 módulos con su avance · `node scripts/generar-dashboard.mjs`: 54 ADR, 1 bug abierto, 5 recomendaciones pendientes |
+| — | proceso | Retirado el pendiente «borrar `frontend/` del disco» de `estado-del-backend.md` y de la bitácora, ya cumplido | #26 | `ls frontend` → no existe · `git status` limpio · etiqueta `pre-retiro-frontend` intacta |
 
 ---
 

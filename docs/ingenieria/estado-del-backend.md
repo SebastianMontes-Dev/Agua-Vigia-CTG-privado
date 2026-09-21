@@ -105,8 +105,6 @@ de bugs (`BUG-076` a `BUG-088`; el `BUG-089` es del CI y sigue abierto).
 - **`gitleaks` en modo PR falla en todos los PR** con «Resource not accessible by integration» (403 al listar los commits del PR): a `.github/workflows/secret-scan.yml` le faltan `permissions: contents: read, pull-requests: read` (`BUG-089`). No es un hallazgo de secretos: el mismo escaneo por `push` pasa. Hasta que el dueño lo corrija, ese check rojo en un PR es esperado.
 
 ### Housekeeping pendiente del dueño
-- Borrar `frontend/` **del disco** (`node_modules`, `dist`, `test-results`, ~364 MB, ignorados por git): la regla de
-  permisos del proyecto bloquea `rm -rf`.
 - Añadir los `permissions` a `secret-scan.yml` (`BUG-089`); la regla `Read(**/*secret*)` de `.claude/settings.json` impide que el agente abra ese archivo (`REC-016`).
 
 ## 6. Trampas del entorno (esto ahorra una hora)
