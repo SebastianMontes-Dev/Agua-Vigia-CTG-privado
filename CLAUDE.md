@@ -22,7 +22,7 @@ vacío de información que multiplica el daño. Toda decisión de alcance se juz
 **Sprint 0 y 1 cerrados; Sprint 2 abierto.** El andamiaje terminó: M1–M15 están construidos, backend
 y frontend conectados, y `ADR-009` ya no aplica — implementar un `RF` es el trabajo normal ahora.
 Falta `RF041` (webhook real de WhatsApp/Telegram), que depende de credenciales de terceros.
-**563 pruebas de backend** (16 exigen Docker y no corren sin él) **y 95 de frontend**.
+**660 pruebas de backend** (las de integración exigen Docker y no corren sin él) **y 117 de frontend**.
 
 ⚠️ **La gestión de sprints va por detrás del código:** `sprint-2.md` sigue abierto y el repositorio
 ya entregó M10–M15. Antes de planear, contrasta contra el código, no contra la tabla.
@@ -134,9 +134,8 @@ afirmar que una fuente está bloqueada o disponible, verifícalo con una petici�
 ```
 /                       CLAUDE.md · DESIGN.md · MEMORY.md · README.md · .mcp.json
 .claude/                skills/ · agents/ · settings.json
-openspec/               specs/ — qué hace el sistema hoy, validable con `openspec validate` (`ADR-040`)
 docs/                   brief.md · product-requirements.md (46 RF, 25 RNF) · design-decisions.md (ADR)
-docs/ingenieria/        Pipeline de datos, auditoría de fuentes, matriz de trazabilidad
+docs/ingenieria/        Pipeline de datos, auditoría de fuentes, matriz de trazabilidad, comportamiento del sistema
 docs/gestion/           Sprints, bitácora, bugs e implementaciones
 frontend/ · backend/    React 19 + Vite · Spring Boot — ambos completos y conectados
 ```
@@ -153,7 +152,7 @@ No es opcional: es parte de la definición de terminado.
 | Se encuentra un bug (aunque se arregle en el acto) | `docs/gestion/registro-de-bugs.md` | `registrar-bug` |
 | Termina una sesión de trabajo con IA | `docs/gestion/bitacora-sesiones.md` | `cerrar-sesion` |
 | Se elige entre alternativas técnicas | `docs/design-decisions.md` | `registrar-decision` |
-| Cambia el comportamiento del sistema | `openspec/specs/<capacidad>/spec.md`, en el mismo PR | `/opsx:propose` |
+| Cambia el comportamiento del sistema | `docs/ingenieria/comportamiento-del-sistema.md`, en el mismo PR | — |
 | Se verifica una fuente de datos | `docs/ingenieria/auditoria-fuentes-de-datos.md` | `verificar-fuente` |
 | Avanza un compromiso del sprint (entregado o a medias) | `docs/gestion/sprint-N.md` §2 — `✅`/`🟡` al inicio del Entregable | — |
 

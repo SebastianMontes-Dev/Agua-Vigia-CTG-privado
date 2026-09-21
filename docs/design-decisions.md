@@ -8,9 +8,9 @@
 >
 > Para agregar una entrada: usa la skill `registrar-decision`.
 >
-> **Aquí vive el *porqué*, no el *qué*.** El comportamiento del sistema se especifica en
-> `openspec/specs/` y se valida con `openspec validate --specs` (`ADR-040`). Un ADR no repite
-> lo que hace el sistema; una spec no repite por qué se decidió así.
+> **Aquí vive el *porqué*, no el *qué*.** El comportamiento del sistema está en
+> `docs/ingenieria/comportamiento-del-sistema.md` (`ADR-047`). Un ADR no repite lo que
+> hace el sistema; ese documento no repite por qué se decidió así.
 
 ---
 
@@ -1575,7 +1575,7 @@ apaga el TOTP obligatorio sin tocar nada más. Volver a una clave compartida exi
 ## ADR-040 — Adoptar OpenSpec como capa de especificación viva, sin mover la bitácora de decisiones
 
 - **Fecha:** 2026-09-04
-- **Estado:** Aceptada
+- **Estado:** Reemplazada por ADR-047
 
 ### Contexto
 El repositorio describe lo que el sistema hace en cuatro sitios a la vez: `docs/product-requirements.md`
@@ -1884,10 +1884,87 @@ Este repositorio ya no conserva el marco: el historial se reinició y los archiv
 Rehacerlo sería una decisión nueva, con su propio ADR. No hay código que deshacer, solo
 documentación y una skill.
 
+## ADR-046 — «% operativa» se calcula sobre los sectores con estado verificado
+
+- **Fecha:** 2026-09-20
+- **Estado:** Aceptada
+
+### Contexto
+La barra superior muestra «Red Distrital: X% operativa» y las tarjetas de resumen dependen de que haya
+datos disponibles, pero `PaginaMapa` no pasaba ninguno de los dos valores a sus componentes (BUG-074):
+la barra decía «undefined% operativa» y las tarjetas se quedaban en «—» aun con sectores. Ninguna
+función del repositorio calculaba ese porcentaje, así que había que definir qué significa «operativa».
+Los sectores llegan con `estado` nulo cuando nadie los ha verificado (ADR-014), y `poblacion` también
+es nulable.
+
+### Alternativas consideradas
+| Opción | A favor | En contra |
+|---|---|---|
+| Sectores en `CON_SERVICIO` sobre los que tienen estado verificado; `null` («calculando») si ninguno lo tiene | Simple; respeta ADR-014 (nunca se supone «con servicio»); se explica en una frase | Trata igual a un barrio pequeño que a uno grande |
+| Ponderado por población | Más fiel a cuánta gente tiene agua | `poblacion` es nulable: habría que decidir qué hacer con los sectores sin ese dato, y cada decisión inventa una cifra |
+| Pasar `null` siempre hasta definirlo | No publica nada dudoso | La barra dice «calculando» de forma permanente y no informa |
+
+### Decisión
+`resumirServicio` (`frontend/src/utils/resumenServicio.ts`) calcula el porcentaje como sectores en
+`CON_SERVICIO` sobre sectores con estado verificado, redondeado, y devuelve `null` si ninguno tiene
+estado; ese mismo caso apaga las cifras de las tarjetas («—», «Esperando datos validados»). Es la
+opción recomendada, aceptada por el usuario el 2026-09-20.
+
+### Consecuencias
+- **Gana:** una cifra que no publica nada sin sustento y que se puede reproducir a mano.
+- **Pierde:** es conservadora. Presión baja y corte programado no cuentan como operativos, aunque un
+  corte programado es un corte anunciado y el sector aún tiene agua (BUG-057), así que la cifra puede
+  subestimar. Tampoco pondera por tamaño.
+- **Condiciona:** ponderar por población o contar el corte programado como operativo es una decisión
+  nueva, con su propio ADR y un cambio en `resumenServicio.test.ts`.
+
+### Cómo se revierte
+Un cambio localizado en `resumirServicio` y sus pruebas; no toca la API ni el modelo de dominio.
+
+## ADR-047 — Se retira OpenSpec: el comportamiento del sistema vive en `docs/ingenieria/comportamiento-del-sistema.md`
+
+- **Fecha:** 2026-09-20
+- **Estado:** Aceptada
+
+### Contexto
+`ADR-040` (2026-09-04) adoptó OpenSpec como capa de especificación viva: trece specs bajo `openspec/`,
+seis skills `openspec-*` repetidas en `.claude/skills/` y `.agents/skills/`, y seis comandos `/opsx:*`. El
+desarrollador actual indicó el 2026-09-20 que no la había incorporado él. El 2026-09-20 se comprobó que el
+CLI no está instalado en este equipo, que el repositorio nunca nombra el paquete npm y que, por tanto,
+`openspec validate` no se había podido ejecutar; las tres specs que se actualizaron ese día se revisaron
+a mano. El proyecto lo desarrolla una sola persona, y la herramienta sumaba tres directorios y doce
+copias de instrucciones para lo que era, en la práctica, documentación.
+
+### Alternativas consideradas
+| Opción | A favor | En contra |
+|---|---|---|
+| Mantener OpenSpec | Specs validables por CLI y un flujo de propuesta antes del código | Herramienta sin instalar y sin validar; doce copias de skills que mantener; dos lugares donde documentar |
+| Retirarlo y borrar las specs | Lo más simple | Se pierde el comportamiento documentado: 54 requisitos y 93 escenarios |
+| Retirarlo y llevar su contenido a `docs/ingenieria/` | Un solo lugar para toda la documentación, sin herramienta; no se pierde nada de lo escrito | Nada valida ya por comando que documento y código coincidan |
+
+### Decisión
+Se retira OpenSpec: se borran `openspec/`, las seis skills `openspec-*` de `.claude/skills/` y de
+`.agents/skills/`, y los comandos `opsx`. Las trece capacidades pasan, con sus 54 requisitos y 93
+escenarios, a un único documento, `docs/ingenieria/comportamiento-del-sistema.md`, en formato «Cuando /
+Entonces». `ADR-040` queda como *Reemplazada por ADR-047*.
+
+### Consecuencias
+- **Gana:** toda la documentación en `docs/`, ordenada y en un solo sitio; una herramienta menos.
+- **Pierde:** la validación por comando y el flujo de propuesta antes del código (`/opsx:propose`). El
+  desfase entre documento y código, que `ADR-040` ya había visto ocurrir (`RNF017`), vuelve a
+  depender de la disciplina de quien cambia comportamiento.
+- **Condiciona:** el documento se actualiza en el mismo cambio que el comportamiento (`CLAUDE.md`); la
+  matriz de trazabilidad (RF → prueba) sigue siendo la verificación de que cada requisito tiene su prueba.
+
+### Cómo se revierte
+El contenido anterior (`openspec/`, las doce skills y los seis comandos) queda en el historial de git:
+restaurarlo es recuperar esos directorios de un commit anterior a este cambio. No depende de ello la
+build, ni el CI, ni el contrato OpenAPI.
+
 ---
 
 <!--
-Siguiente número disponible: ADR-046
+Siguiente número disponible: ADR-048
 Para agregar: usa la skill `registrar-decision`.
 Recuerda: append-only. Las entradas viejas solo cambian de estado, no de contenido.
 -->

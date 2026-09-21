@@ -92,7 +92,8 @@ Tres razones concretas, no burocráticas:
 | BUG-071 | 2026-09-19 | S2 | M8 | La bitácora pública nunca mostraba los boletines de Acuacar: `PaginaMapa` montaba `SeccionBitacora` sin `boletines`, `estadoAcuacar` ni `onRecargarAcuacar` y siempre decía «Acuacar no devolvió publicaciones» | Cerrado — se pasan los tres props; E2E «las flechas de la bitácora recorren el carrusel» |
 | BUG-072 | 2026-09-19 | S3 | M1 | Los estilos de escritorio no se aplicaban: `AguaVigiaDesktop.css` (≈1.300 líneas) no lo importaba nadie | Cerrado — `import` en `main.tsx`; E2E «el logo oficial…» y «el panel barrial usa el tema claro…» |
 | BUG-073 | 2026-09-19 | S3 | M1 | El mapa no rotula los barrios: la clase `.mapa-etiqueta-barrio*` que pide su prueba E2E no existe en el código | Abierto — hay que construir el rotulado o retirar la prueba |
-| BUG-074 | 2026-09-19 | S2 | M1 | `PaginaMapa` no pasa props obligatorios (`porcentajeOperativo`, `conexionViva`, `datosDisponibles`, `temaActivo`, `onReportar`): «undefined% operativa», tarjetas de resumen siempre en «—» y `npm run build` con tres errores de tipos | Abierto — falta definir el cálculo de «% operativa» |
+| BUG-074 | 2026-09-19 | S2 | M1 | `PaginaMapa` no pasa props obligatorios (`porcentajeOperativo`, `conexionViva`, `datosDisponibles`, `temaActivo`, `onReportar`): «undefined% operativa», tarjetas de resumen siempre en «—» y `npm run build` con tres errores de tipos | Cerrado — se cablean los props y `resumirServicio` define «% operativa»; `resumenServicio.test.ts` y dos E2E |
+| BUG-075 | 2026-09-19 | S2 | — (dependencias) | `netty-handler` 4.1.136, que fija `netty.version` en el `pom.xml`, arrastra el CVE crítico CVE-2026-75595 y dejó el escaneo del CI en rojo desde el 2026-09-17 | Cerrado — `netty.version` a 4.1.137.Final; el escaneo Trivy del CI vuelve a verde |
 
 **Severidad:** `S1` bloquea el uso o publica dato falso · `S2` funcionalidad rota con rodeo posible ·
 `S3` molesto pero no impide · `S4` cosmético
@@ -1362,7 +1363,7 @@ solo existe en ese archivo).
 - **Estado:** Abierto
 
 **Síntoma:** la prueba E2E «el mapa rotula barrios y conserva una sola selección ante clics rápidos»
-falla en `home.spec.ts:97`: no hay ningún `.mapa-etiqueta-barrio--principal` visible.
+falla en su primera aserción (`home.spec.ts`): no hay ningún `.mapa-etiqueta-barrio--principal` visible.
 
 **Reproducción:** consistente, 3 de 3 en local (Chromium contra el dev server) y en CI. La clase
 `mapa-etiqueta-barrio*` no aparece en ningún archivo de `frontend/src`, y `MapaCartagena.tsx` declara
@@ -1379,7 +1380,7 @@ No es un ajuste de estilos: hay que construir el rotulado.
 ### BUG-074 — `PaginaMapa` no pasa props obligatorios y `npm run build` falla
 
 - **Fecha:** 2026-09-19 · **Severidad:** S2 · **Módulo:** M1
-- **Estado:** Abierto
+- **Estado:** Cerrado
 
 **Síntoma:** (1) la barra superior dice «Red Distrital: undefined% operativa»; (2) las tarjetas de
 resumen por estado muestran siempre «—» y «Esperando datos validados», con los botones «Ver en el mapa»
@@ -1400,7 +1401,42 @@ si no hay datos validados?) es una decisión de producto pendiente.
 llegaron a este repositorio. Vite no comprueba tipos, así que la app arranca; y el paso Build del
 Frontend CI va después del E2E, que falla antes, por lo que el build roto nunca se vio en el CI.
 
-**Corrección:** pendiente.
+**Corrección:** `frontend/src/utils/resumenServicio.ts` (nuevo) define `resumirServicio`: el porcentaje es
+«con servicio» sobre los sectores con estado verificado, `null` («calculando») si ninguno lo tiene; un
+sector sin dato nunca cuenta como operativo, y presión baja y corte programado tampoco. `PaginaMapa.tsx`
+pasa `porcentajeOperativo`, `conexionViva`, `temaActivo` y `datosDisponibles`, y `abrirReporte` sirve a
+los dos botones de reportar. `npm run build` vuelve a pasar.
+**Prueba que impide la regresión:** `resumenServicio.test.ts` (5 casos de la regla) y dos E2E en
+`home.spec.ts`: «la barra superior dice «calculando» y no «undefined»…» y ««Reportar afectación» del
+llamado a veedores abre el formulario de reporte».
+
+
+### BUG-075 — Un CVE crítico en `netty-handler` 4.1.136 dejó en rojo el escaneo de dependencias
+
+- **Fecha:** 2026-09-19 · **Severidad:** S2 · **Módulo:** — (dependencias)
+- **Estado:** Cerrado
+
+**Síntoma:** el job «Vulnerabilidades conocidas en dependencias» del workflow `Despliegue y dependencias`
+falla con `Total: 1 (HIGH: 0, CRITICAL: 1)` sobre `backend/pom.xml`: `CVE-2026-75595` en
+`io.netty:netty-handler` 4.1.136.Final, corregido en 4.1.137.Final. En rojo desde el push `5fdf052`
+(2026-09-17); se investigó el 2026-09-19 al revisar el CI del commit `b8a5c15`.
+
+**Reproducción:** consistente, 2 de 2 ejecuciones en push (`5fdf052` y `b8a5c15`). Ninguna tocó el
+`pom.xml`.
+
+**Esperado:** el escaneo en verde o una excepción declarada y justificada. El propio `pom.xml` fija la
+política: sobrescribir una versión de parche cuesta una línea y evita excepciones que alguien tenga
+que recordar.
+
+**Causa raíz:** `netty.version` estaba fijado en 4.1.136.Final para corregir `CVE-2026-59901`; después
+se publicó un aviso nuevo contra esa versión. Netty entra como transitiva de Lettuce, el cliente de
+Redis. No se evaluó aquí si el backend es explotable: se corrige por política, igual que BUG-069.
+
+**Corrección:** `<netty.version>4.1.137.Final</netty.version>` en `backend/pom.xml` (commit `a5e1b70`).
+Verificado: `./mvnw verify` con Docker, 660 casos con 0 fallos, y `dependency:list` resuelve las siete
+dependencias `io.netty` en 4.1.137.Final.
+**Prueba que impide la regresión:** el escaneo Trivy del workflow `Despliegue y dependencias`, que
+quedó en verde en el CI de `a5e1b70`.
 
 ---
 
@@ -1784,5 +1820,5 @@ Plantilla de bug abierto — copiar a la sección "Bugs abiertos — detalle".
 **Causa raíz:** se llena al diagnosticar. Si el origen es un requisito ambiguo, corrige también el requisito.
 **Corrección:** qué se cambió + `archivo:línea` + prueba que lo cubre. Sin prueba, el bug vuelve.
 
-Siguiente número disponible: BUG-075
+Siguiente número disponible: BUG-076
 -->
