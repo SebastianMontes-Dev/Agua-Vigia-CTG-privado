@@ -91,7 +91,7 @@ class SegundoFactorControllerTest {
                 .willReturn(Optional.of(AutenticacionDePrueba.sesionCon(Permiso.CONFIGURAR_SEGUNDO_FACTOR)));
         given(revocacion.revocadasAntesDe(any())).willReturn(Optional.empty());
 
-        given(configurar.iniciar(any(), any()))
+        given(configurar.iniciar(any(), any(), any()))
                 .willReturn(new AltaSegundoFactor("otpauth://totp/AguaVigia:test?secret=JBSWY3DPEHPK3PXP", "JBSWY3DPEHPK3PXP"));
 
         mockMvc.perform(post("/api/veedor/segundo-factor/alta")

@@ -65,7 +65,7 @@ class PipelineOrquestadorTest {
                 .willReturn(Optional.empty());
 
         orquestador = new PipelineOrquestador(acuacar, rss, deduplicador, extractor, sectores,
-                registrarPropuesta, estadoColectores, marcas, reloj);
+                registrarPropuesta, estadoColectores, marcas, reloj, (nombre, maximo, minimo, tarea) -> tarea.run());
     }
 
     private DocumentoCrudo documento(String texto) {

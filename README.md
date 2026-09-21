@@ -6,16 +6,17 @@ AguaVigía cruza los avisos oficiales con reportes ciudadanos georreferenciados 
 
 > Cartagena de Indias · 2026
 
-**Estado actual:** Backend y Bases de Datos completos salvo RF041 (webhook real de
-WhatsApp/Telegram), que depende de credenciales de terceros. **563 pruebas** de backend y **95** de
-frontend en verde, con la cobertura de `domain/` y `application/` por encima del 85% que exige la
-build (medición completa: `./mvnw verify` con Docker abierto). El detalle
-requisito por requisito, con el nombre de la prueba que sostiene cada uno, está en la
-[matriz de trazabilidad](docs/ingenieria/matriz-trazabilidad.md). Frontend y backend conectados de
-punta a punta y verificados en local el 2026-08-12 (`docker compose up -d --build --wait`): mapa,
-reportes, bitácora, estadísticas y panel del veedor completo, sin ningún endpoint sin consumir en
-ninguna dirección — detalle en
-[`frontend/INTEGRACION-BACKEND.md`](frontend/INTEGRACION-BACKEND.md).
+**Estado actual:** backend, bases de datos e infraestructura completos salvo RF041 (webhook real de
+WhatsApp/Telegram), que depende de credenciales de terceros. **823 pruebas** de backend en verde, con la
+cobertura de `domain/` y `application/` por encima del 85% que exige la build (`./mvnw verify` con Docker
+abierto). El detalle requisito por requisito, con el nombre de la prueba que sostiene cada uno, está en la
+[matriz de trazabilidad](docs/ingenieria/matriz-trazabilidad.md).
+
+**`main` ya no incluye frontend** (`ADR-048`; su código sigue en la etiqueta git `pre-retiro-frontend`): se rehace en
+otras ramas de este mismo repositorio y luego se junta todo. Es un **proyecto académico que corre en local** (`ADR-057`). La guía completa de funcionalidades, rutas y reglas para
+hacerlo está en [`docs/api/`](docs/api/README.md), y el contrato exacto en
+[`backend/openapi.yaml`](backend/openapi.yaml). El requisito de **50 000 usuarios simultáneos** y su estado
+real están en [`docs/ingenieria/escalabilidad.md`](docs/ingenieria/escalabilidad.md).
 
 📄 **¿Retomas el backend o entras nuevo al proyecto?** Empieza por
 [estado-del-backend.md](docs/ingenieria/estado-del-backend.md): qué está hecho, qué falta, qué se
@@ -30,7 +31,7 @@ El proyecto está construido bajo una estricta **Arquitectura Limpia (Puertos y 
 - **Backend:** Spring Boot 3.5 · Java 21 · Maven
 - **Base de Datos Principal:** MongoDB (Consultas Geoespaciales `2dsphere`)
 - **Caché y Seguridad:** Redis (Rate Limiting y Deduplicación)
-- **Frontend:** React 19 · Vite · TypeScript · Tailwind · Leaflet
+- **Proxy y caché de lectura:** nginx (`infra/nginx/`)
 - **Pruebas de Integración:** Testcontainers (Bases de datos efímeras reales)
 - **CI/CD & DevOps:** Docker · GitHub Actions (pruebas + ArchUnit, construcción de imágenes, escaneo de secretos y de vulnerabilidades)
 
@@ -82,7 +83,7 @@ El proyecto está completamente contenerizado. Solo necesitas tener un motor de 
    ```bash
    docker compose up -d --wait
    ```
-   *Esto levantará MongoDB, Redis, un servidor de correo de pruebas (Mailhog), el backend y el frontend.*
+   *Esto levantará MongoDB, Redis, un servidor de correo de pruebas (Mailhog) y el backend.*
 
 3. **Interactuar con la API (Swagger UI):**
    Una vez que el backend esté arriba, toda la documentación interactiva de los endpoints y modelos de datos estará disponible en:
@@ -92,16 +93,17 @@ El proyecto está completamente contenerizado. Solo necesitas tener un motor de 
 
 ## 🔀 CORS y desarrollo del frontend
 
-No hay configuración de CORS en el backend, y es intencional: `frontend/nginx.conf` sirve el
-frontend y hace `proxy_pass /api/ → backend:8080`, así que en el contenedor todo vive bajo el mismo
-origen. Si corres el frontend con `vite dev` en vez de Docker, usa el proxy de Vite (no esperes que
-el backend responda con cabeceras CORS — no las manda).
+El backend **no emite cabeceras CORS por defecto** (`aguavigia.cors.origenes-permitidos` vacío). En
+producción, el frontend y la API van detrás del mismo proxy (`infra/nginx/`), así que el navegador nunca hace
+una petición cruzada. Quien desarrolle un frontend en otro origen (un dev server local) debe declarar ese
+origen en `application-dev.yml` o servirlo detrás del mismo proxy. Detalle en
+[`docs/api/errores-y-limites.md`](docs/api/errores-y-limites.md#cors).
 
 ---
 
 ## 🧪 Pruebas y Aseguramiento de Calidad (QA)
 
-El backend de AguaVigía cuenta con **563 pruebas unitarias y de integración**, y la build falla si la
+El backend de AguaVigía cuenta con **823 pruebas unitarias y de integración**, y la build falla si la
 cobertura de `domain/` o `application/` baja del 85% (RNF017) o si se viola una capa de la
 arquitectura (RNF018, ArchUnit).
 

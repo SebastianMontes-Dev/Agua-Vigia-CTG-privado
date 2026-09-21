@@ -19,12 +19,15 @@ vacío de información que multiplica el daño. Toda decisión de alcance se juz
 
 ## Estado actual
 
-**Sprint 0 y 1 cerrados; Sprint 2 abierto.** El andamiaje terminó: M1–M15 están construidos, backend
-y frontend conectados, y `ADR-009` ya no aplica — implementar un `RF` es el trabajo normal ahora.
+**Sprint 0, 1 y 2 cerrados.** M1–M15 están construidos en el backend. **El frontend se retiró de `main`
+(`ADR-048`; su código sigue en la etiqueta git `pre-retiro-frontend`) y se rehace en otras ramas de este mismo
+repositorio** desde la guía `docs/api/`, para juntarlo todo después. **Es un proyecto académico que corre en local**
+(`ADR-057`): sin hosting, dominio ni CDN. Requisito de escalabilidad: **50 000 usuarios simultáneos** (`ADR-049`,
+`docs/ingenieria/escalabilidad.md`), que en local solo puede medirse a escala reducida.
 Falta `RF041` (webhook real de WhatsApp/Telegram), que depende de credenciales de terceros.
-**660 pruebas de backend** (las de integración exigen Docker y no corren sin él) **y 117 de frontend**.
+**823 pruebas de backend** (las de integración exigen Docker y no corren sin él).
 
-⚠️ **La gestión de sprints va por detrás del código:** `sprint-2.md` sigue abierto y el repositorio
+⚠️ **La gestión de sprints va por detrás del código:** `sprint-2.md` se cerró el 2026-09-21 y el repositorio
 ya entregó M10–M15. Antes de planear, contrasta contra el código, no contra la tabla.
 
 **7 sprints: Sprint 0 (preparación) + Sprints 1–6. Un sprint no cierra por calendario: cierra cuando
@@ -36,10 +39,9 @@ su entregable se demuestra funcionando.** Los 7 entregables, en `docs/gestion/RE
 
 **Backend** Spring Boot 3.5.16 · Java 21 · Maven · MongoDB (documentos + geoespacial `2dsphere`) ·
 Redis (caché, rate limiting, ventana de consenso, pub/sub). **Sin SDK de IA**: se descartó en `ADR-025`
-**Frontend** React 19 · Vite · TypeScript · Tailwind · Leaflet/react-leaflet · Recharts · TanStack Query
-**Infraestructura** Docker multi-etapa + docker compose · GitHub Actions
+**Infraestructura** Docker multi-etapa + docker compose · nginx (proxy y micro-caché, `infra/nginx/`) · GitHub Actions
 
-**Backend y frontend son proyectos separados** dentro del mismo repositorio (`/backend`, `/frontend`).
+**No hay frontend en el repositorio.** El contrato es `backend/openapi.yaml`; cómo consumirlo, en `docs/api/`.
 
 ---
 
@@ -134,10 +136,12 @@ afirmar que una fuente está bloqueada o disponible, verifícalo con una petici�
 ```
 /                       CLAUDE.md · DESIGN.md · MEMORY.md · README.md · .mcp.json
 .claude/                skills/ · agents/ · settings.json
-docs/                   brief.md · product-requirements.md (46 RF, 25 RNF) · design-decisions.md (ADR)
-docs/ingenieria/        Pipeline de datos, auditoría de fuentes, matriz de trazabilidad, comportamiento del sistema
+docs/                   brief.md · product-requirements.md (46 RF, 27 RNF) · design-decisions.md (ADR)
+docs/api/               Guía para construir el frontend: flujos, rutas, errores, escala (referencia generada)
+docs/ingenieria/        Pipeline de datos, auditoría de fuentes, matriz de trazabilidad, comportamiento del sistema, escalabilidad
 docs/gestion/           Sprints, bitácora, bugs e implementaciones
-frontend/ · backend/    React 19 + Vite · Spring Boot — ambos completos y conectados
+backend/ · infra/       Spring Boot · nginx del proxy de producción
+scripts/                Siembra de datos, pruebas de carga (`carga/`), generador de la referencia de la API
 ```
 
 ---

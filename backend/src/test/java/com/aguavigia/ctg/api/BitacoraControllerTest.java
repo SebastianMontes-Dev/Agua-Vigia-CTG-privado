@@ -123,6 +123,62 @@ class BitacoraControllerTest {
     }
 
     @Test
+    void laListaSoloDebePublicarCuantosReportesSustentanElEventoNoSusIds() throws Exception {
+        given(eventos.listar(anyInt(), anyInt())).willReturn(pagina(List.of(
+                new EventoBitacora(new EventoId("evento-2"), TipoEvento.CORTE_CONFIRMADO_POR_CIUDADANOS,
+                        new SectorId("manga"), null, TIMESTAMP, "3 reportes confirmaron SIN_SERVICIO",
+                        com.aguavigia.ctg.domain.EstadoServicio.SIN_SERVICIO, null, null,
+                        List.of(new com.aguavigia.ctg.domain.ReporteId("r1"),
+                                new com.aguavigia.ctg.domain.ReporteId("r2"))))));
+
+        mockMvc.perform(get("/api/bitacora"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].cantidadReportesSustento").value(2))
+                .andExpect(jsonPath("$[0].reportesSustento").doesNotExist());
+    }
+
+    private static EventoBitacora eventoConSustento(int cantidad) {
+        List<com.aguavigia.ctg.domain.ReporteId> ids = java.util.stream.IntStream.rangeClosed(1, cantidad)
+                .mapToObj(i -> new com.aguavigia.ctg.domain.ReporteId("r" + i)).toList();
+        return new EventoBitacora(new EventoId("evento-9"), TipoEvento.CORTE_CONFIRMADO_POR_CIUDADANOS,
+                new SectorId("manga"), null, TIMESTAMP, "consenso",
+                com.aguavigia.ctg.domain.EstadoServicio.SIN_SERVICIO, null, null, ids);
+    }
+
+    @Test
+    void debeEntregarLosIdsDeSustentoPaginadosEnUnDetalleAparte() throws Exception {
+        given(eventos.buscarPorId(new EventoId("evento-9"))).willReturn(java.util.Optional.of(eventoConSustento(5)));
+
+        mockMvc.perform(get("/api/bitacora/evento-9/sustento").param("pagina", "1").param("tamano", "2"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("X-Total-Count", "5"))
+                .andExpect(header().string("X-Total-Pages", "3"))
+                .andExpect(header().string("X-Page", "1"))
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0]").value("r3"))
+                .andExpect(jsonPath("$[1]").value("r4"));
+    }
+
+    @Test
+    void unaPaginaFueraDeRangoDelSustentoDebeDevolverUnaListaVacia() throws Exception {
+        given(eventos.buscarPorId(new EventoId("evento-9"))).willReturn(java.util.Optional.of(eventoConSustento(3)));
+
+        mockMvc.perform(get("/api/bitacora/evento-9/sustento").param("pagina", "40"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0))
+                .andExpect(header().string("X-Total-Count", "3"));
+    }
+
+    @Test
+    void debeResponder404ConProblemaRfc7807SiElEventoNoExiste() throws Exception {
+        given(eventos.buscarPorId(new EventoId("no-existe"))).willReturn(java.util.Optional.empty());
+
+        mockMvc.perform(get("/api/bitacora/no-existe/sustento"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404));
+    }
+
+    @Test
     void debeListarLosEventosSinAutenticacion() throws Exception {
         given(eventos.listar(anyInt(), anyInt())).willReturn(pagina(List.of(
                 new EventoBitacora(new EventoId("evento-1"), TipoEvento.CORTE_ANUNCIADO,

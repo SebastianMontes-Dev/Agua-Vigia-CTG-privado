@@ -3,6 +3,17 @@ spring:
     name: aguavigia-ctg
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev}
+  threads:
+    virtual:
+      # Un hilo virtual por peticion en Tomcat. Con el pool clasico (200 hilos) las conexiones
+      # que esperan a Mongo o Redis ocupaban un hilo de plataforma cada una y el servidor dejaba de
+      # aceptar trafico a los pocos cientos de peticiones concurrentes.
+      enabled: true
+  data:
+    redis:
+      # Sin estos dos, un Redis colgado dejaba cada peticion esperando sin limite.
+      timeout: 2s
+      connect-timeout: 2s
   servlet:
     multipart:
       # M10: una foto de celular sin comprimir pesa 3-8MB. El default de Spring (1MB) convertía
@@ -12,13 +23,38 @@ spring:
 
 server:
   port: ${SERVER_PORT:8080}
-  # nginx (frontend/nginx.conf) ya pone X-Forwarded-For; esto hace que Spring reescriba
+  tomcat:
+    # El SSE mantiene una conexion abierta por cliente: el tope por defecto (8192) limitaba cada
+    # instancia a ~8 mil conexiones en vivo. El tope real lo pone aguavigia.sse.max-conexiones.
+    max-connections: 30000
+    accept-count: 500
+    connection-timeout: 10s
+  compression:
+    # Tambien sin proxy delante (desarrollo, o un despliegue sin nginx). nginx no recomprime lo que
+    # ya llega comprimido.
+    enabled: true
+    min-response-size: 1024
+    mime-types: application/json,application/problem+json,application/geo+json,text/csv
+  # nginx (infra/nginx/nginx.conf) ya pone X-Forwarded-For; esto hace que Spring reescriba
   # request.getRemoteAddr() con ese valor en vez de dejarlo en la IP del contenedor de nginx
   # (docker-compose.yml pasa todo el trafico por ese proxy). Sin esto, RateLimitingInterceptor
   # limita por IP del proxy, no del cliente: un solo contador global en vez de uno por IP real.
   forward-headers-strategy: framework
 
 aguavigia:
+  mongo:
+    # Los defaults del driver (100 conexiones, 2 minutos de espera) dejaban las peticiones
+    # encoladas mucho mas alla de los 15 s tras los que nginx ya cortaba. Falla rapido.
+    max-pool: 100
+    espera-conexion-ms: 2000
+    timeout-lectura-ms: 5000
+    seleccion-servidor-ms: 5000
+  sse:
+    # Conexiones SSE por instancia; por encima se responde 429 con Retry-After.
+    max-conexiones: 20000
+    # Cuantos ms se agrupan los avisos de cambio antes de difundirlos a los clientes.
+    intervalo-difusion-ms: 1000
+    intervalo-latido-ms: 25000
   reportes:
     # RF006 — cupo por dispositivo dentro de la ventana. Estrecho para el celular anonimo, que es
     # a quien el requisito quiere frenar. Un sensor de M13 se autentica con X-IoT-Key y reporta
@@ -59,6 +95,25 @@ aguavigia:
       - ruta: /api/cuentas/**
         limite: 10
         ventana-segundos: 600
+      # POST /api/suscripciones envia un correo a cualquier direccion que el cliente escriba: sin
+      # limite servia para inundar la bandeja de un tercero. /** cubre tambien confirmar y cancelar.
+      - ruta: /api/suscripciones/**
+        limite: 10
+        ventana-segundos: 600
+      # Confirmar o desactivar el segundo factor adivina un codigo de 6 digitos: la sesion ya esta
+      # autenticada, pero sin freno un token robado podia probar codigos sin limite.
+      - ruta: /api/veedor/segundo-factor/**
+        limite: 10
+        ventana-segundos: 300
+      # Cambiar la clave exige adivinar la actual: mismo freno que el segundo factor, ademas del bloqueo por cuenta.
+      - ruta: /api/veedor/cuenta/**
+        limite: 10
+        ventana-segundos: 300
+  retencion:
+    # Decision del dueno (2026-09-21): los reportes se conservan 12 meses y Mongo los borra solos (indice TTL).
+    # Los eventos de la bitacora son permanentes; sus ids de sustento quedan apuntando a reportes ya borrados.
+    # 0 desactiva la retencion.
+    reportes-dias: 365
   mantenimiento:
     fotos-huerfanas:
       # Reconciliacion disco-vs-Mongo: borra archivos en data/fotos que ningun reporte referencia.
@@ -167,6 +222,23 @@ management:
   endpoint:
     health:
       show-details: never
+      probes:
+        enabled: true
+      group:
+        # Lo que Docker y un balanceador usan para decidir si la instancia vive y si recibe trafico:
+        # solo lo que ella necesita para servir. Las fuentes externas (colectores) quedan fuera a
+        # proposito: acuacar.com caido es un problema de la ingesta, no del proceso, y no debe sacar
+        # de rotacion a la replica. RNF007 sigue cumplido: /actuator/health (global) las refleja.
+        liveness:
+          include: livenessState
+        readiness:
+          include: readinessState,mongo,redis
+  health:
+    mail:
+      # El indicador de correo intenta abrir una conexion SMTP en cada consulta y, sin timeout,
+      # un SMTP colgado colgaba tambien el healthcheck. El envio es asincrono y reintentable: un
+      # correo que falla no es un servicio caido.
+      enabled: false
 
 logging:
   structured:

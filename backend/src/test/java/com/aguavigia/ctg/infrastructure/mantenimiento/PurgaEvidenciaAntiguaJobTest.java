@@ -37,7 +37,7 @@ class PurgaEvidenciaAntiguaJobTest {
     private void conPropiedades(MantenimientoProperties.RetencionEvidencia retencion) {
         RelojPort reloj = () -> AHORA;
         job = new PurgaEvidenciaAntiguaJob(almacenamiento, reportes, reloj,
-                new MantenimientoProperties(null, retencion));
+                new MantenimientoProperties(null, retencion), (nombre, maximo, minimo, tarea) -> tarea.run());
     }
 
     @Test

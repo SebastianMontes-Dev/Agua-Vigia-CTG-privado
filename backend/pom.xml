@@ -108,7 +108,7 @@
       <version>${mapstruct.version}</version>
     </dependency>
 
-    <!-- Contrato OpenAPI publicado para el frontend (Sprint 1) -->
+    <!-- Contrato OpenAPI publicado para los clientes de la API -->
     <dependency>
       <groupId>org.springdoc</groupId>
       <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
