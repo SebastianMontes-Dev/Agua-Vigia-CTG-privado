@@ -107,6 +107,8 @@ Tres razones concretas, no burocráticas:
 | BUG-086 | 2026-09-21 | S2 | M9 | Con un sector ya al umbral, cada `POST /api/reportes` cargaba de Mongo todos los reportes de la ventana (miles en una avería masiva): pool de conexiones agotado, 35 % de `503` y p95 de 8 s con 100 POST/s + pico de 300/s (RNF002 exige 1 s) | Cerrado — causa raíz: `EvaluarConsensoService` traía y deduplicaba en Java toda la ventana en cada POST solo para comprobar que el estado no cambiaba (O(reportes) por petición). Votos contados en Mongo (`contarVotosRecientes`), reportes de sustento solo si el estado cambia, evaluación acotada a 1/s por sector (`ReservaDeEvaluacionPort`, `EvaluacionPendienteJob`), índice `sectorId+huella+timestamp`; pruebas `EvaluarConsensoServiceTest#noDebeCargarLosReportesDeLaVentanaSiElEstadoNoCambiaria` y `#siOtraPeticionYaTieneLaReservaDebeDejarElSectorPendienteSinConsultarNada`, `ReporteCiudadanoMongoAdapterTest#contarVotosRecientes_*`, `RedisReservaDeEvaluacionAdapterTest`; medido: 0 % de errores y p95 de 15,6 ms (`ADR-053`) |
 | BUG-087 | 2026-09-21 | S3 | — (API) | Un `Accept` que la ruta no produce (p. ej. `application/json` al `GET` de una página HTML) respondía **500** «Error no controlado» en vez de 406, la misma clase de fallo de `BUG-062` (405/415) | Cerrado — causa raíz: `ManejadorGlobalDeErrores` no tenía manejador para `HttpMediaTypeNotAcceptableException`, así que caía en el genérico. Manejador que responde 406 RFC 7807 con `tiposSoportados`; prueba `SuscripcionControllerTest#elGetNoDebeOfrecerJsonPorqueYaNoActuaYLosClientesDebenUsarPost` |
 | BUG-088 | 2026-09-21 | S2 | — (operación) | `scripts/backup-mongo.sh` y `restore-mongo.sh` fallaban con `Unauthorized` contra el Mongo de producción (que exige usuario root): **nunca se habría respaldado nada**, y el respaldo fallido dejaba un archivo de 23 bytes con pinta de respaldo | Cerrado — causa raíz: `mongodump`/`mongorestore` se invocaban sin credenciales y el compose de producción arranca Mongo con `MONGO_INITDB_ROOT_USERNAME/PASSWORD`. Ahora leen las credenciales dentro del contenedor (no pasan por el host), el respaldo se escribe a un `.parcial` que solo se renombra tras `gzip -t`, y sin credenciales (desarrollo) sigue funcionando. Comprobado con un Mongo desechable con autenticación: respaldo de 3 documentos, restauración con `--drop` que reemplaza el contenido (`a,intruso1,intruso2` → `a,b,c`) y sin archivo residual si `mongodump` falla. No hay prueba automática (necesita Docker y un Mongo con autenticación): la comprobación es manual y repetible con `docker compose` |
+| BUG-089 | 2026-09-21 | S3 | — (CI) | En todo PR, el job `gitleaks` de `secret-scan.yml` falla con `403 Resource not accessible by integration` aunque no haya secretos, y el check en rojo enmascara los fallos reales | Abierto — causa raíz: el workflow no declara `permissions` y el `GITHUB_TOKEN` no puede listar los commits del PR (`pull-requests: read`). El escaneo por `push` sí pasa. Corrección pendiente del dueño (ver el detalle) |
+| BUG-090 | 2026-09-21 | S3 | — (tablero) | La Sala de control mostraba 0 % de cobertura en todos los módulos aunque `registro-de-implementaciones.md` marca la mayoría al 100 % | Cerrado — causa raíz: `obtenerCobertura()` leía la columna «Implementados» con `Number("4 (RF001–RF004)")`, que da `NaN` y caía a 0; el total sí se leía porque va con negritas y sin paréntesis. Ahora usa `parseInt`. Comprobado con `generarDatos()`: M1 4/4, M9 3/8, M14 0/1 y 15 módulos. No hay prueba automática: `scripts/` no tiene suite |
 
 **Severidad:** `S1` bloquea el uso o publica dato falso · `S2` funcionalidad rota con rodeo posible ·
 `S3` molesto pero no impide · `S4` cosmético
@@ -120,6 +122,25 @@ Tres razones concretas, no burocráticas:
 > de detalle de sector se veía "incompleto" para muchos barrios al hacer clic en el mapa, y
 > auditando en vivo (contra `/acuacar-api` real, no datos de ejemplo) cuánta cobertura real de
 > boletines logra la extracción de nombres de barrio.
+
+### BUG-089 — En todo PR, el escaneo de secretos falla con un 403 que no tiene que ver con secretos
+
+- **Fecha:** 2026-09-21 · **Severidad:** S3 · **Módulo:** CI
+- **Estado:** Abierto — corrección pendiente del dueño
+
+**Síntoma:** en los 10 PR abiertos ese día (#1, #2, #4, #5, #7, #8, #9, #11, #23, #24), la ejecución de `Escaneo de secretos` disparada por `pull_request` termina en `FAILURE`, y la disparada por `push`, en `SUCCESS`. El fallo que se leyó en el log del #23 no es un hallazgo del escáner sino un `HttpError: Resource not accessible by integration` (`status: 403`, `x-accepted-github-permissions: pull_requests=read`) al pedir `GET /repos/…/pulls/23/commits`.
+**Reproducción:** abrir cualquier PR contra `main`; el job `gitleaks` falla en segundos.
+**Esperado:** el escaneo por PR pasa cuando no hay secretos (`RNF010`), o falla solo por un hallazgo real.
+**Causa raíz:** `gitleaks-action` pide al API los commits del PR para acotar el escaneo, y `.github/workflows/secret-scan.yml` no declara `permissions`, así que el `GITHUB_TOKEN` no trae `pull-requests: read`.
+**Corrección:** añadir al workflow, a nivel raíz:
+
+```yaml
+permissions:
+  contents: read
+  pull-requests: read
+```
+
+Sin aplicar todavía: la regla `Read(**/*secret*)` de `.claude/settings.json` impide que el agente abra `secret-scan.yml` (`REC-016`). Se cierra al ver un PR con `gitleaks` en verde. Mientras tanto, un check rojo de gitleaks en un PR sin cambios de secretos es esperado, y así se trató al fusionar #23 y los de Dependabot.
 
 ### BUG-068 — La prueba E2E del ingreso del veedor busca un campo que ya no existe
 
@@ -1833,5 +1854,5 @@ Plantilla de bug abierto — copiar a la sección "Bugs abiertos — detalle".
 **Causa raíz:** se llena al diagnosticar. Si el origen es un requisito ambiguo, corrige también el requisito.
 **Corrección:** qué se cambió + `archivo:línea` + prueba que lo cubre. Sin prueba, el bug vuelve.
 
-Siguiente número disponible: BUG-089
+Siguiente número disponible: BUG-091
 -->

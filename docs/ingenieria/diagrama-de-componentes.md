@@ -45,7 +45,7 @@ graph TD
 
 ## Descripción de los Componentes
 
-* **Frontend**: **no está en el repositorio** (`ADR-048`): lo rehará otra persona a partir de `docs/api/`. Habla con el sistema solo por HTTP hacia el proxy.
+* **Frontend**: **no está en `main`** (`ADR-048`): se rehace en otras ramas de este repositorio a partir de `docs/api/`. Habla con el sistema solo por HTTP hacia el proxy.
 * **Proxy (nginx)**: único servicio que publica un puerto en producción. Micro-cachea las lecturas públicas, limita por IP y sirve las fotos (`infra/nginx/`, `ADR-049`).
 * **Backend**: API RESTful desarrollada con Spring Boot 3.5 y Java 21, en Arquitectura Limpia. Centraliza la lógica de negocio, maneja la seguridad, valida los datos y coordina las peticiones de entrada y salida con los distintos servicios.
 * **MongoDB (Base de Datos)**: Sistema de base de datos NoSQL orientado a documentos utilizado para la persistencia de datos principal (ej. usuarios, reportes, configuraciones).

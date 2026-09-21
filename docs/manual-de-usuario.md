@@ -1,7 +1,7 @@
 # Manual de usuario — AguaVigía CTG
 
 Este manual describía la aplicación web (el mapa, el formulario de reporte, el panel del veedor). **El frontend
-se retiró del repositorio** (`ADR-048`) y lo rehará otra persona, por lo que ese manual ya no corresponde a nada
+se retiró de `main`** (`ADR-048`) y se rehace en otras ramas de este repositorio, por lo que ese manual ya no corresponde a nada
 que exista. La versión anterior sigue en el historial de git y en la etiqueta `pre-retiro-frontend`.
 
 Lo que hoy sirve para entender qué puede hacer cada persona con el sistema:

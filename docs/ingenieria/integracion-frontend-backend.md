@@ -1,6 +1,6 @@
 # Integración frontend-backend
 
-> **Estado: documento histórico.** El `frontend/` se retiró del repositorio (ADR-048); este contrato se
+> **Estado: documento histórico.** El `frontend/` se retiró de `main` (ADR-048); este contrato se
 > conserva porque describe qué endpoints consumía la SPA y cuáles quedaron "deliberadamente sin
 > conectar". El código del frontend sigue disponible en la etiqueta git `pre-retiro-frontend`.
 > Las referencias a `npm`, Vite y `src/api/generated/schema.ts` describen el estado anterior al retiro.

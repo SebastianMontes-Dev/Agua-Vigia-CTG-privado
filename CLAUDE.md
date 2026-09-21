@@ -27,8 +27,9 @@ repositorio** desde la guía `docs/api/`, para juntarlo todo después. **Es un p
 Falta `RF041` (webhook real de WhatsApp/Telegram), que depende de credenciales de terceros.
 **823 pruebas de backend** (las de integración exigen Docker y no corren sin él).
 
-⚠️ **La gestión de sprints va por detrás del código:** `sprint-2.md` se cerró el 2026-09-21 y el repositorio
-ya entregó M10–M15. Antes de planear, contrasta contra el código, no contra la tabla.
+⚠️ **La gestión de sprints va por detrás del código:** `sprint-2.md` se cerró el 2026-09-21, pero no existen
+`sprint-3.md` a `sprint-6.md` aunque M10–M15 ya están construidos (`REC-017`). Antes de planear, contrasta contra el
+código, no contra la tabla.
 
 **7 sprints: Sprint 0 (preparación) + Sprints 1–6. Un sprint no cierra por calendario: cierra cuando
 su entregable se demuestra funcionando.** Los 7 entregables, en `docs/gestion/README.md`.
