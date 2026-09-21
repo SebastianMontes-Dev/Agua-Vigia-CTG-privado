@@ -128,7 +128,7 @@ Todos medibles. Un RNF sin métrica y umbral no es verificable y no cuenta.
 | RNF024 | El registro, el ingreso y el restablecimiento de clave no deben revelar qué correos tienen cuenta, ni por el mensaje ni por el tiempo de respuesta. | Pruebas de igualdad de respuesta y de tiempo equivalente |
 | RNF025 | Las cuentas con rol ADMIN deben exigir un segundo factor TOTP conforme al RFC 6238. | Vectores de prueba del propio RFC |
 | RNF026 | Toda comunicación con la API y con el panel del veedor debe viajar sobre HTTPS/TLS 1.2+ en cualquier despliegue accesible fuera de la máquina de desarrollo. Fuera de alcance para el entorno local de aula (`docker-compose.yml` sirve solo `:80`) — obligatorio antes de cualquier despliegue público (`docs/ingenieria/estado-del-backend.md` §7). | Inspección del certificado y de las cabeceras del despliegue real |
-| RNF027 | El backend debe soportar como mínimo **50 000 usuarios simultáneos** en las lecturas públicas (mapa, bitácora, estadísticas, cumplimiento) y en el canal en vivo, sin degradar el registro de reportes (RNF002). | Prueba de carga (`scripts/carga/`) sobre un despliegue con réplicas; ver `docs/ingenieria/escalabilidad.md` |
+| RNF027 | El backend debe soportar como mínimo **50 000 usuarios simultáneos** en las lecturas públicas (mapa, bitácora, estadísticas, cumplimiento) y en el canal en vivo, sin degradar el registro de reportes (RNF002). | Prueba de carga (`scripts/carga/`); en este proyecto académico (`ADR-057`) solo a escala reducida en local, ver `docs/ingenieria/escalabilidad.md` |
 
 ### Usabilidad y accesibilidad
 

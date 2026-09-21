@@ -1,5 +1,6 @@
 package com.aguavigia.ctg.infrastructure.persistence.mongo;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
@@ -36,6 +37,11 @@ class IndicesMongoTest {
 
     @Autowired
     private MongoTemplate mongoTemplate;
+
+    @BeforeEach
+    void partirDeUnaColeccionSinIndices() {
+        mongoTemplate.getDb().getCollection("reportes").drop();
+    }
 
     private static Set<String> nombresDeIndices(List<IndexInfo> indices) {
         return indices.stream().map(IndexInfo::getName).collect(Collectors.toSet());
@@ -85,5 +91,27 @@ class IndicesMongoTest {
 
         Set<String> indicesReportes = nombresDeIndices(mongoTemplate.indexOps(ReporteCiudadanoDocumento.class).getIndexInfo());
         assertThat(indicesReportes).contains("estadoModeracion_1_timestamp_1");
+    }
+    /**
+     * Retención de reportes (decisión del dueño, 2026-09-21): 12 meses. Mongo los borra solo con un índice TTL
+     * sobre `timestamp`. Los eventos de la bitácora son permanentes y conservan los ids de sus reportes de
+     * sustento, que pasado el año apuntan a reportes que ya no existen.
+     */
+    @Test
+    void debeExpirarLosReportesAlCabodeUnAnoPorDefecto() {
+        indicesMongo.asegurarIndices();
+
+        var ttl = mongoTemplate.indexOps(ReporteCiudadanoDocumento.class).getIndexInfo().stream()
+                .filter(indice -> "timestamp_1".equals(indice.getName())).findFirst();
+        assertThat(ttl).isPresent();
+        assertThat(ttl.get().getExpireAfter()).contains(java.time.Duration.ofDays(365));
+    }
+
+    @Test
+    void conRetencionCeroLosReportesNoDebenExpirar() {
+        new IndicesMongo(mongoTemplate, 0).asegurarIndices();
+
+        Set<String> indicesReportes = nombresDeIndices(mongoTemplate.indexOps(ReporteCiudadanoDocumento.class).getIndexInfo());
+        assertThat(indicesReportes).doesNotContain("timestamp_1");
     }
 }

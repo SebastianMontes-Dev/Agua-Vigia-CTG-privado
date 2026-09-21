@@ -19,14 +19,15 @@ vacío de información que multiplica el daño. Toda decisión de alcance se juz
 
 ## Estado actual
 
-**Sprint 0 y 1 cerrados; Sprint 2 abierto.** M1–M15 están construidos en el backend. **El frontend se
-retiró (`ADR-048`; su código sigue en la etiqueta git `pre-retiro-frontend`) y lo rehará otra persona**
-desde la guía `docs/api/`. Mientras tanto, el trabajo es del backend: contrato, escalabilidad (requisito:
-**50 000 usuarios simultáneos**, `ADR-049`, `docs/ingenieria/escalabilidad.md`) y pulido.
+**Sprint 0, 1 y 2 cerrados.** M1–M15 están construidos en el backend. **El frontend se retiró de `main`
+(`ADR-048`; su código sigue en la etiqueta git `pre-retiro-frontend`) y se rehace en otras ramas de este mismo
+repositorio** desde la guía `docs/api/`, para juntarlo todo después. **Es un proyecto académico que corre en local**
+(`ADR-057`): sin hosting, dominio ni CDN. Requisito de escalabilidad: **50 000 usuarios simultáneos** (`ADR-049`,
+`docs/ingenieria/escalabilidad.md`), que en local solo puede medirse a escala reducida.
 Falta `RF041` (webhook real de WhatsApp/Telegram), que depende de credenciales de terceros.
 **823 pruebas de backend** (las de integración exigen Docker y no corren sin él).
 
-⚠️ **La gestión de sprints va por detrás del código:** `sprint-2.md` sigue abierto y el repositorio
+⚠️ **La gestión de sprints va por detrás del código:** `sprint-2.md` se cerró el 2026-09-21 y el repositorio
 ya entregó M10–M15. Antes de planear, contrasta contra el código, no contra la tabla.
 
 **7 sprints: Sprint 0 (preparación) + Sprints 1–6. Un sprint no cierra por calendario: cierra cuando

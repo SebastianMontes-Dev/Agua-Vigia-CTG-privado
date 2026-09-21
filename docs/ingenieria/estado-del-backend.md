@@ -70,6 +70,7 @@ de bugs (`BUG-076` a `BUG-086`).
   muestra un botón), la bitácora entrega el conteo de reportes de sustento y sus ids aparte, `poblacion` en los sectores,
   histórico público de cortes por sector (`RF002`), cambio de clave con sesión y reenvío de verificación e invitación.
 - **Respaldos** (`BUG-088`): `backup-mongo.sh` y `restore-mongo.sh` fallaban contra el Mongo de producción (sin credenciales); corregidos y comprobados con un Mongo desechable con autenticación. **Sigue sin programarse** el respaldo ni se ha hecho el simulacro completo.
+- **Alcance** (`ADR-057`, `ADR-058`): proyecto académico que corre en local, sin CDN, hosting ni servicios gestionados; reportes con retención de 12 meses (índice TTL) y eventos permanentes; CORS abierto solo en `dev` para los servidores locales del frontend (5173, 3000, 4200).
 - **Documentación:** [`docs/api/`](../api/README.md) completa, con la referencia de rutas **generada** desde el
   contrato y los `@PreAuthorize`.
 
@@ -98,7 +99,7 @@ de bugs (`BUG-076` a `BUG-086`).
 - **Capas:** `ContextoHttp` e `IngestaSaludController` importan `infrastructure/` desde `api/`, y ArchUnit no lo vigila
   (ver `ADR-015`: que un controlador lea de un puerto de salida **no** es una violación). Falta una regla ArchUnit
   «todo `/api/veedor/**` lleva `@PreAuthorize`» (`RNF022`).
-- **Dependabot** (revisado el 2026-09-21; los 8 PR abiertos fallan `gitleaks` y «vulnerabilidades» por causas ajenas al cambio: `gitleaks` da «Resource not accessible by integration» porque los PR de Dependabot corren con un token de solo lectura, y el escaneo de vulnerabilidades corrió el 17 de septiembre, antes de corregir el CVE de Netty en `main`; hace falta `@dependabot rebase`). #5 (jjwt 0.13) y #9 (archunit 1.5) son fusionables; #7 (Spring Boot 4.1), #11 (springdoc 3.1) y #2
+- **Dependabot** (revisado el 2026-09-21; los 8 PR abiertos fallan `gitleaks` y «vulnerabilidades» por causas ajenas al cambio: el escaneo de vulnerabilidades corrió el 17 de septiembre, antes de corregir el CVE de Netty en `main`, y `gitleaks` en modo PR falla en **todos** los PR con «Resource not accessible by integration» (403 con `pull_requests=read`): al workflow de escaneo de secretos le faltan `permissions: contents: read, pull-requests: read`. El `gitleaks` de las ejecuciones por `push` sí pasa; hace falta `@dependabot rebase`). #5 (jjwt 0.13) y #9 (archunit 1.5) son fusionables; #7 (Spring Boot 4.1), #11 (springdoc 3.1) y #2
   (Testcontainers 2.0) **rompen la build**: Boot 4 es una migración grande y no se mezcla con esto.
 
 ### Housekeeping pendiente del dueño

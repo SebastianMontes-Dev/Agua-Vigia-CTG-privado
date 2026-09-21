@@ -12,8 +12,8 @@ cobertura de `domain/` y `application/` por encima del 85% que exige la build (`
 abierto). El detalle requisito por requisito, con el nombre de la prueba que sostiene cada uno, está en la
 [matriz de trazabilidad](docs/ingenieria/matriz-trazabilidad.md).
 
-**El repositorio ya no incluye frontend** (`ADR-048`; su código sigue en la etiqueta git
-`pre-retiro-frontend`): lo rehará otra persona. La guía completa de funcionalidades, rutas y reglas para
+**`main` ya no incluye frontend** (`ADR-048`; su código sigue en la etiqueta git `pre-retiro-frontend`): se rehace en
+otras ramas de este mismo repositorio y luego se junta todo. Es un **proyecto académico que corre en local** (`ADR-057`). La guía completa de funcionalidades, rutas y reglas para
 hacerlo está en [`docs/api/`](docs/api/README.md), y el contrato exacto en
 [`backend/openapi.yaml`](backend/openapi.yaml). El requisito de **50 000 usuarios simultáneos** y su estado
 real están en [`docs/ingenieria/escalabilidad.md`](docs/ingenieria/escalabilidad.md).
