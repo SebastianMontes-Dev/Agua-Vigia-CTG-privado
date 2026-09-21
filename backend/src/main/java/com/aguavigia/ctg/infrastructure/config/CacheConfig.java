@@ -1,6 +1,7 @@
 package com.aguavigia.ctg.infrastructure.config;
 
 import com.aguavigia.ctg.infrastructure.cache.CacheProperties;
+import com.aguavigia.ctg.infrastructure.cache.ManejadorDeErroresDeCache;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -9,7 +10,9 @@ import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.cache.annotation.CachingConfigurer;
 import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.cache.interceptor.CacheErrorHandler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
@@ -31,7 +34,12 @@ import java.util.Map;
 @Configuration
 @EnableCaching
 @EnableConfigurationProperties(CacheProperties.class)
-public class CacheConfig {
+public class CacheConfig implements CachingConfigurer {
+
+    @Override
+    public CacheErrorHandler errorHandler() {
+        return new ManejadorDeErroresDeCache();
+    }
 
     @Bean
     public RedisCacheManager cacheManager(RedisConnectionFactory factory, CacheProperties propiedades) {
