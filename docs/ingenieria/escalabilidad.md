@@ -3,6 +3,20 @@
 Requisito: **`RNF027`**, «el backend debe soportar como mínimo 50 000 usuarios simultáneos». Decisiones:
 `ADR-049` (arquitectura), `ADR-050`–`ADR-053` (`ADR-053`: consenso acotado y caché del proxy). Guía para el frontend: [`docs/api/escalabilidad-para-el-cliente.md`](../api/escalabilidad-para-el-cliente.md).
 
+## Alcance real del proyecto (léelo primero)
+
+**Este es un proyecto académico que se presenta en clase corriendo en los PC del equipo** (`ADR-057`): sin hosting,
+dominio, CDN ni presupuesto. Por eso:
+
+- Los **50 000 usuarios simultáneos no se pueden demostrar** en local. Lo que sí se puede mostrar y defender es (a) que la
+  arquitectura está preparada para ello, (b) las **mediciones locales reproducibles** de `scripts/carga/` y (c) los límites,
+  dichos con honestidad.
+- Lo que exige servicios externos (CDN, Mongo y Redis gestionados con alta disponibilidad, S3, TLS, varias réplicas en
+  máquinas distintas) es **referencia para un despliegue futuro**, no un pendiente del proyecto. Las secciones «Arquitectura
+  objetivo», «Riesgos» y «Pendiente» de abajo se leen con esa condición.
+- **Qué decirle al profesor:** la aplicación está preparada para escalar y se midió a escala reducida en un solo equipo
+  (tablas de «Lo que se midió»); **no** se probaron 50 000 usuarios reales, y el documento dice por qué.
+
 ## Estado, sin adornos
 
 **La meta NO está demostrada.** El diseño y el código están preparados para ella y se midió a escala
@@ -24,7 +38,7 @@ El requisito no dice qué hace cada persona. Se asume, y conviene confirmarlo co
 Las lecturas son idénticas para todos, así que se sirven de una caché. Las escrituras no se pueden cachear:
 son el punto delicado (sección «Lo que la medición encontró»).
 
-## Arquitectura objetivo
+## Arquitectura objetivo (referencia para un despliegue futuro)
 
 ```
 personas ──► CDN (opcional, recomendable) ──► nginx ×2–3 (micro-caché, límites) ──► backend ×N ──► MongoDB (réplica de 3)
@@ -158,7 +172,7 @@ Pendiente, con decisión del dueño:
 - **Red real, TLS, CDN**: todo fue en `localhost`.
 - **Métricas** (Prometheus) ni trazas: hoy solo se puede observar con `docker stats` y los logs.
 
-## Riesgos que conviene decidir antes de producción
+## Riesgos que conviene decidir antes de producción (solo si algún día se despliega)
 
 - **Usuarios tras una misma IP (CGNAT móvil):** `limit_req` (30 req/s) y `limit_conn` (20 SSE) son **por IP**. En
   redes móviles miles de personas comparten IP pública y el límite podría cortar a usuarios legítimos. Hay que
@@ -169,6 +183,8 @@ Pendiente, con decisión del dueño:
   ya comprimido o dejarlo al CDN.
 
 ## Pendiente antes de afirmar «50 000»
+
+> Solo aplica a un despliegue real. En el proyecto académico (`ADR-057`) no está previsto.
 
 1. Prueba de carga **distribuida** (varias máquinas generadoras) contra un despliegue con **≥ 3 réplicas**, con
    nginx delante y SSE a través de él.

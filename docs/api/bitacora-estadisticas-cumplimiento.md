@@ -105,7 +105,8 @@ Campos que **pueden ser nulos** y que la interfaz debe tolerar: `sectorId`, `cor
 sostuvieron el cambio de estado de ese evento), con las mismas cabeceras de paginación que el listado
 (por defecto 50, máximo 200). Pídelo **solo si el usuario abre el detalle** del evento. Una página fuera de
 rango devuelve `[]`; un `id` de evento inexistente, `404`. Los ids sirven para que un veedor los cruce con
-el panel: no hay ruta pública que devuelva el contenido de un reporte.
+el panel: no hay ruta pública que devuelva el contenido de un reporte. **Los reportes se borran a los 12 meses** (`ADR-058`): en un
+evento más viejo, los ids siguen ahí pero el reporte al que apuntan ya no existe; no intentes abrirlos.
 
 ## Estadísticas
 

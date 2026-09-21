@@ -75,6 +75,13 @@ escribe primero a un `.parcial` y solo se renombra si `mongodump` terminó bien 
 pendiente el simulacro completo de abajo (con el backend y las fotos), que nadie ha hecho, y que **nada programa** el
 respaldo: hay que crear la tarea de cron o del Programador de tareas.
 
+## Cómo se respalda en este proyecto (local)
+
+Al correr en el PC del equipo (`ADR-057`) no se programa una tarea automática: **se hace un respaldo a mano antes de cada
+presentación o de tocar la base**, con `./scripts/backup-mongo.sh` (usa `docker-compose.prod.yml`; para el compose de
+desarrollo, `COMPOSE_FILE=docker-compose.yml ./scripts/backup-mongo.sh`). Si algún día se despliega, programarlo a diario con
+retención de 30 días fuera del servidor.
+
 ## 5. Simulacro de restauración
 
 Un respaldo que nunca se restauró no es un respaldo confiable. Antes de depender de esto en

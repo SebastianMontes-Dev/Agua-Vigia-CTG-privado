@@ -2274,8 +2274,71 @@ Quitar los controladores `HistorialDeCortesController`, `CuentaPropiaController`
 
 ---
 
+## ADR-057 — El proyecto es académico y corre en local: sin hosting, dominio, CDN ni servicios gestionados
+
+- **Fecha:** 2026-09-21
+- **Estado:** Aceptada
+- **Decide:** Dueño del proyecto
+
+### Contexto
+Al pedir decisiones de despliegue (CDN, servicios gestionados de Mongo y Redis, almacenamiento de objetos para las fotos,
+dominio y TLS) el dueño aclaró que AguaVigía es un **proyecto académico que se presenta en clase corriendo en los PC del
+equipo**, sin hosting, sin dominio y con **presupuesto cero**. Las respuestas «CDN», «servicios gestionados» y
+«S3-compatible» se dieron antes de esa aclaración, sobre mis recomendaciones para un despliegue real.
+
+### Decisión
+Prevalece la aclaración: **no se contratan ni se implementan** CDN, servicios gestionados, S3, dominio ni TLS. Todo corre con
+`docker compose` en local; las fotos siguen en disco local (una sola réplica). La arquitectura de `escalabilidad.md`
+(CDN, réplicas, Mongo de 3 nodos, S3) queda como **referencia para un despliegue futuro**, no como pendiente del proyecto.
+Los 50 000 usuarios simultáneos (`RNF027`) **no pueden demostrarse en local**: lo defendible es la arquitectura preparada
+y las mediciones locales reproducibles de `scripts/carga/`, dichas con su límite.
+
+### Consecuencias
+- **Gana:** cero costo y cero infraestructura que mantener; un solo `docker compose` levanta todo.
+- **Pierde:** la meta de 50 000 no se puede probar a escala real; sin alta disponibilidad ni CDN, un fallo de un contenedor
+  interrumpe el servicio. Los límites por IP de nginx no importan en local (un solo cliente).
+- **Para la presentación:** decir qué se midió (nginx con micro-caché ~3 700 req/s con el backend al ~6 % de un núcleo,
+  10 000 conexiones SSE, escritura a 3× carga sin errores) y que eso es un banco local, no producción.
+
+### Cómo se revierte
+Si el proyecto se despliega algún día, retomar `escalabilidad.md` («Pendiente antes de afirmar 50 000»).
+
+---
+
+## ADR-058 — Los reportes se conservan 12 meses y los eventos de la bitácora son permanentes
+
+- **Fecha:** 2026-09-21
+- **Estado:** Aceptada
+- **Decide:** Dueño del proyecto
+
+### Contexto
+`reportes` crecía sin límite y guarda la huella del dispositivo de cada persona que reporta. La bitácora es de solo anexado
+(`RF028`) y cada evento de consenso guarda los ids de sus reportes de sustento (`RF011`).
+
+### Alternativas consideradas
+| Opción | A favor | En contra |
+|---|---|---|
+| Conservar todo para siempre | Trazabilidad completa | La colección y las huellas crecen sin límite; peor para la privacidad |
+| **Reportes 12 meses, eventos permanentes** | Acota el crecimiento y el tiempo que se guarda una huella; alinea con las fotos (365 días) | Los ids de sustento de un evento viejo apuntan a reportes ya borrados |
+| Archivar en vez de borrar | Conserva la evidencia | Más piezas; sin destino de archivo en un proyecto local |
+
+### Decisión
+Índice TTL de Mongo sobre `reportes.timestamp` a `aguavigia.retencion.reportes-dias` (365 por defecto; 0 lo desactiva). Los eventos
+de la bitácora no se tocan. `RF024` (evolución del índice) usa los cortes cerrados, no los reportes, y no se ve afectado. Las fotos
+de reportes borrados quedan huérfanas y las limpia el job nocturno existente.
+
+### Consecuencias
+- **Gana:** la colección deja de crecer sin límite y ninguna huella se guarda más de un año.
+- **Pierde:** pasados 12 meses, el evento sigue diciendo *cuántos* reportes lo sustentaron y sus ids, pero el contenido de esos reportes ya no existe.
+- Cambiar el plazo en una base ya creada exige retirar antes el índice `timestamp_1` (Mongo rechaza el mismo índice con otra caducidad).
+
+### Cómo se revierte
+`aguavigia.retencion.reportes-dias: 0` y retirar el índice `timestamp_1`; lo ya borrado no se recupera.
+
+---
+
 <!--
-Siguiente número disponible: ADR-057
+Siguiente número disponible: ADR-059
 Para agregar: usa la skill `registrar-decision`.
 Recuerda: append-only. Las entradas viejas solo cambian de estado, no de contenido.
 -->
