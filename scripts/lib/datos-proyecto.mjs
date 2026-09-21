@@ -224,7 +224,7 @@ function obtenerCobertura() {
           const cols = columnasDeFila(f).filter((_, i, arr) => i > 0 && i < arr.length - 1);
           const [modulo, requisitos, implementados] = cols;
           const total = Number(requisitos) || 0;
-          const hechos = Number(implementados) || 0;
+          const hechos = parseInt(implementados, 10) || 0;
           return {
             modulo: modulo.replace(/\*\*/g, "").trim(),
             estrella: modulo.includes("⭐"),
