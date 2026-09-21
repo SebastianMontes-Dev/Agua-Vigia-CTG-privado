@@ -3,7 +3,6 @@ package com.aguavigia.ctg.api.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.Instant;
-import java.util.List;
 
 @Schema(description = "Evento de la bitácora pública, de solo anexado (RF026-RF028)")
 public record EventoBitacoraRespuesta(
