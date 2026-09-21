@@ -1963,8 +1963,232 @@ build, ni el CI, ni el contrato OpenAPI.
 
 ---
 
+## ADR-048 — El repositorio pasa a ser backend + datos + infraestructura: el frontend se retira y lo rehace otra persona
+
+- **Fecha:** 2026-09-21
+- **Estado:** Aceptada
+- **Decide:** Dueño del proyecto
+
+### Contexto
+El frontend (React 19, `frontend/`, 137 archivos versionados) estaba completo y conectado, pero el dueño
+quiere que lo reconstruya desde cero una persona de su confianza, a partir de una documentación completa de
+las funcionalidades y rutas, y quiere antes pulir el backend (incluida la escalabilidad: mínimo 50 000
+usuarios simultáneos). Dejar un frontend viejo en el repositorio confundiría a quien lo rehaga.
+
+### Alternativas consideradas
+| Opción | A favor | En contra |
+|---|---|---|
+| Conservar `frontend/` y reescribirlo encima | Punto de partida | Arrastra decisiones de diseño que se quieren revisar; el backend se pule sin un contrato de referencia |
+| Retirar `frontend/` y documentar la API para el nuevo | Contrato explícito; nada que estorbe | Sin cliente para las cuentas (M15) más allá de las páginas HTML de cortesía |
+| Reescribir también el backend | Base limpia | Se pierden 660 pruebas verdes y semanas de trabajo; el backend estaba sano |
+
+### Decisión
+Se retira `frontend/` (queda en la etiqueta git `pre-retiro-frontend`), el backend se conserva y se pule, y
+se publica `docs/api/` como guía para construir el cliente. `DESIGN.md` se conserva (el backend lo cita y sus
+plantillas de correo usan su paleta).
+
+### Consecuencias
+- **Gana:** un contrato claro (`backend/openapi.yaml` + `docs/api/`); ninguna deriva entre backend y un cliente viejo.
+- **Pierde:** la interfaz funcionando; los requisitos de interfaz (`RNF001`, `RNF012`–`RNF016` y las partes de
+  UI de `RF001`–`RF004`, `RF008`) quedan **retirados por alcance** hasta que exista el frontend nuevo. Los
+  enlaces de los correos apuntan a páginas HTML de cortesía del backend en lugar de a una SPA.
+- **Condiciona:** el proxy (`infra/nginx/`) sirve solo la API, las fotos y el proxy de imágenes de Acuacar.
+
+### Cómo se revierte
+`git checkout pre-retiro-frontend -- frontend/` recupera el código. El resto no depende de ello.
+
+---
+
+## ADR-049 — El backend escala con micro-caché HTTP, avisos SSE ligeros y ejecución única de jobs, no con más hardware
+
+- **Fecha:** 2026-09-21
+- **Estado:** Aceptada
+- **Decide:** Dueño del proyecto
+
+### Contexto
+Se pidió que el sistema soporte **50 000 personas a la vez**. Una auditoría del código (2026-09-21) concluyó
+que **no** lo soportaba: una instancia con valores por defecto (Tomcat de 200 hilos, sin límites en los pools
+de Mongo y Redis), SSE que difundía el listado completo (~25 KB) a cada cliente en cada cambio con una lista
+`CopyOnWriteArrayList` sin tope (~1,25 GB por evento con 50 000 clientes), `Cache-Control: no-store` forzado en
+toda la API, jobs `@Scheduled` que correrían N veces con N réplicas y `INCR`+`EXPIRE` no atómicos en el rate
+limit (una clave sin caducidad bloqueaba a una IP para siempre).
+
+### Alternativas consideradas
+| Opción | A favor | En contra |
+|---|---|---|
+| Solo más instancias | Nada que cambiar | Cada instancia seguiría enviando 25 KB por cliente y cambio; los jobs se duplicarían |
+| Empujar el estado por SSE, optimizado | Mismo contrato para el cliente | El costo crece con clientes × cambios; inviable a 50 000 |
+| **SSE de aviso + `GET` cacheado** | El costo de leer no depende del número de clientes | El cliente debe pedir tras el aviso (contrato cambiado) |
+| WebSocket / servicio de tiempo real gestionado | Más margen | Infraestructura nueva sin necesidad demostrada |
+
+### Decisión
+1. **Lecturas públicas** (`/api/sectores`, `/estadisticas`, `/cumplimiento`, `/bitacora`): micro-caché de 5 s en
+   nginx (`proxy_cache_lock`, servir versión vieja si el backend cae) con `Cache-Control: public, max-age=5,
+   stale-while-revalidate=30`. Nunca se cachea una petición con `Authorization`.
+2. **SSE**: solo avisa (`{"actualizadoEn":…}`); el cliente pide `GET /api/sectores`. Difusión en hilos
+   virtuales, avisos agrupados a 1/s, tope de conexiones (429 con `Retry-After`), latido y `retry` con jitter.
+3. **Concurrencia**: hilos virtuales, timeouts y pool de Mongo acotados, `CacheErrorHandler` (un Redis caído
+   degrada a Mongo en vez de dar 500), `@Cacheable(sync=true)`.
+4. **Réplicas**: cada `@Scheduled` con efectos pasa por `EjecucionUnica` (`SET NX PX` en Redis); el rate limit
+   es un script Lua atómico y tolera Redis caído; el cambio de estado por consenso es *compare-and-set* en Mongo.
+5. **Operación**: `liveness`/`readiness` sin las fuentes externas, Redis con `noeviction`, `MaxRAMPercentage=75`.
+
+### Consecuencias
+- **Gana:** el costo de una lectura pública deja de depender del número de clientes; el sistema puede correr
+  con varias réplicas sin duplicar trabajo.
+- **Pierde:** **el contrato del SSE cambia** (ya no trae el estado); una lectura pública puede tener hasta ~5 s
+  (nginx) más el `max-age` del navegador de antigüedad, y hasta ~30 s tras un fallo del backend; con Redis caído
+  el rate limit por IP deja de aplicarse y los jobs programados se omiten.
+- **Queda pendiente y NO resuelto** (ver `docs/ingenieria/escalabilidad.md`): las fotos van a disco local (con
+  réplicas en hosts distintos hacen falta almacenamiento de objetos o un volumen compartido); el estado de los
+  colectores vive en memoria de cada instancia; Mongo y Redis son nodos únicos (sin replica set ni Sentinel); no
+  hay CDN ni TLS. **Los 50 000 concurrentes reales no se han probado**: solo hay una medición a escala reducida.
+
+### Cómo se revierte
+Cada pieza es independiente: quitar el bloque `proxy_cache` de `infra/nginx/nginx.conf` restaura la lectura sin
+caché; el resto son cambios de configuración o clases aisladas (`EjecucionUnicaRedis`, `SseSectoresBroadcaster`).
+
+---
+
+## ADR-050 — El sector de un reporte se infiere de la coordenada con una consulta geoespacial (`$geoIntersects`)
+
+- **Fecha:** 2026-09-21
+- **Estado:** Aceptada
+- **Decide:** Dueño del proyecto
+
+### Contexto
+`RF007` pide ubicar el reporte por coordenada. La matriz de trazabilidad lo daba por hecho (✅), pero el código
+nunca lo hizo: `POST /api/reportes` exigía el `sectorId` y la coordenada solo se guardaba; el índice `2dsphere`
+de `sectores.geometry` no lo usaba ninguna consulta (verificado leyendo `RegistrarReporteService`).
+
+### Alternativas consideradas
+| Opción | A favor | En contra |
+|---|---|---|
+| Que el cliente resuelva el barrio (punto en polígono) | Sin trabajo en el servidor | Necesita los ~0,7 MB de polígonos en cada cliente; cada cliente lo reimplementa |
+| Punto en polígono en memoria del servidor | Sin consulta a Mongo | Cargar y mantener 213 polígonos; duplica la fuente de verdad |
+| **`$geoIntersects` sobre el índice `2dsphere`** | Usa lo ya sembrado; funciona con `MultiPolygon` (`zona-industrial`) | Una consulta más por reporte sin `sectorId` |
+
+### Decisión
+`sectorId` pasa a ser opcional si viaja `coordenada`. Con solo la coordenada, `SectorRepository.buscarPorCoordenada`
+resuelve el barrio; si no cae en ninguno, `400`. Si viaja `sectorId`, manda y no se consulta la geometría.
+
+### Consecuencias
+- **Gana:** el cliente puede reportar con un solo toque de ubicación; el `id` sale siempre en la respuesta.
+- **Pierde:** con `sectorId` y `coordenada` a la vez **no se comprueba** que coincidan (no se paga una consulta
+  que nadie pidió); un cliente podría declarar un sector distinto al de su coordenada.
+
+### Cómo se revierte
+Volver a hacer `sectorId` obligatorio en `SolicitudReporte` y quitar la rama de inferencia de `RegistrarReporteService`.
+
+---
+
+## ADR-051 — El cambio de estado por consenso es compare-and-set y el evento de bitácora guarda los reportes que lo sustentan
+
+- **Fecha:** 2026-09-21
+- **Estado:** Aceptada
+- **Decide:** Dueño del proyecto
+
+### Contexto
+`EvaluarConsensoService` leía el estado, decidía y escribía sin control: dos reportes simultáneos del mismo
+sector leían el mismo estado y **los dos anexaban su evento** a la bitácora, que es de solo anexado (`RF028`), así
+que el duplicado no se podía corregir. Además `RF011` (dejar constancia de qué reportes sustentan el cambio)
+estaba marcado ✅ pero el evento solo guardaba un conteo: los ids se calculaban y se descartaban.
+
+### Decisión
+`SectorRepository.cambiarEstadoSiEs(id, esperado, nuevo)` (un `findAndModify` con el estado esperado en el
+filtro) decide quién gana; solo el ganador anexa el evento. `EventoBitacora` gana `reportesSustento` y el evento de
+consenso ahora también afirma su `estado`. Verificado con 16 hilos concurrentes contra Mongo real: un único ganador.
+
+### Consecuencias
+- **Gana:** una bitácora sin duplicados y trazable hasta la evidencia; el campo es aditivo (`reportesSustento`).
+- **Pierde:** el perdedor de la carrera responde `alcanzado: false` aunque su reporte sí contó; y **no hay ruta
+  pública que consulte esos reportes** por id.
+
+### Cómo se revierte
+Volver a `guardar()` en el servicio; el campo `reportesSustento` puede quedar sin usar.
+
+---
+
+## ADR-052 — «No existe» de un recurso de la URL es 404 (`EntidadNoEncontradaException`); un sector en el cuerpo sigue siendo 400
+
+- **Fecha:** 2026-09-21
+- **Estado:** Aceptada
+- **Decide:** Dueño del proyecto
+
+### Contexto
+La API era inconsistente: `GET /api/sectores/{id}` y `GET /api/veedor/cortes/{id}` daban 404, pero cerrar un corte,
+moderar un reporte, revisar una propuesta, confirmar un reporte o pedir el cumplimiento de un corte inexistentes
+daban 400 (el mismo `IllegalArgumentException`). Quien construye un cliente desde cero no puede predecirlo. Además
+`POST /api/iot/presion` respondía 400/401/503 sin cuerpo, el único punto que no seguía RFC 7807.
+
+### Decisión
+`EntidadNoEncontradaException` (dominio, **extiende** `IllegalArgumentException`) para los recursos identificados
+en la URL; el manejador global la traduce a 404. Un sector inexistente **dentro del cuerpo** de un POST sigue siendo
+400 (el recurso no está en la URL). IoT responde ahora en RFC 7807 y el umbral de presión baja (15 psi) sale del
+controlador a `RegistrarLecturaDePresionService`.
+
+### Consecuencias
+- **Gana:** una regla simple y previsible para el cliente; ningún código existente que capture la excepción genérica se rompe.
+- **Pierde:** cambia el código de estado de esas rutas (400 → 404): un cliente que ya dependiera del 400 se rompería
+  (no hay ninguno tras el retiro del frontend). La frontera «recurso en la URL vs. en el cuerpo» es una convención, no
+  algo que el compilador haga cumplir.
+
+### Cómo se revierte
+Lanzar `IllegalArgumentException` en lugar de `EntidadNoEncontradaException` en los siete servicios afectados.
+
+---
+
+## ADR-053 — El consenso se evalúa como mucho una vez por segundo y sector, y la micro-caché de nginx ignora las cabeceras de caché del origen
+
+- **Fecha:** 2026-09-21
+- **Estado:** Aceptada
+- **Decide:** Dueño del proyecto (delegó las decisiones de escalabilidad, «tú decide qué pulir»)
+
+### Contexto
+Al medir con carga (`scripts/carga/`, 100 POST/s repartidos + un pico de 300/s sobre un sector) aparecieron dos
+defectos que ninguna prueba unitaria veía y que anulaban la base de `ADR-049`:
+1. **`BUG-085`:** el backend responde `Cache-Control: no-cache, no-store` (Spring Security) y nginx respeta la cabecera
+   del origen: la micro-caché nunca guardaba nada. Una prueba con un backend simulado dio *MISS→HIT* y lo ocultó.
+2. **`BUG-086`:** `EvaluarConsensoService` cargaba de Mongo todos los reportes de la ventana del sector (30 min) en
+   **cada** POST una vez superado el umbral, para descubrir casi siempre que el estado no cambiaba. Con miles de
+   reportes por sector, el pool de 100 conexiones se agotaba: 35 % de errores `503` y p95 de 8 s (RNF002 exige 1 s).
+
+### Alternativas consideradas
+| Opción | A favor | En contra |
+|---|---|---|
+| Consenso: solo contar votos en Mongo (agregación) | Sencillo; sin estado nuevo | Sigue siendo O(ventana) por POST; con 10 000 reportes en el sector el pico seguía dando 4 % de errores y p95 de 5 s |
+| Consenso: contadores por tipo en Redis, incrementales | O(1) | Rediseño grande; hay que reconstruir la ventana al expirar reportes |
+| **Consenso: votos contados en Mongo + una evaluación por segundo y sector + barrido de pendientes** | O(1) por POST; ningún reporte queda sin evaluar (solo se agrupan) | El cambio de estado puede tardar hasta ~2 s más; una pieza más (reserva en Redis + tarea) |
+| Caché: que el backend emita `Cache-Control: public, max-age=5` | Correcto para un CDN delante | Hay que tocar cada controlador; un `404` con `max-age` sería cacheable por nginx |
+| **Caché: nginx ignora y oculta las cabeceras del origen y fija la validez él** | Un solo lugar; un `404` no se cachea | El backend «miente» (`no-store`) a quien lo consulte sin nginx |
+
+### Decisión
+Consenso: `ReporteCiudadanoRepository.contarVotosRecientes` (agregación en Mongo, ≤ 3 filas) decide si hay consenso y
+hacia dónde; **solo si el estado va a cambiar** se cargan los reportes de sustento (RF011). Además
+`ReservaDeEvaluacionPort` (`SET NX PX`, 1 s por sector) deja evaluar a una petición por intervalo; el resto deja el
+sector pendiente y `EvaluacionPendienteJob` (cada 1 s, en todas las réplicas) lo evalúa. Con Redis caído se evalúa en
+cada petición (más caro, pero nunca se pierde una evaluación). Índice nuevo `sectorId+huella+timestamp` para el
+cupo por dispositivo. Caché: `proxy_ignore_headers Cache-Control Expires Vary` + `proxy_hide_header` en el bloque de
+lecturas públicas; la validez la fija solo `proxy_cache_valid 200 5s`.
+
+### Consecuencias
+- **Gana (medido, un solo backend, un solo equipo):** 100 POST/s + pico de 300/s: de 35 % de errores y p95 de 8 s a 0 %
+  y 15,6 ms; a 3× esa carga (63 001 peticiones): 0 % y p95 de 36 ms, sin eventos duplicados. Con la micro-caché real,
+  un nginx sirvió ~3 700 req/s con el backend al ~6 % de un núcleo.
+- **Pierde:** el cambio de estado por consenso puede retrasarse hasta ~2 s (intervalo + barrido); es configurable
+  (`aguavigia.consenso.intervalo-evaluacion-ms`, `aguavigia.consenso.barrido-ms`). La clave de caché es la URL completa,
+  así que variar parámetros de consulta evita la caché (lo acota el `limit_req` por IP).
+- **Lo que enseña:** una prueba de caché solo vale contra el backend real (`scripts/carga/verificar-cache-proxy.mjs`).
+
+### Cómo se revierte
+Consenso: quitar la reserva (`reservar` siempre `true`) devuelve la evaluación en cada POST, manteniendo el conteo
+en Mongo. Caché: eliminar las líneas `proxy_ignore_headers`/`proxy_hide_header` (y la micro-caché vuelve a no
+funcionar hasta que el backend emita sus propias cabeceras).
+
+---
+
 <!--
-Siguiente número disponible: ADR-048
+Siguiente número disponible: ADR-054
 Para agregar: usa la skill `registrar-decision`.
 Recuerda: append-only. Las entradas viejas solo cambian de estado, no de contenido.
 -->

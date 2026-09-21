@@ -127,14 +127,41 @@ al mapa. Un mapa sin lista es inaccesible para lector de pantalla (RNF012–RNF0
 
 ### Requisito: Actualización del mapa sin recargar
 
-El sistema debe emitir los cambios de estado de sector por un flujo de eventos servidor-cliente,
-para que el mapa se actualice sin que el usuario recargue la página.
+El sistema debe **avisar** de los cambios de estado de sector por un flujo de eventos
+servidor-cliente (`ADR-049`). El aviso no lleva el estado: el cliente lo pide a `GET /api/sectores`,
+que está cacheado, para que el costo de mantener el mapa al día no dependa de cuántos clientes haya.
 
 #### Escenario: Cambio de estado mientras el mapa está abierto
 
 - **Cuando** un sector cambia de estado y hay un cliente suscrito a `GET /api/sectores/stream`
-- **Entonces** el cliente recibe el evento con el nuevo estado
-- **Y** el mapa se repinta sin recarga
+- **Entonces** el cliente recibe un evento `sectores` con `actualizadoEn`
+- **Y** vuelve a pedir `GET /api/sectores` y el mapa se repinta sin recarga
+
+#### Escenario: Ráfaga de cambios
+
+- **Cuando** varios sectores cambian de estado en el mismo segundo
+- **Entonces** cada cliente recibe **un solo** aviso, no uno por cambio
+
+#### Escenario: Conexión inactiva
+
+- **Cuando** no hay cambios durante un rato
+- **Entonces** el servidor envía un latido cada 25 segundos para mantener viva la conexión
+
+#### Escenario: Se alcanza el tope de conexiones
+
+- **Cuando** la instancia ya tiene el máximo de conexiones en vivo
+- **Entonces** responde `429` con `Retry-After` y el cliente sigue funcionando por sondeo de `GET /api/sectores`
+
+### Requisito: Polígonos de los sectores servidos por la API
+
+El sistema debe entregar la geometría de los sectores por la API, con el mismo `id` que el listado, para
+que un cliente pueda dibujar el mapa sin llevar el GeoJSON ni calcular identificadores.
+
+#### Escenario: Pedir las geometrías
+
+- **Cuando** un cliente consulta `GET /api/sectores/geometria`
+- **Entonces** recibe un `FeatureCollection` con un `Feature` por sector cuyo `id` es el del listado
+- **Y** la respuesta es cacheable un día
 
 ### Requisito: Primera respuesta útil bajo tres segundos en 3G
 
@@ -206,6 +233,21 @@ abierto.
 
 - **Cuando** el usuario deniega la ubicación
 - **Entonces** el reporte usa el sector que el usuario tenía abierto y el flujo continúa sin error
+
+#### Escenario: Solo coordenada, sin sector declarado
+
+- **Cuando** el reporte llega con `coordenada` y sin `sectorId`
+- **Entonces** el servidor infiere el sector con una consulta geoespacial (`ADR-050`) y lo devuelve en la respuesta
+
+#### Escenario: Coordenada fuera de Cartagena
+
+- **Cuando** el reporte llega solo con una coordenada que no cae en ningún sector
+- **Entonces** la API responde `400` y no registra nada
+
+#### Escenario: Ni sector ni coordenada
+
+- **Cuando** el reporte no trae ninguno de los dos
+- **Entonces** la API responde `400`
 
 ### Requisito: Reporte en dos toques
 
@@ -303,7 +345,20 @@ veedor pueda auditar por qué el mapa dice lo que dice.
 #### Escenario: Auditoría de un cambio publicado
 
 - **Cuando** un veedor consulta un cambio de estado producido por consenso
-- **Entonces** obtiene la lista de los reportes que lo sustentaron
+- **Entonces** obtiene la lista de los reportes que lo sustentaron (`reportesSustento` en el evento de la bitácora)
+
+#### Escenario: Un sector recibe cientos de reportes por segundo
+
+- **Cuando** un sector ya en el umbral recibe reportes a gran velocidad (una avería masiva)
+- **Entonces** el consenso se evalúa como mucho una vez por segundo y sector: el resto de reportes deja el sector
+  pendiente y un barrido lo evalúa en el segundo siguiente
+- **Y** el cambio de estado puede tardar hasta unos 2 s más, pero ningún reporte se queda sin evaluar
+- **Y** solo se cargan los reportes de sustento cuando el estado va a cambiar (`ADR-053`)
+
+#### Escenario: Dos reportes simultáneos del mismo sector
+
+- **Cuando** dos reportes del mismo sector alcanzan el consenso a la vez
+- **Entonces** el estado cambia una sola vez y la bitácora recibe **un** evento (`ADR-051`)
 
 ---
 
@@ -365,7 +420,12 @@ Al darse de baja, el correo debe eliminarse (RNF009).
 
 - **Cuando** el suscriptor abre el enlace de `GET /api/suscripciones/cancelar` con su token
 - **Entonces** la suscripción se cancela sin pedirle contraseña ni datos adicionales
-- **Y** su correo deja de estar almacenado
+- **Y** su correo deja de estar almacenado (se sustituye por una dirección `.invalid`)
+
+#### Escenario: El correo de confirmación también lleva la baja
+
+- **Cuando** el sistema envía el correo de confirmación de una suscripción
+- **Entonces** incluye el enlace de baja, igual que los correos de aviso
 
 ---
 
@@ -798,7 +858,12 @@ sensores IoT residenciales, autenticado con una clave propia del sensor.
 #### Escenario: Sensor sin clave o con clave inválida
 
 - **Cuando** la petición llega sin `X-IoT-Key` o con una clave que no corresponde
-- **Entonces** la API la rechaza y no registra nada
+- **Entonces** la API responde `401` en formato RFC 7807 y no registra nada
+
+#### Escenario: Servidor sin clave de sensores configurada
+
+- **Cuando** el servidor no tiene `IOT_KEY`
+- **Entonces** responde `503` en RFC 7807, incluso a una petición que trae cabecera
 
 ### Requisito: Cupo propio del sensor, separado del ciudadano
 

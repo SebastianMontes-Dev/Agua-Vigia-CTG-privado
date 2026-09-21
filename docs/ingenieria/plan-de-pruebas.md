@@ -48,7 +48,7 @@ corrige `product-requirements.md` primero (mismo criterio que usa `registrar-imp
 
 | Ambiente | Para qué | Cómo se levanta |
 |---|---|---|
-| Local | Desarrollo y pruebas unitarias/integración | `./mvnw test`, `npm run test` |
+| Local | Desarrollo y pruebas unitarias/integración | `./mvnw test` |
 | CI (GitHub Actions) | Puerta de calidad en cada PR — ver `.github/workflows/` | Automático en `push`/`pull_request` |
 | Réplica local completa | E2E, caos, RNF020 | `docker compose up` (Sprint 1+, cuando existan los Dockerfiles de `/backend` y `/frontend`) |
 | Staging desplegado | Validación final antes de la demo | Render/Railway + MongoDB Atlas + Upstash (Sprint 5) |

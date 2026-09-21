@@ -15,7 +15,7 @@
 
 | ID | Fecha | Título | Estado |
 |---|---|---|---|
-| REC-004 | 2026-08-08 | La cobertura de pruebas del frontend está muy por debajo de la del backend | En curso |
+| REC-004 | 2026-08-08 | La cobertura de pruebas del frontend está muy por debajo de la del backend | Cerrada — obsoleta |
 | REC-006 | 2026-08-09 | `RateLimitConfig` se cuela en cualquier `@WebMvcTest` aunque no se importe, y rompe pruebas en silencio al activar reglas reales | Pendiente |
 | REC-007 | 2026-08-28 | Las ramas fusionadas se acumulan en GitHub porque falta activar el borrado automático | Pendiente |
 | REC-008 | 2026-08-30 | El fuente de `index.css` está semi-minificado: el breakpoint móvil completo vive en una sola línea de 2.509 caracteres | Pendiente |
@@ -37,7 +37,9 @@ ella)
 
 ### REC-004 — La cobertura de pruebas del frontend está muy por debajo de la del backend
 
-- **Fecha:** 2026-08-08 · **Estado:** En curso
+- **Fecha:** 2026-08-08 · **Estado:** Cerrada — obsoleta
+
+**Cerrada el 2026-09-21:** el frontend se retiró del repositorio (`ADR-048`; su código sigue en la etiqueta `pre-retiro-frontend`) y lo rehará otra persona. La recomendación no se resuelve: deja de aplicar aquí. Si el frontend nuevo vive en otro repositorio, la cobertura será asunto de ese repositorio.
 
 El backend tiene 23 pruebas reales, incluido ArchUnit protegiendo la Regla de Oro. El frontend tiene
 2 (`InsigniaEstado.test.tsx`, `PaginaVeedor.test.tsx`) contra 20 archivos de componentes. `RNF017`
@@ -239,5 +241,7 @@ en verde.
 Una prueba corta lo cerraría: leer los cuatro valores de `index.css` y compararlos con
 `COLOR_POR_ESTADO`, y de paso comprobar que cada uno alcanza 4.5:1 sobre la superficie de su tema
 (`RNF012`). Hoy el contraste tampoco lo verifica nada — se midió a mano.
+
+**Nota del 2026-09-21:** el frontend y esta prueba se retiraron con `ADR-048` (siguen en la etiqueta `pre-retiro-frontend`); quien rehaga el frontend debe reponer la comprobación.
 
 **Resuelta:** el 2026-09-05 se implementó `frontend/src/types/colores-estado.test.ts`. La prueba extrae por regex los tokens `--color-estado-*` de `index.css`, valida la paridad exacta hex con `COLOR_POR_ESTADO` para los cuatro estados (NORMAL, BAJA_PRESION, SUSPENDIDO, RESTABLECIMIENTO) y calcula el ratio de contraste WCAG AA relativo (≥ 4.5:1) contra las superficies clara (`#fbfdfc`) y oscura (`#0c2830`).
