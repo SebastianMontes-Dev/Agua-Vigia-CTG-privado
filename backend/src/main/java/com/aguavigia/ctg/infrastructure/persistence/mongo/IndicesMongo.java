@@ -2,6 +2,7 @@ package com.aguavigia.ctg.infrastructure.persistence.mongo;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -14,6 +15,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
 import org.bson.Document;
+
+import java.time.Duration;
 
 /**
  * Asegura los indices de `sectores` al arrancar. Spring Data no los crea solo (la creacion
@@ -29,9 +32,12 @@ public class IndicesMongo {
     private static final Logger log = LoggerFactory.getLogger(IndicesMongo.class);
 
     private final MongoTemplate mongoTemplate;
+    private final long diasRetencionReportes;
 
-    public IndicesMongo(MongoTemplate mongoTemplate) {
+    public IndicesMongo(MongoTemplate mongoTemplate,
+                        @Value("${aguavigia.retencion.reportes-dias:365}") long diasRetencionReportes) {
         this.mongoTemplate = mongoTemplate;
+        this.diasRetencionReportes = diasRetencionReportes;
     }
 
     @EventListener(ApplicationReadyEvent.class)

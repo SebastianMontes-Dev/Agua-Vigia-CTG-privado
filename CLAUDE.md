@@ -26,7 +26,7 @@ desde la guía `docs/api/`. Mientras tanto, el trabajo es del backend: contrato,
 Falta `RF041` (webhook real de WhatsApp/Telegram), que depende de credenciales de terceros.
 **823 pruebas de backend** (las de integración exigen Docker y no corren sin él).
 
-⚠️ **La gestión de sprints va por detrás del código:** `sprint-2.md` sigue abierto y el repositorio
+⚠️ **La gestión de sprints va por detrás del código:** `sprint-2.md` se cerró el 2026-09-21 y el repositorio
 ya entregó M10–M15. Antes de planear, contrasta contra el código, no contra la tabla.
 
 **7 sprints: Sprint 0 (preparación) + Sprints 1–6. Un sprint no cierra por calendario: cierra cuando

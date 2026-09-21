@@ -1,5 +1,6 @@
 package com.aguavigia.ctg.infrastructure.persistence.mongo;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
@@ -36,6 +37,11 @@ class IndicesMongoTest {
 
     @Autowired
     private MongoTemplate mongoTemplate;
+
+    @BeforeEach
+    void partirDeUnaColeccionSinIndices() {
+        mongoTemplate.getDb().getCollection("reportes").drop();
+    }
 
     private static Set<String> nombresDeIndices(List<IndexInfo> indices) {
         return indices.stream().map(IndexInfo::getName).collect(Collectors.toSet());

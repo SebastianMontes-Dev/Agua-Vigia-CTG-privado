@@ -24,7 +24,7 @@
 | REC-011 | 2026-09-04 | Los 15 endpoints de M15 (cuentas, permisos y segundo factor) no tienen prueba de contrato, y RNF022 la exige | Pendiente |
 | REC-012 | 2026-09-04 | Las respuestas 401 y 403 de la cadena de seguridad no salen en RFC 7807, a diferencia del resto de la API | Pendiente |
 | REC-013 | 2026-09-04 | El allowlist de gitleaks exceptúa un archivo entero, no un secreto concreto | Pendiente |
-| REC-014 | 2026-09-04 | `sprint-2.md` lleva abierto desde el 2026-08-09 mientras el repositorio ya entregó M10–M15 | Pendiente |
+| REC-014 | 2026-09-04 | `sprint-2.md` lleva abierto desde el 2026-08-09 mientras el repositorio ya entregó M10–M15 | Resuelta |
 | REC-015 | 2026-09-04 | Nada impide que `index.css` y `tipos-dominio.ts` vuelvan a discrepar en los colores de estado | Pendiente |
 
 **Estado:** `Pendiente` (sin revisar) · `Validada` (estoy de acuerdo, puede pasar a ADR/issue/tarea) ·
@@ -213,7 +213,9 @@ desarrollo, o `stopwords`, de forma que el archivo siga escaneándose para todo 
 
 ### REC-014 — `sprint-2.md` lleva abierto desde el 2026-08-09 mientras el repositorio ya entregó M10–M15
 
-- **Fecha:** 2026-09-04 · **Estado:** Pendiente
+- **Fecha:** 2026-09-04 · **Estado:** Resuelta
+
+**Resuelta:** el 2026-09-21 el dueño decidió cerrar el Sprint 2. Se cerró con la verificación de ese día (§4 de `sprint-2.md`); no se abrió un Sprint 3 todavía.
 
 `docs/gestion/sprint-2.md` («Reporte ciudadano y consenso») sigue sin fecha de cierre desde el
 2026-08-09, casi un mes. En ese intervalo el repositorio entregó M10 a M15 —evidencia multimedia,
