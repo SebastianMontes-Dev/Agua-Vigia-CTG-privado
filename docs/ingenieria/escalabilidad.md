@@ -57,6 +57,7 @@ personas ──► CDN (opcional, recomendable) ──► nginx ×2–3 (micro-c
 | Proyección sin polígonos; índice `finReal` | Cada lectura de un sector traía ~0,7 MB de geometría | `SectorMongoRepository`, `IndicesMongo` |
 | **Consenso en O(1) por petición** (votos contados en Mongo, evaluación acotada a 1/s por sector, barrido) | Ver abajo: era O(reportes de la ventana) por POST y agotaba el pool | `EvaluarConsensoService`, `ReservaDeEvaluacionPort` |
 | Índice `sectorId+huella+timestamp` | El cupo por dispositivo (RF006) recorría toda la ventana del sector | `IndicesMongo` |
+| Índices `estadoModeracion+timestamp` (reportes) y `sectorId+timestamp` (bitácora) | La cola de moderación examinaba todos los pendientes y ordenaba en memoria; la bitácora de un sector recorría todos los eventos. El índice de un solo campo `estadoModeracion` se retira (prefijo del compuesto) | `IndicesMongo` |
 | Producción: réplicas, `read_only`, límites, `noeviction` | — | `docker-compose.prod.yml` |
 
 ## Lo que se midió
@@ -122,6 +123,24 @@ comparar antes/después y para ver el orden de magnitud; **no son la capacidad d
 **Costo de esta corrección, para que nadie se sorprenda:** el cambio de estado por consenso puede tardar hasta
 ~2 s más que antes (el intervalo de reserva de 1 s + el barrido de 1 s). La confirmación al ciudadano no se
 demora (es más rápida). Configurable: `aguavigia.consenso.intervalo-evaluacion-ms` y `aguavigia.consenso.barrido-ms`.
+
+## Base de datos (auditoría del 2026-09-21)
+
+Medido con 84 000 reportes sintéticos en un Mongo 7.0 local (26 MB de datos + 16 MB de índices): las consultas de
+la ruta caliente usan índice (cupo por dispositivo, sector por `slug`, suscripciones por sector, cortes cerrados,
+bitácora paginada: 0–2 ms). Lo que estaba mal y se corrigió: la **cola de moderación** pasó de examinar 84 000
+documentos (87 ms, creciendo) a 20 (0 ms), y la **bitácora de un sector** de 1 411 a 5. Sigue costando más la página
+1 000 de la cola (~52 ms): es el coste de paginar con `skip`, no del índice.
+
+Pendiente, con decisión del dueño:
+- **La bitácora pública arrastra los ids de sustento** de cada evento: una página de 20 pesó 205 KB (frente a 11 KB de
+  `/api/sectores`) y crece con cada avería grande. Habría que dejar solo el conteo en la lista y los ids en un detalle.
+- **Sin límite de crecimiento**: `reportes` y `eventos_bitacora` no tienen TTL ni archivado, y la huella del
+  dispositivo se conserva para siempre. Los jobs nocturnos de fotos y retención recorren toda la colección (15 ms con
+  84 000; se notará con millones).
+- **Mongo es una sola instancia** (sin réplica ni *failover*). Existe `scripts/backup-mongo.sh`, pero ningún proceso
+  lo programa y **no se ha comprobado** que funcione con la autenticación del compose de producción.
+- Solo se probó con datos sintéticos, repartidos en pocos sectores y sin límite de memoria.
 
 ## Lo que no se probó
 

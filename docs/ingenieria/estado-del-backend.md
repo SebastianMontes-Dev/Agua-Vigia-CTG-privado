@@ -28,7 +28,7 @@ los avisos de Acuacar con reportes ciudadanos georreferenciados y publica un **�
 
 | Qué | Valor | Cómo se comprobó |
 |---|---|---|
-| Pruebas de backend | **782** (1 solo corre a petición: regenerar el contrato) · 0 fallos | `./mvnw verify`, 2026-09-21 |
+| Pruebas de backend | **784** (1 solo corre a petición: regenerar el contrato) · 0 fallos | `./mvnw verify`, 2026-09-21 |
 | Cobertura | JaCoCo ≥ 85 % en `domain/` y `application/` | El propio `verify` lo exige |
 | Arquitectura | 5+ reglas ArchUnit en verde | `ReglaDeOroArchitectureTest` |
 | API | **58 operaciones** en 17 controladores, 34 esquemas | `backend/openapi.yaml` (generado) |

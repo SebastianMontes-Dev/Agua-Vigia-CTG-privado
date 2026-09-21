@@ -24,7 +24,7 @@ retiró (`ADR-048`; su código sigue en la etiqueta git `pre-retiro-frontend`) y
 desde la guía `docs/api/`. Mientras tanto, el trabajo es del backend: contrato, escalabilidad (requisito:
 **50 000 usuarios simultáneos**, `ADR-049`, `docs/ingenieria/escalabilidad.md`) y pulido.
 Falta `RF041` (webhook real de WhatsApp/Telegram), que depende de credenciales de terceros.
-**782 pruebas de backend** (las de integración exigen Docker y no corren sin él).
+**784 pruebas de backend** (las de integración exigen Docker y no corren sin él).
 
 ⚠️ **La gestión de sprints va por detrás del código:** `sprint-2.md` sigue abierto y el repositorio
 ya entregó M10–M15. Antes de planear, contrasta contra el código, no contra la tabla.

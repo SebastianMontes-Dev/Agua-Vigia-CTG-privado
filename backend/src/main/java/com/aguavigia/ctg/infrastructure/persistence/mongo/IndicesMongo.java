@@ -57,8 +57,13 @@ public class IndicesMongo {
                     new Document("sectorId", 1).append("timestamp", -1)));
             indicesReportes.ensureIndex(new CompoundIndexDefinition(
                     new Document("sectorId", 1).append("huella", 1).append("timestamp", -1)));
-            indicesReportes.ensureIndex(new Index().on("estadoModeracion", Sort.Direction.ASC));
-            log.info("Indices de `reportes` asegurados: sectorId+timestamp, sectorId+huella+timestamp y estadoModeracion");
+            // La cola de moderacion pide PENDIENTE (o sin campo) por antiguedad. Con este compuesto Mongo lee
+            // solo la pagina; con el de un solo campo examinaba todos los pendientes y ordenaba en memoria.
+            indicesReportes.ensureIndex(new CompoundIndexDefinition(
+                    new Document("estadoModeracion", 1).append("timestamp", 1)));
+            // El de un solo campo (bases creadas antes) es prefijo del compuesto: solo encarece cada insercion.
+            retirarIndiceSiExiste(indicesReportes, "estadoModeracion_1");
+            log.info("Indices de `reportes` asegurados: sectorId+timestamp, sectorId+huella+timestamp y estadoModeracion+timestamp");
 
             var indicesSuscripciones = mongoTemplate.indexOps(SuscripcionDocumento.class);
             indicesSuscripciones.ensureIndex(new Index().on("tokenConfirmacion", Sort.Direction.ASC).unique());
@@ -67,7 +72,10 @@ public class IndicesMongo {
 
             var indicesBitacora = mongoTemplate.indexOps(EventoBitacoraDocumento.class);
             indicesBitacora.ensureIndex(new Index().on("timestamp", Sort.Direction.DESC));
-            log.info("Indices de `eventos_bitacora` asegurados: timestamp");
+            // La bitacora de un sector: sin esto recorria todos los eventos y filtraba por sector.
+            indicesBitacora.ensureIndex(new CompoundIndexDefinition(
+                    new Document("sectorId", 1).append("timestamp", -1)));
+            log.info("Indices de `eventos_bitacora` asegurados: timestamp y sectorId+timestamp");
 
             // La cola del veedor se lee filtrando por estadoRevision y ordenando por detectadaEn, y
             // el pipeline pregunta existePendiente(sector, estado) por cada documento de cada ciclo.
@@ -103,6 +111,13 @@ public class IndicesMongo {
             // El backend no debe caerse porque Mongo no este disponible al arrancar.
             // Se registra y se sigue: las consultas fallaran con su propio error.
             log.warn("No se pudieron asegurar los indices: {}", noHayMongo.getMessage());
+        }
+    }
+    private static void retirarIndiceSiExiste(org.springframework.data.mongodb.core.index.IndexOperations indices, String nombre) {
+        boolean existe = indices.getIndexInfo().stream().anyMatch(indice -> nombre.equals(indice.getName()));
+        if (existe) {
+            indices.dropIndex(nombre);
+            log.info("Indice redundante `{}` retirado", nombre);
         }
     }
 }
