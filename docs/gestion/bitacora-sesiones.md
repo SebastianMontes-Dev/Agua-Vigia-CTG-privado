@@ -25,6 +25,10 @@ Referencias cruzadas: `ADR-NNN` · `BUG-NNN` · `RF0NN` · `archivo:línea`.
 
 ## Sprint 2
 
+### 2026-09-22 · `chore/cerrar-dependabot-testcontainers`
+**Qué:** Se decidió el #2 de Dependabot, delegado por el dueño: el fallo no es transitorio (el BOM de Testcontainers 2.0.5 ya no fija la versión de `testcontainers-junit-jupiter` ni `testcontainers-mongodb`, confirmado en el log del `Backend CI`), así que se cerró con el mismo criterio que `ADR-059` y se registró `ADR-060`. Dependabot ya no propone ese salto.
+**Sigue:** Del dueño: `permissions` en `secret-scan.yml` (`BUG-089`, `REC-016`) y la hoja de ruta de los Sprints 3–6 (`REC-017`).
+
 ### 2026-09-21 · `chore/registrar-dependabot-26-a-29`
 **Qué:** Se fusionó el #25 y el #30 (quitan el pendiente de `frontend/`, ya borrado del disco). Se cerraron #7 y #11 por `ADR-059`. De cuatro PR nuevos de Dependabot (#26–#29: resilience4j, jacoco, Maven wrapper, springdoc 2.9.1), todos menores, se actualizaron sus ramas y se fusionaron con `Backend CI` en verde; `main` quedó en verde en sus tres workflows (`2c6d6f7`). El #2 (Testcontainers 2.0) se reverificó y sigue roto de verdad: queda abierto.
 **Sigue:** Del dueño: añadir `permissions` a `secret-scan.yml` (`BUG-089`, `REC-016`), decidir el #2 y la hoja de ruta de los Sprints 3–6 (`REC-017`).

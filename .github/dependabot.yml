@@ -11,10 +11,14 @@ updates:
     open-pull-requests-limit: 5
     # ADR-059: el backend se queda en Spring Boot 3.5.x. Boot 4 (Spring Framework 7) es una migración
     # aparte, y springdoc 3.x solo funciona con Boot 4. Los parches y menores de ambos sí se proponen.
+    # ADR-060: Testcontainers 2.x tampoco se propone — su BOM ya no fija la versión de
+    # testcontainers-junit-jupiter ni testcontainers-mongodb tal como el pom.xml los declara.
     ignore:
       - dependency-name: "org.springframework.boot:spring-boot-starter-parent"
         update-types: ["version-update:semver-major"]
       - dependency-name: "org.springdoc:springdoc-openapi-starter-webmvc-ui"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "org.testcontainers:testcontainers-bom"
         update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
