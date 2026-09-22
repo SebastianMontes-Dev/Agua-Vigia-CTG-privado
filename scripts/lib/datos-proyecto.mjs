@@ -58,7 +58,7 @@ function normalizarEstadoBug(estadoRaw) {
   if (/^cerrado/i.test(texto)) estado = "Cerrado";
   else if (/^en curso/i.test(texto)) estado = "En curso";
   else if (/^no se corrige/i.test(texto)) estado = "No se corrige";
-  else if (/parcial/i.test(texto)) estado = "Parcial";
+  else if (/^(?:🟡\s*)?parcial/i.test(texto)) estado = "Parcial";
   const notaMatch = texto.match(/—\s*(.*)$/);
   const notaEstado = notaMatch ? notaMatch[1].trim() : (texto === estado ? null : texto.replace(/^[🟡🟢🔴]\s*/, ""));
   return { estado, notaEstado };
@@ -66,9 +66,11 @@ function normalizarEstadoBug(estadoRaw) {
 
 function obtenerBugs() {
   const texto = leer("docs/gestion/registro-de-bugs.md");
-  const tabla = texto.match(/\| ID \| Fecha \| Sev \|.*?\n\|---.*?\n([\s\S]*?)\n\n/);
-  if (!tabla) return [];
-  const filas = tabla[1].trim().split("\n").filter((l) => l.startsWith("| BUG-"));
+  // No se corta en la primera linea en blanco (BUG-092): eso perdio filas tres veces cuando a
+  // alguien —humano o agente— se le colo una linea vacia entre dos filas de la tabla. Se toman
+  // directamente todas las lineas "| BUG-NNN | ..." del archivo entero: son inconfundibles con
+  // cualquier otro contenido (la seccion de detalle usa "### BUG-NNN", con almohadillas).
+  const filas = texto.split("\n").filter((l) => /^\| BUG-\d+ \|/.test(l));
   return filas.map((f) => {
     const cols = columnasDeFila(f).filter((_, i, arr) => i > 0 && i < arr.length - 1);
     const [id, fecha, sev, modulo, titulo, estadoRaw] = cols;
@@ -147,12 +149,14 @@ function obtenerSprints() {
     const n = Number((sprintRaw.match(/\d+/) || [0])[0]);
     return { n, enfoque: limpiar(foco), entregable: limpiar(entregable) };
   });
-  // El sprint activo es el de mayor numero que ya tiene su sprint-N.md (documento de seguimiento).
-  let activo = 0;
-  for (const s of sprints) {
-    if (existsSync(path.join(RAIZ, "docs/gestion", `sprint-${s.n}.md`))) activo = s.n;
-  }
-  sprints.forEach((s) => { s.activo = s.n === activo; s.detalle = leerDetalleSprint(s.n); });
+  // El sprint activo es el primero (en orden de la hoja de ruta) que todavia no cerro: o no tiene
+  // sprint-N.md, o lo tiene pero su detalle.cerrado sigue vacio. Antes se tomaba "el de mayor numero
+  // que ya tiene archivo", que confundia el ultimo sprint YA CERRADO con el que sigue abierto en
+  // cuanto se documentan varios sprints cerrados de una sentada (BUG-093): ese sprint se contaba dos
+  // veces — una en `cerrados` y otra en `fraccionActivo` — e inflaba el avance por encima del 100%.
+  sprints.forEach((s) => { s.detalle = leerDetalleSprint(s.n); });
+  const activo = sprints.find((s) => !(s.detalle && s.detalle.cerrado));
+  sprints.forEach((s) => { s.activo = activo ? s.n === activo.n : false; });
   return sprints;
 }
 

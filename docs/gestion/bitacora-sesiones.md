@@ -23,10 +23,48 @@ Referencias cruzadas: `ADR-NNN` · `BUG-NNN` · `RF0NN` · `archivo:línea`.
 
 ---
 
+## Preparación del backend
+
+### 2026-09-22 · `fix/bug-091-cola-muerta-ingesta`
+**Qué:** Cerrado `BUG-091`, decidido con criterio propio ("toma tú esa decisión"). Cola muerta real: `DocumentoFallidoDocumento` en Mongo (`documentos_fallidos`), `upsert` por hash con contador de reintentos (un documento roto no acumula una fila por ciclo para siempre), borrada al procesarse con éxito; expuesta en `GET /api/veedor/ingesta/fallidos`, mismo patrón que `IngestaSaludController` (sin puerto de dominio, `ADR-015`). El endpoint nuevo desincronizó `openapi.yaml` — la prueba semántica que se escribió ayer para la Fase 1 lo atrapó en su primer caso real, no sintético. Contrato y referencia de rutas regenerados (66 operaciones, 21 controladores, 37 esquemas). Build completa: 834 pruebas, 0 fallos.
+**Sigue:** Del dueño: `REC-018` (qué cuenta como demo del Sprint 6) y las 5 etiquetas git viejas. Del agente: `REC-006`, `REC-007`, `REC-013`, Dependabot #33/#34, y la Fase 2 del plan de Yordy.
+
+### 2026-09-22 · `test/archunit-application-sin-tecnologia`
+**Qué:** Cerrados los dos puntos de la Fase 1 que quedaban, delegado por el dueño ("decide tú mismo la manera más profesional"). Investigado primero: `domain/` ya era 100% Java puro y `application/` ya no tocaba tecnología concreta, solo cableado de Spring (`@Service`, `@EventListener`, `@Async`, `@Value`, confirmado con `grep` sobre los 33 archivos que Spring sí toca ahí) — no hacía falta ningún refactor, solo reglas de ArchUnit que protegieran lo que ya era cierto. Se agregaron dos: dominio solo Java, aplicación sin tecnología concreta (con el cableado de Spring explícitamente permitido, con su porqué en el javadoc). Para OpenAPI: `springdoc-openapi-starter-webmvc-ui` (ya usado) trae transitivamente el modelo de swagger-core (`OpenAPI`, `Operation`, `Parameter`) y Jackson con soporte YAML — se pudo comparar semánticamente parámetros requeridos, cuerpo requerido, códigos de respuesta y seguridad por operación sin agregar ninguna dependencia. Las tres reglas nuevas se probaron contra una violación real deliberada cada una (revertida después). Build completa: 829 pruebas, 0 fallos.
+**Sigue:** Fases 2 a 5 del plan de Yordy sin empezar (estabilizar estado/auditoría, persistencia/concurrencia, separación de capas, entrega al frontend).
+
+### 2026-09-22 · `chore/ci-workflow-se-verifica-a-si-mismo`
+**Qué:** Empezada la Fase 1 del plan de Yordy. De sus cuatro puntos, se resolvió el más chico sin necesitar decisión del dueño: `backend-ci.yml` solo corría con cambios bajo `backend/**`, así que un PR que rompiera ese workflow se fusionaba sin que el propio CI lo verificara. Agregado a sus propios `paths`. Los otros tres puntos de la Fase 1 quedan sin tocar, a propósito: JaCoCo ya se resolvió antes (`BUG-096`); ArchUnit («aplicación solo depende de dominio y puertos») falla hoy contra 33 archivos que usan `@Service`/`@Component`/`@EventListener`/`@Async`/`@Value` de Spring, algo que es la Fase 4 del propio plan de Yordy, no la 1; y la comparación semántica de OpenAPI (parámetros, cuerpos, esquemas, respuestas — hoy solo se comparan las rutas) es un desarrollo nuevo sustancial, no un ajuste.
+**Sigue:** Del dueño: decidir el alcance de esos dos puntos antes de seguir — si adelantar la Fase 4 para poder escribir la regla de ArchUnit que pide la Fase 1, o suavizarla; y si vale la pena construir la comparación semántica de OpenAPI ahora o más adelante.
+
+### 2026-09-22 · `chore/acotar-regla-secret`
+**Qué:** Se revisaron las 6 etiquetas git locales antes de pushearlas todas: solo `pre-retiro-frontend` pertenece al historial actual, las otras cinco son del repositorio público de cinco personas que `ADR-045` retiró a propósito — quedaron sin pushear. Delegado por el dueño, `REC-016` se resolvió acotando `Read(**/*secret*)` en `.claude/settings.json` a cuatro patrones más precisos. El harness bloqueó como "auto-modificación" la edición que agregaba el comentario explicativo dentro del propio archivo (la regla en sí sí se aplicó); quedó documentado solo en `recomendaciones-ia.md`.
+**Sigue:** Del dueño: decidir qué hacer con las 5 etiquetas locales viejas (borrarlas o dejarlas). Del agente: seguir con la Fase 1 del plan de Yordy (ArchUnit + comparación semántica de OpenAPI).
+
+### 2026-09-22 · `fix/bug-095-autoria-reactivar`
+**Qué:** Cerrado `BUG-095`: `AdministrarCuentaService.reactivar` registraba al reactivado como autor de su propia reactivación. Corregido a `autor` y agregada una prueba con `ArgumentCaptor` que distingue autor de sujeto — las pruebas de auditoría existentes usaban `any()` para ambos y no lo habrían detectado. Build completa: 826 pruebas, 0 fallos.
+**Sigue:** `BUG-091` (cola muerta de la ingesta) sigue abierto. Del dueño: la decisión sobre `REC-016` antes de seguir con la Fase 1 del plan de Yordy.
+
+### 2026-09-22 · `fix/jacoco-check-no-op`
+**Qué:** Al revisar el commit del compañero (`a4da6e5`) se confirmó `BUG-095` en código y se llevó su sospecha sobre JaCoCo más lejos: `jacoco:check` (`RNF017`) no evaluaba ninguna cobertura real desde siempre — `domain.*`/`application.*` no incluyen los paquetes raíz en JaCoCo. Verificado subiendo el umbral a 99.9% en una copia descartable del `pom.xml`: la build seguía en verde. Corregido y reverificado con la build completa (Docker): 825 pruebas, 0 fallos, cobertura real 90.2%/97.6% (`BUG-096`). Se endureció además el extractor de bugs de la Sala de control, que perdía filas por líneas en blanco sueltas por tercera vez.
+**Sigue:** `BUG-095` (autor incorrecto al reactivar una cuenta) y `BUG-091` (cola muerta de la ingesta) siguen abiertos, sin tocar. El plan de 6 fases de `plan-validacion-backend.md` no se ejecutó, solo se revisó su primer hallazgo.
+
+### 2026-09-22 · `main`
+**Qué:** Se documentó en `docs/ingenieria/plan-validacion-backend.md` una secuencia de seis fases con pruebas de salida, sobre `6500e25`; se registró `BUG-095`.
+**Sigue:** Iniciar la fase 0: ejecutar la suite completa con Docker y verificar la referencia histórica del frontend antes de corregir los documentos que la citan.
+
+---
+
+## Sprints 3, 4 y 5
+
+### 2026-09-22 · `docs/cerrar-sprints-3-y-4`
+**Qué:** Delegado por el dueño (`REC-017`), se escribieron y cerraron retroactivamente `sprint-3.md`, `sprint-4.md` y `sprint-5.md` contra el código y `matriz-trazabilidad.md`, sin inventar una ceremonia que no ocurrió. ⚠️ `sprint-3.md` se fusionó por error dentro del PR #35 (CI de secretos): se escribió en esa misma rama mientras el CI corría, y un `git add -A docs` posterior lo arrastró — corregido en el registro, no en el historial de git (ver la fila de #35 en `registro-de-implementaciones.md`). El Sprint 5 quedó redefinido a solo cobertura de backend (su parte de interfaz es alcance retirado, `ADR-048`). Al verificar el Sprint 4 se encontró `BUG-091`: la matriz marcaba `RNF006` (cola muerta de la ingesta) ✅ sin que exista tal cola en el código — corregida a parcial, y bajó la cobertura de RNF de 17/27 a 16/27 en el registro. El Sprint 6 se redefinió para local (`ADR-057`) pero no se cerró: la pregunta de qué cuenta como demo sin frontend propio se separó en `REC-018`, pendiente del dueño. Cerrar varios sprints de golpe destapó tres bugs más en el generador de la Sala de control: una fila `Abierto` con la palabra «parcial» en su prosa se clasificaba mal (`BUG-092`), el «sprint activo» se calculaba mal — doblaba el avance por encima del 100% — en cuanto el último `sprint-N.md` documentado ya estaba cerrado (`BUG-093`), y ese mismo arreglo hizo que el aviso de secciones vacías reventara al toparse con un activo sin archivo (`BUG-094`). La Sala de control ahora corre sin error y da 85,7% (6/7 sprints cerrados).
+**Sigue:** Del dueño: decidir `REC-018` y, aparte, `BUG-091` (construir la cola muerta o replantear `RNF006`).
+
 ## Sprint 2
 
 ### 2026-09-22 · `chore/cerrar-dependabot-testcontainers`
-**Qué:** Se decidió el #2 de Dependabot, delegado por el dueño: el fallo no es transitorio (el BOM de Testcontainers 2.0.5 ya no fija la versión de `testcontainers-junit-jupiter` ni `testcontainers-mongodb`, confirmado en el log del `Backend CI`), así que se cerró con el mismo criterio que `ADR-059` y se registró `ADR-060`. Dependabot ya no propone ese salto.
+**Qué:** Se decidió el #2 de Dependabot, delegado por el dueño: el fallo no es transitorio (el BOM de Testcontainers 2.0.5 ya no fija la versión de `testcontainers-junit-jupiter` ni `testcontainers-mongodb`, confirmado en el log del `Backend CI`), así que se cerró con el mismo criterio que `ADR-059` y se registró `ADR-060`. Dependabot ya no propone ese salto. Fusionado como #32 con `gitleaks` en rojo solo por `BUG-089`; no queda ningún PR abierto en el repositorio.
 **Sigue:** Del dueño: `permissions` en `secret-scan.yml` (`BUG-089`, `REC-016`) y la hoja de ruta de los Sprints 3–6 (`REC-017`).
 
 ### 2026-09-21 · `chore/registrar-dependabot-26-a-29`

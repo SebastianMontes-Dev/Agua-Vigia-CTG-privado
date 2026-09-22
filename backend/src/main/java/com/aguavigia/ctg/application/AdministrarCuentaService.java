@@ -100,8 +100,8 @@ public class AdministrarCuentaService implements AdministrarCuentaUseCase {
         Usuario reactivado = usuarios.guardar(sujeto.reactivar(reloj.ahora()));
         notificaciones.avisarCambioDeAcceso(reactivado, "Tu acceso a AguaVigía se restableció",
                 "Un administrador reactivó tu cuenta. Ya puedes volver a entrar al panel.");
-        auditoria.registrarConAutor(AccionAuditada.CUENTA_REACTIVADA, reactivado, reactivado,
-                "Cuenta reactivada por " + autor.correo().valor(), contexto);
+        auditoria.registrarConAutor(AccionAuditada.CUENTA_REACTIVADA, autor, reactivado,
+                "Cuenta reactivada", contexto);
         return reactivado;
     }
 

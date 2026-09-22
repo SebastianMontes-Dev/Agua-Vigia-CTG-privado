@@ -114,6 +114,11 @@ public class IndicesMongo {
             var indicesAuditoria = mongoTemplate.indexOps(EventoAuditoriaDocumento.class);
             indicesAuditoria.ensureIndex(new Index().on("ocurrioEn", Sort.Direction.DESC));
             log.info("Indices de `auditoria_cuentas` asegurados: ocurrioEn");
+
+            // RNF006/BUG-091 — la cola de fallidos del veedor se lee ordenada por el ultimo intento.
+            var indicesFallidos = mongoTemplate.indexOps(DocumentoFallidoDocumento.class);
+            indicesFallidos.ensureIndex(new Index().on("ultimoIntento", Sort.Direction.DESC));
+            log.info("Indices de `documentos_fallidos` asegurados: ultimoIntento");
         } catch (DataAccessException noHayMongo) {
             // El backend no debe caerse porque Mongo no este disponible al arrancar.
             // Se registra y se sigue: las consultas fallaran con su propio error.
