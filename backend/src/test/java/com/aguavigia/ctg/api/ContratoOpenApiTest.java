@@ -1,5 +1,12 @@
 package com.aguavigia.ctg.api;
 
+import io.swagger.v3.core.util.Json;
+import io.swagger.v3.core.util.Yaml;
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.Operation;
+import io.swagger.v3.oas.models.PathItem;
+import io.swagger.v3.oas.models.parameters.Parameter;
+import io.swagger.v3.oas.models.security.SecurityRequirement;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -15,7 +22,10 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
@@ -107,6 +117,87 @@ class ContratoOpenApiTest {
                           cd backend && ./mvnw test -Dtest=ContratoOpenApiTest -Dopenapi.regenerar=true
                         """)
                 .isEqualTo(rutasVersionadas);
+    }
+
+    /**
+     * La prueba de arriba solo compara qué rutas existen. Un endpoint que sigue ahí pero cambió de
+     * método, perdió un parámetro requerido, dejó de exigir el cuerpo, cambió sus códigos de
+     * respuesta o su esquema de seguridad rompería a cualquier cliente generado del contrato sin que
+     * esa prueba se enterara. Se reutiliza el propio modelo de swagger-core que ya trae
+     * springdoc-openapi (`Json`/`Yaml` de `io.swagger.v3.core.util`, `OpenAPI` de
+     * `io.swagger.v3.oas.models`) — sin agregar ninguna dependencia nueva.
+     */
+    @Test
+    void elContratoVersionadoDebeCoincidirSemanticamenteConLoQueElBackendExponeDeVerdad() throws Exception {
+        String contratoVivo = mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        OpenAPI vivo = Json.mapper().readValue(contratoVivo, OpenAPI.class);
+        OpenAPI versionado = Yaml.mapper().readValue(Files.readString(CONTRATO), OpenAPI.class);
+
+        assertThat(firmasDeOperaciones(vivo))
+                .as("""
+                        backend/openapi.yaml quedó desincronizado con el código en algo más que el
+                        conjunto de rutas: un método, un parámetro requerido, un código de respuesta o
+                        un esquema de seguridad. Regeneralo:
+                          cd backend && ./mvnw test -Dtest=ContratoOpenApiTest -Dopenapi.regenerar=true
+                        """)
+                .isEqualTo(firmasDeOperaciones(versionado));
+    }
+
+    /**
+     * Una firma por operación (método + ruta): parámetros requeridos, si el cuerpo es obligatorio,
+     * los códigos de respuesta declarados y los esquemas de seguridad exigidos. No compara
+     * descripciones ni ejemplos — esos sí pueden cambiar sin romper a ningún cliente.
+     */
+    private static Map<String, String> firmasDeOperaciones(OpenAPI openapi) {
+        Map<String, String> firmas = new LinkedHashMap<>();
+        if (openapi.getPaths() == null) {
+            return firmas;
+        }
+        openapi.getPaths().forEach((ruta, item) -> operacionesDe(item).forEach((metodo, operacion) -> {
+            List<String> parametrosRequeridos = new ArrayList<>();
+            if (operacion.getParameters() != null) {
+                for (Parameter parametro : operacion.getParameters()) {
+                    if (Boolean.TRUE.equals(parametro.getRequired())) {
+                        parametrosRequeridos.add(parametro.getIn() + ":" + parametro.getName());
+                    }
+                }
+            }
+            parametrosRequeridos.sort(String::compareTo);
+
+            boolean cuerpoRequerido = operacion.getRequestBody() != null
+                    && Boolean.TRUE.equals(operacion.getRequestBody().getRequired());
+
+            Set<String> codigosDeRespuesta = new TreeSet<>();
+            if (operacion.getResponses() != null) {
+                codigosDeRespuesta.addAll(operacion.getResponses().keySet());
+            }
+
+            Set<String> esquemasDeSeguridad = new TreeSet<>();
+            if (operacion.getSecurity() != null) {
+                for (SecurityRequirement requisito : operacion.getSecurity()) {
+                    esquemasDeSeguridad.addAll(requisito.keySet());
+                }
+            }
+
+            firmas.put(metodo + " " + ruta, "parametrosRequeridos=" + parametrosRequeridos
+                    + " cuerpoRequerido=" + cuerpoRequerido
+                    + " respuestas=" + codigosDeRespuesta
+                    + " seguridad=" + esquemasDeSeguridad);
+        }));
+        return firmas;
+    }
+
+    private static Map<String, Operation> operacionesDe(PathItem item) {
+        Map<String, Operation> operaciones = new LinkedHashMap<>();
+        if (item.getGet() != null) operaciones.put("GET", item.getGet());
+        if (item.getPost() != null) operaciones.put("POST", item.getPost());
+        if (item.getPut() != null) operaciones.put("PUT", item.getPut());
+        if (item.getPatch() != null) operaciones.put("PATCH", item.getPatch());
+        if (item.getDelete() != null) operaciones.put("DELETE", item.getDelete());
+        return operaciones;
     }
 
     /**
