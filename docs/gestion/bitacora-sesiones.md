@@ -25,6 +25,10 @@ Referencias cruzadas: `ADR-NNN` · `BUG-NNN` · `RF0NN` · `archivo:línea`.
 
 ## Sprint 2
 
+### 2026-09-21 · `chore/registrar-dependabot-26-a-29`
+**Qué:** Se fusionó el #25 y el #30 (quitan el pendiente de `frontend/`, ya borrado del disco). Se cerraron #7 y #11 por `ADR-059`. De cuatro PR nuevos de Dependabot (#26–#29: resilience4j, jacoco, Maven wrapper, springdoc 2.9.1), todos menores, se actualizaron sus ramas y se fusionaron con `Backend CI` en verde; `main` quedó en verde en sus tres workflows (`2c6d6f7`). El #2 (Testcontainers 2.0) se reverificó y sigue roto de verdad: queda abierto.
+**Sigue:** Del dueño: añadir `permissions` a `secret-scan.yml` (`BUG-089`, `REC-016`), decidir el #2 y la hoja de ruta de los Sprints 3–6 (`REC-017`).
+
 ### 2026-09-21 · `chore/ordenar-dependabot-y-documentos`
 **Qué:** Se fusionó el #23 y, de Dependabot, #1, #4, #24, #8, #5 y #9 con el CI verde sobre el `main` nuevo (`Backend CI` completo en los dos de `pom.xml`); `main` quedó en verde en sus cuatro workflows. Se decidió no migrar a Spring Boot 4 (`ADR-059`) y Dependabot ya no propone ese salto ni el de springdoc. Se corrigieron contradicciones entre documentos: línea 1 corrupta de la matriz, RNF012–016 sin marcar como retirados, cobertura del registro (28/36 → 40/46 RF, 17/27 RNF), tabla de recomendaciones, plan de pruebas con staging inexistente y sprint 2 con filas 🟡 ya entregadas. Se registró `BUG-089` (`gitleaks` por PR falla con 403) y las `REC-016`/`REC-017`.
 **Sigue:** Del dueño: añadir `permissions` a `secret-scan.yml` (bloqueado por la regla `Read(**/*secret*)`, `REC-016`), decidir el #2 (Testcontainers 2.0) y la hoja de ruta de los Sprints 3–6 (`REC-017`). `frontend/` ya se borró del disco (2026-09-21).
