@@ -2367,7 +2367,37 @@ Borrar las dos entradas `ignore` de `.github/dependabot.yml`; Dependabot volver�
 ---
 
 <!--
-Siguiente número disponible: ADR-060
+## ADR-060 — Testcontainers se queda en 1.21.3; Dependabot no propone su salto mayor
+
+- **Fecha:** 2026-09-22
+- **Estado:** Aceptada
+- **Decide:** Dueño del proyecto (delegado al agente)
+
+### Contexto
+El PR #2 de Dependabot (Testcontainers 1.21.3 → 2.0.5) seguía abierto desde el 2026-09-17 y se reverificó dos veces contra el `main` nuevo, ambas en rojo. El `Backend CI` falla al leer el `pom.xml`, no al ejecutar una prueba: `'dependencies.dependency.version' for org.testcontainers:junit-jupiter:jar is missing` y lo mismo para `org.testcontainers:mongodb`. El `pom.xml` importa `testcontainers-bom` en `dependencyManagement` y declara esas dos dependencias sin versión propia, confiando en que el BOM la fije — así lo hacía 1.21.3. El BOM de 2.0.5 ya no las gestiona con esas coordenadas: es un cambio de estructura del propio Testcontainers, no un error de configuración del proyecto.
+
+### Alternativas consideradas
+| Opción | A favor | En contra |
+|---|---|---|
+| Fijar `<version>` a mano en esas dos dependencias | Podría desbloquear el PR sin más cambios | No se verificó que sea suficiente ni que el resto de la API de Testcontainers 2.x sea compatible con `MongoDBContainer`/`GenericContainer` tal como se usan hoy; arriesgar 823 pruebas por una dependencia de tests sin necesidad funcional |
+| **Quedarse en 1.21.3 e ignorar el salto mayor** | Congruente con `ADR-059` (mismo criterio: builds rotas que exigen migración real, no parche) | Toca migrar algún día |
+| Dejar el PR abierto indefinidamente | No decide nada | Un PR en rojo permanente, mismo problema que motivó `ADR-059` |
+
+### Decisión
+`.github/dependabot.yml` ignora también `semver-major` de `org.testcontainers:testcontainers-bom`. Se cierra el #2.
+
+### Consecuencias
+- **Gana:** Dependabot deja de reabrir un PR que rompe la build sin arreglo trivial; los PR de Testcontainers que queden abiertos son parches o menores, compatibles con 1.x.
+- **Pierde:** la migración a Testcontainers 2.x queda sin fecha ni investigada a fondo — este ADR no descarta la opción de fijar la versión a mano, solo no la intentó sin evidencia de que baste.
+- **Condiciona:** ninguna prueba de integración depende hoy de una función exclusiva de Testcontainers 2.x.
+
+### Cómo se revierte
+Borrar la entrada `ignore` de `testcontainers-bom` en `.github/dependabot.yml`; Dependabot volverá a proponer el salto en su siguiente ejecución semanal.
+
+---
+
+<!--
+Siguiente número disponible: ADR-061
 Para agregar: usa la skill `registrar-decision`.
 Recuerda: append-only. Las entradas viejas solo cambian de estado, no de contenido.
 -->
