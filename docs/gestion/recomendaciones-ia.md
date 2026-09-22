@@ -16,14 +16,14 @@
 | ID | Fecha | Título | Estado |
 |---|---|---|---|
 | REC-004 | 2026-08-08 | La cobertura de pruebas del frontend está muy por debajo de la del backend | Cerrada — obsoleta |
-| REC-006 | 2026-08-09 | `RateLimitConfig` se cuela en cualquier `@WebMvcTest` aunque no se importe, y rompe pruebas en silencio al activar reglas reales | Pendiente |
-| REC-007 | 2026-08-28 | Las ramas fusionadas se acumulan en GitHub porque falta activar el borrado automático | Pendiente |
+| REC-006 | 2026-08-09 | `RateLimitConfig` se cuela en cualquier `@WebMvcTest` aunque no se importe, y rompe pruebas en silencio al activar reglas reales | Resuelta |
+| REC-007 | 2026-08-28 | Las ramas fusionadas se acumulan en GitHub porque falta activar el borrado automático | Resuelta |
 | REC-008 | 2026-08-30 | El fuente de `index.css` está semi-minificado: el breakpoint móvil completo vive en una sola línea de 2.509 caracteres | Resuelta |
 | REC-009 | 2026-08-30 | 25 reglas usan `transition: all`, que anima también propiedades de layout y dispara reflow en cada hover | Resuelta |
 | REC-010 | 2026-08-31 | `CLAUDE.md` seguía declarando «Sprint 0 · ANDAMIAJE» sobre un backend terminado | Resuelta |
 | REC-011 | 2026-09-04 | Los 15 endpoints de M15 (cuentas, permisos y segundo factor) no tienen prueba de contrato, y RNF022 la exige | Resuelta |
 | REC-012 | 2026-09-04 | Las respuestas 401 y 403 de la cadena de seguridad no salen en RFC 7807, a diferencia del resto de la API | Resuelta |
-| REC-013 | 2026-09-04 | El allowlist de gitleaks exceptúa un archivo entero, no un secreto concreto | Pendiente |
+| REC-013 | 2026-09-04 | El allowlist de gitleaks exceptúa un archivo entero, no un secreto concreto | Resuelta |
 | REC-014 | 2026-09-04 | `sprint-2.md` lleva abierto desde el 2026-08-09 mientras el repositorio ya entregó M10–M15 | Resuelta |
 | REC-015 | 2026-09-04 | Nada impide que `index.css` y `tipos-dominio.ts` vuelvan a discrepar en los colores de estado | Resuelta |
 | REC-016 | 2026-09-21 | La regla `Read(**/*secret*)` de `.claude/settings.json` bloquea `secret-scan.yml`, el único archivo de CI que hay que corregir para `BUG-089` | Resuelta |
@@ -72,21 +72,26 @@ del proyecto — decisión pendiente, no se agregó por cuenta propia.
 
 ### REC-006 — `RateLimitConfig` se cuela en cualquier `@WebMvcTest` aunque no se importe, y rompe pruebas en silencio al activar reglas reales
 
-- **Fecha:** 2026-08-09 · **Estado:** Pendiente
+- **Fecha:** 2026-08-09 · **Estado:** Resuelta
+
+**Resuelta el 2026-09-22:** se documentó en el propio `RateLimitConfig.java` (javadoc de la clase),
+que es el único sitio que cualquiera que escriba un `@WebMvcTest` nuevo va a mirar cuando le falle
+con un 500 inexplicable. Nombra las dos rutas reales afectadas hoy (`/api/veedor/sesion`,
+`/api/reportes/**`) y el arreglo exacto.
 
 Al llenar `aguavigia.rate-limit.reglas` con las reglas de `/api/veedor/sesion` y `/api/reportes`,
 9 pruebas en `ReporteControllerTest` y
 `VeedorAuthControllerTest` empezaron a fallar con 500: `RateLimitConfig` implementa
 `WebMvcConfigurer`, así que Spring lo instancia en cualquier slice `@WebMvcTest` aunque la clase no
 lo importe, y con reglas vacías nadie lo había notado. Se resolvió con
-`@TestPropertySource(properties = "aguavigia.rate-limit.reglas=")` en los dos slices afectados. Queda
-por decidir si dejarlo anotado en el propio `RateLimitConfig.java` o como convención
-de plantilla para nuevos `@WebMvcTest`, para que no vuelva a morder la próxima vez que se agregue
-una regla.
+`@TestPropertySource(properties = "aguavigia.rate-limit.reglas=")` en los dos slices afectados.
 
 ### REC-007 — Las ramas fusionadas se acumulan en GitHub porque falta activar el borrado automático
 
-- **Fecha:** 2026-08-28 · **Estado:** Pendiente
+- **Fecha:** 2026-08-28 · **Estado:** Resuelta
+
+**Resuelta el 2026-09-22:** `delete_branch_on_merge` activado en la configuración del repositorio.
+Las ramas de Dependabot ya fusionadas en esta sesión se limpiaron solas al cerrarse sus PR.
 
 Al auditar las ramas del repositorio se encontraron 4 ramas
 remotas y 11 locales completamente fusionadas a `main` (0 commits propios cada una), incluida
@@ -196,7 +201,12 @@ Se arregla escribiendo el `ProblemDetail` desde el `authenticationEntryPoint` y 
 
 ### REC-013 — El allowlist de gitleaks exceptúa un archivo entero, no un secreto concreto
 
-- **Fecha:** 2026-09-04 · **Estado:** Pendiente
+- **Fecha:** 2026-09-04 · **Estado:** Resuelta
+
+**Resuelta el 2026-09-22:** `paths` cambiado por un `regexes` sobre el valor exacto de
+`JWT_SECRET`, mismo criterio que ya usaba la semilla TOTP. Verificado con `gitleaks` real (Docker):
+el valor legítimo sigue sin dar hallazgo, y un secreto distinto pegado en el mismo archivo (probado
+y revertido) sí se detecta — antes no se habría detectado.
 
 `ADR-031` decidió, con razón, no borrar la clave de desarrollo local de
 `docs/ingenieria/entorno-local.md`. Pero el allowlist de `.gitleaks.toml` está escrito por **ruta**:

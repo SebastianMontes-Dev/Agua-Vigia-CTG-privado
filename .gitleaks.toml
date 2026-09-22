@@ -15,9 +15,11 @@ useDefault = true
 # sobre una ruta, para no eximir de escaneo ningún archivo completo.
 [allowlist]
 description = "Excepciones evaluadas y aceptadas: clave de desarrollo local (ADR-031) y semilla TOTP del RFC (ADR-043)"
-paths = [
-  '''docs/ingenieria/entorno-local\.md''',
-]
 regexes = [
   '''GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ''',
+  # REC-013: antes eximia el archivo `docs/ingenieria/entorno-local.md` completo por ruta; un
+  # secreto de produccion pegado ahi por error habria pasado el CI en verde y en silencio. Se
+  # acota al valor exacto, mismo criterio que la semilla TOTP de arriba: el resto del archivo
+  # sigue escaneado.
+  '''jHZczrMtY\+dNWbYoCFZe3ZOvDUl8j7rWqVDeEeLMfIQ=''',
 ]
