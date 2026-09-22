@@ -171,20 +171,8 @@ public class GestionarCorteOficialService implements GestionarCorteOficialUseCas
             EstadoServicio estadoOtro = otro.ventana().inicio().isAfter(reloj.ahora())
                     ? EstadoServicio.CORTE_PROGRAMADO
                     : EstadoServicio.SIN_SERVICIO;
-            masSevero = masSevero(masSevero, estadoOtro);
+            masSevero = EstadoServicio.masSevero(masSevero, estadoOtro);
         }
         return masSevero;
-    }
-
-    private static EstadoServicio masSevero(EstadoServicio a, EstadoServicio b) {
-        return severidad(a) >= severidad(b) ? a : b;
-    }
-
-    private static int severidad(EstadoServicio estado) {
-        return switch (estado) {
-            case SIN_SERVICIO -> 2;
-            case CORTE_PROGRAMADO -> 1;
-            default -> 0;
-        };
     }
 }

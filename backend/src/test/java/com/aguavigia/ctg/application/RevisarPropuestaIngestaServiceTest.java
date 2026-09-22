@@ -93,6 +93,30 @@ class RevisarPropuestaIngestaServiceTest {
     }
 
     /**
+     * `aprobar()` puede correr mucho después de `detectadaEn` — una propuesta de prensa espera
+     * revisión del veedor días o semanas. Si para entonces la ventana declarada ya terminó, fijar el
+     * `estadoPropuesto` original (calculado al detectarla) deja el barrio en SIN_SERVICIO por un
+     * corte que ya se restableció. Debe fijar lo que la propia ventana dice que corresponde ahora
+     * ({@link PropuestaIngesta#estadoVigenteEn}), no el valor congelado en la detección.
+     */
+    @Test
+    void aprobarUnaPropuestaCuyaVentanaYaVencioDebeFijarConServicioYNoElEstadoDetectado() {
+        sectorEsta(EstadoServicio.SIN_SERVICIO);
+        given(propuestas.buscarPorId(ID)).willReturn(Optional.of(
+                new PropuestaIngesta(ID, MANGA, EstadoServicio.SIN_SERVICIO, "acuacar",
+                        "https://acuacar.com/x", "cita", 0.6, AHORA,
+                        AHORA.minusSeconds(20 * 3600), AHORA.minusSeconds(3600))));
+
+        servicio.aprobar(ID);
+
+        verify(sectores).guardar(new Sector(MANGA, "Manga", 1000, EstadoServicio.CON_SERVICIO));
+
+        ArgumentCaptor<EventoBitacora> captor = ArgumentCaptor.forClass(EventoBitacora.class);
+        verify(registrarEvento).registrar(captor.capture());
+        assertThat(captor.getValue().estado()).isEqualTo(EstadoServicio.CON_SERVICIO);
+    }
+
+    /**
      * Un boletín que no dice cuándo ocurre el corte no puede afirmar que el barrio está sin agua
      * hoy. Al recuperar el histórico, boletines de meses atrás sin ventana dejaron 128 barrios
      * pintados como sin servicio por cortes ya terminados.
