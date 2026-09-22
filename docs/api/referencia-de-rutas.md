@@ -6,7 +6,7 @@
 >
 > Las **guías** de esta carpeta explican el porqué y los flujos; esta página es el catálogo exacto.
 
-**65 operaciones** en 59 rutas, más las páginas HTML de cortesía y el SSE.
+**66 operaciones** en 60 rutas, más las páginas HTML de cortesía y el SSE.
 
 Leyenda de **Acceso**: *Público* no exige token · *Sesión + `PERMISO`* exige `Authorization: Bearer <token>` de una
 cuenta que tenga ese permiso · *Sesión (cualquier cuenta)* exige token pero ningún permiso concreto.
@@ -28,7 +28,7 @@ Todo error sale en RFC 7807: ver [Errores y límites](errores-y-limites.md).
 - [Veedor - Cortes](#veedor-cortes) (4)
 - [Veedor - Cuenta propia](#veedor-cuenta-propia) (1)
 - [Veedor - Cuentas](#veedor-cuentas) (8)
-- [Veedor - Ingesta](#veedor-ingesta) (4)
+- [Veedor - Ingesta](#veedor-ingesta) (5)
 - [Veedor - Moderación](#veedor-moderaci-n) (3)
 - [Veedor - Segundo factor](#veedor-segundo-factor) (3)
 - [Esquemas](#esquemas)
@@ -175,7 +175,7 @@ Mismo efecto que POST /api/cuentas/verificacion, pero recibe el formulario y res
 |---|---|
 | **Acceso** | Público |
 | **Parámetros** | — |
-| **Cuerpo** | string (`application/x-www-form-urlencoded`) |
+| **Cuerpo** | object (`application/x-www-form-urlencoded`) |
 | **Respuestas** | `200` OK → string |
 
 ### `POST /api/cuentas/invitacion`
@@ -776,6 +776,19 @@ Crea la cuenta en INVITADA y le envia un enlace para que fije su clave. Al acept
 
 Salud de los colectores del pipeline de ingesta (RNF007)
 
+### `GET /api/veedor/ingesta/fallidos`
+
+**Listar los documentos que siguen fallando al procesarse, más recientes primero**
+
+Un documento sale de esta lista en cuanto se procesa con éxito: es lo que sigue roto *ahora*, no un histórico. Máximo 200 filas.
+
+| | |
+|---|---|
+| **Acceso** | Sesión + `VER_PANEL` |
+| **Parámetros** | — |
+| **Cuerpo** | — |
+| **Respuestas** | `200` Listado generado → lista de [DocumentoFallidoRespuesta](#esquema-documentofallidorespuesta)<br>`401` Falta el token del veedor → lista de [DocumentoFallidoRespuesta](#esquema-documentofallidorespuesta)<br>`403` La sesión no tiene el permiso que exige esta operación → [ProblemDetail](#esquema-problemdetail) |
+
 ### `GET /api/veedor/ingesta/propuestas`
 
 **Listar las propuestas pendientes de revisión, más recientes primero**
@@ -962,9 +975,25 @@ Credencial de acceso al panel del veedor
 
 | Campo | Tipo | Oblig. | Nulo | Descripción |
 |---|---|---|---|---|
-| `correo` | string |  |  | Correo de la cuenta |
-| `clave` | string |  |  | Clave de la cuenta |
+| `correo` | string (email) | sí |  | Correo de la cuenta |
+| `clave` | string | sí |  | Clave de la cuenta |
 | `codigoTotp` | string |  |  | Codigo de 6 digitos de la app de autenticacion. Se omite en el primer intento; si la cuenta tiene segundo factor, la respuesta 401 con type `segundo-factor-requerido` indica que hay que reintentar incluyendolo. |
+
+<a id="esquema-documentofallidorespuesta"></a>
+
+### DocumentoFallidoRespuesta
+
+Documento de la ingesta que falló al procesarse y sigue en cola de reintento
+
+| Campo | Tipo | Oblig. | Nulo | Descripción |
+|---|---|---|---|---|
+| `fuente` | string |  |  |  |
+| `urlOriginal` | string |  |  |  |
+| `titulo` | string |  | sí |  |
+| `motivo` | string |  |  | Mensaje de la excepción que hizo fallar el procesamiento |
+| `primerIntento` | string (date-time) |  |  |  |
+| `ultimoIntento` | string (date-time) |  |  |  |
+| `reintentos` | integer (int32) |  |  | Veces que se reintentó sin éxito, una por ciclo de ingesta |
 
 <a id="esquema-estadisticasectorrespuesta"></a>
 
@@ -1083,11 +1112,11 @@ service_request de Open311 GeoReport v2
 | Campo | Tipo | Oblig. | Nulo | Descripción |
 |---|---|---|---|---|
 | `type` | string (uri) |  |  |  |
-| `title` | string |  |  |  |
+| `title` | string |  | sí |  |
 | `status` | integer (int32) |  |  |  |
-| `detail` | string |  |  |  |
-| `instance` | string (uri) |  |  |  |
-| `properties` | mapa de object |  |  |  |
+| `detail` | string |  | sí |  |
+| `instance` | string (uri) |  | sí |  |
+| `properties` | mapa de object |  | sí |  |
 
 <a id="esquema-propuestaingestarespuesta"></a>
 
@@ -1219,8 +1248,8 @@ Cambiar la propia clave con la sesión iniciada
 
 | Campo | Tipo | Oblig. | Nulo | Descripción |
 |---|---|---|---|---|
-| `claveActual` | string |  |  | La clave de hoy. Sin ella un token robado bastaría para cambiarla. |
-| `claveNueva` | string |  |  | La nueva: de 12 a 128 caracteres y distinta de la actual. |
+| `claveActual` | string | sí |  | La clave de hoy. Sin ella un token robado bastaría para cambiarla. |
+| `claveNueva` | string | sí |  | La nueva: de 12 a 128 caracteres y distinta de la actual. |
 
 <a id="esquema-solicitudcierrecorte"></a>
 
@@ -1240,7 +1269,7 @@ Codigo de 6 digitos de la app de autenticacion
 
 | Campo | Tipo | Oblig. | Nulo | Descripción |
 |---|---|---|---|---|
-| `codigo` | string |  |  |  |
+| `codigo` | string | sí |  |  |
 
 <a id="esquema-solicitudconfirmar"></a>
 
@@ -1250,7 +1279,7 @@ Solicitud para confirmar un reporte ciudadano por otro vecino
 
 | Campo | Tipo | Oblig. | Nulo | Descripción |
 |---|---|---|---|---|
-| `huella` | string |  |  | Huella hash del dispositivo del usuario que confirma (ADR-007) |
+| `huella` | string | sí |  | Huella hash del dispositivo del usuario que confirma (ADR-007) |
 
 <a id="esquema-solicitudcorte"></a>
 
@@ -1260,10 +1289,10 @@ Registro de un corte oficial por el veedor (RF016)
 
 | Campo | Tipo | Oblig. | Nulo | Descripción |
 |---|---|---|---|---|
-| `sectoresAfectados` | lista de string |  |  | Identificadores de los sectores afectados |
+| `sectoresAfectados` | lista de string | sí |  | Identificadores de los sectores afectados |
 | `inicio` | string (date-time) | sí |  |  |
 | `finPrometido` | string (date-time) | sí |  |  |
-| `causa` | string |  |  |  |
+| `causa` | string | sí |  |  |
 
 <a id="esquema-solicitudfijarclave"></a>
 
@@ -1273,8 +1302,8 @@ Fijar clave desde un enlace de un solo uso (invitacion o restablecimiento)
 
 | Campo | Tipo | Oblig. | Nulo | Descripción |
 |---|---|---|---|---|
-| `token` | string |  |  | Token que venia en el enlace del correo |
-| `clave` | string |  |  |  |
+| `token` | string | sí |  | Token que venia en el enlace del correo |
+| `clave` | string | sí |  |  |
 
 <a id="esquema-solicitudinvitacion"></a>
 
@@ -1284,8 +1313,8 @@ Invitacion emitida por un ADMIN: crea la cuenta con su rol y manda el enlace
 
 | Campo | Tipo | Oblig. | Nulo | Descripción |
 |---|---|---|---|---|
-| `correo` | string |  |  |  |
-| `nombre` | string |  |  |  |
+| `correo` | string (email) | sí |  |  |
+| `nombre` | string | sí |  |  |
 | `rol` | string | sí |  | ADMIN, VEEDOR u OBSERVADOR |
 
 <a id="esquema-solicitudpermisos"></a>
@@ -1296,7 +1325,7 @@ Rol de base mas los ajustes por persona. Los permisos del rol se aplican solos; 
 
 | Campo | Tipo | Oblig. | Nulo | Descripción |
 |---|---|---|---|---|
-| `rol` | string |  |  | ADMIN, VEEDOR u OBSERVADOR |
+| `rol` | string | sí |  | ADMIN, VEEDOR u OBSERVADOR |
 | `concedidos` | lista de string |  |  |  |
 | `revocados` | lista de string |  |  |  |
 
@@ -1308,7 +1337,7 @@ Pedir de nuevo el correo de verificación. Responde siempre 202, exista o no la 
 
 | Campo | Tipo | Oblig. | Nulo | Descripción |
 |---|---|---|---|---|
-| `correo` | string |  |  |  |
+| `correo` | string (email) | sí |  |  |
 
 <a id="esquema-solicitudregistro"></a>
 
@@ -1318,9 +1347,9 @@ Solicitud de acceso al panel. No concede nada: exige verificar el correo y que u
 
 | Campo | Tipo | Oblig. | Nulo | Descripción |
 |---|---|---|---|---|
-| `correo` | string |  |  |  |
-| `nombre` | string |  |  | Nombre con el que apareceras en la auditoria del panel |
-| `clave` | string |  |  | Minimo 12 caracteres. La politica completa vive en ClaveEnClaro. |
+| `correo` | string (email) | sí |  |  |
+| `nombre` | string | sí |  | Nombre con el que apareceras en la auditoria del panel |
+| `clave` | string | sí |  | Minimo 12 caracteres. La politica completa vive en ClaveEnClaro. |
 
 <a id="esquema-solicitudreporte"></a>
 
@@ -1331,8 +1360,8 @@ Reporte ciudadano sin registro (RF005-RF008)
 | Campo | Tipo | Oblig. | Nulo | Descripción |
 |---|---|---|---|---|
 | `sectorId` | string |  | sí | Identificador del sector reportado. Opcional si viaja la coordenada: entonces el servidor infiere el barrio que la contiene (RF007). Si no viaja ninguno, 400. |
-| `tipo` | string |  |  | SIN_AGUA, PRESION_BAJA o SERVICIO_RESTABLECIDO |
-| `huella` | string |  |  | Huella anónima del dispositivo (ADR-007) — no es una cuenta ni un identificador personal. El cliente la genera una vez (p. ej. un UUID persistido en el dispositivo, hasheado) y la reutiliza en cada reporte; es lo único que permite RF006 (l… |
+| `tipo` | string | sí |  | SIN_AGUA, PRESION_BAJA o SERVICIO_RESTABLECIDO |
+| `huella` | string | sí |  | Huella anónima del dispositivo (ADR-007) — no es una cuenta ni un identificador personal. El cliente la genera una vez (p. ej. un UUID persistido en el dispositivo, hasheado) y la reutiliza en cada reporte; es lo único que permite RF006 (l… |
 | `coordenada` | [CoordenadaDTO](#esquema-coordenadadto) |  |  |  |
 
 <a id="esquema-solicitudrestablecer"></a>
@@ -1343,7 +1372,7 @@ Pedir el enlace de restablecimiento. Responde siempre 202, exista o no la cuenta
 
 | Campo | Tipo | Oblig. | Nulo | Descripción |
 |---|---|---|---|---|
-| `correo` | string |  |  |  |
+| `correo` | string (email) | sí |  |  |
 
 <a id="esquema-solicitudsuscripcion"></a>
 
@@ -1353,8 +1382,8 @@ Solicitud para suscribirse a los avisos de uno o más sectores
 
 | Campo | Tipo | Oblig. | Nulo | Descripción |
 |---|---|---|---|---|
-| `correo` | string |  |  | Correo al que llegarán los avisos |
-| `sectorIds` | lista de string |  |  | Identificadores de los sectores a seguir |
+| `correo` | string (email) | sí |  | Correo al que llegarán los avisos |
+| `sectorIds` | lista de string | sí |  | Identificadores de los sectores a seguir |
 
 <a id="esquema-suscripcionrespuesta"></a>
 

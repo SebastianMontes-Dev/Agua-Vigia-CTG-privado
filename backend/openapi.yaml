@@ -31,6 +31,8 @@ tags:
   description: Índice de Cumplimiento — prometido vs. real (RF020-RF022)
 - name: Estadisticas
   description: M7 — Estadísticas Públicas (RF023)
+- name: Veedor - Ingesta
+  description: "Documentos de la ingesta que siguen fallando, con su motivo (RNF006)"
 - name: IoT
   description: Telemetría de sensores de presión de la red (autenticada con X-IoT-Key)
 - name: Bitácora
@@ -486,9 +488,6 @@ paths:
             text/html:
               schema:
                 type: string
-            application/json:
-              schema:
-                type: string
     post:
       tags:
       - Suscripciones
@@ -547,9 +546,6 @@ paths:
           description: Página con el botón
           content:
             text/html:
-              schema:
-                type: string
-            application/json:
               schema:
                 type: string
     post:
@@ -881,7 +877,12 @@ paths:
         content:
           application/x-www-form-urlencoded:
             schema:
-              type: string
+              required:
+              - token
+              type: object
+              properties:
+                token:
+                  type: string
       responses:
         "200":
           description: OK
@@ -1650,6 +1651,41 @@ paths:
                 $ref: "#/components/schemas/ProblemDetail"
       security:
       - bearerAuth: []
+  /api/veedor/ingesta/fallidos:
+    get:
+      tags:
+      - Veedor - Ingesta
+      summary: "Listar los documentos que siguen fallando al procesarse, más recientes\
+        \ primero"
+      description: |-
+        Un documento sale de esta lista en cuanto se procesa con éxito: es lo que sigue
+        roto *ahora*, no un histórico. Máximo 200 filas.
+      operationId: fallidos
+      responses:
+        "200":
+          description: Listado generado
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DocumentoFallidoRespuesta"
+        "401":
+          description: Falta el token del veedor
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DocumentoFallidoRespuesta"
+        "403":
+          description: La sesión no tiene el permiso que exige esta operación
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+      security:
+      - bearerAuth: []
   /api/veedor/cortes/{id}:
     get:
       tags:
@@ -1902,9 +1938,6 @@ paths:
             text/csv:
               schema:
                 type: string
-            application/json:
-              schema:
-                type: string
   /api/cumplimiento:
     get:
       tags:
@@ -1993,9 +2026,6 @@ paths:
           description: CSV generado
           content:
             text/csv:
-              schema:
-                type: string
-            application/json:
               schema:
                 type: string
   /api/cumplimiento/sectores/{sectorId}:
@@ -2138,12 +2168,15 @@ components:
   schemas:
     SolicitudInvitacion:
       required:
+      - correo
+      - nombre
       - rol
       type: object
       properties:
         correo:
           minLength: 1
           type: string
+          format: email
         nombre:
           maxLength: 80
           minLength: 2
@@ -2190,12 +2223,16 @@ components:
           format: date-time
       description: "Cuenta del panel, tal como la ve un ADMIN"
     CredencialVeedor:
+      required:
+      - clave
+      - correo
       type: object
       properties:
         correo:
           minLength: 1
           type: string
           description: Correo de la cuenta
+          format: email
           example: veedor@ejemplo.org
         clave:
           minLength: 1
@@ -2238,6 +2275,8 @@ components:
             TOTP. Con ese alcance el token solo sirve para /api/veedor/segundo-factor.
       description: "Sesion emitida para el panel del veedor (RNF011: expira en 8 horas)"
     SolicitudCodigo:
+      required:
+      - codigo
       type: object
       properties:
         codigo:
@@ -2256,6 +2295,9 @@ components:
       description: "Datos para dar de alta el segundo factor. El secreto solo se muestra\
         \ aqui, una vez."
     SolicitudCambioClave:
+      required:
+      - claveActual
+      - claveNueva
       type: object
       properties:
         claveActual:
@@ -2269,8 +2311,10 @@ components:
       description: Cambiar la propia clave con la sesión iniciada
     SolicitudCorte:
       required:
+      - causa
       - finPrometido
       - inicio
+      - sectoresAfectados
       type: object
       properties:
         sectoresAfectados:
@@ -2303,18 +2347,22 @@ components:
           format: uri
         title:
           type: string
+          nullable: true
         status:
           type: integer
           format: int32
         detail:
           type: string
+          nullable: true
         instance:
           type: string
           format: uri
+          nullable: true
         properties:
           type: object
           additionalProperties:
             type: object
+          nullable: true
     CorteRespuesta:
       type: object
       properties:
@@ -2342,12 +2390,16 @@ components:
           type: string
       description: Corte oficial (RF016-RF017)
     SolicitudSuscripcion:
+      required:
+      - correo
+      - sectorIds
       type: object
       properties:
         correo:
           minLength: 1
           type: string
           description: Correo al que llegarán los avisos
+          format: email
           example: vecino@correo.com
         sectorIds:
           minItems: 1
@@ -2398,6 +2450,9 @@ components:
       description: "Coordenada GPS del reporte, solo cuando el usuario la autoriza\
         \ (RF007)"
     SolicitudReporte:
+      required:
+      - huella
+      - tipo
       type: object
       properties:
         sectorId:
@@ -2443,6 +2498,8 @@ components:
           format: int32
       description: Reporte ciudadano registrado
     SolicitudConfirmar:
+      required:
+      - huella
       type: object
       properties:
         huella:
@@ -2474,27 +2531,38 @@ components:
         coordenada:
           $ref: "#/components/schemas/IotCoordenada"
     SolicitudReenvioVerificacion:
+      required:
+      - correo
       type: object
       properties:
         correo:
           minLength: 1
           type: string
+          format: email
       description: "Pedir de nuevo el correo de verificación. Responde siempre 202,\
         \ exista o no la cuenta."
     SolicitudRestablecer:
+      required:
+      - correo
       type: object
       properties:
         correo:
           minLength: 1
           type: string
+          format: email
       description: "Pedir el enlace de restablecimiento. Responde siempre 202, exista\
         \ o no la cuenta."
     SolicitudRegistro:
+      required:
+      - clave
+      - correo
+      - nombre
       type: object
       properties:
         correo:
           minLength: 1
           type: string
+          format: email
         nombre:
           maxLength: 80
           minLength: 2
@@ -2507,6 +2575,9 @@ components:
       description: "Solicitud de acceso al panel. No concede nada: exige verificar\
         \ el correo y que un ADMIN apruebe."
     SolicitudFijarClave:
+      required:
+      - clave
+      - token
       type: object
       properties:
         token:
@@ -2518,6 +2589,8 @@ components:
           type: string
       description: Fijar clave desde un enlace de un solo uso (invitacion o restablecimiento)
     SolicitudPermisos:
+      required:
+      - rol
       type: object
       properties:
         rol:
@@ -2651,6 +2724,32 @@ components:
             \ caído en /actuator/health"
           format: int32
       description: Estado de salud de un colector de la ingesta automatizada
+    DocumentoFallidoRespuesta:
+      type: object
+      properties:
+        fuente:
+          type: string
+          example: acuacar
+        urlOriginal:
+          type: string
+        titulo:
+          type: string
+          nullable: true
+        motivo:
+          type: string
+          description: Mensaje de la excepción que hizo fallar el procesamiento
+        primerIntento:
+          type: string
+          format: date-time
+        ultimoIntento:
+          type: string
+          format: date-time
+        reintentos:
+          type: integer
+          description: "Veces que se reintentó sin éxito, una por ciclo de ingesta"
+          format: int32
+      description: Documento de la ingesta que falló al procesarse y sigue en cola
+        de reintento
     EventoAuditoriaRespuesta:
       type: object
       properties:

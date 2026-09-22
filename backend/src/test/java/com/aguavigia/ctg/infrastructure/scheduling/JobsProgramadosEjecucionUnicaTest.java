@@ -16,6 +16,7 @@ import com.aguavigia.ctg.infrastructure.ingest.RssCollector;
 import com.aguavigia.ctg.infrastructure.mantenimiento.LimpiezaFotosHuerfanasJob;
 import com.aguavigia.ctg.infrastructure.mantenimiento.MantenimientoProperties;
 import com.aguavigia.ctg.infrastructure.mantenimiento.PurgaEvidenciaAntiguaJob;
+import com.aguavigia.ctg.infrastructure.persistence.mongo.DocumentoFallidoMongoRepository;
 import com.aguavigia.ctg.infrastructure.persistence.mongo.MarcaDeIngestaMongoRepository;
 import org.junit.jupiter.api.Test;
 
@@ -40,7 +41,8 @@ class JobsProgramadosEjecucionUnicaTest {
         var orquestador = new PipelineOrquestador(mock(AcuacarApiCollector.class), mock(RssCollector.class),
                 mock(DeduplicadorReciente.class), mock(HeuristicaExtractor.class), mock(SectorRepository.class),
                 mock(RegistrarPropuestaIngestaUseCase.class), mock(EstadoColectorRegistry.class),
-                mock(MarcaDeIngestaMongoRepository.class), mock(RelojPort.class), ejecucionUnica);
+                mock(MarcaDeIngestaMongoRepository.class), mock(DocumentoFallidoMongoRepository.class),
+                mock(RelojPort.class), ejecucionUnica);
 
         orquestador.ejecutarCicloEnUnaReplica();
 
