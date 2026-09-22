@@ -6,9 +6,12 @@ import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.port.in.RegistrarPropuestaIngestaUseCase;
 import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.SectorRepository;
+import com.aguavigia.ctg.infrastructure.persistence.mongo.DocumentoFallidoDocumento;
+import com.aguavigia.ctg.infrastructure.persistence.mongo.DocumentoFallidoMongoRepository;
 import com.aguavigia.ctg.infrastructure.persistence.mongo.MarcaDeIngestaMongoRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import java.time.Instant;
 import java.util.List;
@@ -37,6 +40,7 @@ class PipelineOrquestadorTest {
     private RegistrarPropuestaIngestaUseCase registrarPropuesta;
     private EstadoColectorRegistry estadoColectores;
     private MarcaDeIngestaMongoRepository marcas;
+    private DocumentoFallidoMongoRepository fallidos;
     private RelojPort reloj;
 
     private PipelineOrquestador orquestador;
@@ -51,11 +55,13 @@ class PipelineOrquestadorTest {
         registrarPropuesta = mock(RegistrarPropuestaIngestaUseCase.class);
         reloj = mock(RelojPort.class);
         marcas = mock(MarcaDeIngestaMongoRepository.class);
+        fallidos = mock(DocumentoFallidoMongoRepository.class);
         // Real y no mock: es un contador en memoria sin dependencias, y así el test puede
         // comprobar de verdad lo que RNF007 exige reportar.
         estadoColectores = new EstadoColectorRegistry(() -> AHORA);
 
         given(marcas.findById(anyString())).willReturn(Optional.empty());
+        given(fallidos.findById(anyString())).willReturn(Optional.empty());
 
         given(reloj.ahora()).willReturn(AHORA);
         given(acuacar.obtenerDesde(any())).willReturn(List.of());
@@ -65,7 +71,7 @@ class PipelineOrquestadorTest {
                 .willReturn(Optional.empty());
 
         orquestador = new PipelineOrquestador(acuacar, rss, deduplicador, extractor, sectores,
-                registrarPropuesta, estadoColectores, marcas, reloj, (nombre, maximo, minimo, tarea) -> tarea.run());
+                registrarPropuesta, estadoColectores, marcas, fallidos, reloj, (nombre, maximo, minimo, tarea) -> tarea.run());
     }
 
     private DocumentoCrudo documento(String texto) {
@@ -230,6 +236,57 @@ class PipelineOrquestadorTest {
         orquestador.ejecutarCiclo();
 
         verify(deduplicador).marcarComoVisto(anyString());
+    }
+
+    // --- Cola muerta de fallidos (RNF006/BUG-091: el fallo deja rastro consultable, no solo el log) ---
+
+    @Test
+    void unDocumentoQueFallaDebeQuedarEnLaColaDeFallidosConSuMotivo() {
+        hayUnDocumentoSobre("Corte en Manga por daño en la red", List.of("Manga"),
+                List.of(new Sector(new SectorId("manga"), "Manga", 1000, EstadoServicio.CON_SERVICIO)));
+        given(registrarPropuesta.registrar(any(), any(), anyString(), any(), any(), anyDouble(), any(), any(), any(), any(), any()))
+                .willThrow(new RuntimeException("Mongo caído"));
+
+        orquestador.ejecutarCiclo();
+
+        ArgumentCaptor<DocumentoFallidoDocumento> capturado = ArgumentCaptor.forClass(DocumentoFallidoDocumento.class);
+        verify(fallidos).save(capturado.capture());
+        assertThat(capturado.getValue().getFuente()).isEqualTo("acuacar");
+        assertThat(capturado.getValue().getMotivo()).contains("Mongo caído");
+        assertThat(capturado.getValue().getReintentos()).isEqualTo(1);
+        assertThat(capturado.getValue().getPrimerIntento()).isEqualTo(AHORA);
+        assertThat(capturado.getValue().getUltimoIntento()).isEqualTo(AHORA);
+    }
+
+    @Test
+    void unDocumentoQueFallaVariasVecesDebeAcumularReintentosEnLaMismaFila() {
+        hayUnDocumentoSobre("Corte en Manga por daño en la red", List.of("Manga"),
+                List.of(new Sector(new SectorId("manga"), "Manga", 1000, EstadoServicio.CON_SERVICIO)));
+        given(registrarPropuesta.registrar(any(), any(), anyString(), any(), any(), anyDouble(), any(), any(), any(), any(), any()))
+                .willThrow(new RuntimeException("Mongo caído"));
+        String hash = documento("Corte en Manga por daño en la red").hash();
+        given(fallidos.findById(hash)).willReturn(Optional.of(
+                new DocumentoFallidoDocumento(hash, "acuacar", "https://acuacar.com/x", "Titulo",
+                        "Mongo caído", AHORA, AHORA, 1)));
+
+        orquestador.ejecutarCiclo();
+
+        ArgumentCaptor<DocumentoFallidoDocumento> capturado = ArgumentCaptor.forClass(DocumentoFallidoDocumento.class);
+        verify(fallidos).save(capturado.capture());
+        assertThat(capturado.getValue().getReintentos()).isEqualTo(2);
+        assertThat(capturado.getValue().getPrimerIntento()).isEqualTo(AHORA);
+    }
+
+    @Test
+    void unDocumentoProcesadoConExitoDebeSalirDeLaColaDeFallidos() {
+        hayUnDocumentoSobre("Corte en Manga por daño en la red", List.of("Manga"),
+                List.of(new Sector(new SectorId("manga"), "Manga", 1000, EstadoServicio.CON_SERVICIO)));
+
+        orquestador.ejecutarCiclo();
+
+        // Puede haber quedado de un intento anterior; ya no está roto.
+        verify(fallidos).deleteById(anyString());
+        verify(fallidos, never()).save(any());
     }
 
     @Test

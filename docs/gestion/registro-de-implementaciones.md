@@ -198,6 +198,7 @@ cada PR y en `estado-del-backend.md` (`./mvnw verify`: 823 pruebas, 0 fallos).
 | — | proceso | Pusheada la única etiqueta git que pertenece al historial actual (`pre-retiro-frontend`); las otras cinco locales son del repositorio público de cinco personas que `ADR-045` retiró a propósito y se dejaron sin pushear. `REC-016` resuelta: `Read(**/*secret*)` en `.claude/settings.json` acotada a `**/secrets/**`, `**/*secrets.*`, `**/*.secret`, `**/*.secrets` — ya no atrapa código fuente legítimo sobre secretos de TOTP | #39 | `git ls-remote --tags origin` → solo `pre-retiro-frontend` · `SecretoTotp.java` ya se puede leer |
 | — | infra | Fase 1 del plan de Yordy (`plan-validacion-backend.md`), un punto: `backend-ci.yml` solo corría con cambios bajo `backend/**`, así que un PR que solo editara ese workflow y lo rompiera se fusionaba sin que el propio CI lo verificara. Agregado `.github/workflows/backend-ci.yml` a sus propios `paths`. Los otros dos workflows ya corren en todo push/PR, sin el mismo hueco | #40 | Esta misma edición dispara `Backend CI` al tocar el archivo listado en sus propios `paths` |
 | RNF018 | infra | Fase 1 del plan de Yordy, otros dos puntos, decididos con criterio propio: (1) dos reglas de ArchUnit nuevas — `domain/` solo depende de Java (antes solo se vetaban Spring y Mongo por nombre; `domain/` ya era 100% Java puro, la regla solo lo protege) y `application/` no depende de tecnología concreta (web, seguridad, correo, Redis), permitiendo el cableado de Spring que ya usa (`@Service`, `@EventListener`, `@Async`, `@Value`) porque sacarlo es la Fase 4 del propio plan, no esta; (2) `ContratoOpenApiTest` ahora compara semánticamente parámetros requeridos, cuerpo requerido, códigos de respuesta y esquemas de seguridad por operación, no solo el conjunto de rutas — reutilizando el modelo de swagger-core que ya trae `springdoc-openapi-starter-webmvc-ui`, sin dependencia nueva | #41 | Ambas reglas probadas contra una violación real deliberada (una clase con `@JsonIgnore` en domain, un `@RestController` en application, un `required: true`→`false` en `openapi.yaml`) y revertida; build completa: 829 pruebas, 0 fallos, ArchUnit (7 reglas) y JaCoCo en verde |
+| RNF006 | func | `BUG-091` cerrado: cola muerta real de la ingesta — `DocumentoFallidoDocumento` en Mongo (`documentos_fallidos`), `upsert` por hash con contador de reintentos, borrada al procesarse con éxito; expuesta en `GET /api/veedor/ingesta/fallidos` | #42 | `PipelineOrquestadorTest` (3 pruebas nuevas) y `IngestaFallidosControllerTest` (2 pruebas) · la prueba semántica de `ContratoOpenApiTest` (recién escrita en #41) detectó el endpoint nuevo y obligó a regenerar `openapi.yaml` — primera vez que atrapa un cambio real, no uno sintético · build completa: 834 pruebas, 0 fallos |
 | — | infra | Dependencias del backend: resilience4j 2.3.0→2.4.0, jacoco-maven-plugin 0.8.12→0.8.15, Maven wrapper 3.9.9→3.9.16, springdoc 2.8.6→2.9.1 — dentro de la rama 2.x, no choca con `ADR-059` (Dependabot) | #26, #27, #28, #29 | `Backend CI` completo (`./mvnw verify`) en verde sobre el `main` nuevo; `main` en verde en sus tres workflows tras la fusión (`2c6d6f7`) · ⚠️ `gitleaks` por `pull_request` fallaba por `BUG-089`, ajeno al cambio |
 
 ---
@@ -227,12 +228,13 @@ matriz, no desde lo que los PR afirman en su descripción.
 | M14 Alertas push | 1 | 0 | 0% — RF041 pendiente: `NotificadorPushWebhookAdapter` solo registra un log; exige credenciales de WhatsApp Business o Telegram |
 | M15 Cuentas y permisos | 5 | 5 (RF042–RF046) | 100% |
 | **Total funcionales** | **46** | **40** | **87%** |
-| **No funcionales** | **27** | **16** | **59%** |
+| **No funcionales** | **27** | **17** | **63%** |
 
-Los 16 RNF verificados: RNF002–RNF005, RNF007–RNF011, RNF017, RNF018, RNF020 y RNF022–RNF025. `RNF006`
-bajó de verificado a parcial el 2026-09-22 (`BUG-091`): la matriz lo marcaba ✅ sin que exista la cola
-muerta que pide el requisito. Los otros once: RNF001 y
-RNF012–RNF016 **retirados por alcance** (interfaz, `ADR-048`) · RNF019 descartado (`ADR-025`) · RNF006, RNF021 y RNF027
+Los 17 RNF verificados: RNF002–RNF011, RNF017, RNF018, RNF020 y RNF022–RNF025. `RNF006` bajó de
+verificado a parcial el 2026-09-22 (`BUG-091`: la matriz lo marcaba ✅ sin que exista la cola muerta
+que pide el requisito) y volvió a subir el mismo día, cerrado con la cola real (`documentos_fallidos`
+en Mongo, `GET /api/veedor/ingesta/fallidos`). Los otros diez: RNF001 y
+RNF012–RNF016 **retirados por alcance** (interfaz, `ADR-048`) · RNF019 descartado (`ADR-025`) · RNF021 y RNF027
 parciales · RNF026 sin verificar, no aplica al entorno local (`ADR-057`).
 
 ---
