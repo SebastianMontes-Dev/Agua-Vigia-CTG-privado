@@ -25,6 +25,10 @@ Referencias cruzadas: `ADR-NNN` · `BUG-NNN` · `RF0NN` · `archivo:línea`.
 
 ## Preparación del backend
 
+### 2026-09-22 · `chore/ci-workflow-se-verifica-a-si-mismo`
+**Qué:** Empezada la Fase 1 del plan de Yordy. De sus cuatro puntos, se resolvió el más chico sin necesitar decisión del dueño: `backend-ci.yml` solo corría con cambios bajo `backend/**`, así que un PR que rompiera ese workflow se fusionaba sin que el propio CI lo verificara. Agregado a sus propios `paths`. Los otros tres puntos de la Fase 1 quedan sin tocar, a propósito: JaCoCo ya se resolvió antes (`BUG-096`); ArchUnit («aplicación solo depende de dominio y puertos») falla hoy contra 33 archivos que usan `@Service`/`@Component`/`@EventListener`/`@Async`/`@Value` de Spring, algo que es la Fase 4 del propio plan de Yordy, no la 1; y la comparación semántica de OpenAPI (parámetros, cuerpos, esquemas, respuestas — hoy solo se comparan las rutas) es un desarrollo nuevo sustancial, no un ajuste.
+**Sigue:** Del dueño: decidir el alcance de esos dos puntos antes de seguir — si adelantar la Fase 4 para poder escribir la regla de ArchUnit que pide la Fase 1, o suavizarla; y si vale la pena construir la comparación semántica de OpenAPI ahora o más adelante.
+
 ### 2026-09-22 · `chore/acotar-regla-secret`
 **Qué:** Se revisaron las 6 etiquetas git locales antes de pushearlas todas: solo `pre-retiro-frontend` pertenece al historial actual, las otras cinco son del repositorio público de cinco personas que `ADR-045` retiró a propósito — quedaron sin pushear. Delegado por el dueño, `REC-016` se resolvió acotando `Read(**/*secret*)` en `.claude/settings.json` a cuatro patrones más precisos. El harness bloqueó como "auto-modificación" la edición que agregaba el comentario explicativo dentro del propio archivo (la regla en sí sí se aplicó); quedó documentado solo en `recomendaciones-ia.md`.
 **Sigue:** Del dueño: decidir qué hacer con las 5 etiquetas locales viejas (borrarlas o dejarlas). Del agente: seguir con la Fase 1 del plan de Yordy (ArchUnit + comparación semántica de OpenAPI).
