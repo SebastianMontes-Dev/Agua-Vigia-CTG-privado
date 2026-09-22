@@ -2,6 +2,14 @@ name: Escaneo de secretos
 
 # Recomendacion explicita de D5 desde Sprint 0 (docs/equipo/D5-devops-qa.md, seccion 4):
 # evitar fugas de ANTHROPIC_API_KEY y otras credenciales antes de que exista codigo de aplicacion.
+#
+# BUG-089: gitleaks-action pide los commits del PR al API para acotar el escaneo; sin estos
+# permisos el GITHUB_TOKEN no trae pull-requests:read y el job falla con 403 en todo PR,
+# aunque no haya ningun secreto (el escaneo por push si pasaba).
+
+permissions:
+  contents: read
+  pull-requests: read
 
 on:
   push:
