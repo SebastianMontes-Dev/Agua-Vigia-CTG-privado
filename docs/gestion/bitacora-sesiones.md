@@ -26,7 +26,7 @@ Referencias cruzadas: `ADR-NNN` · `BUG-NNN` · `RF0NN` · `archivo:línea`.
 ## Sprint 2
 
 ### 2026-09-22 · `chore/cerrar-dependabot-testcontainers`
-**Qué:** Se decidió el #2 de Dependabot, delegado por el dueño: el fallo no es transitorio (el BOM de Testcontainers 2.0.5 ya no fija la versión de `testcontainers-junit-jupiter` ni `testcontainers-mongodb`, confirmado en el log del `Backend CI`), así que se cerró con el mismo criterio que `ADR-059` y se registró `ADR-060`. Dependabot ya no propone ese salto.
+**Qué:** Se decidió el #2 de Dependabot, delegado por el dueño: el fallo no es transitorio (el BOM de Testcontainers 2.0.5 ya no fija la versión de `testcontainers-junit-jupiter` ni `testcontainers-mongodb`, confirmado en el log del `Backend CI`), así que se cerró con el mismo criterio que `ADR-059` y se registró `ADR-060`. Dependabot ya no propone ese salto. Fusionado como #32 con `gitleaks` en rojo solo por `BUG-089`; no queda ningún PR abierto en el repositorio.
 **Sigue:** Del dueño: `permissions` en `secret-scan.yml` (`BUG-089`, `REC-016`) y la hoja de ruta de los Sprints 3–6 (`REC-017`).
 
 ### 2026-09-21 · `chore/registrar-dependabot-26-a-29`
