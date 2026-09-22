@@ -6,8 +6,9 @@
 > memoria**: se construye desde `registro-de-bugs.md` y `registro-de-implementaciones.md` cuando
 > existan. Escribir esa parte ahora sería inventar datos.
 >
-> Este documento es la **estrategia**, adelantada mientras no hay código de aplicación. Cuando exista
-> el código y los primeros resultados, esta parte de resultados se completa desde el registro real.
+> Este documento es la **estrategia**. El backend ya está construido (823 pruebas en verde, ver
+> [`estado-del-backend.md`](estado-del-backend.md)); los resultados por RNF viven en
+> `registro-de-implementaciones.md` y `matriz-trazabilidad.md`, no aquí.
 
 ---
 
@@ -26,7 +27,7 @@ un `RNF` verificable con métrica y umbral — no hay pruebas "porque sí".
 | Unitarias `domain/` · `application/` | RNF017 (cobertura ≥ 70%) | JUnit 5 + JaCoCo | En cada PR, CI | 1 (base) → 5 (umbral exigido) |
 | Arquitectura | RNF018 (falla si se viola una capa) | ArchUnit | En cada PR, CI | 1 |
 | Integración backend ↔ datos | — (soporta RNF017) | Testcontainers (Mongo, Redis reales) | En cada PR, CI | 2 |
-| Rendimiento del mapa | RNF001 (< 3 s en 3G simulada) | Lighthouse + throttling | Antes de cada release | 4 (ajustes 3G) |
+| Rendimiento del mapa | RNF001 (< 3 s en 3G simulada) | Lighthouse + throttling | Antes de cada release | 4 (ajustes 3G) — ⛔ retirado por alcance hasta que exista el frontend nuevo (`ADR-048`) |
 | Rendimiento de escritura | RNF002 (confirmación < 1 s) | k6 contra `POST /api/reportes` (`scripts/carga/rnf002-registrar-reporte.js`) | Antes de cada release | 2 |
 | Caché | RNF003 (TTL ≤ 60 s) | Inspección de cabeceras HTTP / Redis | Manual + smoke test en CI | 2 |
 | Caos — caída de fuente externa | RNF004, RNF005, RNF006 | Apagar el colector en `docker compose`, observar cortacircuitos y cola muerta | Sprint 4, repetible | 4 |
@@ -34,10 +35,10 @@ un `RNF` verificable con métrica y umbral — no hay pruebas "porque sí".
 | Datos personales | RNF008, RNF009 | Revisión de código + prueba de baja de suscripción | Manual, checklist de PR | 1 (M4), 5 (auditoría) |
 | Secretos en el repo | RNF010 | `gitleaks` en CI (ya activo desde Sprint 0, `.github/workflows/secret-scan.yml`) | En cada push | 0 |
 | Seguridad del panel admin | RNF011 (JWT ≤ 8 h) | Test de seguridad (expiración de token) | Sprint 3 | 3 |
-| Accesibilidad | RNF012–RNF016 (contraste, teclado, táctil, responsive, no-solo-color) | `axe-core` + Lighthouse + prueba manual con teclado | Por página, antes de cada release | 1 → 5 (auditoría formal) |
+| Accesibilidad | RNF012–RNF016 (contraste, teclado, táctil, responsive, no-solo-color) | `axe-core` + Lighthouse + prueba manual con teclado | Por página, antes de cada release | 1 → 5 (auditoría formal) — ⛔ retirado por alcance hasta que exista el frontend nuevo (`ADR-048`) |
 | Precisión del clasificador IA | RNF019 (≥ 90% sobre conjunto dorado) | Prueba de regresión en CI contra conjunto dorado etiquetado | Cada cambio al prompt/pipeline M9 | 4 (etiquetado) → 5 (CI) |
 | Arranque en máquina limpia | RNF020 (`docker compose up`, un comando) | E2E de infraestructura | Antes de cada release | 0 (compose base) → 5 (documentado en manual técnico) |
-| Flujo completo de usuario | RF001–RF028 (flujos principales) | Playwright E2E | Antes de cada release | 5 |
+| Flujo completo de usuario | RF001–RF028 (flujos principales) | Playwright E2E | Antes de cada release | 5 — ⛔ retirado por alcance hasta que exista el frontend nuevo (`ADR-048`); mientras tanto, `scripts/carga/` y las pruebas de integración del backend |
 
 **Sin RNF asociado, no hay fila.** Si aparece una necesidad de prueba sin requisito que la respalde, se
 corrige `product-requirements.md` primero (mismo criterio que usa `registrar-implementacion`).
@@ -50,8 +51,8 @@ corrige `product-requirements.md` primero (mismo criterio que usa `registrar-imp
 |---|---|---|
 | Local | Desarrollo y pruebas unitarias/integración | `./mvnw test` |
 | CI (GitHub Actions) | Puerta de calidad en cada PR — ver `.github/workflows/` | Automático en `push`/`pull_request` |
-| Réplica local completa | E2E, caos, RNF020 | `docker compose up` (Sprint 1+, cuando existan los Dockerfiles de `/backend` y `/frontend`) |
-| Staging desplegado | Validación final antes de la demo | Render/Railway + MongoDB Atlas + Upstash (Sprint 5) |
+| Réplica local completa | Caos, RNF020, pruebas de carga | `docker compose up` (Dockerfile de `/backend`; el frontend se retiró, `ADR-048`) |
+| Staging desplegado | — | **No existe**: el proyecto es académico y corre en local, sin hosting (`ADR-057`). La demo se hace con `docker compose` en los PC del equipo |
 
 ---
 

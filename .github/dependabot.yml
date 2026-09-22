@@ -9,6 +9,13 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    # ADR-059: el backend se queda en Spring Boot 3.5.x. Boot 4 (Spring Framework 7) es una migración
+    # aparte, y springdoc 3.x solo funciona con Boot 4. Los parches y menores de ambos sí se proponen.
+    ignore:
+      - dependency-name: "org.springframework.boot:spring-boot-starter-parent"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "org.springdoc:springdoc-openapi-starter-webmvc-ui"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: /

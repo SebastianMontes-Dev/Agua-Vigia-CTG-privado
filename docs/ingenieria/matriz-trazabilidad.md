@@ -1,12 +1,13 @@
-⛔ Retirado por alcance (`ADR-048`): aplica al frontend nuevo |⛔ Retirado por alcance (`ADR-048`): aplica al frontend nuevo |⛔ Retirado por alcance (`ADR-048`): aplica al frontend nuevo |⛔ Retirado por alcance (`ADR-048`): aplica al frontend nuevo |⛔ Retirado por alcance (`ADR-048`): aplica al frontend nuevo |# Matriz de trazabilidad
+# Matriz de trazabilidad
 
 > Cadena completa: **objetivo específico → requisito → historia de usuario → caso de prueba →
 > implementación**. Es la evidencia de que nada se construyó de más y nada quedó sin verificar.
 >
 > **Se actualiza a mano al cerrar cada unidad de trabajo relevante**, contrastando el requisito
-> contra el código y su prueba. `docs/gestion/` (el registro de implementaciones por sprint que
-> alimentaba esta tabla) se retiró del proyecto al fusionar el rediseño de frontend en `main`
-> (2026-08-12) — la trazabilidad vive solo aquí desde entonces.
+> contra el código y su prueba. El PR que entregó cada requisito y su prueba están en
+> [`registro-de-implementaciones.md`](../gestion/registro-de-implementaciones.md); esta matriz es la
+> vista por requisito y aquel registro, la vista por PR. (`docs/gestion/` se retiró el 2026-08-12 y se
+> retomó después: hay registros con fecha de agosto y septiembre.)
 
 ---
 
@@ -183,12 +184,12 @@ Los RNF no llevan historia de usuario: se verifican con una medición, no con un
 | RNF009 | Correos con acceso restringido, borrados al darse de baja | Revisión de código y prueba | 2 | ✅ (`MailNotificacionAdapterTest.debeIncluirElEnlaceDeBajaEnElAviso`) |
 | RNF010 | Cero credenciales en el repositorio | `gitleaks` en CI | 0 | ✅ |
 | RNF011 | JWT con expiración ≤ 8 h | Test de seguridad | 3 | ✅ |
-| RNF012 | Contraste AA en ambos temas | axe / Lighthouse | 5 | ✅ |
-| RNF013 | Operable solo con teclado | Prueba manual | 5 | ✅ |
-| RNF014 | Objetivos táctiles ≥ 44×44 px | Inspección de CSS | 5 | ✅ |
-| RNF015 | Funcional desde 360 px | Prueba responsive | 5 | ✅ |
-| RNF016 | El estado nunca solo por color | Revisión de diseño | 5 | ✅ |
-| RNF017 | Cobertura ≥ 70% en `domain/` y `application/` | JaCoCo en CI | 5 | ✅ (real: **92.4%** en `domain/`, **99.2%** en `application/`, sobre 406 pruebas. El `jacoco:check` del `pom.xml` falla la build por debajo del 85%) |
+| RNF012 | Contraste AA en ambos temas | axe / Lighthouse | 5 | ⛔ **Retirado por alcance (`ADR-048`).** Antes: ✅ |
+| RNF013 | Operable solo con teclado | Prueba manual | 5 | ⛔ **Retirado por alcance (`ADR-048`).** Antes: ✅ |
+| RNF014 | Objetivos táctiles ≥ 44×44 px | Inspección de CSS | 5 | ⛔ **Retirado por alcance (`ADR-048`).** Antes: ✅ |
+| RNF015 | Funcional desde 360 px | Prueba responsive | 5 | ⛔ **Retirado por alcance (`ADR-048`).** Antes: ✅ |
+| RNF016 | El estado nunca solo por color | Revisión de diseño | 5 | ⛔ **Retirado por alcance (`ADR-048`).** Antes: ✅ |
+| RNF017 | Cobertura ≥ 70% en `domain/` y `application/` | JaCoCo en CI | 5 | ✅ (real: **92.4%** en `domain/`, **99.2%** en `application/`, sobre 406 pruebas, medido el 2026-09-05 (hoy son 823). El `jacoco:check` del `pom.xml` falla la build por debajo del 85%) |
 | RNF018 | Build falla si se viola una capa | ArchUnit en CI | 1 | ✅ (`ReglaDeOroArchitectureTest`, 5 reglas) |
 | RNF019 | Precisión del clasificador ≥ 90% | Regresión sobre el conjunto dorado | 5 | ❌ (Descartado) |
 | RNF020 | Levanta con un solo comando | `docker compose up` en máquina limpia | 0 | ✅ (verificado en CI: `.github/workflows/despliegue-ci.yml` construye la imagen y valida ambos compose en cada push) |

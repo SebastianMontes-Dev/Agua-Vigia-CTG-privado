@@ -18,14 +18,16 @@
 | REC-004 | 2026-08-08 | La cobertura de pruebas del frontend está muy por debajo de la del backend | Cerrada — obsoleta |
 | REC-006 | 2026-08-09 | `RateLimitConfig` se cuela en cualquier `@WebMvcTest` aunque no se importe, y rompe pruebas en silencio al activar reglas reales | Pendiente |
 | REC-007 | 2026-08-28 | Las ramas fusionadas se acumulan en GitHub porque falta activar el borrado automático | Pendiente |
-| REC-008 | 2026-08-30 | El fuente de `index.css` está semi-minificado: el breakpoint móvil completo vive en una sola línea de 2.509 caracteres | Pendiente |
-| REC-009 | 2026-08-30 | 25 reglas usan `transition: all`, que anima también propiedades de layout y dispara reflow en cada hover | Pendiente |
+| REC-008 | 2026-08-30 | El fuente de `index.css` está semi-minificado: el breakpoint móvil completo vive en una sola línea de 2.509 caracteres | Resuelta |
+| REC-009 | 2026-08-30 | 25 reglas usan `transition: all`, que anima también propiedades de layout y dispara reflow en cada hover | Resuelta |
 | REC-010 | 2026-08-31 | `CLAUDE.md` seguía declarando «Sprint 0 · ANDAMIAJE» sobre un backend terminado | Resuelta |
-| REC-011 | 2026-09-04 | Los 15 endpoints de M15 (cuentas, permisos y segundo factor) no tienen prueba de contrato, y RNF022 la exige | Pendiente |
-| REC-012 | 2026-09-04 | Las respuestas 401 y 403 de la cadena de seguridad no salen en RFC 7807, a diferencia del resto de la API | Pendiente |
+| REC-011 | 2026-09-04 | Los 15 endpoints de M15 (cuentas, permisos y segundo factor) no tienen prueba de contrato, y RNF022 la exige | Resuelta |
+| REC-012 | 2026-09-04 | Las respuestas 401 y 403 de la cadena de seguridad no salen en RFC 7807, a diferencia del resto de la API | Resuelta |
 | REC-013 | 2026-09-04 | El allowlist de gitleaks exceptúa un archivo entero, no un secreto concreto | Pendiente |
 | REC-014 | 2026-09-04 | `sprint-2.md` lleva abierto desde el 2026-08-09 mientras el repositorio ya entregó M10–M15 | Resuelta |
-| REC-015 | 2026-09-04 | Nada impide que `index.css` y `tipos-dominio.ts` vuelvan a discrepar en los colores de estado | Pendiente |
+| REC-015 | 2026-09-04 | Nada impide que `index.css` y `tipos-dominio.ts` vuelvan a discrepar en los colores de estado | Resuelta |
+| REC-016 | 2026-09-21 | La regla `Read(**/*secret*)` de `.claude/settings.json` bloquea `secret-scan.yml`, el único archivo de CI que hay que corregir para `BUG-089` | Pendiente |
+| REC-017 | 2026-09-21 | Los Sprints 3 a 6 de la hoja de ruta siguen escritos como si no se hubiera construido nada, y dos de sus entregables chocan con `ADR-048` y `ADR-057` | Pendiente |
 
 **Estado:** `Pendiente` (sin revisar) · `Validada` (estoy de acuerdo, puede pasar a ADR/issue/tarea) ·
 `Descartada` (no estoy de acuerdo — deja el motivo en el detalle) · `Resuelta` (ya se actuó sobre
@@ -39,7 +41,7 @@ ella)
 
 - **Fecha:** 2026-08-08 · **Estado:** Cerrada — obsoleta
 
-**Cerrada el 2026-09-21:** el frontend se retiró del repositorio (`ADR-048`; su código sigue en la etiqueta `pre-retiro-frontend`) y lo rehará otra persona. La recomendación no se resuelve: deja de aplicar aquí. Si el frontend nuevo vive en otro repositorio, la cobertura será asunto de ese repositorio.
+**Cerrada el 2026-09-21:** el frontend se retiró de `main` (`ADR-048`; su código sigue en la etiqueta `pre-retiro-frontend`) y se rehace en otras ramas de este repositorio. La recomendación no se resuelve: deja de aplicar aquí. La cobertura del frontend nuevo será asunto de esas ramas.
 
 El backend tiene 23 pruebas reales, incluido ArchUnit protegiendo la Regla de Oro. El frontend tiene
 2 (`InsigniaEstado.test.tsx`, `PaginaVeedor.test.tsx`) contra 20 archivos de componentes. `RNF017`
@@ -247,3 +249,32 @@ Una prueba corta lo cerraría: leer los cuatro valores de `index.css` y comparar
 **Nota del 2026-09-21:** el frontend y esta prueba se retiraron con `ADR-048` (siguen en la etiqueta `pre-retiro-frontend`); quien rehaga el frontend debe reponer la comprobación.
 
 **Resuelta:** el 2026-09-05 se implementó `frontend/src/types/colores-estado.test.ts`. La prueba extrae por regex los tokens `--color-estado-*` de `index.css`, valida la paridad exacta hex con `COLOR_POR_ESTADO` para los cuatro estados (NORMAL, BAJA_PRESION, SUSPENDIDO, RESTABLECIMIENTO) y calcula el ratio de contraste WCAG AA relativo (≥ 4.5:1) contra las superficies clara (`#fbfdfc`) y oscura (`#0c2830`).
+
+---
+
+### REC-016 — La regla `Read(**/*secret*)` de `.claude/settings.json` bloquea `secret-scan.yml`, el único archivo de CI que hay que corregir para `BUG-089`
+
+- **Fecha:** 2026-09-21 · **Estado:** Pendiente
+
+La regla `deny` `Read(**/*secret*)` existe para que el agente no abra archivos de credenciales, pero coincide por nombre con
+`.github/workflows/secret-scan.yml`, que no guarda ningún secreto (solo llama a `gitleaks`). Efecto: el agente no puede leerlo ni editarlo,
+y el arreglo de `BUG-089` (tres líneas de `permissions`) lleva dos sesiones sin poder aplicarse. Ya se anotó en la bitácora del 2026-09-21
+y volvió a ocurrir.
+
+Dos salidas, ambas del dueño: (a) aplicar tú mismo el bloque de `BUG-089`, o (b) acotar la regla para que no atrape ese archivo —por ejemplo
+renombrar el workflow a `escaneo-secretos.yml`, en línea con `backend-ci.yml` y `despliegue-ci.yml`, o cambiar el patrón a
+`**/secrets/**` y `**/*.secret`—. El agente no debe rodearla por su cuenta (`cat`, `sed` o renombrar), porque la regla es tuya.
+
+---
+
+### REC-017 — Los Sprints 3 a 6 de la hoja de ruta siguen escritos como si no se hubiera construido nada, y dos de sus entregables chocan con `ADR-048` y `ADR-057`
+
+- **Fecha:** 2026-09-21 · **Estado:** Pendiente
+
+`docs/gestion/README.md` define siete sprints, pero solo existen `sprint-0.md`, `sprint-1.md` y `sprint-2.md`. El backend ya entrega lo que
+los Sprints 3 (veedor y alertas) y 4 (ingesta e índice) prometían, sin que ningún archivo lo diga; por eso la Sala de control no puede
+mostrarlo. Además, el entregable del Sprint 5 (WCAG AA, PWA, E2E) depende del frontend que `ADR-048` retiró, y el del Sprint 6 pedía una demo
+desplegada, que `ADR-057` descartó. En esta sesión solo se ajustó el texto de esos dos entregables para que no contradigan los ADR.
+
+Lo que queda es decisión del dueño: reabrir los Sprints 3 y 4 como cerrados con la evidencia que ya existe (`matriz-trazabilidad.md`), y
+redefinir el 5 y el 6 para un proyecto sin frontend propio y sin despliegue, o fusionarlos en uno solo.

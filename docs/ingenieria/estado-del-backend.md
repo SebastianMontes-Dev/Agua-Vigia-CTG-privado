@@ -3,7 +3,7 @@
 > **Para qué sirve.** Es el punto de entrada para quien retome el backend: qué es, en qué estado está,
 > qué falta y las trampas del entorno que cuestan una hora si nadie las avisa.
 >
-> **Última actualización:** 2026-09-21 · **Rama:** `chore/retirar-frontend` (sin fusionar a `main`)
+> **Última actualización:** 2026-09-21 · **Rama:** `main` (la serie de PR #16–#23 ya está fusionada)
 >
 > Si algo no cuadra con el código, gana el código. Lo que **garantiza la build** es el contrato
 > (`ContratoOpenApiTest`) y la [matriz de trazabilidad](matriz-trazabilidad.md); lo demás se actualiza a mano.
@@ -20,9 +20,9 @@ Plataforma ciudadana de monitoreo del acueducto de **Cartagena de Indias** (proy
 los avisos de Acuacar con reportes ciudadanos georreferenciados y publica un **Índice de Cumplimiento**.
 **No está afiliada a Aguas de Cartagena S.A. E.S.P.**
 
-**El repositorio ya no tiene frontend** (`ADR-048`): el código anterior queda en la etiqueta git
-`pre-retiro-frontend` y lo rehará otra persona a partir de [`docs/api/`](../api/README.md). Lo que hay aquí es
-**backend + datos + infraestructura**.
+**`main` ya no tiene frontend** (`ADR-048`): el código anterior queda en la etiqueta git
+`pre-retiro-frontend` y se rehace en otras ramas de este repositorio, a partir de [`docs/api/`](../api/README.md), para
+juntarlo todo después. Lo que hay en `main` es **backend + datos + infraestructura**.
 
 ## 2. Estado actual — verificado
 
@@ -53,7 +53,7 @@ van del controlador al puerto de salida (`ADR-015`): **no es un defecto**.
 ## 4. Qué cambió en la ronda de 2026-09-21
 
 Ronda de pulido para el frontend nuevo y para la meta de 50 000 usuarios. Detalle en los ADR y en el registro
-de bugs (`BUG-076` a `BUG-086`).
+de bugs (`BUG-076` a `BUG-088`; el `BUG-089` es del CI y sigue abierto).
 
 - **Escalabilidad** (`ADR-049`, `ADR-053`): micro-caché de lecturas en nginx (que al medir resultó no cachear: `BUG-085`), consenso acotado a una evaluación por segundo y sector (`BUG-086`), SSE de aviso, jobs de una sola réplica,
   rate limit atómico, caché tolerante a Redis caído, hilos virtuales y pools acotados, réplicas en el compose de
@@ -77,6 +77,8 @@ de bugs (`BUG-076` a `BUG-086`).
 ## 5. Qué falta — lista honesta
 
 ### Para cumplir la meta de 50 000 usuarios (no está demostrada)
+> Es referencia para un despliegue futuro, no pendiente del proyecto: es académico y corre en local (`ADR-057`).
+
 - **No se ha probado a esa escala.** Solo hay una medición reducida (ver [`escalabilidad.md`](escalabilidad.md)).
 - **Fotos en disco local:** con réplicas en el mismo host funcionan por el volumen compartido; en hosts
   distintos hacen falta almacenamiento de objetos (S3/MinIO). El puerto `AlmacenamientoPort` ya existe; falta el adaptador.
@@ -99,13 +101,11 @@ de bugs (`BUG-076` a `BUG-086`).
 - **Capas:** `ContextoHttp` e `IngestaSaludController` importan `infrastructure/` desde `api/`, y ArchUnit no lo vigila
   (ver `ADR-015`: que un controlador lea de un puerto de salida **no** es una violación). Falta una regla ArchUnit
   «todo `/api/veedor/**` lleva `@PreAuthorize`» (`RNF022`).
-- **Dependabot** (revisado el 2026-09-21; los 8 PR abiertos fallan `gitleaks` y «vulnerabilidades» por causas ajenas al cambio: el escaneo de vulnerabilidades corrió el 17 de septiembre, antes de corregir el CVE de Netty en `main`, y `gitleaks` en modo PR falla en **todos** los PR con «Resource not accessible by integration» (403 con `pull_requests=read`): al workflow de escaneo de secretos le faltan `permissions: contents: read, pull-requests: read`. El `gitleaks` de las ejecuciones por `push` sí pasa; hace falta `@dependabot rebase`). #5 (jjwt 0.13) y #9 (archunit 1.5) son fusionables; #7 (Spring Boot 4.1), #11 (springdoc 3.1) y #2
-  (Testcontainers 2.0) **rompen la build**: Boot 4 es una migración grande y no se mezcla con esto.
+- **Dependabot** (`ADR-059`): el 2026-09-21 se fusionaron #1, #4, #24 y #8 (GitHub Actions) y #5 (jjwt 0.13) y #9 (ArchUnit 1.5), todos con el CI verde sobre el `main` nuevo. Spring Boot 4 y springdoc 3 quedan ignorados a propósito. **Sigue abierto #2 (Testcontainers 2.0)**: rompía el `Backend CI` en su última ejecución y no se ha reverificado; es una migración pendiente, no un descuido.
+- **`gitleaks` en modo PR falla en todos los PR** con «Resource not accessible by integration» (403 al listar los commits del PR): a `.github/workflows/secret-scan.yml` le faltan `permissions: contents: read, pull-requests: read` (`BUG-089`). No es un hallazgo de secretos: el mismo escaneo por `push` pasa. Hasta que el dueño lo corrija, ese check rojo en un PR es esperado.
 
 ### Housekeeping pendiente del dueño
-- Borrar `frontend/` **del disco** (`node_modules`, `dist`, `test-results`, ~364 MB, ignorados por git): la regla de
-  permisos del proyecto bloquea `rm -rf`.
-- Fusionar la rama y cerrar el Sprint 2 en `docs/gestion/sprint-2.md`.
+- Añadir los `permissions` a `secret-scan.yml` (`BUG-089`); la regla `Read(**/*secret*)` de `.claude/settings.json` impide que el agente abra ese archivo (`REC-016`).
 
 ## 6. Trampas del entorno (esto ahorra una hora)
 

@@ -2337,8 +2337,37 @@ de reportes borrados quedan huérfanas y las limpia el job nocturno existente.
 
 ---
 
+## ADR-059 — El backend se queda en Spring Boot 3.5.x y Dependabot no propone sus saltos mayores
+
+- **Fecha:** 2026-09-21
+- **Estado:** Aceptada
+- **Decide:** Dueño del proyecto
+
+### Contexto
+Dependabot abrió el 2026-09-17 tres PR de salto mayor contra `backend/pom.xml`: Spring Boot 3.5.16 → 4.1.1 (#7), springdoc 2.8.6 → 3.1.1 (#11) y Testcontainers 1.21.3 → 2.0.5 (#2). Los tres fallaron el `Backend CI`. El propio `pom.xml` ya documentaba por qué el parent está en 3.5.x: Boot 4 arrastra Spring Framework 7 «y no es un salto que hacer a la ligera». springdoc 3.x solo funciona con Boot 4, así que #11 no es independiente de #7. El resto de PR de Dependabot (Actions, jjwt 0.13, ArchUnit 1.5) pasó el CI y se fusionó.
+
+### Alternativas consideradas
+| Opción | A favor | En contra |
+|---|---|---|
+| Migrar a Boot 4 ahora | Versión vigente | Migración grande de Spring Framework 7 sobre 823 pruebas y un contrato OpenAPI que el frontend nuevo ya va a consumir; sin necesidad funcional |
+| **Quedarse en 3.5.x e ignorar los mayores de Boot y springdoc** | Congruente con el `pom.xml`; los parches de seguridad de la rama 3.5 siguen llegando por Dependabot | Hay que migrar algún día, cuando 3.5 salga de soporte |
+| Dejar los PR abiertos sin fusionar | No decide nada | Tres PR en rojo permanentes que ocultan los que sí importan |
+
+### Decisión
+`.github/dependabot.yml` ignora `semver-major` de `spring-boot-starter-parent` y de `springdoc-openapi-starter-webmvc-ui`; parches y menores se siguen proponiendo. Se cierran #7 y #11. Testcontainers 2.x **no** se ignora: #2 queda abierto como migración pendiente (`estado-del-backend.md` §5), porque no depende de Boot 4.
+
+### Consecuencias
+- **Gana:** Dependabot deja de contradecir el `pom.xml`; los PR abiertos son solo los que hay algo que decidir.
+- **Pierde:** la migración a Boot 4 queda sin fecha. Antes de que Boot 3.5 pierda soporte hay que retirar estas dos reglas y abrir su propio ADR.
+- **Condiciona:** el aviso de Trivy sobre CVE en transitivas de 3.5.x se sigue resolviendo, como hasta ahora, fijando la versión de parche en `pom.xml` (`BUG-069`).
+
+### Cómo se revierte
+Borrar las dos entradas `ignore` de `.github/dependabot.yml`; Dependabot volverá a proponer el salto en su siguiente ejecución semanal.
+
+---
+
 <!--
-Siguiente número disponible: ADR-059
+Siguiente número disponible: ADR-060
 Para agregar: usa la skill `registrar-decision`.
 Recuerda: append-only. Las entradas viejas solo cambian de estado, no de contenido.
 -->

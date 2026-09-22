@@ -90,8 +90,8 @@ puede mostrar, el sprint cierra aunque hayan pasado tres días.
 | **2** | Reporte ciudadano y consenso | Un vecino reporta en 2 toques y el consenso cambia el estado |
 | **3** | Administración y alertas | El veedor registra un corte y el suscriptor recibe el correo |
 | **4** | Ingesta y Cumplimiento ⭐ | Un boletín real de Acuacar entra solo y se calcula su índice |
-| **5** | Calidad, accesibilidad y PWA | Cobertura ≥ 70%, auditoría WCAG AA, E2E en verde |
-| **6** | Entrega final | Demo desplegada, dataset histórico cargado |
+| **5** | Calidad, accesibilidad y PWA | Cobertura ≥ 70%, auditoría WCAG AA, E2E en verde (la parte de interfaz —WCAG, PWA, E2E— espera al frontend nuevo, `ADR-048`) |
+| **6** | Entrega final | Demo corriendo en local en los PC del equipo (`ADR-057`), dataset histórico cargado |
 
 ---
 
