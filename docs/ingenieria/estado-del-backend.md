@@ -92,7 +92,7 @@ de bugs (`BUG-076` a `BUG-088`; el `BUG-089` es del CI y sigue abierto).
   ingesta** (no entran al Índice de Cumplimiento).
 - Aprobar una propuesta de prensa **sin ventana declarada** responde 200 pero no cambia el sector; no hay guarda
   contra resolver dos veces una propuesta.
-- `RNF006` (cola muerta de la ingesta) sigue parcial.
+- `RNF006` (cola muerta de la ingesta) sigue parcial: solo existe el reintento (no se marca como visto un documento fallido), no la colección consultable con el motivo (`BUG-091`).
 - Las confirmaciones y el consenso **no deduplican por IP**, solo por huella.
 
 ### Calidad
