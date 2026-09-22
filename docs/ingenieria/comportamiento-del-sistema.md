@@ -799,7 +799,16 @@ fallos consecutivos (RNF004, RNF005).
 #### Escenario: Ningún documento se pierde en silencio
 
 - **Cuando** el procesamiento de un documento falla
-- **Entonces** el documento va a la cola muerta con el motivo del fallo (RNF006)
+- **Entonces** el documento no se marca como visto (se reintenta el próximo ciclo) y queda anotado en
+  la cola muerta con el motivo del fallo, consultable en `GET /api/veedor/ingesta/fallidos` (RNF006,
+  `BUG-091`)
+- **Y** si el mismo documento vuelve a fallar, su fila se actualiza con el reintento en vez de
+  acumular una fila nueva por ciclo
+
+#### Escenario: Un documento que estaba en la cola muerta se procesa con éxito
+
+- **Cuando** un documento que había fallado antes se procesa sin errores en un ciclo posterior
+- **Entonces** sale de la cola muerta
 
 ### Requisito: Salud observable de cada colector
 

@@ -31,7 +31,7 @@ juntarlo todo después. Lo que hay en `main` es **backend + datos + infraestruct
 | Pruebas de backend | **823** (1 solo corre a petición: regenerar el contrato) · 0 fallos | `./mvnw verify`, 2026-09-21 |
 | Cobertura | JaCoCo ≥ 85 % en `domain/` y `application/` | El propio `verify` lo exige |
 | Arquitectura | 5+ reglas ArchUnit en verde | `ReglaDeOroArchitectureTest` |
-| API | **65 operaciones** en 20 controladores, 36 esquemas | `backend/openapi.yaml` (generado) |
+| API | **66 operaciones** en 21 controladores, 37 esquemas | `backend/openapi.yaml` (generado) |
 | Persistencia | 10 colecciones Mongo, `2dsphere` en `sectores.geometry` | `IndicesMongo` |
 | Redis | consenso, cupo RF006, rate limit, revocación de sesión, caché, pub/sub SSE, bloqueo de jobs | — |
 | Jobs | ingesta cada 10 min, ventanas cada 60 s, limpieza de fotos y purga de evidencia (diarias) | `@Scheduled`, todos vía `EjecucionUnica` |
@@ -92,7 +92,6 @@ de bugs (`BUG-076` a `BUG-088`; el `BUG-089` es del CI y sigue abierto).
   ingesta** (no entran al Índice de Cumplimiento).
 - Aprobar una propuesta de prensa **sin ventana declarada** responde 200 pero no cambia el sector; no hay guarda
   contra resolver dos veces una propuesta.
-- `RNF006` (cola muerta de la ingesta) sigue parcial.
 - Las confirmaciones y el consenso **no deduplican por IP**, solo por huella.
 
 ### Calidad
@@ -174,3 +173,5 @@ Mailhog (correos de prueba): `http://localhost:8025` · Swagger: `http://localho
 3. **Antes de cambiar el contrato de la API, pregunta:** quien construya el frontend lo estará usando.
 4. Un cambio de comportamiento se documenta en `comportamiento-del-sistema.md` **en el mismo cambio**, y se
    registra con las skills del proyecto (`registrar-decision`, `registrar-bug`, `registrar-implementacion`).
+
+La secuencia de consolidación previa a la integración está en [plan-validacion-backend.md](plan-validacion-backend.md).

@@ -26,8 +26,9 @@
 | REC-013 | 2026-09-04 | El allowlist de gitleaks exceptúa un archivo entero, no un secreto concreto | Pendiente |
 | REC-014 | 2026-09-04 | `sprint-2.md` lleva abierto desde el 2026-08-09 mientras el repositorio ya entregó M10–M15 | Resuelta |
 | REC-015 | 2026-09-04 | Nada impide que `index.css` y `tipos-dominio.ts` vuelvan a discrepar en los colores de estado | Resuelta |
-| REC-016 | 2026-09-21 | La regla `Read(**/*secret*)` de `.claude/settings.json` bloquea `secret-scan.yml`, el único archivo de CI que hay que corregir para `BUG-089` | Pendiente |
-| REC-017 | 2026-09-21 | Los Sprints 3 a 6 de la hoja de ruta siguen escritos como si no se hubiera construido nada, y dos de sus entregables chocan con `ADR-048` y `ADR-057` | Pendiente |
+| REC-016 | 2026-09-21 | La regla `Read(**/*secret*)` de `.claude/settings.json` bloquea `secret-scan.yml`, el único archivo de CI que hay que corregir para `BUG-089` | Resuelta |
+| REC-017 | 2026-09-21 | Los Sprints 3 a 6 de la hoja de ruta siguen escritos como si no se hubiera construido nada, y dos de sus entregables chocan con `ADR-048` y `ADR-057` | Resuelta |
+| REC-018 | 2026-09-22 | Qué cuenta como "demo" del Sprint 6 sin frontend propio en el repositorio no está decidido | Pendiente |
 
 **Estado:** `Pendiente` (sin revisar) · `Validada` (estoy de acuerdo, puede pasar a ADR/issue/tarea) ·
 `Descartada` (no estoy de acuerdo — deja el motivo en el detalle) · `Resuelta` (ya se actuó sobre
@@ -254,11 +255,13 @@ Una prueba corta lo cerraría: leer los cuatro valores de `index.css` y comparar
 
 ### REC-016 — La regla `Read(**/*secret*)` de `.claude/settings.json` bloquea `secret-scan.yml`, el único archivo de CI que hay que corregir para `BUG-089`
 
-- **Fecha:** 2026-09-21 · **Estado:** Pendiente
+- **Fecha:** 2026-09-21 · **Estado:** Resuelta
 
-La regla `deny` `Read(**/*secret*)` existe para que el agente no abra archivos de credenciales, pero coincide por nombre con
-`.github/workflows/secret-scan.yml`, que no guarda ningún secreto (solo llama a `gitleaks`). Efecto: el agente no puede leerlo ni editarlo,
-y el arreglo de `BUG-089` (tres líneas de `permissions`) lleva dos sesiones sin poder aplicarse. Ya se anotó en la bitácora del 2026-09-21
+**Resuelta el 2026-09-22, delegado por el dueño:** `BUG-089` se cerró renombrando el workflow (opción b, la parte que no tocaba `.claude/settings.json`). La regla en sí quedó acotada después, también por delegación: `Read(**/*secret*)` era una subcadena sin anclar y atrapaba código fuente legítimo (`SecretoTotp.java`, `GeneradorSecretosPort.java`, `ValidacionDeSecretosProd.java`) además del propio workflow de escaneo. Se reemplazó por cuatro reglas más precisas: `**/secrets/**`, `**/*secrets.*`, `**/*.secret`, `**/*.secrets` — protegen una carpeta `secrets/`, un archivo `*secrets.json`/`.env`/`.yml` o con extensión `.secret`/`.secrets`, sin atrapar nombres que solo mencionan la palabra. Verificado: `SecretoTotp.java` ya se puede leer. **El agente no pudo agregar el comentario explicativo en `.claude/settings.json`** — el harness bloqueó esa segunda edición como "auto-modificación" aunque la primera (la regla en sí) sí pasó; quedó sin documentar en el propio archivo, solo aquí.
+
+La regla `deny` `Read(**/*secret*)` existía para que el agente no abra archivos de credenciales, pero coincidía por nombre con
+`.github/workflows/secret-scan.yml`, que no guarda ningún secreto (solo llama a `gitleaks`). Efecto: el agente no podía leerlo ni editarlo,
+y el arreglo de `BUG-089` (tres líneas de `permissions`) llevó dos sesiones sin poder aplicarse. Ya se había anotado en la bitácora del 2026-09-21
 y volvió a ocurrir.
 
 Dos salidas, ambas del dueño: (a) aplicar tú mismo el bloque de `BUG-089`, o (b) acotar la regla para que no atrape ese archivo —por ejemplo
@@ -269,12 +272,31 @@ renombrar el workflow a `escaneo-secretos.yml`, en línea con `backend-ci.yml` y
 
 ### REC-017 — Los Sprints 3 a 6 de la hoja de ruta siguen escritos como si no se hubiera construido nada, y dos de sus entregables chocan con `ADR-048` y `ADR-057`
 
-- **Fecha:** 2026-09-21 · **Estado:** Pendiente
+- **Fecha:** 2026-09-21 · **Estado:** Resuelta
+
+**Resuelta el 2026-09-22, delegado por el dueño:** se escribieron `sprint-3.md`, `sprint-4.md` y `sprint-5.md` retroactivamente, cerrados con la evidencia que ya existía en `matriz-trazabilidad.md` y el código (sin inventar una ceremonia que no ocurrió — mismo criterio que `sprint-2.md` §4). El Sprint 5 quedó redefinido a solo cobertura de backend (`RNF017`, ya exigida en cada build); su parte de interfaz (WCAG, PWA, E2E) es alcance retirado (`ADR-048`), no un entregable pendiente. Al reverificar el Sprint 4 contra código se encontró `BUG-091`: `RNF006` estaba marcado ✅ en la matriz sin que exista la cola muerta que pide el requisito.
+
+**Queda sin resolver, y es decisión del dueño, no del agente:** el Sprint 6 no se cerró ni se abrió — su entregable se redefinió en `docs/gestion/README.md` (demo local con `docker compose`, sin "desplegada", `ADR-057`), pero qué cuenta como "demo" para un proyecto sin frontend propio en el repositorio es una pregunta genuina. Se separó en `REC-018` para que siga visible como pendiente.
 
 `docs/gestion/README.md` define siete sprints, pero solo existen `sprint-0.md`, `sprint-1.md` y `sprint-2.md`. El backend ya entrega lo que
 los Sprints 3 (veedor y alertas) y 4 (ingesta e índice) prometían, sin que ningún archivo lo diga; por eso la Sala de control no puede
 mostrarlo. Además, el entregable del Sprint 5 (WCAG AA, PWA, E2E) depende del frontend que `ADR-048` retiró, y el del Sprint 6 pedía una demo
 desplegada, que `ADR-057` descartó. En esta sesión solo se ajustó el texto de esos dos entregables para que no contradigan los ADR.
 
-Lo que queda es decisión del dueño: reabrir los Sprints 3 y 4 como cerrados con la evidencia que ya existe (`matriz-trazabilidad.md`), y
-redefinir el 5 y el 6 para un proyecto sin frontend propio y sin despliegue, o fusionarlos en uno solo.
+---
+
+### REC-018 — Qué cuenta como "demo" del Sprint 6 sin frontend propio en el repositorio no está decidido
+
+- **Fecha:** 2026-09-22 · **Estado:** Pendiente
+
+El Sprint 6 («Entrega final») promete una «demo desplegada, dataset histórico cargado». `ADR-057` ya descartó
+«desplegada» (el proyecto corre en local), y `docs/gestion/README.md` quedó ajustado a «demo corriendo en local
+con `docker compose`». Pero el repositorio no tiene frontend hoy (`ADR-048`; se rehace en otras ramas) — así que
+falta decidir con qué se hace la demo cuando llegue el momento: ¿espera a que el frontend nuevo exista y se
+junte todo, como dice `ADR-048`, o se acepta una demo basada en Swagger/`curl` contra el backend mientras tanto?
+
+Además, `scripts/sembrar-historico-cortes.mjs` existe (mayo–julio 2026, cortes y reportes ciudadanos históricos)
+pero no hay evidencia registrada de que se haya corrido y verificado contra un entorno real — no se marcó como
+entregado por esa razón, no por un descuido.
+
+No se resuelve aquí a propósito: es una decisión de alcance del proyecto, no una que convenga tomar en automático.

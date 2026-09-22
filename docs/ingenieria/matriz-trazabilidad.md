@@ -178,7 +178,7 @@ Los RNF no llevan historia de usuario: se verifican con una medición, no con un
 | RNF003 | Caché del mapa con TTL ≤ 60 s | Inspección de Redis | 2 | ✅ (TTL de 15 s en `application.yml` · `SectorMongoAdapterCacheTest`) |
 | RNF004 | Fuente caída no tumba el sistema | Prueba de caos | 4 | ✅ (`PipelineOrquestadorTest.unColectorCaidoNoDebeImpedirQueSeLeaElOtro`) |
 | RNF005 | Backoff + cortacircuitos tras 3 fallos | Test de integración | 4 | ✅ (`ResilienciaDeColectoresTest.debeAbrirElCortacircuitosAlTercerFalloConsecutivo`) |
-| RNF006 | Cero descartes silenciosos | Revisión de la cola muerta | 2 | ✅ (`PipelineOrquestadorTest.noDebeMarcarComoVistoUnDocumentoQueFalloAlProcesarse`) |
+| RNF006 | Cero descartes silenciosos | Revisión de la cola muerta | 2 | ✅ **Cerrado 2026-09-22** (`BUG-091`): además de no marcarse como visto (`PipelineOrquestadorTest.noDebeMarcarComoVistoUnDocumentoQueFalloAlProcesarse`), ahora queda en la colección Mongo `documentos_fallidos` con su motivo, consultable en `GET /api/veedor/ingesta/fallidos` — sale de la cola en cuanto se procesa con éxito (`PipelineOrquestadorTest`, `IngestaFallidosControllerTest`) |
 | RNF007 | Salud por colector expuesta | `/actuator/health` | 4 | ✅ (`ColectorHealthIndicatorTest` · detalle autenticado en `GET /api/veedor/ingesta/salud`) |
 | RNF008 | Sin datos personales del reportante | Revisión del modelo de datos | 2 | ✅ (`ADR-007` huella anónima · `ADR-026` Open311 agregado · `ADR-027` evidencia) |
 | RNF009 | Correos con acceso restringido, borrados al darse de baja | Revisión de código y prueba | 2 | ✅ (`MailNotificacionAdapterTest.debeIncluirElEnlaceDeBajaEnElAviso`) |
@@ -189,7 +189,7 @@ Los RNF no llevan historia de usuario: se verifican con una medición, no con un
 | RNF014 | Objetivos táctiles ≥ 44×44 px | Inspección de CSS | 5 | ⛔ **Retirado por alcance (`ADR-048`).** Antes: ✅ |
 | RNF015 | Funcional desde 360 px | Prueba responsive | 5 | ⛔ **Retirado por alcance (`ADR-048`).** Antes: ✅ |
 | RNF016 | El estado nunca solo por color | Revisión de diseño | 5 | ⛔ **Retirado por alcance (`ADR-048`).** Antes: ✅ |
-| RNF017 | Cobertura ≥ 70% en `domain/` y `application/` | JaCoCo en CI | 5 | ✅ (real: **92.4%** en `domain/`, **99.2%** en `application/`, sobre 406 pruebas, medido el 2026-09-05 (hoy son 823). El `jacoco:check` del `pom.xml` falla la build por debajo del 85%) |
+| RNF017 | Cobertura ≥ 70% en `domain/` y `application/` | JaCoCo en CI | 5 | ✅ (real: **90.2%** en `domain/`, **97.6%** en `application/`, sobre 825 pruebas, medido el 2026-09-22 con Docker. El `jacoco:check` del `pom.xml` falla la build por debajo del 85% **desde el 2026-09-22**: hasta entonces la regla no evaluaba ningún paquete real — `BUG-096` — y pasaba sin importar la cobertura) |
 | RNF018 | Build falla si se viola una capa | ArchUnit en CI | 1 | ✅ (`ReglaDeOroArchitectureTest`, 5 reglas) |
 | RNF019 | Precisión del clasificador ≥ 90% | Regresión sobre el conjunto dorado | 5 | ❌ (Descartado) |
 | RNF020 | Levanta con un solo comando | `docker compose up` en máquina limpia | 0 | ✅ (verificado en CI: `.github/workflows/despliegue-ci.yml` construye la imagen y valida ambos compose en cada push) |

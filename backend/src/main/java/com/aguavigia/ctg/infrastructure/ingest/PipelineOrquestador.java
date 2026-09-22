@@ -6,6 +6,8 @@ import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.port.in.RegistrarPropuestaIngestaUseCase;
 import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.SectorRepository;
+import com.aguavigia.ctg.infrastructure.persistence.mongo.DocumentoFallidoDocumento;
+import com.aguavigia.ctg.infrastructure.persistence.mongo.DocumentoFallidoMongoRepository;
 import com.aguavigia.ctg.infrastructure.persistence.mongo.MarcaDeIngestaDocumento;
 import com.aguavigia.ctg.infrastructure.persistence.mongo.MarcaDeIngestaMongoRepository;
 import org.slf4j.Logger;
@@ -60,6 +62,7 @@ public class PipelineOrquestador {
     private final RegistrarPropuestaIngestaUseCase registrarPropuesta;
     private final EstadoColectorRegistry estadoColectores;
     private final MarcaDeIngestaMongoRepository marcas;
+    private final DocumentoFallidoMongoRepository fallidos;
     private final RelojPort reloj;
     private final EjecucionUnica ejecucionUnica;
 
@@ -71,6 +74,7 @@ public class PipelineOrquestador {
                                RegistrarPropuestaIngestaUseCase registrarPropuesta,
                                EstadoColectorRegistry estadoColectores,
                                MarcaDeIngestaMongoRepository marcas,
+                               DocumentoFallidoMongoRepository fallidos,
                                RelojPort reloj,
                                EjecucionUnica ejecucionUnica) {
         this.acuacarApiCollector = acuacarApiCollector;
@@ -81,6 +85,7 @@ public class PipelineOrquestador {
         this.registrarPropuesta = registrarPropuesta;
         this.estadoColectores = estadoColectores;
         this.marcas = marcas;
+        this.fallidos = fallidos;
         this.reloj = reloj;
         this.ejecucionUnica = ejecucionUnica;
     }
@@ -194,6 +199,7 @@ public class PipelineOrquestador {
             EventoExtraido evento = extractor.extraer(documento);
             if (!evento.esInterrupcionDeAcueducto()) {
                 deduplicador.marcarComoVisto(documento.hash());
+                fallidos.deleteById(documento.hash());
                 return;
             }
 
@@ -215,9 +221,33 @@ public class PipelineOrquestador {
                         evento.inicioDeclarado(), evento.finPrometido(), documento.imagenUrl(), documento.publicadoEn(), documento.titulo());
             }
             deduplicador.marcarComoVisto(documento.hash());
+            // Puede haber quedado en `documentos_fallidos` de un intento anterior; ya no está roto.
+            fallidos.deleteById(documento.hash());
         } catch (Exception fallo) {
             log.warn("Documento de '{}' no procesado, se reintentará en el próximo ciclo: {}",
                     documento.fuente(), fallo.toString());
+            registrarFallo(documento, fallo);
+        }
+    }
+
+    /**
+     * RNF006 — cola muerta: un documento que falla se anota con su motivo, no solo en el log. Se
+     * hace `upsert` por hash: el mismo documento roto reintentado cada ciclo actualiza su propia
+     * fila (con el contador de reintentos) en vez de acumular una fila nueva por ciclo para siempre.
+     */
+    private void registrarFallo(DocumentoCrudo documento, Exception fallo) {
+        try {
+            Instant ahora = reloj.ahora();
+            DocumentoFallidoDocumento existente = fallidos.findById(documento.hash()).orElse(null);
+            Instant primerIntento = existente != null ? existente.getPrimerIntento() : ahora;
+            int reintentos = existente != null ? existente.getReintentos() + 1 : 1;
+            fallidos.save(new DocumentoFallidoDocumento(documento.hash(), documento.fuente(),
+                    documento.urlOriginal(), documento.titulo(), fallo.toString(),
+                    primerIntento, ahora, reintentos));
+        } catch (Exception errorAlRegistrar) {
+            // No debe impedir que el ciclo siga con el resto de documentos.
+            log.warn("No se pudo dejar constancia del fallo de '{}' en la cola muerta: {}",
+                    documento.fuente(), errorAlRegistrar.toString());
         }
     }
 

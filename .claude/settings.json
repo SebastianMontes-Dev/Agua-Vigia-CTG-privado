@@ -45,7 +45,10 @@
 
     "deny": [
       "Read(**/credentials.json)",
-      "Read(**/*secret*)",
+      "Read(**/secrets/**)",
+      "Read(**/*secrets.*)",
+      "Read(**/*.secret)",
+      "Read(**/*.secrets)",
 
       "Bash(git reset --hard:*)",
       "Bash(git clean:*)",

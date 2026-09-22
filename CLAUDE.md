@@ -19,7 +19,7 @@ vacío de información que multiplica el daño. Toda decisión de alcance se juz
 
 ## Estado actual
 
-**Sprint 0, 1 y 2 cerrados.** M1–M15 están construidos en el backend. **El frontend se retiró de `main`
+**Sprint 0 a 5 cerrados; el 6 (entrega final) sigue abierto.** M1–M15 están construidos en el backend. **El frontend se retiró de `main`
 (`ADR-048`; su código sigue en la etiqueta git `pre-retiro-frontend`) y se rehace en otras ramas de este mismo
 repositorio** desde la guía `docs/api/`, para juntarlo todo después. **Es un proyecto académico que corre en local**
 (`ADR-057`): sin hosting, dominio ni CDN. Requisito de escalabilidad: **50 000 usuarios simultáneos** (`ADR-049`,
@@ -27,9 +27,9 @@ repositorio** desde la guía `docs/api/`, para juntarlo todo después. **Es un p
 Falta `RF041` (webhook real de WhatsApp/Telegram), que depende de credenciales de terceros.
 **823 pruebas de backend** (las de integración exigen Docker y no corren sin él).
 
-⚠️ **La gestión de sprints va por detrás del código:** `sprint-2.md` se cerró el 2026-09-21, pero no existen
-`sprint-3.md` a `sprint-6.md` aunque M10–M15 ya están construidos (`REC-017`). Antes de planear, contrasta contra el
-código, no contra la tabla.
+⚠️ **`sprint-3.md` a `sprint-5.md` se reconstruyeron retroactivamente el 2026-09-22** (`REC-017`): el código ya
+entregaba lo que prometían, sin que nadie lo hubiera escrito. Falta `sprint-6.md`: su entregable («demo») está
+redefinido para local (`ADR-057`) pero no abierto — qué cuenta como demo sin frontend propio es decisión del dueño.
 
 **7 sprints: Sprint 0 (preparación) + Sprints 1–6. Un sprint no cierra por calendario: cierra cuando
 su entregable se demuestra funcionando.** Los 7 entregables, en `docs/gestion/README.md`.

@@ -258,8 +258,16 @@
               <rules>
                 <rule>
                   <element>PACKAGE</element>
+                  <!-- BUG-096: "domain.*" y "application.*" NO incluyen el paquete raiz mismo en
+                       JaCoCo, solo subpaquetes de un nivel (y application/ es plano, sin ninguno).
+                       Con esas dos lineas solas la regla no evaluaba nada real: subir el umbral a
+                       99.9% seguia dando "All coverage checks have been met". Verificado con
+                       jacoco:check@check standalone contra el jacoco.exec existente. Se agregan los
+                       nombres de paquete exactos para que la regla evalue domain/ y application/. -->
                   <includes>
+                    <include>com.aguavigia.ctg.domain</include>
                     <include>com.aguavigia.ctg.domain.*</include>
+                    <include>com.aguavigia.ctg.application</include>
                     <include>com.aguavigia.ctg.application.*</include>
                   </includes>
                   <limits>
