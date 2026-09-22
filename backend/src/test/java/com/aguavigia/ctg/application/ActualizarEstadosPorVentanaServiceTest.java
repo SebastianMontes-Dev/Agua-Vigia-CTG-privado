@@ -1,11 +1,16 @@
 package com.aguavigia.ctg.application;
 
+import com.aguavigia.ctg.domain.CorteAgua;
+import com.aguavigia.ctg.domain.CorteId;
+import com.aguavigia.ctg.domain.EstadoCorte;
 import com.aguavigia.ctg.domain.EstadoServicio;
+import com.aguavigia.ctg.domain.OrigenCorte;
 import com.aguavigia.ctg.domain.PropuestaId;
 import com.aguavigia.ctg.domain.PropuestaIngesta;
 import com.aguavigia.ctg.domain.Sector;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.port.in.RegistrarEventoBitacoraUseCase;
+import com.aguavigia.ctg.domain.port.out.CorteAguaRepository;
 import com.aguavigia.ctg.domain.port.out.PropuestaIngestaRepository;
 import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.SectorRepository;
@@ -32,6 +37,7 @@ class ActualizarEstadosPorVentanaServiceTest {
     private PropuestaIngestaRepository propuestas;
     private SectorRepository sectores;
     private RegistrarEventoBitacoraUseCase registrarEvento;
+    private CorteAguaRepository cortes;
     private RelojPort reloj;
     private ActualizarEstadosPorVentanaService servicio;
 
@@ -40,8 +46,10 @@ class ActualizarEstadosPorVentanaServiceTest {
         propuestas = mock(PropuestaIngestaRepository.class);
         sectores = mock(SectorRepository.class);
         registrarEvento = mock(RegistrarEventoBitacoraUseCase.class);
+        cortes = mock(CorteAguaRepository.class);
         reloj = mock(RelojPort.class);
-        servicio = new ActualizarEstadosPorVentanaService(propuestas, sectores, registrarEvento, reloj);
+        given(cortes.listarPorSectores(any())).willReturn(List.of());
+        servicio = new ActualizarEstadosPorVentanaService(propuestas, sectores, registrarEvento, cortes, reloj);
     }
 
     private void dadoQueHay(PropuestaIngesta propuesta, EstadoServicio estadoActualDelSector) {
@@ -123,6 +131,68 @@ class ActualizarEstadosPorVentanaServiceTest {
         given(propuestas.listarAprobadasConVentanaVigente(any()))
                 .willReturn(List.of(propuestaAprobadaDeCorte()));
         given(sectores.listarTodos()).willReturn(List.of());
+
+        assertThat(servicio.aplicarVentanasVencidas()).isZero();
+        verify(sectores, never()).guardar(any());
+    }
+
+    /**
+     * Dos boletines aprobados pueden solaparse sobre el mismo barrio (uno extiende el corte que el
+     * otro ya había anunciado). El resultado no puede depender de en qué orden los devuelva Mongo:
+     * debe ganar siempre el más severo, sin importar el orden de la lista.
+     */
+    @Test
+    void avisosSolapadosDelMismoSectorDebenDarElMismoResultadoEnCualquierOrden() {
+        given(reloj.ahora()).willReturn(FIN.plusSeconds(60));
+        // Boletín original: terminó hace un minuto según su propia ventana -> vigente hoy = CON_SERVICIO.
+        PropuestaIngesta boletinYaTerminado = propuestaAprobadaDeCorte();
+        // Segundo boletín, mismo barrio, extiende el corte más allá de "ahora" -> vigente hoy = SIN_SERVICIO.
+        PropuestaIngesta boletinQueLoExtiende = new PropuestaIngesta(
+                new PropuestaId("p2"), MANGA, EstadoServicio.SIN_SERVICIO, "acuacar",
+                "https://acuacar.com/2900", "se extiende el corte", 0.9, INICIO,
+                INICIO, FIN.plusSeconds(3 * 3600)).aprobar();
+
+        given(sectores.listarTodos())
+                .willReturn(List.of(new Sector(MANGA, "MANGA", 1000, EstadoServicio.CON_SERVICIO)));
+
+        given(propuestas.listarAprobadasConVentanaVigente(any()))
+                .willReturn(List.of(boletinYaTerminado, boletinQueLoExtiende));
+        EstadoServicio primerOrden = aplicarYCapturarEstado();
+
+        given(propuestas.listarAprobadasConVentanaVigente(any()))
+                .willReturn(List.of(boletinQueLoExtiende, boletinYaTerminado));
+        EstadoServicio segundoOrden = aplicarYCapturarEstado();
+
+        assertThat(primerOrden).isEqualTo(EstadoServicio.SIN_SERVICIO);
+        assertThat(segundoOrden).isEqualTo(EstadoServicio.SIN_SERVICIO);
+    }
+
+    private EstadoServicio aplicarYCapturarEstado() {
+        servicio.aplicarVentanasVencidas();
+        ArgumentCaptor<Sector> guardado = ArgumentCaptor.forClass(Sector.class);
+        verify(sectores, org.mockito.Mockito.atLeastOnce()).guardar(guardado.capture());
+        return guardado.getValue().estadoActual();
+    }
+
+    /**
+     * Un corte oficial que el veedor registró y sigue abierto (RF016) es una señal más autorizada
+     * que un boletín de ingesta cuya ventana ya venció: el barrido no debe rebajarlo a CON_SERVICIO.
+     */
+    @Test
+    void unCorteOficialAbiertoDebePrevalecerSobreUnAvisoDeIngestaVencido() {
+        given(reloj.ahora()).willReturn(FIN.plusSeconds(60));
+        dadoQueHay(propuestaAprobadaDeCorte(), EstadoServicio.SIN_SERVICIO);
+
+        CorteAgua corteOficialAbierto = CorteAgua.builder()
+                .id(new CorteId("c-oficial"))
+                .sectoresAfectados(List.of(MANGA))
+                .inicio(INICIO.minusSeconds(3600))
+                .finPrometido(FIN.plusSeconds(10 * 3600))
+                .causa("corte oficial, veedor")
+                .origen(OrigenCorte.VEEDOR)
+                .estado(EstadoCorte.CONFIRMADO)
+                .build();
+        given(cortes.listarPorSectores(List.of(MANGA))).willReturn(List.of(corteOficialAbierto));
 
         assertThat(servicio.aplicarVentanasVencidas()).isZero();
         verify(sectores, never()).guardar(any());

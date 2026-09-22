@@ -2396,8 +2396,62 @@ Borrar la entrada `ignore` de `testcontainers-bom` en `.github/dependabot.yml`; 
 
 ---
 
+## ADR-061 — Un solo orden de severidad entre estados de servicio en conflicto: SIN_SERVICIO > CORTE_PROGRAMADO > PRESION_BAJA > CON_SERVICIO
+
+- **Fecha:** 2026-09-22
+- **Estado:** Aceptada
+- **Decide:** Dueño del proyecto (delegado al agente, Fase 2 de `docs/ingenieria/plan-validacion-backend.md`)
+
+### Contexto
+Un mismo sector puede recibir, a la vez, más de una señal sobre su estado: dos boletines de Acuacar
+aprobados que se solapan (uno extiende el corte que el otro ya había anunciado), o un boletín de
+ingesta con la ventana vencida mientras el veedor tiene un corte oficial (`CorteAgua`, RF016-017)
+todavía abierto sobre ese mismo barrio (`BUG-098`, `BUG-099`). Antes de esta decisión no había una
+regla única para resolver el conflicto: `GestionarCorteOficialService` ya elegía "el más severo entre
+cortes oficiales" con una tabla propia de solo tres valores (`SIN_SERVICIO`, `CORTE_PROGRAMADO`,
+cualquier otro), pero `ActualizarEstadosPorVentanaService` no tenía ninguna, y ninguna de las dos
+sabía qué hacer con `PRESION_BAJA`, que solo produce la ingesta y el consenso ciudadano, nunca un
+corte oficial.
+
+### Alternativas consideradas
+| Opción | A favor | En contra |
+|---|---|---|
+| Gana la propuesta/corte más reciente por fecha de publicación | Se acerca a "la última noticia manda" | Un boletín de prensa mal fechado o un corte registrado tarde podría pisar una fuente más autorizada; no resuelve el caso corte-oficial-vs-aviso, donde "autorizado" importa más que "reciente" |
+| Extender la tabla propia de `GestionarCorteOficialService` (3 valores) para que además reconozca `PRESION_BAJA` | Cambio mínimo, un solo sitio | Deja el mismo criterio implícito y duplicado en cuanto `ActualizarEstadosPorVentanaService` necesite su propia versión — el error que `REC-015` ya advirtió con los colores de estado |
+| **Un orden total único en el dominio (`EstadoServicio.masSevero`), con SIN_SERVICIO como el más severo y CON_SERVICIO como el menos** | Una sola fuente de verdad, reutilizable donde haga falta; conmutativo y asociativo por construcción, así que plegar una lista de candidatos da el mismo resultado sin importar su orden — condición explícita de la Fase 2 | Coloca `PRESION_BAJA` entre `CORTE_PROGRAMADO` y `CON_SERVICIO` por criterio propio, no por un hecho medido: es defendible, no demostrado |
+
+### Decisión
+`EstadoServicio.masSevero(a, b)` (Java puro, en `domain/`) define el orden total
+`SIN_SERVICIO > CORTE_PROGRAMADO > PRESION_BAJA > CON_SERVICIO`. Ante candidatos en conflicto para el
+mismo sector, gana siempre el más alejado de `CON_SERVICIO`. `GestionarCorteOficialService` se
+refactorizó para usarlo (sin cambiar su comportamiento: nunca evalúa `PRESION_BAJA`, así que la tabla
+de 3 valores y la de 4 coinciden en los casos que le llegan) y `ActualizarEstadosPorVentanaService` lo
+usa tanto para resolver avisos solapados del mismo sector como para no dejar que un aviso de ingesta
+vencido rebaje un sector por debajo de lo que un corte oficial todavía abierto exige.
+
+### Consecuencias
+- **Gana:** un único criterio, en el dominio, para toda decisión de "¿cuál de estos estados manda?" —
+  sin importar si los candidatos vienen de boletines solapados, de un corte oficial, o de ambos a la
+  vez. Es conmutativo por diseño, así que el resultado no depende del orden en que Mongo devuelva las
+  filas (`BUG-098`).
+- **Pierde:** el orden entre `PRESION_BAJA` y `CORTE_PROGRAMADO` es una llamada de criterio ("un corte
+  ya anunciado es más urgente que una presión baja actual"), no algo que un dato mida. Si en la
+  práctica resulta al revés, hay que revisar esta única función, no cazar el criterio disperso en dos
+  servicios.
+- **Condiciona:** cualquier código nuevo que combine estados en conflicto para el mismo sector debe
+  reusar `EstadoServicio.masSevero`, no inventar su propia tabla de severidad — es exactamente el
+  defecto que `REC-015` señaló para los colores de estado.
+
+### Cómo se revierte
+Cambiar el orden es editar los cuatro casos de `EstadoServicio.severidad()` — un solo método, sin
+tocar a quien lo llama. Volver a un criterio "por servicio" (cada uno con su propia regla) implica
+deshacer el refactor de `GestionarCorteOficialService` y quitarle a `ActualizarEstadosPorVentanaService`
+la dependencia de `CorteAguaRepository` que le dio esta decisión.
+
+---
+
 <!--
-Siguiente número disponible: ADR-061
+Siguiente número disponible: ADR-062
 Para agregar: usa la skill `registrar-decision`.
 Recuerda: append-only. Las entradas viejas solo cambian de estado, no de contenido.
 -->

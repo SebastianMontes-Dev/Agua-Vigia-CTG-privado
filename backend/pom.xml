@@ -49,7 +49,7 @@
     -->
     <tomcat.version>10.1.59</tomcat.version>
     <mapstruct.version>1.6.3</mapstruct.version>
-    <testcontainers.version>1.21.3</testcontainers.version>
+    <testcontainers.version>1.21.4</testcontainers.version>
     <jjwt.version>0.13.0</jjwt.version>
     <!--
       Docker Engine 29 subio su MinAPIVersion a 1.40, pero docker-java (dentro de Testcontainers

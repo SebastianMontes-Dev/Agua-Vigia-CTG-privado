@@ -25,6 +25,10 @@ Referencias cruzadas: `ADR-NNN` · `BUG-NNN` · `RF0NN` · `archivo:línea`.
 
 ## Preparación del backend
 
+### 2026-09-22 · `fix/fase-2-transicion-unica-por-sector`
+**Qué:** Fusionados Dependabot #33/#34 y cerrada por completo la Fase 2 del plan de Yordy («estabilizar el estado»): `BUG-097`, `BUG-098` y `BUG-099` corregidos con TDD, `ADR-061` (`EstadoServicio.masSevero`) reutilizado en `GestionarCorteOficialService` y `ActualizarEstadosPorVentanaService`. PR #44 fusionado, registrado en `registro-de-implementaciones.md`. Build completa: 842 pruebas, 0 fallos.
+**Sigue:** El PR #43 (`docs/rec-006-y-rec-007`, ver entrada de abajo) seguía abierto sin fusionar al cerrar esta sesión. Del dueño: `REC-018` y las 5 etiquetas git viejas. Del agente: Fase 3 del plan de Yordy (persistencia y concurrencia).
+
 ### 2026-09-22 · `docs/rec-006-y-rec-007`
 **Qué:** Resueltas tres recomendaciones sueltas, con criterio propio. `REC-007`: `delete_branch_on_merge` activado vía API en el repositorio. `REC-006`: javadoc en `RateLimitConfig.java` documentando la trampa de `@WebMvcTest` (solo afecta a slices sobre `/api/veedor/sesion` y `/api/reportes/**`, las dos únicas rutas con reglas reales hoy — los dos tests afectados ya tenían el workaround). `REC-013`: allowlist de gitleaks acotado al valor exacto de `JWT_SECRET` en vez del archivo `entorno-local.md` completo; verificado con `gitleaks` real por Docker en las dos direcciones — el valor legítimo sigue pasando, un secreto distinto pegado ahí (probado y revertido) ahora sí se detecta.
 **Sigue:** Del dueño: `REC-018` y las 5 etiquetas git viejas. Del agente: Dependabot #33/#34, luego la Fase 2 del plan de Yordy.
