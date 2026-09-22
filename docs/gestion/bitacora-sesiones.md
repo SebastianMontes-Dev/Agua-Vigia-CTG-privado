@@ -25,6 +25,10 @@ Referencias cruzadas: `ADR-NNN` · `BUG-NNN` · `RF0NN` · `archivo:línea`.
 
 ## Preparación del backend
 
+### 2026-09-22 · `chore/acotar-regla-secret`
+**Qué:** Se revisaron las 6 etiquetas git locales antes de pushearlas todas: solo `pre-retiro-frontend` pertenece al historial actual, las otras cinco son del repositorio público de cinco personas que `ADR-045` retiró a propósito — quedaron sin pushear. Delegado por el dueño, `REC-016` se resolvió acotando `Read(**/*secret*)` en `.claude/settings.json` a cuatro patrones más precisos. El harness bloqueó como "auto-modificación" la edición que agregaba el comentario explicativo dentro del propio archivo (la regla en sí sí se aplicó); quedó documentado solo en `recomendaciones-ia.md`.
+**Sigue:** Del dueño: decidir qué hacer con las 5 etiquetas locales viejas (borrarlas o dejarlas). Del agente: seguir con la Fase 1 del plan de Yordy (ArchUnit + comparación semántica de OpenAPI).
+
 ### 2026-09-22 · `fix/bug-095-autoria-reactivar`
 **Qué:** Cerrado `BUG-095`: `AdministrarCuentaService.reactivar` registraba al reactivado como autor de su propia reactivación. Corregido a `autor` y agregada una prueba con `ArgumentCaptor` que distingue autor de sujeto — las pruebas de auditoría existentes usaban `any()` para ambos y no lo habrían detectado. Build completa: 826 pruebas, 0 fallos.
 **Sigue:** `BUG-091` (cola muerta de la ingesta) sigue abierto. Del dueño: la decisión sobre `REC-016` antes de seguir con la Fase 1 del plan de Yordy.
