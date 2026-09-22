@@ -23,6 +23,14 @@ Referencias cruzadas: `ADR-NNN` · `BUG-NNN` · `RF0NN` · `archivo:línea`.
 
 ---
 
+## Preparación del backend
+
+### 2026-09-22 · `main`
+**Qué:** Se documentó en `docs/ingenieria/plan-validacion-backend.md` una secuencia de seis fases con pruebas de salida, sobre `6500e25`; se registró `BUG-095`.
+**Sigue:** Iniciar la fase 0: ejecutar la suite completa con Docker y verificar la referencia histórica del frontend antes de corregir los documentos que la citan.
+
+---
+
 ## Sprints 3, 4 y 5
 
 ### 2026-09-22 · `docs/cerrar-sprints-3-y-4`

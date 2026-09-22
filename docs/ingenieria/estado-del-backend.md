@@ -174,3 +174,5 @@ Mailhog (correos de prueba): `http://localhost:8025` · Swagger: `http://localho
 3. **Antes de cambiar el contrato de la API, pregunta:** quien construya el frontend lo estará usando.
 4. Un cambio de comportamiento se documenta en `comportamiento-del-sistema.md` **en el mismo cambio**, y se
    registra con las skills del proyecto (`registrar-decision`, `registrar-bug`, `registrar-implementacion`).
+
+La secuencia de consolidación previa a la integración está en [plan-validacion-backend.md](plan-validacion-backend.md).

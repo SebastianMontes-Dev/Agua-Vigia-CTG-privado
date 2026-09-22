@@ -117,6 +117,8 @@ Tres razones concretas, no burocráticas:
 
 | BUG-094 | 2026-09-22 | S2 | — (tablero) | Tras corregir `BUG-093`, `node scripts/generar-dashboard.mjs` empezó a terminar con `TypeError: Cannot read properties of null (reading 'compromisos')` — el HTML sí se generaba antes de reventar, pero el comando salía en rojo | Cerrado — causa raíz: `avisarDeSeccionesVacias()` asumía que el sprint activo siempre tiene `sprint-N.md` (cierto mientras el más reciente documentado seguía abierto); con `BUG-093` corregido, el activo puede ser un sprint sin archivo (el 6), y `activo.detalle` es `null`. Corregido: la condición exige `activo.detalle` antes de leer `.compromisos`, y se agregó un aviso propio para «el sprint activo no tiene archivo todavía» | Verificado: `node scripts/generar-dashboard.mjs` termina sin error y avisa correctamente que falta `sprint-6.md` |
 
+| BUG-095 | 2026-09-22 | S3 | M15 | Reactivar una cuenta registra al usuario reactivado como autor de la acción | Abierto |
+
 **Severidad:** `S1` bloquea el uso o publica dato falso · `S2` funcionalidad rota con rodeo posible ·
 `S3` molesto pero no impide · `S4` cosmético
 **Estado:** `Abierto` · `En curso` · `Cerrado` · `No se corrige` (con motivo)
@@ -129,6 +131,17 @@ Tres razones concretas, no burocráticas:
 > de detalle de sector se veía "incompleto" para muchos barrios al hacer clic en el mapa, y
 > auditando en vivo (contra `/acuacar-api` real, no datos de ejemplo) cuánta cobertura real de
 > boletines logra la extracción de nombres de barrio.
+
+### BUG-095 — Reactivar una cuenta atribuye la acción al usuario reactivado
+
+- **Fecha:** 2026-09-22 · **Severidad:** S3 · **Módulo:** M15
+- **Estado:** Abierto
+
+**Síntoma:** `AdministrarCuentaService.java:103` pasa `reactivado` como autor y sujeto a `registrarConAutor`, aunque el método ya obtuvo al administrador que ejecuta la acción en `autor`.
+**Reproducción:** por ejecutar: reactivar una cuenta distinta de la administradora y consultar el evento de auditoría `CUENTA_REACTIVADA`. El error de argumentos está verificado en código; falta probar el evento persistido.
+**Esperado:** el autor es el administrador autenticado y el sujeto es la cuenta reactivada, como en `suspender` y `cambiarPermisos`.
+**Causa raíz:** se pasa `reactivado` en lugar de `autor` al primer argumento de `registrarConAutor`.
+**Corrección:** pendiente.
 
 ### BUG-089 — En todo PR, el escaneo de secretos falla con un 403 que no tiene que ver con secretos
 
@@ -1861,5 +1874,5 @@ Plantilla de bug abierto — copiar a la sección "Bugs abiertos — detalle".
 **Causa raíz:** se llena al diagnosticar. Si el origen es un requisito ambiguo, corrige también el requisito.
 **Corrección:** qué se cambió + `archivo:línea` + prueba que lo cubre. Sin prueba, el bug vuelve.
 
-Siguiente número disponible: BUG-095
+Siguiente número disponible: BUG-096
 -->
