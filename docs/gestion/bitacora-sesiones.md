@@ -25,6 +25,10 @@ Referencias cruzadas: `ADR-NNN` · `BUG-NNN` · `RF0NN` · `archivo:línea`.
 
 ## Preparación del backend
 
+### 2026-09-22 · `fix/jacoco-check-no-op`
+**Qué:** Al revisar el commit del compañero (`a4da6e5`) se confirmó `BUG-095` en código y se llevó su sospecha sobre JaCoCo más lejos: `jacoco:check` (`RNF017`) no evaluaba ninguna cobertura real desde siempre — `domain.*`/`application.*` no incluyen los paquetes raíz en JaCoCo. Verificado subiendo el umbral a 99.9% en una copia descartable del `pom.xml`: la build seguía en verde. Corregido y reverificado con la build completa (Docker): 825 pruebas, 0 fallos, cobertura real 90.2%/97.6% (`BUG-096`). Se endureció además el extractor de bugs de la Sala de control, que perdía filas por líneas en blanco sueltas por tercera vez.
+**Sigue:** `BUG-095` (autor incorrecto al reactivar una cuenta) y `BUG-091` (cola muerta de la ingesta) siguen abiertos, sin tocar. El plan de 6 fases de `plan-validacion-backend.md` no se ejecutó, solo se revisó su primer hallazgo.
+
 ### 2026-09-22 · `main`
 **Qué:** Se documentó en `docs/ingenieria/plan-validacion-backend.md` una secuencia de seis fases con pruebas de salida, sobre `6500e25`; se registró `BUG-095`.
 **Sigue:** Iniciar la fase 0: ejecutar la suite completa con Docker y verificar la referencia histórica del frontend antes de corregir los documentos que la citan.

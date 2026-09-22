@@ -10,6 +10,14 @@ reconstruido retroactivamente. Ver la nota de `sprint-3.md` sobre por qué.
 > (`REC-017`). Cuando exista el frontend nuevo, su propia auditoría de accesibilidad y su propia suite
 > E2E son trabajo de ese momento, no de este sprint reabierto.
 
+> **Corrección del 2026-09-22, tarde:** este sprint se cerró citando `jacoco:check` como lo que
+> exige y protege el umbral. Al revisar el commit de un compañero se verificó con la build real que
+> **no era cierto**: `<include>com.aguavigia.ctg.domain.*</include>` no incluye el paquete
+> `domain` mismo, solo subpaquetes de un nivel — la regla no evaluaba nada real (`BUG-096`). Se
+> corrigió el mismo día. El cierre de este sprint **sigue siendo válido**: la cobertura real
+> siempre superó el 70% que pide `RNF017` (medida a mano, no por la build), solo que la build no
+> lo hacía cumplir hasta la corrección.
+
 ---
 
 ## 1. Objetivo del sprint
@@ -24,7 +32,7 @@ manual.**
 
 | RF/RNF | Entregable | Depende de |
 |---|---|---|
-| RNF017 | ✅ Entregado — cobertura de `domain/` y `application/` ≥85%, exigida por `jacoco:check` en `pom.xml`: la build falla si baja del umbral | 823 pruebas construidas a lo largo de los Sprints 0–4 |
+| RNF017 | ✅ Entregado — cobertura real de `domain/` y `application/` ≥85% (90,2% / 97,6% el 2026-09-22); `jacoco:check` en `pom.xml` la exige desde `BUG-096` (antes no evaluaba nada) | 825 pruebas construidas a lo largo de los Sprints 0–4 |
 
 La columna **Depende de** es la importante: es donde se ve qué tiene que existir antes.
 
@@ -46,7 +54,7 @@ No registrados, mismo motivo que `sprint-3.md` §3.
 
 | RF/RNF | Qué se demostró | ¿Aceptado? |
 |---|---|---|
-| RNF017 | `backend/pom.xml`: regla `jacoco:check` con `<minimum>0.85</minimum>`; la última medición puntual real fue 92,4% en `domain/` y 99,2% en `application/` (2026-09-05, sobre 406 pruebas; hoy son 823) | ✅ |
+| RNF017 | `backend/pom.xml`: regla `jacoco:check` con `<minimum>0.85</minimum>`, corregida el 2026-09-22 (`BUG-096`) para que evalúe `domain/` y `application/` de verdad; medición real 90,2% / 97,6%, build completa con Docker: 825 pruebas, 0 fallos | ✅ |
 
 **Comprometido:** 1 · **Entregado:** 1 · **Arrastrado al siguiente sprint:** —
 
@@ -56,7 +64,7 @@ No registrados, mismo motivo que `sprint-3.md` §3.
 
 | Métrica | Valor (medido 2026-09-22) |
 |---|---|
-| Cobertura `domain/` + `application/` | ≥85% exigido en cada build (`jacoco:check`); última medición puntual 92,4% / 99,2% |
+| Cobertura `domain/` + `application/` | 90,2% / 97,6%; ≥85% exigido en cada build desde `BUG-096` |
 | Build en verde al cierre | Sí — `main` en verde en sus tres workflows |
 
 ---

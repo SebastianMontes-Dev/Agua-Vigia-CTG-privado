@@ -66,9 +66,11 @@ function normalizarEstadoBug(estadoRaw) {
 
 function obtenerBugs() {
   const texto = leer("docs/gestion/registro-de-bugs.md");
-  const tabla = texto.match(/\| ID \| Fecha \| Sev \|.*?\n\|---.*?\n([\s\S]*?)\n\n/);
-  if (!tabla) return [];
-  const filas = tabla[1].trim().split("\n").filter((l) => l.startsWith("| BUG-"));
+  // No se corta en la primera linea en blanco (BUG-092): eso perdio filas tres veces cuando a
+  // alguien —humano o agente— se le colo una linea vacia entre dos filas de la tabla. Se toman
+  // directamente todas las lineas "| BUG-NNN | ..." del archivo entero: son inconfundibles con
+  // cualquier otro contenido (la seccion de detalle usa "### BUG-NNN", con almohadillas).
+  const filas = texto.split("\n").filter((l) => /^\| BUG-\d+ \|/.test(l));
   return filas.map((f) => {
     const cols = columnasDeFila(f).filter((_, i, arr) => i > 0 && i < arr.length - 1);
     const [id, fecha, sev, modulo, titulo, estadoRaw] = cols;
