@@ -844,6 +844,34 @@ su origen ya es la autoridad del dato.
 - **Cuando** el veedor llama a `PATCH /api/veedor/ingesta/propuestas/{id}/descartar`
 - **Entonces** la propuesta se cierra sin publicar nada
 
+### Requisito: Un sector tiene una sola transición de estado, sin importar cuántas fuentes opinen a la vez
+
+Cuando más de una fuente propone un estado para el mismo sector al mismo tiempo —dos boletines
+aprobados que se solapan, o un boletín de ingesta y un corte oficial del veedor abiertos a la vez—,
+el sistema debe resolver un único resultado determinista, sin importar el orden en que se evalúen las
+fuentes, y ese resultado nunca debe ser menos severo que el que exige un corte oficial todavía abierto
+(`ADR-061`, `BUG-097`, `BUG-098`, `BUG-099`).
+
+#### Escenario: Aprobar una propuesta con la ventana ya vencida
+
+- **Cuando** el veedor aprueba una propuesta de prensa cuya ventana declarada ya terminó para ese
+  momento (no para cuando la ingesta la detectó)
+- **Entonces** el sector se fija en el estado que le corresponde ahora según esa ventana, no en el
+  estado congelado al detectarla
+
+#### Escenario: Boletines solapados sobre el mismo sector
+
+- **Cuando** dos boletines aprobados con ventana vigente afectan al mismo sector a la vez (uno
+  extiende el corte que el otro ya había anunciado)
+- **Entonces** el barrido de ventanas aplica el estado más severo entre ambos
+- **Y** el resultado es el mismo sin importar en qué orden se hayan evaluado
+
+#### Escenario: Un corte oficial abierto no se rebaja por un aviso de ingesta vencido
+
+- **Cuando** el veedor tiene un corte oficial registrado y todavía abierto sobre un sector, y un
+  boletín de ingesta aprobado sobre ese mismo sector tiene la ventana ya vencida
+- **Entonces** el barrido de ventanas no rebaja el sector por debajo de lo que ese corte exige
+
 ---
 
 ## API abierta Open311

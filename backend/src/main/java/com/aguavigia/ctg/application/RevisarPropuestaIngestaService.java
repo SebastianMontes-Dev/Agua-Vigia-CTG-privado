@@ -3,6 +3,7 @@ package com.aguavigia.ctg.application;
 import com.aguavigia.ctg.domain.EntidadNoEncontradaException;
 import com.aguavigia.ctg.domain.CorteId;
 import com.aguavigia.ctg.domain.EstadoCorte;
+import com.aguavigia.ctg.domain.EstadoServicio;
 import com.aguavigia.ctg.domain.EventoBitacoraFactory;
 import com.aguavigia.ctg.domain.OrigenCorte;
 import com.aguavigia.ctg.domain.PropuestaId;
@@ -58,12 +59,20 @@ public class RevisarPropuestaIngestaService implements RevisarPropuestaIngestaUs
 
         // Aprobar una propuesta cuyo estado ya rige no debe anexar un evento nuevo a la bitacora:
         // RF028 prohibe editarla, pero duplicar un evento identico tampoco la hace mas veraz.
-        if (propuesta.puedeFijarEstadoActual() && sector.estadoActual() != propuesta.estadoPropuesto()) {
-            sectores.guardar(sector.conEstado(propuesta.estadoPropuesto()));
-            registrarEvento.registrar(EventoBitacoraFactory.detectadoPorIngesta(
-                    propuesta.sectorId(), sector.nombre(), propuesta.estadoPropuesto(),
-                    propuesta.fuente(), propuesta.urlOriginal(), propuesta.imagenUrl(), propuesta.tituloOriginal(),
-                    propuesta.momentoParaLaBitacora(reloj.ahora())));
+        //
+        // Se fija estadoVigenteEn(ahora), no estadoPropuesto: aprobar() puede correr mucho despues de
+        // detectadaEn (una propuesta de prensa espera al veedor dias o semanas), y para entonces la
+        // ventana declarada puede haber terminado. Fijar el valor congelado en la deteccion dejaba un
+        // barrio en SIN_SERVICIO por un corte que ya se habia restablecido.
+        if (propuesta.puedeFijarEstadoActual()) {
+            EstadoServicio estadoVigente = propuesta.estadoVigenteEn(reloj.ahora());
+            if (sector.estadoActual() != estadoVigente) {
+                sectores.guardar(sector.conEstado(estadoVigente));
+                registrarEvento.registrar(EventoBitacoraFactory.detectadoPorIngesta(
+                        propuesta.sectorId(), sector.nombre(), estadoVigente,
+                        propuesta.fuente(), propuesta.urlOriginal(), propuesta.imagenUrl(), propuesta.tituloOriginal(),
+                        propuesta.momentoParaLaBitacora(reloj.ahora())));
+            }
         }
 
         registrarCorteDelBoletin(propuesta);
