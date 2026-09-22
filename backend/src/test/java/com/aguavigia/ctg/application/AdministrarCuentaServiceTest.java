@@ -10,6 +10,7 @@ import com.aguavigia.ctg.domain.PermisosEfectivos;
 import com.aguavigia.ctg.domain.RolVeedor;
 import com.aguavigia.ctg.domain.Usuario;
 import com.aguavigia.ctg.domain.UsuarioId;
+import com.aguavigia.ctg.domain.port.out.BloqueoDeAdministradoresPort;
 import com.aguavigia.ctg.domain.port.out.NotificacionCuentaPort;
 import com.aguavigia.ctg.domain.port.out.RevocacionSesionPort;
 import com.aguavigia.ctg.domain.port.out.UsuarioRepository;
@@ -20,6 +21,7 @@ import org.mockito.ArgumentCaptor;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
@@ -30,6 +32,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 /**
  * Las tres guardas que este servicio existe para sostener: nadie se administra a sí mismo, siempre
@@ -48,6 +51,7 @@ class AdministrarCuentaServiceTest {
     private RevocacionSesionPort revocacion;
     private NotificacionCuentaPort notificaciones;
     private RegistroDeAuditoria auditoria;
+    private BloqueoDeAdministradoresPort bloqueo;
     private AdministrarCuentaService servicio;
 
     @BeforeEach
@@ -56,13 +60,16 @@ class AdministrarCuentaServiceTest {
         revocacion = mock(RevocacionSesionPort.class);
         notificaciones = mock(NotificacionCuentaPort.class);
         auditoria = mock(RegistroDeAuditoria.class);
+        bloqueo = mock(BloqueoDeAdministradoresPort.class);
 
         given(usuarios.guardar(any())).willAnswer(invocacion -> invocacion.getArgument(0));
         given(usuarios.buscarPorId(ADMIN_ID)).willReturn(Optional.of(
                 cuenta(ADMIN_ID, "admin@ejemplo.org", EstadoCuenta.ACTIVA, RolVeedor.ADMIN)));
         given(usuarios.contarActivosPorRol(RolVeedor.ADMIN)).willReturn(2L);
+        given(bloqueo.ejecutarExclusivo(any()))
+                .willAnswer(invocacion -> ((Supplier<?>) invocacion.getArgument(0)).get());
 
-        servicio = new AdministrarCuentaService(usuarios, revocacion, notificaciones, auditoria, () -> AHORA);
+        servicio = new AdministrarCuentaService(usuarios, revocacion, notificaciones, auditoria, bloqueo, () -> AHORA);
     }
 
     private static Usuario cuenta(UsuarioId id, String correo, EstadoCuenta estado, RolVeedor rol) {
@@ -242,5 +249,44 @@ class AdministrarCuentaServiceTest {
     void debeExigirUnaSesionDeAdministrador() {
         assertThatIllegalStateException().isThrownBy(
                 () -> servicio.suspender(SUJETO_ID, ContextoDeAccion.anonimo("10.0.0.1")));
+    }
+
+    /**
+     * Suspender y despromover son las dos acciones que pueden reducir el número de administradores
+     * activos: sin exclusión mutua, dos peticiones concurrentes sobre dos ADMIN distintos pueden leer
+     * el mismo "quedan 2" antes de que ninguna escriba, y las dos pasan la guarda a la vez.
+     */
+    @Test
+    void suspenderDebeEjecutarLaGuardaYElGuardadoDentroDelBloqueoExclusivo() {
+        elSujetoEs(cuenta(SUJETO_ID, "otro@ejemplo.org", EstadoCuenta.ACTIVA, RolVeedor.VEEDOR));
+
+        servicio.suspender(SUJETO_ID, CONTEXTO);
+
+        verify(bloqueo).ejecutarExclusivo(any());
+    }
+
+    @Test
+    void cambiarPermisosDebeEjecutarLaGuardaYElGuardadoDentroDelBloqueoExclusivo() {
+        elSujetoEs(cuenta(SUJETO_ID, "otro@ejemplo.org", EstadoCuenta.ACTIVA, RolVeedor.VEEDOR));
+
+        servicio.cambiarPermisos(SUJETO_ID, PermisosEfectivos.deRol(RolVeedor.OBSERVADOR), CONTEXTO);
+
+        verify(bloqueo).ejecutarExclusivo(any());
+    }
+
+    /** Si no se puede adquirir el bloqueo, la cuenta no debe tocarse en absoluto. */
+    @Test
+    void siNoSePuedeAdquirirElBloqueoNoDebeSuspenderNiAvisarNiAuditar() {
+        elSujetoEs(cuenta(SUJETO_ID, "otro@ejemplo.org", EstadoCuenta.ACTIVA, RolVeedor.VEEDOR));
+        // doThrow (no given/willThrow): el mock ya tiene un answer por defecto que invoca el
+        // Supplier, y given(bloqueo.ejecutarExclusivo(any())) lo dispararía con un argumento nulo
+        // (el propio any()) solo para registrar el nuevo stub.
+        org.mockito.Mockito.doThrow(new IllegalStateException("Otro cambio de administradores está en curso."))
+                .when(bloqueo).ejecutarExclusivo(any());
+
+        assertThatIllegalStateException().isThrownBy(() -> servicio.suspender(SUJETO_ID, CONTEXTO));
+
+        verify(usuarios, never()).guardar(any());
+        verifyNoInteractions(revocacion, notificaciones, auditoria);
     }
 }

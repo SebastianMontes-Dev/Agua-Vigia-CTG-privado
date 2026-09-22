@@ -2450,8 +2450,63 @@ la dependencia de `CorteAguaRepository` que le dio esta decisión.
 
 ---
 
+## ADR-062 — El bloqueo del último administrador se implementa nativo en Mongo, no reutilizando el bloqueo distribuido de Redis
+
+- **Fecha:** 2026-09-22
+- **Estado:** Aceptada
+- **Decide:** Dueño del proyecto (delegado al agente, Fase 3 de `docs/ingenieria/plan-validacion-backend.md`)
+
+### Contexto
+`BUG-100`: `AdministrarCuentaService.exigirQueQuedeUnAdministrador` comprueba el conteo de ADMIN
+activos y escribe la cuenta afectada en dos pasos separados, sin nada que serialice dos peticiones
+concurrentes entre sí. El proyecto ya tiene un bloqueo distribuido — `EjecucionUnicaRedis` (`SET NX
+PX` sobre Redis) — que usa `PlanificadorDeVentanas` y otros jobs programados para no correr la misma
+tarea dos veces. Reutilizarlo aquí era la opción obvia por consistencia, hasta revisar su semántica
+de fallo: *"Con Redis caído se OMITE la tarea en vez de ejecutarla"* (javadoc de la clase). Correcto
+para un job de fondo (el próximo ciclo reintenta solo); no sirve para una petición HTTP de un
+administrador, que no puede "omitirse" en silencio — tiene que fallar con un error claro y
+reintentable, o el cliente nunca se entera de que no pasó nada.
+
+Mongo, en cambio, no está configurado como *replica set* (`docker-compose.yml`, sin `--replSet`), así
+que una transacción multi-documento tampoco es una opción hoy — es justamente el punto anterior de
+esta misma Fase 3, sin resolver todavía.
+
+### Alternativas consideradas
+| Opción | A favor | En contra |
+|---|---|---|
+| Reutilizar `EjecucionUnicaRedis` tal cual | Cero código nuevo, mismo patrón que ya conoce el equipo | Su semántica de "omitir si Redis cae" no es válida en una petición síncrona de usuario — un cambio de administrador que "no pasó nada" sin avisar es peor que rechazarlo |
+| Escribir una variante de `EjecucionUnicaRedis` que falle en vez de omitir | Reusa la infraestructura de Redis ya en producción | Añade una segunda dependencia (Redis) a una guarda cuya fuente de verdad ya es Mongo (`usuarios`); si Redis cae pero Mongo no, la guarda se vuelve indisponible aunque los datos que protege sí lo estén |
+| **Bloqueo nativo en Mongo**, un documento de control (`findAndModify` atómico, con vencimiento) | Sin dependencia nueva: si Mongo no responde, la petición ya iba a fallar de todas formas (ahí vive `usuarios`). Mismo patrón ya probado del proyecto (`SectorMongoAdapter.cambiarEstadoSiEs`) | Hay que reimplementar la adquisición/liberación con vencimiento que `EjecucionUnicaRedis` ya resolvía sobre Redis |
+
+### Decisión
+`BloqueoDeAdministradoresPort` (dominio, `domain/port/out/`) con un único método,
+`ejecutarExclusivo(Supplier<T>)`. `BloqueoDeAdministradoresMongoAdapter` lo implementa sobre un
+documento único (`bloqueos_administracion`, `_id="administradores"`) con `expiraEn` y `token`,
+adquirido con `findAndModify` atómico (vencimiento de 10s si el proceso muere con el bloqueo tomado)
+y liberado solo si el token sigue siendo el vigente. `AdministrarCuentaService.suspender` y
+`.cambiarPermisos` ejecutan el conteo y la escritura dentro de ese bloqueo; si no se puede adquirir,
+lanza y no toca la cuenta.
+
+### Consecuencias
+- **Gana:** la guarda del último administrador falla cerrado ante cualquier problema (rechaza y se
+  puede reintentar), sin depender de un almacén distinto al que ya es su fuente de verdad.
+- **Pierde:** hay dos mecanismos de bloqueo distintos en el proyecto (Redis para jobs de fondo, Mongo
+  para esta guarda), en vez de uno solo — la consistencia se sacrifica por la semántica de fallo
+  correcta en cada caso.
+- **Condiciona:** si en el futuro Mongo pasa a *replica set* (siguiente punto de esta misma Fase 3) y
+  se adoptan transacciones multi-documento, este bloqueo podría reemplazarse por una transacción que
+  cuente y escriba atómicamente sin necesitar un documento de control aparte — no es urgente mientras
+  siga corrigiendo el bug que motivó esta decisión.
+
+### Cómo se revierte
+Quitar `BloqueoDeAdministradoresPort`/`BloqueoDeAdministradoresMongoAdapter` y volver a llamar
+`exigirQueQuedeUnAdministrador` directamente reintroduce `BUG-100`. Migrar a una transacción de Mongo
+exige primero el *replica set* de esta misma fase.
+
+---
+
 <!--
-Siguiente número disponible: ADR-062
+Siguiente número disponible: ADR-063
 Para agregar: usa la skill `registrar-decision`.
 Recuerda: append-only. Las entradas viejas solo cambian de estado, no de contenido.
 -->
