@@ -15,6 +15,7 @@ import com.aguavigia.ctg.domain.port.out.RevocacionSesionPort;
 import com.aguavigia.ctg.domain.port.out.UsuarioRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -211,6 +212,22 @@ class AdministrarCuentaServiceTest {
 
         assertThat(servicio.reactivar(SUJETO_ID, CONTEXTO).estado()).isEqualTo(EstadoCuenta.ACTIVA);
         verify(revocacion, never()).revocarSesionesAnterioresA(any(), any());
+    }
+
+    /** BUG-095: registraba al reactivado como autor de su propia reactivación. */
+    @Test
+    void reactivarDebeRegistrarAlAdministradorComoAutorYAlReactivadoComoSujeto() {
+        elSujetoEs(cuenta(SUJETO_ID, "ana@ejemplo.org", EstadoCuenta.SUSPENDIDA, RolVeedor.VEEDOR));
+
+        servicio.reactivar(SUJETO_ID, CONTEXTO);
+
+        ArgumentCaptor<Usuario> autorCapturado = ArgumentCaptor.forClass(Usuario.class);
+        ArgumentCaptor<Usuario> sujetoCapturado = ArgumentCaptor.forClass(Usuario.class);
+        verify(auditoria).registrarConAutor(eq(AccionAuditada.CUENTA_REACTIVADA),
+                autorCapturado.capture(), sujetoCapturado.capture(), anyString(), eq(CONTEXTO));
+
+        assertThat(autorCapturado.getValue().id()).isEqualTo(ADMIN_ID);
+        assertThat(sujetoCapturado.getValue().id()).isEqualTo(SUJETO_ID);
     }
 
     @Test
