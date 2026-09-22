@@ -48,6 +48,22 @@ class ReglaDeOroArchitectureTest {
         regla.check(CLASES);
     }
 
+    /**
+     * Las dos reglas de arriba solo vetan Spring y MongoDB por nombre; esta cierra el resto —
+     * cualquier framework o librería que se cuele en domain/, aunque nadie haya pensado todavía en
+     * escribir una regla específica para ella (Jackson, Lombok, un validador, lo que sea). Solo
+     * producción: los tests de dominio sí usan JUnit y AssertJ, legítimamente.
+     */
+    @Test
+    void dominioNoDebeDependerDeNadaQueNoSeaJavaODominioMismo() {
+        ArchRule regla = noClasses()
+                .that().resideInAPackage("..domain..")
+                .should().dependOnClassesThat()
+                .resideOutsideOfPackages("com.aguavigia.ctg.domain..", "java..", "javax..");
+
+        regla.check(CLASES_PRODUCCION);
+    }
+
     @Test
     void applicationNoDebeDependerDeInfrastructure() {
         ArchRule regla = noClasses()
@@ -68,6 +84,33 @@ class ReglaDeOroArchitectureTest {
         ArchRule regla = noClasses()
                 .that().resideInAPackage("..application..")
                 .should().dependOnClassesThat().resideInAnyPackage("org.springframework.data..", "com.mongodb..");
+
+        regla.check(CLASES);
+    }
+
+    /**
+     * "Aplicación solo depende de dominio y puertos" (plan de validación del backend, Fase 1) es el
+     * objetivo, pero application/ ya usa marcadores de cableado de Spring que no implican tecnología
+     * concreta: `@Service`/`@Component` (detección del bean), `@EventListener` (suscripción a
+     * eventos), `@Async` (hilo de ejecución), `@Value` (inyección de configuración). Sacarlos exige
+     * un refactor propio — pasar a `@Bean` explícitos en infrastructure/config — que es la Fase 4
+     * del mismo plan, no esta. Esta regla veta lo que sí importa: que application/ toque tecnología
+     * concreta de verdad (persistencia, web, seguridad, correo, Redis), no que use anotaciones de
+     * cableado del framework que ya lo hospeda.
+     */
+    @Test
+    void applicationNoDebeDependerDeTecnologiaConcreta() {
+        ArchRule regla = noClasses()
+                .that().resideInAPackage("..application..")
+                .should().dependOnClassesThat().resideInAnyPackage(
+                        "org.springframework.web..",
+                        "org.springframework.security..",
+                        "org.springframework.mail..",
+                        "jakarta.servlet..",
+                        "jakarta.mail..",
+                        "io.lettuce..",
+                        "redis.clients..",
+                        "org.testcontainers..");
 
         regla.check(CLASES);
     }
