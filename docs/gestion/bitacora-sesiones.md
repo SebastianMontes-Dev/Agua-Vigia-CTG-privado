@@ -25,6 +25,10 @@ Referencias cruzadas: `ADR-NNN` · `BUG-NNN` · `RF0NN` · `archivo:línea`.
 
 ## Preparación del backend
 
+### 2026-09-22 · `fix/fase-2-transicion-unica-por-sector`
+**Qué:** Fusionados Dependabot #33/#34 y cerrada por completo la Fase 2 del plan de Yordy («estabilizar el estado»): `BUG-097`, `BUG-098` y `BUG-099` corregidos con TDD, `ADR-061` (`EstadoServicio.masSevero`) reutilizado en `GestionarCorteOficialService` y `ActualizarEstadosPorVentanaService`. PR #44 fusionado, registrado en `registro-de-implementaciones.md`. Build completa: 842 pruebas, 0 fallos.
+**Sigue:** El PR #43 (`docs/rec-006-y-rec-007`, `REC-006`/`REC-007`/`REC-013`) sigue **abierto sin fusionar**, de antes de esta sesión — revisarlo antes de asumir que esas tres recomendaciones ya están en `main`. Del dueño: `REC-018` y las 5 etiquetas git viejas. Del agente: Fase 3 del plan de Yordy (persistencia y concurrencia).
+
 ### 2026-09-22 · `fix/bug-091-cola-muerta-ingesta`
 **Qué:** Cerrado `BUG-091`, decidido con criterio propio ("toma tú esa decisión"). Cola muerta real: `DocumentoFallidoDocumento` en Mongo (`documentos_fallidos`), `upsert` por hash con contador de reintentos (un documento roto no acumula una fila por ciclo para siempre), borrada al procesarse con éxito; expuesta en `GET /api/veedor/ingesta/fallidos`, mismo patrón que `IngestaSaludController` (sin puerto de dominio, `ADR-015`). El endpoint nuevo desincronizó `openapi.yaml` — la prueba semántica que se escribió ayer para la Fase 1 lo atrapó en su primer caso real, no sintético. Contrato y referencia de rutas regenerados (66 operaciones, 21 controladores, 37 esquemas). Build completa: 834 pruebas, 0 fallos.
 **Sigue:** Del dueño: `REC-018` (qué cuenta como demo del Sprint 6) y las 5 etiquetas git viejas. Del agente: `REC-006`, `REC-007`, `REC-013`, Dependabot #33/#34, y la Fase 2 del plan de Yordy.
