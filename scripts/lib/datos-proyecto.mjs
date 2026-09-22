@@ -58,7 +58,7 @@ function normalizarEstadoBug(estadoRaw) {
   if (/^cerrado/i.test(texto)) estado = "Cerrado";
   else if (/^en curso/i.test(texto)) estado = "En curso";
   else if (/^no se corrige/i.test(texto)) estado = "No se corrige";
-  else if (/parcial/i.test(texto)) estado = "Parcial";
+  else if (/^(?:🟡\s*)?parcial/i.test(texto)) estado = "Parcial";
   const notaMatch = texto.match(/—\s*(.*)$/);
   const notaEstado = notaMatch ? notaMatch[1].trim() : (texto === estado ? null : texto.replace(/^[🟡🟢🔴]\s*/, ""));
   return { estado, notaEstado };
@@ -147,12 +147,14 @@ function obtenerSprints() {
     const n = Number((sprintRaw.match(/\d+/) || [0])[0]);
     return { n, enfoque: limpiar(foco), entregable: limpiar(entregable) };
   });
-  // El sprint activo es el de mayor numero que ya tiene su sprint-N.md (documento de seguimiento).
-  let activo = 0;
-  for (const s of sprints) {
-    if (existsSync(path.join(RAIZ, "docs/gestion", `sprint-${s.n}.md`))) activo = s.n;
-  }
-  sprints.forEach((s) => { s.activo = s.n === activo; s.detalle = leerDetalleSprint(s.n); });
+  // El sprint activo es el primero (en orden de la hoja de ruta) que todavia no cerro: o no tiene
+  // sprint-N.md, o lo tiene pero su detalle.cerrado sigue vacio. Antes se tomaba "el de mayor numero
+  // que ya tiene archivo", que confundia el ultimo sprint YA CERRADO con el que sigue abierto en
+  // cuanto se documentan varios sprints cerrados de una sentada (BUG-093): ese sprint se contaba dos
+  // veces — una en `cerrados` y otra en `fraccionActivo` — e inflaba el avance por encima del 100%.
+  sprints.forEach((s) => { s.detalle = leerDetalleSprint(s.n); });
+  const activo = sprints.find((s) => !(s.detalle && s.detalle.cerrado));
+  sprints.forEach((s) => { s.activo = activo ? s.n === activo.n : false; });
   return sprints;
 }
 

@@ -58,7 +58,8 @@ function avisarDeSeccionesVacias(datos) {
   revisar(!datos.adrs.length, "design-decisions.md — ningún encabezado `## ADR-NNN — `");
   revisar(!datos.cobertura.porModulo.length, "registro-de-implementaciones.md — tabla `| Módulo | Requisitos | Implementados | % |`");
   revisar(!datos.cobertura.funcionales.total, "registro-de-implementaciones.md — fila `**Total funcionales**`");
-  revisar(activo && !activo.detalle.compromisos.length, `sprint-${activo && activo.n}.md §2 — tabla de compromisos`);
+  revisar(activo && activo.detalle && !activo.detalle.compromisos.length, `sprint-${activo && activo.n}.md §2 — tabla de compromisos`);
+  revisar(activo && !activo.detalle, `sprint-${activo && activo.n}.md — todavía no existe (el sprint activo no tiene archivo de seguimiento)`);
   revisar(activo && activo.detalle && !activo.detalle.criterioCierre && !activo.detalle.cerrado,
     `sprint-${activo && activo.n}.md — criterio de cierre entre paréntesis al lado de "**Cerrado:** —"`);
 

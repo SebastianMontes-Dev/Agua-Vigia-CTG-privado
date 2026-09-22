@@ -189,7 +189,10 @@ cada PR y en `estado-del-backend.md` (`./mvnw verify`: 823 pruebas, 0 fallos).
 | — | proceso | Retirado el pendiente «borrar `frontend/` del disco» de `estado-del-backend.md` y de la bitácora, ya cumplido | #30 | `ls frontend` → no existe · `git status` limpio · etiqueta `pre-retiro-frontend` intacta |
 | — | infra | Dependencias del backend: resilience4j 2.3.0→2.4.0, jacoco-maven-plugin 0.8.12→0.8.15, Maven wrapper 3.9.9→3.9.16, springdoc 2.8.6→2.9.1 (Dependabot) | #26, #27, #28, #29 | `Backend CI` completo (`./mvnw verify`) en verde sobre el `main` nuevo; `main` en verde en sus tres workflows (`2c6d6f7`) |
 | — | proceso | Cerrado #2 de Dependabot (Testcontainers 2.0.5): el BOM ya no fija la versión de `testcontainers-junit-jupiter` ni `testcontainers-mongodb`, migración real, mismo criterio que `ADR-059`. Dependabot ya no propone ese salto (`ADR-060`) | #32 | Log del `Backend CI` del #2: `'dependencies.dependency.version' for org.testcontainers:junit-jupiter:jar is missing` · `main` sigue en verde sin el cambio |
-| — | infra | `BUG-089` cerrado: `permissions: contents: read, pull-requests: read` en el workflow de secretos, renombrado a `escaneo-de-fugas.yml` para esquivar `Read(**/*secret*)` sin tocar la regla del dueño | #35 | `gitleaks` en verde en el propio PR (antes fallaba con 403 en todo PR) |
+| — | infra | `BUG-089` cerrado: `permissions: contents: read, pull-requests: read` en el workflow de secretos, renombrado a `escaneo-de-fugas.yml` para esquivar `Read(**/*secret*)` sin tocar la regla del dueño. ⚠️ Este PR arrastró también `sprint-3.md` (ver la fila de abajo): se escribió en la misma rama mientras el CI de este PR corría, y un `git add -A docs` posterior lo mezcló por descuido con un commit que no tenía que ver con sprints | #35 | `gitleaks` en verde en el propio PR (antes fallaba con 403 en todo PR) |
+| — | proceso | `sprint-3.md` reconstruido y cerrado retroactivamente con la evidencia que ya existía (`REC-017`, delegado por el dueño) — fusionado sin querer con el PR #35 (ver su fila) | #35 | `matriz-trazabilidad.md` y el código (evento `SectorActualizadoEvent` para `RF014`) contrastados el 2026-09-22 |
+| — | proceso | `sprint-4.md` y `sprint-5.md` reconstruidos y cerrados retroactivamente (`REC-017`); `sprint-4.md` reveló `RNF006` sobreestimado en la matriz (`BUG-091`); Sprint 6 redefinido para local sin cerrarse — qué cuenta como demo sin frontend propio queda pendiente del dueño (`REC-018`) | #36 | `matriz-trazabilidad.md`, `registro-de-implementaciones.md` (esta tabla) y `estado-del-backend.md` contrastados contra el código el 2026-09-22 |
+| — | infra | Cerrar varios sprints de una sentada destapó tres bugs más del generador de la Sala de control: una fila `Abierto` con la palabra «parcial» en su prosa se clasificaba mal (`BUG-092`), el «sprint activo» se calculaba mal en cuanto el último `sprint-N.md` documentado ya estaba cerrado, doblando el avance del proyecto (`BUG-093`), y ese mismo arreglo hizo que el aviso de secciones vacías reventara con un sprint activo sin archivo (`BUG-094`) | #36 | `generarDatos()`: 85 bugs (`BUG-091` sale `Abierto`) y `avanceProyecto` da `85.7%`, `sprintsCerrados: 6`, `sprintActivoNum: 6` · `node scripts/generar-dashboard.mjs` termina sin error |
 | — | infra | Dependencias del backend: resilience4j 2.3.0→2.4.0, jacoco-maven-plugin 0.8.12→0.8.15, Maven wrapper 3.9.9→3.9.16, springdoc 2.8.6→2.9.1 — dentro de la rama 2.x, no choca con `ADR-059` (Dependabot) | #26, #27, #28, #29 | `Backend CI` completo (`./mvnw verify`) en verde sobre el `main` nuevo; `main` en verde en sus tres workflows tras la fusión (`2c6d6f7`) · ⚠️ `gitleaks` por `pull_request` fallaba por `BUG-089`, ajeno al cambio |
 
 ---
@@ -219,10 +222,12 @@ matriz, no desde lo que los PR afirman en su descripción.
 | M14 Alertas push | 1 | 0 | 0% — RF041 pendiente: `NotificadorPushWebhookAdapter` solo registra un log; exige credenciales de WhatsApp Business o Telegram |
 | M15 Cuentas y permisos | 5 | 5 (RF042–RF046) | 100% |
 | **Total funcionales** | **46** | **40** | **87%** |
-| **No funcionales** | **27** | **17** | **63%** |
+| **No funcionales** | **27** | **16** | **59%** |
 
-Los 17 RNF verificados: RNF002–RNF011, RNF017, RNF018, RNF020 y RNF022–RNF025. Los otros diez: RNF001 y
-RNF012–RNF016 **retirados por alcance** (interfaz, `ADR-048`) · RNF019 descartado (`ADR-025`) · RNF021 y RNF027
+Los 16 RNF verificados: RNF002–RNF005, RNF007–RNF011, RNF017, RNF018, RNF020 y RNF022–RNF025. `RNF006`
+bajó de verificado a parcial el 2026-09-22 (`BUG-091`): la matriz lo marcaba ✅ sin que exista la cola
+muerta que pide el requisito. Los otros once: RNF001 y
+RNF012–RNF016 **retirados por alcance** (interfaz, `ADR-048`) · RNF019 descartado (`ADR-025`) · RNF006, RNF021 y RNF027
 parciales · RNF026 sin verificar, no aplica al entorno local (`ADR-057`).
 
 ---
