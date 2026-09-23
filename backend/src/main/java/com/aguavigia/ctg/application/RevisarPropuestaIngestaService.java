@@ -15,6 +15,7 @@ import com.aguavigia.ctg.domain.port.out.CorteAguaRepository;
 import com.aguavigia.ctg.domain.port.out.PropuestaIngestaRepository;
 import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.SectorRepository;
+import com.aguavigia.ctg.domain.port.out.TransaccionPort;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
@@ -36,17 +37,20 @@ public class RevisarPropuestaIngestaService implements RevisarPropuestaIngestaUs
     private final RegistrarEventoBitacoraUseCase registrarEvento;
     private final CorteAguaRepository cortes;
     private final RelojPort reloj;
+    private final TransaccionPort transaccion;
 
     public RevisarPropuestaIngestaService(PropuestaIngestaRepository propuestas,
                                            SectorRepository sectores,
                                            RegistrarEventoBitacoraUseCase registrarEvento,
                                            CorteAguaRepository cortes,
-                                           RelojPort reloj) {
+                                           RelojPort reloj,
+                                           TransaccionPort transaccion) {
         this.propuestas = propuestas;
         this.sectores = sectores;
         this.registrarEvento = registrarEvento;
         this.cortes = cortes;
         this.reloj = reloj;
+        this.transaccion = transaccion;
     }
 
     @Override
@@ -67,11 +71,16 @@ public class RevisarPropuestaIngestaService implements RevisarPropuestaIngestaUs
         if (propuesta.puedeFijarEstadoActual()) {
             EstadoServicio estadoVigente = propuesta.estadoVigenteEn(reloj.ahora());
             if (sector.estadoActual() != estadoVigente) {
-                sectores.guardar(sector.conEstado(estadoVigente));
-                registrarEvento.registrar(EventoBitacoraFactory.detectadoPorIngesta(
-                        propuesta.sectorId(), sector.nombre(), estadoVigente,
-                        propuesta.fuente(), propuesta.urlOriginal(), propuesta.imagenUrl(), propuesta.tituloOriginal(),
-                        propuesta.momentoParaLaBitacora(reloj.ahora())));
+                // Estado + evento en la misma transacción (Fase 3): si el registro del evento
+                // falla, revierte también el guardado del sector.
+                transaccion.ejecutar(() -> {
+                    sectores.guardar(sector.conEstado(estadoVigente));
+                    registrarEvento.registrar(EventoBitacoraFactory.detectadoPorIngesta(
+                            propuesta.sectorId(), sector.nombre(), estadoVigente,
+                            propuesta.fuente(), propuesta.urlOriginal(), propuesta.imagenUrl(), propuesta.tituloOriginal(),
+                            propuesta.momentoParaLaBitacora(reloj.ahora())));
+                    return null;
+                });
             }
         }
 

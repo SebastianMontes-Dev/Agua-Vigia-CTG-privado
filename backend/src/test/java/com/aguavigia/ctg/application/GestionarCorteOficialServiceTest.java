@@ -13,6 +13,7 @@ import com.aguavigia.ctg.domain.port.in.RegistrarEventoBitacoraUseCase;
 import com.aguavigia.ctg.domain.port.out.CorteAguaRepository;
 import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.SectorRepository;
+import com.aguavigia.ctg.domain.port.out.TransaccionPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -25,9 +26,11 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
 class GestionarCorteOficialServiceTest {
@@ -39,6 +42,7 @@ class GestionarCorteOficialServiceTest {
     private SectorRepository sectores;
     private RegistrarEventoBitacoraUseCase registrarEvento;
     private RelojPort reloj;
+    private TransaccionPort transaccion;
     private GestionarCorteOficialService servicio;
 
     @BeforeEach
@@ -47,9 +51,18 @@ class GestionarCorteOficialServiceTest {
         sectores = mock(SectorRepository.class);
         registrarEvento = mock(RegistrarEventoBitacoraUseCase.class);
         reloj = () -> AHORA;
-        servicio = new GestionarCorteOficialService(cortes, sectores, registrarEvento, reloj);
+        transaccion = spy(new TransaccionPasoDirecto());
+        servicio = new GestionarCorteOficialService(cortes, sectores, registrarEvento, reloj, transaccion);
 
         given(cortes.guardar(any(CorteAgua.class))).willAnswer(invocacion -> invocacion.getArgument(0));
+    }
+
+    /** Ejecuta la acción directamente, sin Mongo real — la atomicidad real se prueba en TransaccionMongoAdapterIntegrationTest. */
+    private static class TransaccionPasoDirecto implements TransaccionPort {
+        @Override
+        public <T> T ejecutar(java.util.function.Supplier<T> accion) {
+            return accion.get();
+        }
     }
 
     private CorteAgua corte(EstadoCorte estado, Instant finReal) {
@@ -224,6 +237,49 @@ class GestionarCorteOficialServiceTest {
         servicio.registrar(futuro);
 
         verify(sectores, never()).guardar(any());
+    }
+
+    /**
+     * Todo el bucle de sectores de un mismo corte va en una sola transacción, no una por sector:
+     * antes, un fallo a mitad de camino dejaba "algunos sectores movidos de estado y otros no"
+     * (ver el javadoc que tenía `anexarYMoverEstado` antes de la Fase 3).
+     */
+    @Test
+    void debeAnexarYMoverTodosLosSectoresDeUnCorteEnUnaSolaTransaccion() {
+        given(sectores.listarTodos()).willReturn(List.of(
+                new Sector(new SectorId("manga"), "MANGA", 5000, EstadoServicio.SIN_SERVICIO),
+                new Sector(new SectorId("bocagrande"), "BOCAGRANDE", 5000, EstadoServicio.SIN_SERVICIO)));
+        CorteAgua corteConDosSectores = CorteAgua.builder()
+                .id(new CorteId("corte-1"))
+                .sectoresAfectados(List.of(new SectorId("manga"), new SectorId("bocagrande")))
+                .inicio(INICIO)
+                .finPrometido(INICIO.plus(6, ChronoUnit.HOURS))
+                .causa("Mantenimiento")
+                .origen(OrigenCorte.VEEDOR)
+                .build();
+
+        servicio.registrar(corteConDosSectores);
+
+        verify(transaccion, org.mockito.Mockito.times(1)).ejecutar(any());
+    }
+
+    @Test
+    void debePropagarLaFallaSiElRegistroDeEventoFallaEnAlgunSectorParaQueLaTransaccionRevierta() {
+        given(sectores.listarTodos()).willReturn(List.of(
+                new Sector(new SectorId("manga"), "MANGA", 5000, EstadoServicio.SIN_SERVICIO),
+                new Sector(new SectorId("bocagrande"), "BOCAGRANDE", 5000, EstadoServicio.SIN_SERVICIO)));
+        CorteAgua corteConDosSectores = CorteAgua.builder()
+                .id(new CorteId("corte-1"))
+                .sectoresAfectados(List.of(new SectorId("manga"), new SectorId("bocagrande")))
+                .inicio(INICIO)
+                .finPrometido(INICIO.plus(6, ChronoUnit.HOURS))
+                .causa("Mantenimiento")
+                .origen(OrigenCorte.VEEDOR)
+                .build();
+        org.mockito.Mockito.doThrow(new IllegalStateException("Mongo caído anexando el segundo sector"))
+                .when(registrarEvento).registrar(argThat(evento -> evento.sectorId().equals(new SectorId("bocagrande"))));
+
+        assertThatThrownBy(() -> servicio.registrar(corteConDosSectores)).isInstanceOf(IllegalStateException.class);
     }
 
     @Test

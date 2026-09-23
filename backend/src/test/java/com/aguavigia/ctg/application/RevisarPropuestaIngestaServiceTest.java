@@ -15,6 +15,7 @@ import com.aguavigia.ctg.domain.port.out.CorteAguaRepository;
 import com.aguavigia.ctg.domain.port.out.PropuestaIngestaRepository;
 import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.SectorRepository;
+import com.aguavigia.ctg.domain.port.out.TransaccionPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -29,6 +30,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
 class RevisarPropuestaIngestaServiceTest {
@@ -41,6 +43,7 @@ class RevisarPropuestaIngestaServiceTest {
     private SectorRepository sectores;
     private RegistrarEventoBitacoraUseCase registrarEvento;
     private CorteAguaRepository cortes;
+    private TransaccionPort transaccion;
     private RevisarPropuestaIngestaService servicio;
 
     @BeforeEach
@@ -50,10 +53,19 @@ class RevisarPropuestaIngestaServiceTest {
         registrarEvento = mock(RegistrarEventoBitacoraUseCase.class);
         cortes = mock(CorteAguaRepository.class);
         RelojPort reloj = () -> AHORA;
-        servicio = new RevisarPropuestaIngestaService(propuestas, sectores, registrarEvento, cortes, reloj);
+        transaccion = spy(new TransaccionPasoDirecto());
+        servicio = new RevisarPropuestaIngestaService(propuestas, sectores, registrarEvento, cortes, reloj, transaccion);
 
         given(propuestas.guardar(any())).willAnswer(invocacion -> invocacion.getArgument(0));
         given(propuestas.buscarPorId(ID)).willReturn(Optional.of(propuestaPendiente()));
+    }
+
+    /** Ejecuta la acción directamente, sin Mongo real — la atomicidad real se prueba en TransaccionMongoAdapterIntegrationTest. */
+    private static class TransaccionPasoDirecto implements TransaccionPort {
+        @Override
+        public <T> T ejecutar(java.util.function.Supplier<T> accion) {
+            return accion.get();
+        }
     }
 
     /** Con ventana declarada: es lo único que puede fijar el estado actual de un barrio. */
@@ -188,6 +200,24 @@ class RevisarPropuestaIngestaServiceTest {
         assertThat(resultado.estadoRevision()).isEqualTo(EstadoRevision.APROBADA);
         verify(sectores, never()).guardar(any());
         verify(registrarEvento, never()).registrar(any());
+    }
+
+    @Test
+    void debeGuardarElSectorYRegistrarElEventoEnUnaSolaTransaccion() {
+        sectorEsta(EstadoServicio.CON_SERVICIO);
+
+        servicio.aprobar(ID);
+
+        verify(transaccion).ejecutar(any());
+    }
+
+    @Test
+    void debePropagarLaFallaSiElRegistroDeEventoFallaParaQueLaTransaccionRevierta() {
+        sectorEsta(EstadoServicio.CON_SERVICIO);
+        org.mockito.Mockito.doThrow(new IllegalStateException("Mongo caído al anexar el evento"))
+                .when(registrarEvento).registrar(any());
+
+        assertThatThrownBy(() -> servicio.aprobar(ID)).isInstanceOf(IllegalStateException.class);
     }
 
     @Test

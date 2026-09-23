@@ -12,6 +12,7 @@ import com.aguavigia.ctg.domain.port.out.CorteAguaRepository;
 import com.aguavigia.ctg.domain.port.out.PropuestaIngestaRepository;
 import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.SectorRepository;
+import com.aguavigia.ctg.domain.port.out.TransaccionPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -54,17 +55,20 @@ public class ActualizarEstadosPorVentanaService implements ActualizarEstadosPorV
     private final RegistrarEventoBitacoraUseCase registrarEvento;
     private final CorteAguaRepository cortes;
     private final RelojPort reloj;
+    private final TransaccionPort transaccion;
 
     public ActualizarEstadosPorVentanaService(PropuestaIngestaRepository propuestas,
                                                SectorRepository sectores,
                                                RegistrarEventoBitacoraUseCase registrarEvento,
                                                CorteAguaRepository cortes,
-                                               RelojPort reloj) {
+                                               RelojPort reloj,
+                                               TransaccionPort transaccion) {
         this.propuestas = propuestas;
         this.sectores = sectores;
         this.registrarEvento = registrarEvento;
         this.cortes = cortes;
         this.reloj = reloj;
+        this.transaccion = transaccion;
     }
 
     @Override
@@ -113,9 +117,6 @@ public class ActualizarEstadosPorVentanaService implements ActualizarEstadosPorV
                 continue;
             }
 
-            sectores.guardar(sector.conEstado(queCorresponde));
-            cambiados++;
-
             // El estado ganador puede venir solo del corte oficial (ninguna propuesta de ingesta lo
             // sustenta): pasa cuando un fallo parcial de GestionarCorteOficialService dejó el sector
             // desincronizado del corte que sigue abierto (ver su propio javadoc). Sanea el sector sin
@@ -123,14 +124,25 @@ public class ActualizarEstadosPorVentanaService implements ActualizarEstadosPorV
             // evento a la bitácora al registrarse.
             Optional<PropuestaIngesta> sustento = propuestaQueSustenta(propuestasDelSector, ahora, queCorresponde);
             if (sustento.isEmpty()) {
+                sectores.guardar(sector.conEstado(queCorresponde));
+                cambiados++;
                 log.info("Sector '{}' saneado a {} por un corte oficial abierto, sin propuesta de ingesta que lo sustente",
                         sectorId.valor(), queCorresponde);
                 continue;
             }
 
-            registrarEvento.registrar(EventoBitacoraFactory.detectadoPorIngesta(
-                    sectorId, sector.nombre(), queCorresponde, sustento.get().fuente(),
-                    sustento.get().urlOriginal(), sustento.get().imagenUrl(), sustento.get().tituloOriginal(), ahora));
+            // Estado + evento en la misma transacción (Fase 3): si el registro del evento falla,
+            // revierte también el guardado del sector — sin esto quedaba un cambio de estado sin la
+            // cita que lo sustenta en la bitácora.
+            EstadoServicio estadoAAplicar = queCorresponde;
+            transaccion.ejecutar(() -> {
+                sectores.guardar(sector.conEstado(estadoAAplicar));
+                registrarEvento.registrar(EventoBitacoraFactory.detectadoPorIngesta(
+                        sectorId, sector.nombre(), estadoAAplicar, sustento.get().fuente(),
+                        sustento.get().urlOriginal(), sustento.get().imagenUrl(), sustento.get().tituloOriginal(), ahora));
+                return null;
+            });
+            cambiados++;
 
             log.info("Ventana declarada aplicada: '{}' pasa a {} (fuente: {})",
                     sectorId.valor(), queCorresponde, sustento.get().fuente());

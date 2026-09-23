@@ -16,6 +16,7 @@ import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.ReservaDeEvaluacionPort;
 import com.aguavigia.ctg.domain.port.out.ReporteCiudadanoRepository;
 import com.aguavigia.ctg.domain.port.out.SectorRepository;
+import com.aguavigia.ctg.domain.port.out.TransaccionPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -51,6 +52,7 @@ public class EvaluarConsensoService implements EvaluarConsensoUseCase {
     private final EstrategiaConsenso estrategia;
     private final RegistrarEventoBitacoraUseCase registrarEvento;
     private final RelojPort reloj;
+    private final TransaccionPort transaccion;
     private final Duration ventanaConsenso;
 
     public EvaluarConsensoService(SectorRepository sectores,
@@ -60,6 +62,7 @@ public class EvaluarConsensoService implements EvaluarConsensoUseCase {
                                    EstrategiaConsenso estrategia,
                                    RegistrarEventoBitacoraUseCase registrarEvento,
                                    RelojPort reloj,
+                                   TransaccionPort transaccion,
                                    @Value("${aguavigia.consenso.ventana-minutos:30}") long ventanaMinutos) {
         this.sectores = sectores;
         this.reportes = reportes;
@@ -68,6 +71,7 @@ public class EvaluarConsensoService implements EvaluarConsensoUseCase {
         this.estrategia = estrategia;
         this.registrarEvento = registrarEvento;
         this.reloj = reloj;
+        this.transaccion = transaccion;
         this.ventanaConsenso = Duration.ofMinutes(ventanaMinutos);
     }
 
@@ -135,15 +139,21 @@ public class EvaluarConsensoService implements EvaluarConsensoUseCase {
             return new ResultadoConsenso(sectorId, false, null, List.of());
         }
 
-        // Compare-and-set: si otra peticion ya movio el estado entre nuestra lectura y esta escritura,
-        // ese cambio ya quedo anotado en la bitacora y anexarlo otra vez lo duplicaria (RF028).
-        if (!sectores.cambiarEstadoSiEs(sectorId, sector.estadoActual(), nuevoEstado)) {
+        List<ReporteId> ids = sustento.stream().map(ReporteCiudadano::id).toList();
+
+        // Compare-and-set + anexo a la bitácora en la misma transacción (Fase 3): si el registro del
+        // evento falla, revierte también el cambio de estado — sin esto un fallo a mitad de camino
+        // dejaba un sector movido sin el evento que lo sustenta en la bitácora (RF028).
+        boolean cambiado = transaccion.ejecutar(() -> {
+            if (!sectores.cambiarEstadoSiEs(sectorId, sector.estadoActual(), nuevoEstado)) {
+                return false;
+            }
+            registrarEvento.registrar(EventoBitacoraFactory.consensoConfirmado(sectorId, nuevoEstado, ids, reloj.ahora()));
+            return true;
+        });
+        if (!cambiado) {
             return new ResultadoConsenso(sectorId, false, null, List.of());
         }
-
-        List<ReporteId> ids = sustento.stream().map(ReporteCiudadano::id).toList();
-        registrarEvento.registrar(EventoBitacoraFactory.consensoConfirmado(
-                sectorId, nuevoEstado, ids, reloj.ahora()));
 
         return new ResultadoConsenso(sectorId, true, nuevoEstado, ids);
     }

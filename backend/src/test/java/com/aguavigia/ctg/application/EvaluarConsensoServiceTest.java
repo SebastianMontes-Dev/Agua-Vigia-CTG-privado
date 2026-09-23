@@ -17,6 +17,7 @@ import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.ReservaDeEvaluacionPort;
 import com.aguavigia.ctg.domain.port.out.ReporteCiudadanoRepository;
 import com.aguavigia.ctg.domain.port.out.SectorRepository;
+import com.aguavigia.ctg.domain.port.out.TransaccionPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -31,6 +32,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -46,6 +48,7 @@ class EvaluarConsensoServiceTest {
     private EstrategiaConsenso estrategia;
     private RegistrarEventoBitacoraUseCase registrarEvento;
     private RelojPort reloj;
+    private TransaccionPort transaccion;
 
     private EvaluarConsensoService servicio;
 
@@ -58,12 +61,21 @@ class EvaluarConsensoServiceTest {
         estrategia = mock(EstrategiaConsenso.class);
         registrarEvento = mock(RegistrarEventoBitacoraUseCase.class);
         reloj = mock(RelojPort.class);
+        transaccion = spy(new TransaccionPasoDirecto());
 
         given(reloj.ahora()).willReturn(AHORA);
         given(reserva.reservar(any())).willReturn(true);
         given(sectores.cambiarEstadoSiEs(any(), any(), any())).willReturn(true);
         servicio = new EvaluarConsensoService(
-                sectores, reportes, contadorReportes, reserva, estrategia, registrarEvento, reloj, 30);
+                sectores, reportes, contadorReportes, reserva, estrategia, registrarEvento, reloj, transaccion, 30);
+    }
+
+    /** Ejecuta la acción directamente, sin Mongo real — la atomicidad real se prueba en TransaccionMongoAdapterIntegrationTest. */
+    private static class TransaccionPasoDirecto implements TransaccionPort {
+        @Override
+        public <T> T ejecutar(java.util.function.Supplier<T> accion) {
+            return accion.get();
+        }
     }
 
     private ReporteCiudadano reporte(String id, TipoReporte tipo) {
@@ -306,6 +318,42 @@ class EvaluarConsensoServiceTest {
 
         verify(sectores).buscarPorId(manga);
         verify(reserva).dejarPendiente(SECTOR_ID);
+    }
+
+    @Test
+    void debeCambiarElEstadoYRegistrarElEventoDentroDeUnaSolaTransaccion() {
+        Sector sector = new Sector(SECTOR_ID, "BOCAGRANDE", 12000, EstadoServicio.CON_SERVICIO);
+        given(sectores.buscarPorId(SECTOR_ID)).willReturn(Optional.of(sector));
+        given(contadorReportes.contarRecientes(any(), any())).willReturn(3L);
+        conVotos(Map.of(TipoReporte.SIN_AGUA, 3L));
+        given(estrategia.seAlcanzaConsenso(3L, sector)).willReturn(true);
+        given(reportes.listarRecientesPorSector(any(), any())).willReturn(List.of(
+                reporte("r1", TipoReporte.SIN_AGUA), reporte("r2", TipoReporte.SIN_AGUA), reporte("r3", TipoReporte.SIN_AGUA)));
+
+        servicio.evaluar(SECTOR_ID);
+
+        verify(transaccion).ejecutar(any());
+    }
+
+    /**
+     * Si el registro del evento falla a mitad de la transacción, `evaluar` debe dejar que la
+     * excepción suba en vez de atraparla: es lo que permite a `TransaccionMongoAdapter` revertir
+     * también el cambio de estado ya hecho por `cambiarEstadoSiEs` (RF028 — nunca un estado sin su
+     * evento que lo sustente en la bitácora).
+     */
+    @Test
+    void debePropagarLaFallaSiElRegistroDeEventoFallaParaQueLaTransaccionRevierta() {
+        Sector sector = new Sector(SECTOR_ID, "BOCAGRANDE", 12000, EstadoServicio.CON_SERVICIO);
+        given(sectores.buscarPorId(SECTOR_ID)).willReturn(Optional.of(sector));
+        given(contadorReportes.contarRecientes(any(), any())).willReturn(3L);
+        conVotos(Map.of(TipoReporte.SIN_AGUA, 3L));
+        given(estrategia.seAlcanzaConsenso(3L, sector)).willReturn(true);
+        given(reportes.listarRecientesPorSector(any(), any())).willReturn(List.of(
+                reporte("r1", TipoReporte.SIN_AGUA), reporte("r2", TipoReporte.SIN_AGUA), reporte("r3", TipoReporte.SIN_AGUA)));
+        org.mockito.Mockito.doThrow(new IllegalStateException("Mongo caído al anexar el evento"))
+                .when(registrarEvento).registrar(any());
+
+        assertThatThrownBy(() -> servicio.evaluar(SECTOR_ID)).isInstanceOf(IllegalStateException.class);
     }
 
     @Test

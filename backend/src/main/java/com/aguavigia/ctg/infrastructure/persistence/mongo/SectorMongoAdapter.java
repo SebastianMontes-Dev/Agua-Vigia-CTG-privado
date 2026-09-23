@@ -6,7 +6,8 @@ import com.aguavigia.ctg.domain.Sector;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.SectorRepository;
-import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Sort;
@@ -18,6 +19,8 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import com.aguavigia.ctg.application.SectorActualizadoEvent;
 import java.util.ArrayList;
@@ -39,13 +42,42 @@ public class SectorMongoAdapter implements SectorRepository {
     private final MongoTemplate mongoTemplate;
     private final RelojPort reloj;
     private final ApplicationEventPublisher eventPublisher;
+    private final CacheManager cacheManager;
 
     public SectorMongoAdapter(SectorMongoRepository repositorio, MongoTemplate mongoTemplate, RelojPort reloj,
-                              ApplicationEventPublisher eventPublisher) {
+                              ApplicationEventPublisher eventPublisher, CacheManager cacheManager) {
         this.repositorio = repositorio;
         this.mongoTemplate = mongoTemplate;
         this.reloj = reloj;
         this.eventPublisher = eventPublisher;
+        this.cacheManager = cacheManager;
+    }
+
+    /**
+     * Difiere {@code efecto} hasta que la transacción activa confirme (Fase 3 de
+     * `plan-validacion-backend.md`): sin esto, un correo, push, SSE o invalidación de caché podían
+     * anunciar un cambio que la transacción luego revertía. Fuera de una transacción (todavía hay
+     * llamadas que no pasan por `TransaccionPort`), se ejecuta de inmediato — el comportamiento de
+     * siempre.
+     */
+    private void trasConfirmar(Runnable efecto) {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    efecto.run();
+                }
+            });
+        } else {
+            efecto.run();
+        }
+    }
+
+    private void invalidarCache() {
+        Cache cache = cacheManager.getCache("sectores");
+        if (cache != null) {
+            cache.clear();
+        }
     }
 
     @Override
@@ -89,10 +121,11 @@ public class SectorMongoAdapter implements SectorRepository {
     /**
      * Invalida el cache aunque el estado no haya cambiado. Sin esto, un corte confirmado por
      * consenso tardaria hasta un TTL entero en verse en el mapa, que es justo la desinformacion
-     * que el proyecto existe para evitar (DESIGN.md §6).
+     * que el proyecto existe para evitar (DESIGN.md §6). Diferida a `trasConfirmar` (Fase 3): la
+     * invalidación y el evento solo deben anunciarse si la transacción que envuelve este guardado
+     * de verdad confirma.
      */
     @Override
-    @CacheEvict(value = "sectores", allEntries = true)
     public Sector guardar(Sector sector) {
         // Se lee el documento existente en vez de construir uno nuevo: la geometria y los datos
         // censales los siembra el sembrador y este adaptador no los produce. Un save() sobre un documento
@@ -115,8 +148,9 @@ public class SectorMongoAdapter implements SectorRepository {
         }
 
         Sector guardado = aDominio(repositorio.save(documento));
+        trasConfirmar(this::invalidarCache);
         if (cambioElEstado) {
-            eventPublisher.publishEvent(new SectorActualizadoEvent(guardado));
+            trasConfirmar(() -> eventPublisher.publishEvent(new SectorActualizadoEvent(guardado)));
         }
         return guardado;
     }
@@ -127,7 +161,6 @@ public class SectorMongoAdapter implements SectorRepository {
      * `Criteria.is(null)` casa tambien con un documento sin el campo, que es un sector sin estado.
      */
     @Override
-    @CacheEvict(value = "sectores", allEntries = true)
     public boolean cambiarEstadoSiEs(SectorId id, EstadoServicio esperado, EstadoServicio nuevo) {
         Query condicion = Query.query(Criteria.where("slug").is(id.valor())
                 .and("estadoActual").is(esperado == null ? null : esperado.name()));
@@ -140,7 +173,8 @@ public class SectorMongoAdapter implements SectorRepository {
         if (actualizado == null) {
             return false;
         }
-        eventPublisher.publishEvent(new SectorActualizadoEvent(aDominio(actualizado)));
+        trasConfirmar(this::invalidarCache);
+        trasConfirmar(() -> eventPublisher.publishEvent(new SectorActualizadoEvent(aDominio(actualizado))));
         return true;
     }
 

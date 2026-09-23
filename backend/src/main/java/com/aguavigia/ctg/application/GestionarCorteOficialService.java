@@ -13,8 +13,7 @@ import com.aguavigia.ctg.domain.port.in.RegistrarEventoBitacoraUseCase;
 import com.aguavigia.ctg.domain.port.out.CorteAguaRepository;
 import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.SectorRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.aguavigia.ctg.domain.port.out.TransaccionPort;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -44,21 +43,22 @@ import java.util.stream.Collectors;
 @Service
 public class GestionarCorteOficialService implements GestionarCorteOficialUseCase {
 
-    private static final Logger log = LoggerFactory.getLogger(GestionarCorteOficialService.class);
-
     private final CorteAguaRepository cortes;
     private final SectorRepository sectores;
     private final RegistrarEventoBitacoraUseCase registrarEvento;
     private final RelojPort reloj;
+    private final TransaccionPort transaccion;
 
     public GestionarCorteOficialService(CorteAguaRepository cortes,
                                          SectorRepository sectores,
                                          RegistrarEventoBitacoraUseCase registrarEvento,
-                                         RelojPort reloj) {
+                                         RelojPort reloj,
+                                         TransaccionPort transaccion) {
         this.cortes = cortes;
         this.sectores = sectores;
         this.registrarEvento = registrarEvento;
         this.reloj = reloj;
+        this.transaccion = transaccion;
     }
 
     @Override
@@ -104,14 +104,18 @@ public class GestionarCorteOficialService implements GestionarCorteOficialUseCas
     }
 
     /**
-     * Anexa el evento a la bitácora y mueve el estado de cada sector afectado.
+     * Anexa el evento a la bitácora y mueve el estado de cada sector afectado, todo en una sola
+     * transacción multi-documento (Fase 3 de `plan-validacion-backend.md`): si falla a mitad del
+     * `for`, revierte también los sectores ya procesados en esta misma llamada — antes quedaban
+     * "algunos sectores movidos de estado y otros no", sin nada que lo reconciliara.
      *
      * No notifica suscriptores aquí: guardar el sector publica `SectorActualizadoEvent` y
      * `NotificarSuscripcionesService` es su único suscriptor. Este servicio recorría además las
      * suscripciones a mano, así que cada corte mandaba dos correos al mismo vecino — y con el
      * estado viejo, porque nadie estaba cambiando el sector: el aviso decía "cambió su estado a:
      * Desconocido" en cualquier barrio que todavía no tuviera estado registrado. Es la misma
-     * corrección que se le hizo a `EvaluarConsensoService`.
+     * corrección que se le hizo a `EvaluarConsensoService`. `SectorMongoAdapter` difiere ese
+     * evento (y la invalidación de caché) hasta que esta transacción confirme.
      */
     private void anexarYMoverEstado(CorteAgua corte, EstadoServicio nuevoEstado, Map<SectorId, Sector> sectoresPorId,
                                      Function<SectorId, EventoBitacora> eventoDe) {
@@ -120,8 +124,8 @@ public class GestionarCorteOficialService implements GestionarCorteOficialUseCas
         Map<SectorId, List<CorteAgua>> otrosCortesPorSector = agruparPorSector(
                 cortes.listarPorSectores(corte.sectoresAfectados()));
 
-        for (SectorId sectorId : corte.sectoresAfectados()) {
-            try {
+        transaccion.ejecutar(() -> {
+            for (SectorId sectorId : corte.sectoresAfectados()) {
                 registrarEvento.registrar(eventoDe.apply(sectorId));
                 EstadoServicio estadoReal = sinDegradarPorOtrosCortesAbiertos(
                         sectorId, corte, nuevoEstado, otrosCortesPorSector.getOrDefault(sectorId, List.of()));
@@ -129,17 +133,9 @@ public class GestionarCorteOficialService implements GestionarCorteOficialUseCas
                 if (sector != null && sector.estadoActual() != estadoReal) {
                     sectores.guardar(sector.conEstado(estadoReal));
                 }
-            } catch (RuntimeException e) {
-                // Sin transacción multi-documento (Mongo en instancia única): si esto falla a
-                // mitad del for, el corte ya quedó guardado (registrar/cerrar) con algunos
-                // sectores movidos de estado y otros no. No hay job que reconcilie ese fallo
-                // parcial hoy — este WARN es lo mínimo para que quede rastro de dónde se detuvo,
-                // en vez de un fallo silencioso.
-                log.warn("Fallo parcial anexando/moviendo estado del corte '{}' en el sector '{}': {}",
-                        corte.id().valor(), sectorId.valor(), e.getMessage());
-                throw e;
             }
-        }
+            return null;
+        });
     }
 
     private static Map<SectorId, List<CorteAgua>> agruparPorSector(List<CorteAgua> cortesEncontrados) {
