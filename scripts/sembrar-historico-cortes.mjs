@@ -4,12 +4,15 @@
  * 
  * Uso:
  *   cd scripts && npm install
- *   MONGODB_URI="mongodb://localhost:27017" node sembrar-historico-cortes.mjs
+ *   MONGODB_URI="mongodb://localhost:27017/?directConnection=true" node sembrar-historico-cortes.mjs
  */
 
 import { MongoClient } from 'mongodb';
 
-const MONGODB_URI = process.env.MONGODB_URI ?? 'mongodb://localhost:27017';
+// directConnection=true: Mongo local es un replica set de un nodo; sin esto el driver
+// descubre que el miembro se anuncia como `mongo:27017` (nombre solo resoluble dentro de
+// Docker) e intenta reconectarse ahi.
+const MONGODB_URI = process.env.MONGODB_URI ?? 'mongodb://localhost:27017/?directConnection=true';
 const DB_NAME = process.env.MONGODB_DB ?? 'aguavigia';
 
 // Rango de fechas: Mayo 1, 2026 a Julio 31, 2026

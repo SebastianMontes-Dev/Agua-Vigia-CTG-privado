@@ -7,7 +7,7 @@
 //
 // Uso:
 //   cd scripts && npm install
-//   MONGODB_URI="mongodb://localhost:27017" node sembrar-sectores.mjs
+//   MONGODB_URI="mongodb://localhost:27017/?directConnection=true" node sembrar-sectores.mjs
 //
 // Es idempotente: borra la coleccion `sectores` antes de volver a insertar.
 
@@ -20,7 +20,11 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const RAIZ = path.resolve(__dirname, '..');
 const GEOJSON_PATH = path.join(RAIZ, 'data/geoespacial/barrios-cartagena.geojson');
 const POBLACION_PATH = path.join(RAIZ, 'data/geoespacial/poblacion-barrios.json');
-const MONGODB_URI = process.env.MONGODB_URI ?? 'mongodb://localhost:27017';
+// directConnection=true: Mongo local es un replica set de un nodo (Fase 3 de
+// plan-validacion-backend.md). Sin esto, el driver descubre que el miembro se anuncia como
+// `mongo:27017` (el nombre que ve dentro de la red de Docker) e intenta reconectarse ahi,
+// que no resuelve desde el host.
+const MONGODB_URI = process.env.MONGODB_URI ?? 'mongodb://localhost:27017/?directConnection=true';
 const DB_NAME = process.env.MONGODB_DB ?? 'aguavigia';
 
 const LOCALIDAD_POR_CODIGO = {

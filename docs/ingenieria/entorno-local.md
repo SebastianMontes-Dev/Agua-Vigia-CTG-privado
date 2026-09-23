@@ -145,6 +145,7 @@ VEEDOR_PASSWORD_HASH`); un `401` significa que la clave no coincide con el hash 
 | `INGESTA_INTERVALO_MS` | Cada cuánto corre el ciclo de ingesta automatizada (M9), en milisegundos | Bajarlo si necesitas ver una propuesta de ingesta sin esperar 10 minutos |
 | `IOT_KEY` | Clave que deben mandar los sensores IoT (M13) en `POST /api/iot/presion` | Solo si vas a probar ese endpoint — vacía, responde 503 y el resto de la app sigue igual |
 | `MONGODB_URI`, `REDIS_HOST/PORT`, `MAIL_HOST/PORT` | Ya apuntan a los servicios de `docker-compose.yml` | No tocar salvo que cambies la topología de contenedores |
+| `MONGODB_URI` para un script del **host** (no un contenedor) | Mongo local es un *replica set* de un nodo (`ADR-063`, Fase 3) — sin `?directConnection=true` el driver descubre que el nodo se anuncia como `mongo:27017` (solo resuelve dentro de Docker) e intenta reconectarse ahí | Usa `mongodb://localhost:27017/?directConnection=true`, como ya traen por defecto los `scripts/sembrar-*.mjs` |
 
 ## 7. Datos de demostración: 20 000 cuentas para la presentación
 
