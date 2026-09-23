@@ -71,9 +71,9 @@ esas credenciales **dentro del contenedor**, donde ya están como variables de e
 del host. Antes de `BUG-088` ninguno de los dos funcionaba contra producción (fallaban con `Unauthorized`). El respaldo se
 escribe primero a un `.parcial` y solo se renombra si `mongodump` terminó bien y `gzip -t` lo valida.
 
-**Verificado el 2026-09-21** contra un Mongo desechable con autenticación: respaldo, restauración y `--drop`. Sigue
-pendiente el simulacro completo de abajo (con el backend y las fotos), que nadie ha hecho, y que **nada programa** el
-respaldo: hay que crear la tarea de cron o del Programador de tareas.
+**Verificado el 2026-09-21** contra un Mongo desechable con autenticación: respaldo, restauración y `--drop`.
+**Simulacro completo corrido el 2026-09-22** (§5) contra el compose de desarrollo. Sigue sin programarse el
+respaldo: **nada** lo automatiza hoy — hay que crear la tarea de cron o del Programador de tareas.
 
 ## Cómo se respalda en este proyecto (local)
 
@@ -92,6 +92,13 @@ producción, y luego trimestralmente:
 3. Verificar: `GET /api/sectores` devuelve datos, un reporte con foto conocida carga su imagen en
    `/fotos/<nombre>`, y `GET /api/bitacora` trae eventos.
 4. Anotar la fecha del simulacro y cualquier hallazgo en `docs/gestion/` (bitácora de sesiones).
+
+**Corrido el 2026-09-22** contra `docker-compose.yml` (dev), con el stack ya poblado por sembradores previos
+(211 sectores, 20 001 usuarios, 117 eventos de bitácora, 1193 propuestas de ingesta, entre otras): respaldo con
+`backup-mongo.sh`, restauración con `restore-mongo.sh` sobre el mismo stack, 21 534 documentos restaurados, 0
+fallos. `GET /api/sectores` y `GET /api/bitacora` devolvieron 200 con el mismo contenido de antes de restaurar.
+**Hallazgo:** ningún reporte ciudadano tenía `fotoUrl` en ese momento, así que el paso 3 no pudo probarse contra
+una foto real — pendiente repetirlo cuando exista un reporte con evidencia fotográfica sembrada.
 
 ## 6. Qué NO cubre esto
 

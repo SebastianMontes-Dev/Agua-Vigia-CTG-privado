@@ -25,6 +25,26 @@ Referencias cruzadas: `ADR-NNN` · `BUG-NNN` · `RF0NN` · `archivo:línea`.
 
 ## Preparación del backend
 
+### 2026-09-22 · `feat/transacciones-estado-bitacora`
+**Qué:** Fase 3 del plan de Yordy, tercer punto: `TransaccionPort`/`TransaccionMongoAdapter` (`ADR-064`,
+`TransactionTemplate` sobre `MongoTransactionManager`, reintento acotado ante `TransientTransactionError`).
+`GestionarCorteOficialService`, `EvaluarConsensoService`, `ActualizarEstadosPorVentanaService` y
+`RevisarPropuestaIngestaService` agrupan ahora su par estado+evento en una transacción real, probada con
+rollback contra Mongo (`TransaccionMongoAdapterIntegrationTest`). `SectorMongoAdapter` difiere el
+`SectorActualizadoEvent` y la invalidación de caché hasta que la transacción confirma
+(`TransactionSynchronizationManager`, probado con Redis+Mongo reales en `SectorMongoAdapterTransaccionTest`).
+TDD en las 5 piezas; build completa: 874 pruebas, 0 fallos. Aparte, se corrió el simulacro de restauración
+de `BUG-088` (§5 de `respaldo-y-restauracion.md`, nadie lo había hecho): contra `docker-compose.yml`
+poblado (211 sectores, 20 001 usuarios, 117 eventos), respaldo + restauración con `restore-mongo.sh`,
+21 534 documentos, 0 fallos, `GET /api/sectores` y `GET /api/bitacora` en 200 con el mismo contenido —
+sin poder probar el paso de la foto porque no había ningún reporte con `fotoUrl` sembrado. Nada de esto
+se ha commiteado todavía (working tree con los cambios sin confirmar, a la espera de que el dueño pida el
+commit).
+**Sigue:** Fase 3, lo que falta: decidir si esta transacción reemplaza el documento de control de
+`BUG-100`/`ADR-062` (insinuado en su propio "cómo se revierte", no urgente). Del dueño: pedir el commit
+de esta rama si aprueba el resultado, y borrar a mano `./respaldos-mongo-drill/` (1.7M, `rm -rf` denegado
+en `settings.json`). `docker-compose.prod.yml` sigue sin *replica set*, a propósito, sin tocar.
+
 ### 2026-09-22 · `fix/bug-100-bloqueo-ultimo-administrador` + `feat/mongo-replica-set-local`
 **Qué:** Fase 3 del plan de Yordy, primeros dos puntos. `BUG-100` cerrado: `AdministrarCuentaService` no serializaba el conteo y la escritura del último administrador (`BloqueoDeAdministradoresPort`/Mongo, `ADR-062`). Mongo local pasa a *replica set* de un nodo (`ADR-063`, `mongo-init-replica` idempotente), prerrequisito para transacciones; se encontró y corrigió en el camino que los `scripts/sembrar-*.mjs` dejaban de conectar desde el host (`?directConnection=true`). PR #45 y #46 fusionados con un conflicto esperado entre sus dos ADR, resuelto y reverificado (853 pruebas, 0 fallos). `docker-compose.prod.yml` no se tocó, a propósito.
 **Sigue:** Fase 3, lo que falta — agrupar estado y bitácora en transacciones (ya con el replica set listo), emitir notificaciones/invalidaciones solo tras confirmar (depende de lo anterior), y decidir si el respaldo/restauración manual de `BUG-088` ya satisface esta fase o hace falta un ensayo automatizado. Del dueño, sin tocar: `REC-018` y las 5 etiquetas git viejas; y el PR #43 quedó fusionado ya (confirmado, ver entrada de abajo).

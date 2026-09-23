@@ -15,6 +15,7 @@ import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.ReservaDeEvaluacionPort;
 import com.aguavigia.ctg.domain.port.out.ReporteCiudadanoRepository;
 import com.aguavigia.ctg.domain.port.out.SectorRepository;
+import com.aguavigia.ctg.domain.port.out.TransaccionPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -57,7 +58,14 @@ class EvaluarConsensoServiceConcurrenciaTest {
         RelojPort reloj = () -> AHORA;
         ReservaDeEvaluacionPort reserva = mock(ReservaDeEvaluacionPort.class);
         given(reserva.reservar(any())).willReturn(true);
-        servicio = new EvaluarConsensoService(sectores, reportes, contadorReportes, reserva, estrategia, registrarEvento, reloj, 30);
+        TransaccionPort transaccion = new TransaccionPort() {
+            @Override
+            public <T> T ejecutar(java.util.function.Supplier<T> accion) {
+                return accion.get();
+            }
+        };
+        servicio = new EvaluarConsensoService(
+                sectores, reportes, contadorReportes, reserva, estrategia, registrarEvento, reloj, transaccion, 30);
 
         sector = new Sector(SECTOR_ID, "BOCAGRANDE", 12000, EstadoServicio.CON_SERVICIO);
         given(sectores.buscarPorId(SECTOR_ID)).willReturn(Optional.of(sector));

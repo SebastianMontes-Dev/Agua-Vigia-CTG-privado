@@ -14,6 +14,7 @@ import com.aguavigia.ctg.domain.port.out.CorteAguaRepository;
 import com.aguavigia.ctg.domain.port.out.PropuestaIngestaRepository;
 import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.SectorRepository;
+import com.aguavigia.ctg.domain.port.out.TransaccionPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -26,6 +27,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
 class ActualizarEstadosPorVentanaServiceTest {
@@ -39,6 +41,7 @@ class ActualizarEstadosPorVentanaServiceTest {
     private RegistrarEventoBitacoraUseCase registrarEvento;
     private CorteAguaRepository cortes;
     private RelojPort reloj;
+    private TransaccionPort transaccion;
     private ActualizarEstadosPorVentanaService servicio;
 
     @BeforeEach
@@ -48,8 +51,17 @@ class ActualizarEstadosPorVentanaServiceTest {
         registrarEvento = mock(RegistrarEventoBitacoraUseCase.class);
         cortes = mock(CorteAguaRepository.class);
         reloj = mock(RelojPort.class);
+        transaccion = spy(new TransaccionPasoDirecto());
         given(cortes.listarPorSectores(any())).willReturn(List.of());
-        servicio = new ActualizarEstadosPorVentanaService(propuestas, sectores, registrarEvento, cortes, reloj);
+        servicio = new ActualizarEstadosPorVentanaService(propuestas, sectores, registrarEvento, cortes, reloj, transaccion);
+    }
+
+    /** Ejecuta la acción directamente, sin Mongo real — la atomicidad real se prueba en TransaccionMongoAdapterIntegrationTest. */
+    private static class TransaccionPasoDirecto implements TransaccionPort {
+        @Override
+        public <T> T ejecutar(java.util.function.Supplier<T> accion) {
+            return accion.get();
+        }
     }
 
     private void dadoQueHay(PropuestaIngesta propuesta, EstadoServicio estadoActualDelSector) {
@@ -123,6 +135,58 @@ class ActualizarEstadosPorVentanaServiceTest {
         servicio.aplicarVentanasVencidas();
 
         verify(registrarEvento).registrar(any());
+    }
+
+    /** El par estado+evento va en la misma transacción (Fase 3): si el evento falla, revierte el sector. */
+    @Test
+    void debeGuardarElSectorYRegistrarElEventoEnUnaSolaTransaccion() {
+        given(reloj.ahora()).willReturn(FIN.plusSeconds(60));
+        dadoQueHay(propuestaAprobadaDeCorte(), EstadoServicio.SIN_SERVICIO);
+
+        servicio.aplicarVentanasVencidas();
+
+        verify(transaccion).ejecutar(any());
+    }
+
+    @Test
+    void debePropagarLaFallaSiElRegistroDeEventoFallaParaQueLaTransaccionRevierta() {
+        given(reloj.ahora()).willReturn(FIN.plusSeconds(60));
+        dadoQueHay(propuestaAprobadaDeCorte(), EstadoServicio.SIN_SERVICIO);
+        org.mockito.Mockito.doThrow(new IllegalStateException("Mongo caído al anexar el evento"))
+                .when(registrarEvento).registrar(any());
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> servicio.aplicarVentanasVencidas())
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    /**
+     * Un sector saneado por un corte oficial abierto (sin propuesta de ingesta que lo sustente, ver
+     * el javadoc de `aplicarVentanasVencidas`) no anexa evento: su escritura queda sola, ya es
+     * atómica de por sí y no necesita la transacción.
+     */
+    @Test
+    void noDebeAbrirUnaTransaccionCuandoElSectorSeSaneaSinSustento() {
+        given(reloj.ahora()).willReturn(FIN.plusSeconds(60));
+        given(sectores.listarTodos())
+                .willReturn(List.of(new Sector(MANGA, "MANGA", 1000, EstadoServicio.CON_SERVICIO)));
+        PropuestaIngesta boletinYaTerminado = propuestaAprobadaDeCorte();
+        given(propuestas.listarAprobadasConVentanaVigente(any())).willReturn(List.of(boletinYaTerminado));
+        CorteAgua corteOficialAbierto = CorteAgua.builder()
+                .id(new CorteId("c-oficial"))
+                .sectoresAfectados(List.of(MANGA))
+                .inicio(INICIO.minusSeconds(3600))
+                .finPrometido(FIN.plusSeconds(10 * 3600))
+                .causa("corte oficial, veedor")
+                .origen(OrigenCorte.VEEDOR)
+                .estado(EstadoCorte.CONFIRMADO)
+                .build();
+        given(cortes.listarPorSectores(List.of(MANGA))).willReturn(List.of(corteOficialAbierto));
+
+        servicio.aplicarVentanasVencidas();
+
+        verify(sectores).guardar(any());
+        verify(registrarEvento, never()).registrar(any());
+        verify(transaccion, never()).ejecutar(any());
     }
 
     @Test

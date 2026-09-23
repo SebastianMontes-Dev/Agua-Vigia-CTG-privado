@@ -2564,8 +2564,70 @@ cuatro scripts de siembra (vuelven a conectar sin problema a una instancia únic
 
 ---
 
+## ADR-064 — Transacción multi-documento detrás de un puerto, con notificaciones e invalidación de caché diferidas al commit
+
+- **Fecha:** 2026-09-22
+- **Estado:** Aceptada
+- **Decide:** Dueño del proyecto (delegado al agente, Fase 3 de `docs/ingenieria/plan-validacion-backend.md`)
+
+### Contexto
+Con el *replica set* local ya resuelto (`ADR-063`), quedaba el punto que ese ADR dejó pendiente:
+agrupar el guardado de un sector y su evento de bitácora en una sola transacción. Cuatro servicios
+escribían ambos documentos por separado, sin nada que revirtiera el primero si el segundo fallaba —
+`GestionarCorteOficialService` incluso documentaba el riesgo en un comentario ("si esto falla a
+mitad del `for`, el corte ya quedó guardado con algunos sectores movidos de estado y otros no").
+`EvaluarConsensoService` y `RevisarPropuestaIngestaService` tenían la misma exposición. Además,
+`SectorMongoAdapter` publicaba `SectorActualizadoEvent` (correo, push, SSE) e invalidaba la caché de
+sectores de forma síncrona en cuanto el documento se guardaba — antes de que cualquier transacción
+que lo envolviera confirmara.
+
+### Alternativas consideradas
+| Opción | A favor | En contra |
+|---|---|---|
+| `@Transactional` de Spring directo en los servicios de `application/` | Una sola anotación, patrón conocido | Filtra una dependencia de framework a la capa de aplicación sin necesidad; el proyecto ya evita eso salvo el cableado explícitamente permitido (`ArchUnit`, sprint de Fase 1) |
+| **Puerto `TransaccionPort` con un adaptador Mongo detrás** | Mismo patrón que `BloqueoDeAdministradoresPort` (`ADR-062`); la aplicación solo ve `ejecutar(Supplier)`, la tecnología concreta vive en `infrastructure/` | Una capa más de indirección para algo que en Spring puro sería una anotación |
+| Reemplazar `BloqueoDeAdministradoresPort` por esta misma transacción, ahora que ya es posible (`ADR-062` lo dejó insinuado) | Un solo mecanismo de atomicidad en vez de dos | Fuera de alcance de esta tarea (agrupar estado+bitácora) y el bloqueo ya funciona; cambiarlo sin necesidad es riesgo sin beneficio inmediato |
+
+### Decisión
+`TransaccionPort` (dominio, `domain/port/out/`) con un único método `ejecutar(Supplier<T>)`.
+`TransaccionMongoAdapter` lo implementa con `TransactionTemplate` sobre un `MongoTransactionManager`
+(`MongoTransaccionConfig`, único `PlatformTransactionManager` del backend), y reintenta hasta 3 veces
+si Mongo marca la falla como `TransientTransactionError` (conflicto de escritura entre transacciones
+concurrentes) — cualquier otra excepción revierte y se propaga en el primer intento. Cuatro servicios
+envuelven ahí su par estado+evento: `GestionarCorteOficialService` (todo el bucle de sectores de un
+mismo corte, no una transacción por sector), `EvaluarConsensoService`, `ActualizarEstadosPorVentanaService`
+(solo cuando hay una propuesta que sustente el evento; el saneado sin sustento sigue siendo una sola
+escritura, ya atómica) y `RevisarPropuestaIngestaService`.
+
+`SectorMongoAdapter` reemplaza el `@CacheEvict` inmediato y el `eventPublisher.publishEvent(...)`
+síncrono por un registro en `TransactionSynchronizationManager` (`afterCommit`) cuando hay una
+transacción Spring activa; fuera de una transacción (llamadas que no pasan por `TransaccionPort`)
+mantiene el comportamiento inmediato de siempre. Los tres listeners existentes (`NotificarSuscripcionesService`,
+`AlertaPushSectorListener`, el SSE de `SectorController`) no cambian: siguen con `@EventListener`
+normal, sin saber que el evento ahora puede llegar diferido.
+
+### Consecuencias
+- **Gana:** una falla a mitad de una transacción revierte todas sus escrituras (probado contra Mongo
+  real en `TransaccionMongoAdapterIntegrationTest`); un correo, push, SSE o invalidación de caché ya
+  no puede anunciar un cambio que luego se revierte (`SectorMongoAdapterTransaccionTest`).
+- **Pierde:** cada servicio que agrupa dos escrituras gana una dependencia más en su constructor; el
+  diferido de eventos en `SectorMongoAdapter` es un mecanismo silencioso (nadie que lea
+  `NotificarSuscripcionesService` sabe que su evento pudo demorarse) — documentado solo en el
+  javadoc de `trasConfirmar`.
+- **Condiciona:** como `ADR-063` ya advertía, esto solo funciona donde Mongo corre como *replica set*
+  — `docker-compose.prod.yml` sigue como instancia única a propósito, así que estas transacciones no
+  se activan ahí todavía.
+
+### Cómo se revierte
+Quitar `TransaccionPort`/`TransaccionMongoAdapter`/`MongoTransaccionConfig`, devolver los cuatro
+servicios a escribir estado y evento por separado, y en `SectorMongoAdapter` volver a `@CacheEvict` y
+`eventPublisher.publishEvent(...)` inmediatos. Reintroduce el riesgo de escritura parcial que este ADR
+cierra.
+
+---
+
 <!--
-Siguiente número disponible: ADR-064
+Siguiente número disponible: ADR-065
 Para agregar: usa la skill `registrar-decision`.
 Recuerda: append-only. Las entradas viejas solo cambian de estado, no de contenido.
 -->

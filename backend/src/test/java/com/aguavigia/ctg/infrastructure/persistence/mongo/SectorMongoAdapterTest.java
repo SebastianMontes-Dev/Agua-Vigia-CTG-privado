@@ -10,6 +10,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -29,7 +31,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @Testcontainers
 @DataMongoTest
-@Import({SectorMongoAdapter.class, SectorMongoAdapterTest.RelojFijo.class})
+@Import({SectorMongoAdapter.class, SectorMongoAdapterTest.RelojFijo.class, SectorMongoAdapterTest.CacheDePrueba.class})
 class SectorMongoAdapterTest {
 
     private static final Instant INSTANTE_FIJO = Instant.parse("2026-08-08T15:30:00Z");
@@ -42,6 +44,14 @@ class SectorMongoAdapterTest {
         @Bean
         RelojPort reloj() {
             return () -> INSTANTE_FIJO;
+        }
+    }
+
+    /** Sin Redis en esta prueba de slice — solo hace falta un CacheManager para satisfacer el constructor. */
+    static class CacheDePrueba {
+        @Bean
+        CacheManager cacheManager() {
+            return new ConcurrentMapCacheManager("sectores");
         }
     }
 
