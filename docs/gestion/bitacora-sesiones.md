@@ -25,6 +25,10 @@ Referencias cruzadas: `ADR-NNN` · `BUG-NNN` · `RF0NN` · `archivo:línea`.
 
 ## Preparación del backend
 
+### 2026-09-22 · `fix/bug-100-bloqueo-ultimo-administrador` + `feat/mongo-replica-set-local`
+**Qué:** Fase 3 del plan de Yordy, primeros dos puntos. `BUG-100` cerrado: `AdministrarCuentaService` no serializaba el conteo y la escritura del último administrador (`BloqueoDeAdministradoresPort`/Mongo, `ADR-062`). Mongo local pasa a *replica set* de un nodo (`ADR-063`, `mongo-init-replica` idempotente), prerrequisito para transacciones; se encontró y corrigió en el camino que los `scripts/sembrar-*.mjs` dejaban de conectar desde el host (`?directConnection=true`). PR #45 y #46 fusionados con un conflicto esperado entre sus dos ADR, resuelto y reverificado (853 pruebas, 0 fallos). `docker-compose.prod.yml` no se tocó, a propósito.
+**Sigue:** Fase 3, lo que falta — agrupar estado y bitácora en transacciones (ya con el replica set listo), emitir notificaciones/invalidaciones solo tras confirmar (depende de lo anterior), y decidir si el respaldo/restauración manual de `BUG-088` ya satisface esta fase o hace falta un ensayo automatizado. Del dueño, sin tocar: `REC-018` y las 5 etiquetas git viejas; y el PR #43 quedó fusionado ya (confirmado, ver entrada de abajo).
+
 ### 2026-09-22 · `fix/fase-2-transicion-unica-por-sector`
 **Qué:** Fusionados Dependabot #33/#34 y cerrada por completo la Fase 2 del plan de Yordy («estabilizar el estado»): `BUG-097`, `BUG-098` y `BUG-099` corregidos con TDD, `ADR-061` (`EstadoServicio.masSevero`) reutilizado en `GestionarCorteOficialService` y `ActualizarEstadosPorVentanaService`. PR #44 fusionado, registrado en `registro-de-implementaciones.md`. Build completa: 842 pruebas, 0 fallos.
 **Sigue:** El PR #43 (`docs/rec-006-y-rec-007`, ver entrada de abajo) seguía abierto sin fusionar al cerrar esta sesión. Del dueño: `REC-018` y las 5 etiquetas git viejas. Del agente: Fase 3 del plan de Yordy (persistencia y concurrencia).
