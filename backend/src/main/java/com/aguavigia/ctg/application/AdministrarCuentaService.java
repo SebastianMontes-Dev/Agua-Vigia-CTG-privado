@@ -8,6 +8,7 @@ import com.aguavigia.ctg.domain.RolVeedor;
 import com.aguavigia.ctg.domain.Usuario;
 import com.aguavigia.ctg.domain.UsuarioId;
 import com.aguavigia.ctg.domain.port.in.AdministrarCuentaUseCase;
+import com.aguavigia.ctg.domain.port.out.BloqueoDeAdministradoresPort;
 import com.aguavigia.ctg.domain.port.out.NotificacionCuentaPort;
 import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.RevocacionSesionPort;
@@ -23,7 +24,10 @@ import org.springframework.stereotype.Service;
  *   una puerta directa al panel.
  * - **Siempre queda un ADMIN activo.** Suspender o despromover al último deja el sistema sin nadie
  *   capaz de otorgar permisos: no es un error recuperable desde la aplicación, hay que ir a Mongo
- *   a mano. Se rechaza antes de que ocurra.
+ *   a mano. Se rechaza antes de que ocurra. El conteo y la escritura corren dentro de
+ *   {@link BloqueoDeAdministradoresPort#ejecutarExclusivo}: sin eso, dos peticiones concurrentes
+ *   sobre dos ADMIN distintos pueden leer el mismo "quedan 2" antes de que ninguna escriba, y las
+ *   dos pasan la guarda a la vez (Fase 3, `plan-validacion-backend.md`).
  * - **Todo cambio de acceso revoca las sesiones vivas de la persona afectada.** Sin esto, suspender
  *   a alguien no lo saca: su token sigue firmado y válido hasta 8 horas más (RNF011).
  */
@@ -34,17 +38,20 @@ public class AdministrarCuentaService implements AdministrarCuentaUseCase {
     private final RevocacionSesionPort revocacion;
     private final NotificacionCuentaPort notificaciones;
     private final RegistroDeAuditoria auditoria;
+    private final BloqueoDeAdministradoresPort bloqueo;
     private final RelojPort reloj;
 
     public AdministrarCuentaService(UsuarioRepository usuarios,
                                     RevocacionSesionPort revocacion,
                                     NotificacionCuentaPort notificaciones,
                                     RegistroDeAuditoria auditoria,
+                                    BloqueoDeAdministradoresPort bloqueo,
                                     RelojPort reloj) {
         this.usuarios = usuarios;
         this.revocacion = revocacion;
         this.notificaciones = notificaciones;
         this.auditoria = auditoria;
+        this.bloqueo = bloqueo;
         this.reloj = reloj;
     }
 
@@ -81,9 +88,11 @@ public class AdministrarCuentaService implements AdministrarCuentaUseCase {
     public Usuario suspender(UsuarioId sujetoId, ContextoDeAccion contexto) {
         Usuario autor = autor(contexto);
         Usuario sujeto = sujeto(sujetoId, autor);
-        exigirQueQuedeUnAdministrador(sujeto, null);
 
-        Usuario suspendido = usuarios.guardar(sujeto.suspender(reloj.ahora()));
+        Usuario suspendido = bloqueo.ejecutarExclusivo(() -> {
+            exigirQueQuedeUnAdministrador(sujeto, null);
+            return usuarios.guardar(sujeto.suspender(reloj.ahora()));
+        });
         revocacion.revocarSesionesAnterioresA(suspendido.id(), reloj.ahora());
         notificaciones.avisarCambioDeAcceso(suspendido, "Tu acceso a AguaVigía quedó suspendido",
                 "Un administrador suspendió tu cuenta. Si crees que es un error, contáctalo.");
@@ -109,9 +118,11 @@ public class AdministrarCuentaService implements AdministrarCuentaUseCase {
     public Usuario cambiarPermisos(UsuarioId sujetoId, PermisosEfectivos permisos, ContextoDeAccion contexto) {
         Usuario autor = autor(contexto);
         Usuario sujeto = sujeto(sujetoId, autor);
-        exigirQueQuedeUnAdministrador(sujeto, permisos.rol());
 
-        Usuario actualizado = usuarios.guardar(sujeto.cambiarPermisos(permisos, reloj.ahora()));
+        Usuario actualizado = bloqueo.ejecutarExclusivo(() -> {
+            exigirQueQuedeUnAdministrador(sujeto, permisos.rol());
+            return usuarios.guardar(sujeto.cambiarPermisos(permisos, reloj.ahora()));
+        });
 
         // Revocar también cuando los permisos se amplían, no solo cuando se recortan: el token
         // lleva los permisos dentro, así que una sesión abierta seguiría usando los viejos. Rehacer

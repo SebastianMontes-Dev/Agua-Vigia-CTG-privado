@@ -1059,6 +1059,23 @@ esperar a que expire el token (RNF023).
 - **Cuando** el administrador la reactiva por `PATCH /api/veedor/usuarios/{id}/reactivacion`
 - **Entonces** la persona puede volver a iniciar sesión, con una sesión nueva
 
+### Requisito: Siempre queda un administrador activo
+
+El sistema debe rechazar cualquier suspensión o cambio de permisos que deje sin ningún `ADMIN`
+activo, incluso si dos administradores intentan reducir el conteo a la vez sobre cuentas distintas
+(`BUG-100`, `ADR-062`).
+
+#### Escenario: Único administrador activo
+
+- **Cuando** se intenta suspender o despromover al único `ADMIN` con sesión permitida
+- **Entonces** la API rechaza la acción y ninguna cuenta cambia
+
+#### Escenario: Dos cambios concurrentes sobre dos administradores distintos
+
+- **Cuando** dos peticiones llegan a la vez, cada una suspendiendo o despromoviendo a un `ADMIN`
+  activo distinto, y solo quedan dos
+- **Entonces** una se aplica y la otra se rechaza — nunca las dos a la vez
+
 ### Requisito: Segundo factor TOTP obligatorio para ADMIN
 
 Las cuentas con rol `ADMIN` deben exigir un segundo factor TOTP conforme al RFC 6238 (RNF025). La
