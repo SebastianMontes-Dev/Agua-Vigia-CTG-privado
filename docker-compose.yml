@@ -7,6 +7,7 @@ services:
     image: mongo:7.0
     container_name: aguavigia-mongo
     restart: unless-stopped
+    command: ["--replSet", "rs0", "--bind_ip_all"]
     env_file:
       - path: .env
         required: false
@@ -23,6 +24,32 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  # Replica set de un solo nodo (Fase 3 de plan-validacion-backend.md): sin esto Mongo no soporta
+  # transacciones multi-documento. Un solo contenedor de un solo uso: comprueba si ya está iniciado
+  # (`rs.status()`) y si no, lo inicia — así `docker compose up` repetido no falla la segunda vez.
+  mongo-init-replica:
+    image: mongo:7.0
+    container_name: aguavigia-mongo-init-replica
+    restart: "no"
+    depends_on:
+      mongo:
+        condition: service_healthy
+    networks:
+      - aguavigia
+    entrypoint:
+      - bash
+      - -c
+      - |
+        mongosh --host mongo:27017 --quiet --eval '
+          try {
+            rs.status();
+            print("Replica set ya iniciado");
+          } catch (e) {
+            rs.initiate({ _id: "rs0", members: [{ _id: 0, host: "mongo:27017" }] });
+            print("Replica set iniciado");
+          }
+        '
 
   redis:
     image: redis:7-alpine
@@ -62,7 +89,7 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
       SERVER_PORT: ${SERVER_PORT:-8080}
-      SPRING_DATA_MONGODB_URI: ${MONGODB_URI:-mongodb://mongo:27017/aguavigia}
+      SPRING_DATA_MONGODB_URI: ${MONGODB_URI:-mongodb://mongo:27017/aguavigia?replicaSet=rs0}
       SPRING_DATA_REDIS_HOST: ${REDIS_HOST:-redis}
       SPRING_DATA_REDIS_PORT: ${REDIS_PORT:-6379}
       SPRING_MAIL_HOST: ${MAIL_HOST:-mailhog}
@@ -78,6 +105,8 @@ services:
     depends_on:
       mongo:
         condition: service_healthy
+      mongo-init-replica:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
       mailhog:

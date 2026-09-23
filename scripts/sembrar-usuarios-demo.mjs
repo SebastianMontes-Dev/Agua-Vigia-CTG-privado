@@ -9,7 +9,8 @@
 //   node sembrar-usuarios-demo.mjs                       # 20 000 cuentas
 //   node sembrar-usuarios-demo.mjs --cantidad 5000 --semilla 7
 //
-// Variables: MONGODB_URI (por defecto mongodb://localhost:27017) y MONGODB_DB (por defecto aguavigia).
+// Variables: MONGODB_URI (por defecto mongodb://localhost:27017/?directConnection=true) y
+// MONGODB_DB (por defecto aguavigia).
 //
 // IMPORTANTE — orden:
 //   1. Arranca el backend con ADMIN_INICIAL_CORREO y VEEDOR_PASSWORD_HASH para que cree al ADMIN. Ese ADMIN solo
@@ -38,7 +39,10 @@ const { values } = parseArgs({
 });
 const CANTIDAD = Number(values.cantidad);
 const SEMILLA = Number(values.semilla);
-const MONGODB_URI = process.env.MONGODB_URI ?? 'mongodb://localhost:27017';
+// directConnection=true: Mongo local es un replica set de un nodo; sin esto el driver
+// descubre que el miembro se anuncia como `mongo:27017` (nombre solo resoluble dentro de
+// Docker) e intenta reconectarse ahi.
+const MONGODB_URI = process.env.MONGODB_URI ?? 'mongodb://localhost:27017/?directConnection=true';
 const DB_NAME = process.env.MONGODB_DB ?? 'aguavigia';
 
 // BCrypt (coste 10) de «DemoAguaVigia-2026», calculado con la misma biblioteca que usa el backend.

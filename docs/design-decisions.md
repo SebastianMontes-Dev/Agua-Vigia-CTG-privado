@@ -2450,8 +2450,70 @@ la dependencia de `CorteAguaRepository` que le dio esta decisión.
 
 ---
 
+## ADR-063 — Mongo local corre como *replica set* de un nodo, con `directConnection=true` en los scripts del host
+
+- **Fecha:** 2026-09-22
+- **Estado:** Aceptada
+- **Decide:** Dueño del proyecto (delegado al agente, Fase 3 de `docs/ingenieria/plan-validacion-backend.md`)
+
+### Contexto
+`docker-compose.yml` levantaba Mongo como una instancia única, sin `--replSet`. MongoDB solo soporta
+transacciones multi-documento sobre un *replica set* (aunque sea de un solo nodo) — es el
+prerrequisito explícito de esta misma Fase 3 antes de poder agrupar estado y bitácora en una
+transacción.
+
+**Número de ADR reservado por adelantado:** al escribir esta entrada, `ADR-062` ya estaba tomado por
+un PR abierto (`#45`, `BUG-100`) todavía sin fusionar en la rama desde la que se creó esta — el
+archivo en esa rama todavía no lo tenía. Se numera `ADR-063` a propósito para no repetir la colisión
+que ya pasó una vez con `BUG-067`/`BUG-068`.
+
+### Alternativas consideradas
+| Opción | A favor | En contra |
+|---|---|---|
+| Dejar Mongo como instancia única y usar el documento de control (`ADR-062`) para todo lo que necesite atomicidad | Cero cambio de infraestructura | No escala: cada invariante nueva entre documentos necesitaría su propio bloqueo a mano, en vez de una transacción real |
+| **Replica set de un nodo en `docker-compose.yml`** | Habilita transacciones multi-documento reales; mismo modo en que ya corre Mongo en las pruebas de integración (Testcontainers lo hace por defecto, verificado: `setName='docker-rs'` en sus logs) | Un nodo que se anuncia con un nombre distinto según quién pregunta (contenedor vs. host) rompe a quien asuma `localhost` sin más |
+
+### Decisión
+`mongo` arranca con `command: ["--replSet", "rs0", "--bind_ip_all"]`. Un servicio nuevo,
+`mongo-init-replica` (imagen `mongo:7.0`, sin build propio), corre una vez, comprueba con
+`rs.status()` si ya está iniciado y si no, llama `rs.initiate()` con `host: "mongo:27017"` — idempotente,
+así que un `docker compose up` repetido no falla. `backend` espera a
+`mongo-init-replica: condition: service_completed_successfully`, no solo a que `mongo` esté sano.
+`SPRING_DATA_MONGODB_URI` pasa a `mongodb://mongo:27017/aguavigia?replicaSet=rs0`.
+
+**Hallazgo al verificarlo en vivo:** los scripts de siembra (`scripts/sembrar-*.mjs`) conectaban por
+defecto a `mongodb://localhost:27017` desde el host. Con el replica set activo, el driver de Mongo
+descubre que el único miembro se anuncia como `mongo:27017` (el nombre que solo resuelve dentro de la
+red de Docker) e intenta reconectarse ahí — `getaddrinfo ENOTFOUND mongo`, reproducido y confirmado
+antes de corregirlo. Se cambió el valor por defecto de los cuatro scripts a
+`mongodb://localhost:27017/?directConnection=true`, que le dice al driver que hable con ese nodo
+directamente sin seguir el descubrimiento de topología del replica set. Reverificado:
+`sembrar-sectores.mjs` vuelve a sembrar los 211 sectores sin error.
+
+`docker-compose.prod.yml` **no se toca en este ADR** — sigue como instancia única con autenticación.
+Convertirlo exige repetir este mismo análisis con el usuario root de producción de por medio (el
+respaldo/restauración de `BUG-088` corre `mongodump` dentro del propio contenedor, así que no le
+afecta este cambio, pero un futuro replica set autenticado sí necesita su propio ADR).
+
+### Consecuencias
+- **Gana:** el siguiente punto de esta Fase 3 (transacciones multi-documento entre estado y bitácora)
+  ya tiene su prerrequisito de infraestructura resuelto en local.
+- **Pierde:** cualquier herramienta nueva que se conecte a Mongo desde el host (no desde un
+  contenedor de la misma red) tiene que acordarse de `directConnection=true` — es una trampa fácil de
+  repetir; queda anotada aquí y en el comentario de cada script.
+- **Condiciona:** `docker-compose.prod.yml` sigue sin replica set — las transacciones que se
+  construyan sobre este cambio funcionarán en local pero no en producción hasta que se repita este
+  ADR para el compose de producción, con su propia complejidad de autenticación.
+
+### Cómo se revierte
+Quitar `command` de `mongo`, el servicio `mongo-init-replica` y el `depends_on` que lo espera; volver
+`SPRING_DATA_MONGODB_URI` a la URI sin `?replicaSet=rs0`; quitar `?directConnection=true` de los
+cuatro scripts de siembra (vuelven a conectar sin problema a una instancia única).
+
+---
+
 <!--
-Siguiente número disponible: ADR-062
+Siguiente número disponible: ADR-064
 Para agregar: usa la skill `registrar-decision`.
 Recuerda: append-only. Las entradas viejas solo cambian de estado, no de contenido.
 -->
