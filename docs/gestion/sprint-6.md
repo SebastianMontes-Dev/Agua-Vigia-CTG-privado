@@ -79,10 +79,10 @@ fusionado cuando se presente, se añade encima; no es requisito para cerrar el s
 - Repetir `verificar-flujos.mjs` gasta límites por IP y no se puede encadenar.
 - Varias tareas quedaron bloqueadas por permisos del entorno y necesitaron trabajo manual del dueño.
 
-**Acciones para el próximo sprint** *(fechas por confirmar por el dueño)*
+**Acciones para el próximo sprint**
 
 | Acción | Para cuándo |
 |---|---|
 | ~~Que `verificar-flujos.mjs` espere algo más de 1 s antes del cierre de sesión~~ **Hecha** | 2026-09-24 |
-| Repetir el guion completo y comprobar `GET /api/sectores` | El día previo a la presentación (el dueño anota aquí la fecha real) |
+| Repetir el guion completo y comprobar `GET /api/sectores` | El día previo a la presentación |
 | ~~Terminar `RNF027`: nginx con micro-caché, escritura en pico, 10 000 SSE y aislar el rechazo del puerto publicado~~ **Descartada:** se presenta con las cifras de la medición anterior, dichas como tales (`ADR-057`) | 2026-09-24 |
