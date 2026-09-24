@@ -145,3 +145,5 @@ que no cede desde este entorno. Pendiente: otra red, u contacto sugerido por la 
   se satura en ~1 200 req/s y da p95 de segundos que **no son del sistema**; correr k6 en la misma red de Docker que
   nginx. La micro-caché de nginx solo se prueba **contra el backend real** (el de Spring responde `no-store`;
   un backend de mentira ocultó `BUG-085`). Detalle: `docs/ingenieria/escalabilidad.md`.
+- **Entorno local con la imagen al día**: tras traer cambios de `main`, `docker compose up -d --build backend`; con la imagen vieja fallaban CORS, la foto y el cierre de sesión (2026-09-24).
+  Sin `.env` junto al compose el backend arranca sin ADMIN (`--env-file` no alimenta el `env_file` del servicio). «Cerrar sesión» falla a veces por diseño: margen de 1 s del filtro JWT (`plan-de-pruebas.md` §8).
