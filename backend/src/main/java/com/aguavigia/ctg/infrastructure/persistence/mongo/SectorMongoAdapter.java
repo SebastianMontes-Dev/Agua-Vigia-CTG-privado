@@ -22,7 +22,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
-import com.aguavigia.ctg.application.SectorActualizadoEvent;
+import com.aguavigia.ctg.infrastructure.eventos.SectorActualizadoEvent;
 import java.util.ArrayList;
 
 import java.util.List;

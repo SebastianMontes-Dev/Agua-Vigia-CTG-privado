@@ -10,7 +10,6 @@ import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.UsuarioRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 
 import java.util.UUID;
 
@@ -24,7 +23,6 @@ import java.util.UUID;
  * de alguien que está haciendo daño ahora mismo. Se prefiere la acción hecha y el asiento perdido
  * —con su log de error— a la acción bloqueada.
  */
-@Component
 public class RegistroDeAuditoria {
 
     private static final Logger log = LoggerFactory.getLogger(RegistroDeAuditoria.class);

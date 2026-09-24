@@ -12,7 +12,6 @@ import com.aguavigia.ctg.domain.port.out.CifradorClavePort;
 import com.aguavigia.ctg.domain.port.out.NotificacionCuentaPort;
 import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.UsuarioRepository;
-import org.springframework.stereotype.Service;
 
 import java.util.UUID;
 
@@ -24,7 +23,6 @@ import java.util.UUID;
  * dirección, por correo. Así el formulario no sirve para averiguar qué correos están registrados, y
  * de paso el titular se entera de que alguien intentó usar el suyo.
  */
-@Service
 public class RegistrarUsuarioService implements RegistrarUsuarioUseCase {
 
     private final UsuarioRepository usuarios;

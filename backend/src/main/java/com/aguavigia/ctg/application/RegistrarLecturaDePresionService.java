@@ -7,8 +7,6 @@ import com.aguavigia.ctg.domain.TipoReporte;
 import com.aguavigia.ctg.domain.port.in.RegistrarLecturaDePresionUseCase;
 import com.aguavigia.ctg.domain.port.in.RegistrarReporteUseCase;
 import com.aguavigia.ctg.domain.port.out.SectorRepository;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
 
 /**
  * M13 — telemetría IoT pasiva. Un sensor que reporta presión baja es, para el dominio, un reporte
@@ -16,7 +14,6 @@ import org.springframework.stereotype.Service;
  * {@link RegistrarReporteUseCase}. El umbral que decide qué es «presión baja» vivía en el
  * controlador, que es lo que un controlador no debe decidir.
  */
-@Service
 public class RegistrarLecturaDePresionService implements RegistrarLecturaDePresionUseCase {
 
     private final SectorRepository sectores;
@@ -25,7 +22,6 @@ public class RegistrarLecturaDePresionService implements RegistrarLecturaDePresi
 
     public RegistrarLecturaDePresionService(SectorRepository sectores,
                                              RegistrarReporteUseCase registrarReporte,
-                                             @Value("${aguavigia.iot.umbral-presion-baja-psi:15.0}")
                                              double umbralPresionBajaPsi) {
         this.sectores = sectores;
         this.registrarReporte = registrarReporte;

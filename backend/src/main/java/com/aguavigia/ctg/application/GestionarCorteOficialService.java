@@ -14,7 +14,6 @@ import com.aguavigia.ctg.domain.port.out.CorteAguaRepository;
 import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.SectorRepository;
 import com.aguavigia.ctg.domain.port.out.TransaccionPort;
-import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -40,7 +39,6 @@ import java.util.stream.Collectors;
  * lo hacía, y `EstadoServicio.CORTE_PROGRAMADO` no se asignaba en ninguna parte del sistema: el
  * mapa no distinguía un corte anunciado de un barrio con servicio normal.
  */
-@Service
 public class GestionarCorteOficialService implements GestionarCorteOficialUseCase {
 
     private final CorteAguaRepository cortes;

@@ -10,7 +10,6 @@ import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.VentanaTiempo;
 import com.aguavigia.ctg.domain.port.in.CalcularCumplimientoUseCase;
 import com.aguavigia.ctg.domain.port.out.CorteAguaRepository;
-import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -26,7 +25,6 @@ import java.util.List;
  * ("Prometieron 2 horas · Fueron 8"). Solo se agregan cortes **cerrados** (RF020: "por cada corte
  * cerrado") — uno abierto no tiene duración real todavía.
  */
-@Service
 public class CalcularCumplimientoService implements CalcularCumplimientoUseCase {
 
     private final CorteAguaRepository cortes;

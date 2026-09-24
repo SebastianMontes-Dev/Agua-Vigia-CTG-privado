@@ -7,7 +7,6 @@ import com.aguavigia.ctg.domain.ReporteCiudadano;
 import com.aguavigia.ctg.domain.ReporteId;
 import com.aguavigia.ctg.domain.port.in.ConfirmarReporteUseCase;
 import com.aguavigia.ctg.domain.port.out.ReporteCiudadanoRepository;
-import org.springframework.stereotype.Service;
 
 /**
  * M11 — RF038: confirmar con un toque un reporte que ya existe.
@@ -18,7 +17,6 @@ import org.springframework.stereotype.Service;
  * algún día RF009-RF011 evoluciona a contar confirmaciones como sustento, el sitio donde
  * reintroducirlo es aquí.
  */
-@Service
 public class ConfirmarReporteService implements ConfirmarReporteUseCase {
 
     private final ReporteCiudadanoRepository reportes;

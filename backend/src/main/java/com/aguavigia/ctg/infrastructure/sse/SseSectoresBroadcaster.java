@@ -1,4 +1,4 @@
-package com.aguavigia.ctg.api;
+package com.aguavigia.ctg.infrastructure.sse;
 
 import com.aguavigia.ctg.domain.LimiteDePeticionesExcedidoException;
 import com.aguavigia.ctg.domain.port.out.RelojPort;

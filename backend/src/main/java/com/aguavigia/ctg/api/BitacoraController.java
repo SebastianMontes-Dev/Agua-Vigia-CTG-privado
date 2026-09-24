@@ -2,11 +2,11 @@ package com.aguavigia.ctg.api;
 
 import com.aguavigia.ctg.api.dto.EventoBitacoraRespuesta;
 import com.aguavigia.ctg.api.mapper.EventoBitacoraApiMapper;
-import com.aguavigia.ctg.domain.EntidadNoEncontradaException;
 import com.aguavigia.ctg.domain.EventoBitacora;
 import com.aguavigia.ctg.domain.EventoId;
 import com.aguavigia.ctg.domain.ReporteId;
 import com.aguavigia.ctg.domain.Pagina;
+import com.aguavigia.ctg.domain.port.in.ConsultarSustentoDeEventoUseCase;
 import com.aguavigia.ctg.domain.port.out.EventoBitacoraRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -37,10 +37,13 @@ public class BitacoraController {
 
     private final EventoBitacoraRepository eventos;
     private final EventoBitacoraApiMapper mapper;
+    private final ConsultarSustentoDeEventoUseCase sustento;
 
-    public BitacoraController(EventoBitacoraRepository eventos, EventoBitacoraApiMapper mapper) {
+    public BitacoraController(EventoBitacoraRepository eventos, EventoBitacoraApiMapper mapper,
+                              ConsultarSustentoDeEventoUseCase sustento) {
         this.eventos = eventos;
         this.mapper = mapper;
+        this.sustento = sustento;
     }
 
     @Operation(summary = "Listar los eventos de la bitácora, más recientes primero",
@@ -77,18 +80,11 @@ public class BitacoraController {
             @RequestParam(required = false) Integer pagina,
             @RequestParam(required = false) Integer tamano) {
 
-        EventoBitacora evento = eventos.buscarPorId(new EventoId(id))
-                .orElseThrow(() -> new EntidadNoEncontradaException("No existe el evento '" + id + "'"));
-
-        int paginaPedida = Pagina.paginaValida(pagina);
-        int tamanoPedido = Pagina.tamanoValido(tamano);
-        List<ReporteId> todos = evento.reportesSustento();
-        int desde = (int) Math.min((long) paginaPedida * tamanoPedido, todos.size());
-        int hasta = Math.min(desde + tamanoPedido, todos.size());
-        List<String> ids = todos.subList(desde, hasta).stream().map(ReporteId::valor).toList();
+        Pagina<ReporteId> resultado = sustento.sustento(new EventoId(id), pagina, tamano);
+        List<String> ids = resultado.contenido().stream().map(ReporteId::valor).toList();
 
         return CabecerasDePaginacion.respuesta(
-                new Pagina<>(ids, paginaPedida, tamanoPedido, todos.size()), ids,
+                new Pagina<>(ids, resultado.pagina(), resultado.tamano(), resultado.totalElementos()), ids,
                 "/api/bitacora/" + id + "/sustento");
     }
 }

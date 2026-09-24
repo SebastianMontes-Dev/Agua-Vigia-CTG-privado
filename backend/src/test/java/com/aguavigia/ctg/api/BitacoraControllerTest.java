@@ -36,7 +36,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * IndiceCumplimientoControllerTest).
  */
 @WebMvcTest(BitacoraController.class)
-@Import({EventoBitacoraApiMapperImpl.class, SecurityConfig.class})
+@Import({EventoBitacoraApiMapperImpl.class, SecurityConfig.class,
+        com.aguavigia.ctg.application.ConsultarSustentoDeEventoService.class})
 @TestPropertySource(properties = "aguavigia.rate-limit.reglas=")
 class BitacoraControllerTest {
 

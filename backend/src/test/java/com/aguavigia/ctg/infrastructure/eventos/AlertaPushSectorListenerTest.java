@@ -1,5 +1,6 @@
-package com.aguavigia.ctg.application;
+package com.aguavigia.ctg.infrastructure.eventos;
 
+import com.aguavigia.ctg.application.EnviarAlertaPushService;
 import com.aguavigia.ctg.domain.EstadoServicio;
 import com.aguavigia.ctg.domain.Sector;
 import com.aguavigia.ctg.domain.SectorId;

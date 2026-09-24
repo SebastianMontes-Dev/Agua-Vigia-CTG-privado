@@ -17,8 +17,6 @@ import com.aguavigia.ctg.domain.port.out.ControlIntentosPort;
 import com.aguavigia.ctg.domain.port.out.EmisorDeSesionPort;
 import com.aguavigia.ctg.domain.port.out.SegundoFactorPort;
 import com.aguavigia.ctg.domain.port.out.UsuarioRepository;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.util.Optional;
@@ -37,7 +35,6 @@ import java.util.Optional;
  * 3. El estado de la cuenta se revisa DESPUÉS de validar la clave. Antes, responder "esa cuenta
  *    está suspendida" a quien no sabe la clave regalaría media respuesta.
  */
-@Service
 public class AutenticarUsuarioService implements AutenticarUsuarioUseCase {
 
     /**
@@ -63,9 +60,9 @@ public class AutenticarUsuarioService implements AutenticarUsuarioUseCase {
                                     ControlIntentosPort intentos,
                                     EmisorDeSesionPort emisorDeSesion,
                                     RegistroDeAuditoria auditoria,
-                                    @Value("${aguavigia.cuentas.maximo-intentos:5}") int maximoIntentos,
-                                    @Value("${aguavigia.cuentas.ventana-intentos-minutos:15}") long ventanaIntentosMinutos,
-                                    @Value("${aguavigia.cuentas.bloqueo-minutos:15}") long bloqueoMinutos) {
+                                    int maximoIntentos,
+                                    long ventanaIntentosMinutos,
+                                    long bloqueoMinutos) {
         this.usuarios = usuarios;
         this.cifrador = cifrador;
         this.segundoFactor = segundoFactor;

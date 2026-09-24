@@ -24,7 +24,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(Open311Controller.class)
-@Import({ManejadorGlobalDeErrores.class, SecurityConfig.class})
+@Import({ManejadorGlobalDeErrores.class, SecurityConfig.class,
+        com.aguavigia.ctg.application.ListarSectoresAfectadosService.class})
 class Open311ControllerTest {
 
     // SecurityConfig construye JwtAuthenticationFilter con este puerto: el filtro consulta la

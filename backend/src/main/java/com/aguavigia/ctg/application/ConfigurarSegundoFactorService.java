@@ -14,7 +14,6 @@ import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.RevocacionSesionPort;
 import com.aguavigia.ctg.domain.port.out.SegundoFactorPort;
 import com.aguavigia.ctg.domain.port.out.UsuarioRepository;
-import org.springframework.stereotype.Service;
 
 /**
  * Alta del TOTP en dos pasos. El primero solo guarda el secreto sin confirmar; hasta el segundo, la
@@ -25,7 +24,6 @@ import org.springframework.stereotype.Service;
  * sesión de alcance ALTA_SEGUNDO_FACTOR, que no sirve para nada más. Sin canjearla, tendría que
  * volver a escribir su clave justo después de haber demostrado dos factores.
  */
-@Service
 public class ConfigurarSegundoFactorService implements ConfigurarSegundoFactorUseCase {
 
     private final UsuarioRepository usuarios;

@@ -13,8 +13,6 @@ import com.aguavigia.ctg.domain.port.out.NotificacionCuentaPort;
 import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.RevocacionSesionPort;
 import com.aguavigia.ctg.domain.port.out.UsuarioRepository;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.util.Optional;
@@ -28,7 +26,6 @@ import java.util.Optional;
  *
  * Revoca todas las sesiones, la actual incluida: si alguien más tenía un token, deja de servir.
  */
-@Service
 public class CambiarClaveService implements CambiarClaveUseCase {
 
     private final UsuarioRepository usuarios;
@@ -49,9 +46,9 @@ public class CambiarClaveService implements CambiarClaveUseCase {
                                NotificacionCuentaPort notificaciones,
                                RegistroDeAuditoria auditoria,
                                RelojPort reloj,
-                               @Value("${aguavigia.cuentas.maximo-intentos:5}") int maximoIntentos,
-                               @Value("${aguavigia.cuentas.ventana-intentos-minutos:15}") long ventanaIntentosMinutos,
-                               @Value("${aguavigia.cuentas.bloqueo-minutos:15}") long bloqueoMinutos) {
+                               int maximoIntentos,
+                               long ventanaIntentosMinutos,
+                               long bloqueoMinutos) {
         this.usuarios = usuarios;
         this.cifrador = cifrador;
         this.revocacion = revocacion;

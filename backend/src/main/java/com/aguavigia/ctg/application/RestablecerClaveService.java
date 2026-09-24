@@ -14,7 +14,6 @@ import com.aguavigia.ctg.domain.port.out.NotificacionCuentaPort;
 import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.RevocacionSesionPort;
 import com.aguavigia.ctg.domain.port.out.UsuarioRepository;
-import org.springframework.stereotype.Service;
 
 /**
  * "Olvidé mi clave", con la propiedad que hace que no sea también "¿está registrado este correo?":
@@ -25,7 +24,6 @@ import org.springframework.stereotype.Service;
  * cambiar su clave es a menudo porque sospecha que otro la tiene, y dejarle abierta la sesión al
  * intruso vaciaría de sentido el cambio.
  */
-@Service
 public class RestablecerClaveService implements RestablecerClaveUseCase {
 
     private final UsuarioRepository usuarios;

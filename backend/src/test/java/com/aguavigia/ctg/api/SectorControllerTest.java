@@ -1,5 +1,6 @@
 package com.aguavigia.ctg.api;
 
+import com.aguavigia.ctg.infrastructure.sse.SseSectoresBroadcaster;
 import com.aguavigia.ctg.api.error.ManejadorGlobalDeErrores;
 import com.aguavigia.ctg.api.mapper.SectorApiMapperImpl;
 import com.aguavigia.ctg.domain.EstadoServicio;
@@ -173,22 +174,5 @@ class SectorControllerTest {
                 .andExpect(status().isOk());
 
         verify(sseBroadcaster).registrar();
-    }
-
-    @Autowired
-    private org.springframework.context.ApplicationEventPublisher eventPublisher;
-
-    /**
-     * Backplane Redis (estado-del-backend.md #6.1): el controlador ya no difunde directo a
-     * emitters propios, solo le avisa al broadcaster para que publique en Redis. Quién de verdad
-     * empuja a los clientes conectados (SseSectoresBroadcaster.onMessage) se prueba aparte, en
-     * SseSectoresBroadcasterTest.
-     */
-    @Test
-    void debeNotificarAlBroadcasterCuandoUnSectorEsActualizado() {
-        eventPublisher.publishEvent(new com.aguavigia.ctg.application.SectorActualizadoEvent(
-                new Sector(new SectorId("manga"), "MANGA", 5000, EstadoServicio.PRESION_BAJA)));
-
-        verify(sseBroadcaster).notificarActualizacion();
     }
 }

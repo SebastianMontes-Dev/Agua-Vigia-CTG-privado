@@ -1,4 +1,4 @@
-package com.aguavigia.ctg.application;
+package com.aguavigia.ctg.infrastructure.eventos;
 
 import com.aguavigia.ctg.domain.port.in.EnviarAlertaPushUseCase;
 import org.springframework.context.event.EventListener;

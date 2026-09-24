@@ -36,7 +36,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 /** RF002 — el histórico de cortes de un sector es información pública: se ve sin iniciar sesión. */
 @WebMvcTest(HistorialDeCortesController.class)
-@Import({CorteApiMapperImpl.class, ManejadorGlobalDeErrores.class, SecurityConfig.class})
+@Import({CorteApiMapperImpl.class, ManejadorGlobalDeErrores.class, SecurityConfig.class,
+        com.aguavigia.ctg.application.ConsultarHistorialDeCortesService.class})
 @TestPropertySource(properties = "aguavigia.rate-limit.reglas=")
 class HistorialDeCortesControllerTest {
 

@@ -19,8 +19,6 @@ import com.aguavigia.ctg.domain.port.out.SectorRepository;
 import com.aguavigia.ctg.domain.port.out.TransaccionPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.util.List;
@@ -40,7 +38,6 @@ import java.util.stream.Collectors;
  * también alimenta SSE y push, así que es el único disparador — duplicarlo aquí mandaba dos
  * correos por cada cambio de estado.
  */
-@Service
 public class EvaluarConsensoService implements EvaluarConsensoUseCase {
 
     private static final Logger log = LoggerFactory.getLogger(EvaluarConsensoService.class);
@@ -63,7 +60,7 @@ public class EvaluarConsensoService implements EvaluarConsensoUseCase {
                                    RegistrarEventoBitacoraUseCase registrarEvento,
                                    RelojPort reloj,
                                    TransaccionPort transaccion,
-                                   @Value("${aguavigia.consenso.ventana-minutos:30}") long ventanaMinutos) {
+                                   long ventanaMinutos) {
         this.sectores = sectores;
         this.reportes = reportes;
         this.contadorReportes = contadorReportes;

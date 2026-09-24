@@ -3,9 +3,7 @@ package com.aguavigia.ctg.application;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.port.in.EnviarAlertaPushUseCase;
 import com.aguavigia.ctg.domain.port.out.NotificadorPushPort;
-import org.springframework.stereotype.Service;
 
-@Service
 public class EnviarAlertaPushService implements EnviarAlertaPushUseCase {
 
     private final NotificadorPushPort notificadorPushPort;

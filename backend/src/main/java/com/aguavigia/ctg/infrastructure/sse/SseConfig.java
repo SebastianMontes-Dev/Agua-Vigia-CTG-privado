@@ -1,4 +1,4 @@
-package com.aguavigia.ctg.api;
+package com.aguavigia.ctg.infrastructure.sse;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

@@ -8,7 +8,6 @@ import com.aguavigia.ctg.domain.UsuarioId;
 import com.aguavigia.ctg.domain.port.in.ConsultarCuentasUseCase;
 import com.aguavigia.ctg.domain.port.out.AuditoriaRepository;
 import com.aguavigia.ctg.domain.port.out.UsuarioRepository;
-import org.springframework.stereotype.Service;
 
 import java.util.Optional;
 
@@ -16,7 +15,6 @@ import java.util.Optional;
  * Lecturas del panel de administración. Paginadas por el mismo motivo que la bitácora (ver
  * {@code Pagina}): la auditoría es de solo anexado y crece sin cota.
  */
-@Service
 public class ConsultarCuentasService implements ConsultarCuentasUseCase {
 
     private final UsuarioRepository usuarios;

@@ -11,7 +11,6 @@ import com.aguavigia.ctg.domain.port.in.InvitarUsuarioUseCase;
 import com.aguavigia.ctg.domain.port.out.NotificacionCuentaPort;
 import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.UsuarioRepository;
-import org.springframework.stereotype.Service;
 
 import java.util.UUID;
 
@@ -20,7 +19,6 @@ import java.util.UUID;
  * ya está autenticado como ADMIN y tiene la lista de cuentas delante. Ocultárselo no protegería
  * nada y le haría creer que la invitación salió.
  */
-@Service
 public class InvitarUsuarioService implements InvitarUsuarioUseCase {
 
     private final UsuarioRepository usuarios;

@@ -25,6 +25,10 @@ Referencias cruzadas: `ADR-NNN` · `BUG-NNN` · `RF0NN` · `archivo:línea`.
 
 ## Preparación del backend
 
+### 2026-09-23 · `refactor/casos-de-uso-sin-spring`
+**Qué:** Fase 4 del plan de Yordy completa (`ADR-065`): `application/` sin ningún import de Spring (`CasosDeUsoConfig` los registra), listeners, evento y SSE movidos a `infrastructure/eventos` y `infrastructure/sse`, y la lógica de tres controladores (histórico de cortes, sustento de bitácora, Open311) pasada a casos de uso nuevos con `Pagina.deLista`. Dos reglas de ArchUnit nuevas; build completa: 881 pruebas, 0 fallos. No se dividieron `AdministrarCuentaService` ni `ConfigurarSegundoFactorService` (guardas compartidas, ver ADR).
+**Sigue:** Al fusionar el PR, registrar la implementación. Fase 5 (entregar el entorno al frontend: arranque limpio, CORS, flujos HTTP reales) sin empezar. Del dueño: borrar `./respaldos-mongo-drill/`, `REC-018` y las 5 etiquetas git viejas.
+
 ### 2026-09-22 · `feat/transacciones-estado-bitacora`
 **Qué:** Fase 3 del plan de Yordy, tercer punto: `TransaccionPort`/`TransaccionMongoAdapter` (`ADR-064`,
 `TransactionTemplate` sobre `MongoTransactionManager`, reintento acotado ante `TransientTransactionError`).
@@ -37,9 +41,8 @@ TDD en las 5 piezas; build completa: 874 pruebas, 0 fallos. Aparte, se corrió e
 de `BUG-088` (§5 de `respaldo-y-restauracion.md`, nadie lo había hecho): contra `docker-compose.yml`
 poblado (211 sectores, 20 001 usuarios, 117 eventos), respaldo + restauración con `restore-mongo.sh`,
 21 534 documentos, 0 fallos, `GET /api/sectores` y `GET /api/bitacora` en 200 con el mismo contenido —
-sin poder probar el paso de la foto porque no había ningún reporte con `fotoUrl` sembrado. Nada de esto
-se ha commiteado todavía (working tree con los cambios sin confirmar, a la espera de que el dueño pida el
-commit).
+sin poder probar el paso de la foto porque no había ningún reporte con `fotoUrl` sembrado.
+Fusionado después en el PR #47.
 **Sigue:** Fase 3, lo que falta: decidir si esta transacción reemplaza el documento de control de
 `BUG-100`/`ADR-062` (insinuado en su propio "cómo se revierte", no urgente). Del dueño: pedir el commit
 de esta rama si aprueba el resultado, y borrar a mano `./respaldos-mongo-drill/` (1.7M, `rm -rf` denegado

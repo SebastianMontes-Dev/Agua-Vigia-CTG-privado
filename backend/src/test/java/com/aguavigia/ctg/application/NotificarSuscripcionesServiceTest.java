@@ -23,7 +23,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 /**
- * Este servicio es el **único** suscriptor de SectorActualizadoEvent que manda correo. Tanto
+ * Este servicio es el **único** camino que manda correo al cambiar un sector. Tanto
  * EvaluarConsensoService como GestionarCorteOficialService recorrían además las suscripciones a
  * mano, y por eso cada cambio de estado mandaba dos correos al mismo vecino. Esta prueba fija el
  * contrato: un evento, un correo por suscriptor confirmado.
@@ -49,9 +49,8 @@ class NotificarSuscripcionesServiceTest {
                 List.of(MANGA), EstadoSuscripcion.CONFIRMADA, "token-" + id, CREADA_EN);
     }
 
-    private SectorActualizadoEvent evento() {
-        return new SectorActualizadoEvent(
-                new Sector(MANGA, "Manga", 5000, EstadoServicio.SIN_SERVICIO, CREADA_EN));
+    private Sector sector() {
+        return new Sector(MANGA, "Manga", 5000, EstadoServicio.SIN_SERVICIO, CREADA_EN);
     }
 
     @Test
@@ -60,10 +59,10 @@ class NotificarSuscripcionesServiceTest {
         Suscripcion otra = suscripcion("s-2", "dos@correo.com");
         given(suscripciones.buscarConfirmadasPorSector(MANGA)).willReturn(List.of(una, otra));
 
-        servicio.alActualizarSector(evento());
+        servicio.notificarCambioDeEstado(sector());
 
-        verify(notificador, times(1)).avisarCambioDeEstado(una, evento().sector());
-        verify(notificador, times(1)).avisarCambioDeEstado(otra, evento().sector());
+        verify(notificador, times(1)).avisarCambioDeEstado(una, sector());
+        verify(notificador, times(1)).avisarCambioDeEstado(otra, sector());
     }
 
     @Test
@@ -71,12 +70,12 @@ class NotificarSuscripcionesServiceTest {
         given(suscripciones.buscarConfirmadasPorSector(MANGA))
                 .willReturn(List.of(suscripcion("s-1", "uno@correo.com")));
 
-        SectorActualizadoEvent evento = evento();
-        servicio.alActualizarSector(evento);
+        Sector sector = sector();
+        servicio.notificarCambioDeEstado(sector);
 
         // El evento viaja con el sector ya guardado y releído, así que trae la fecha del cambio
         // que el correo necesita mostrar (RF003).
-        verify(notificador).avisarCambioDeEstado(any(), org.mockito.ArgumentMatchers.eq(evento.sector()));
+        verify(notificador).avisarCambioDeEstado(any(), org.mockito.ArgumentMatchers.eq(sector));
     }
 
     /** RF013 — nadie recibe avisos sin haber pasado por el doble opt-in. */
@@ -84,7 +83,7 @@ class NotificarSuscripcionesServiceTest {
     void sinSuscriptoresConfirmadosNoDebeMandarNada() {
         given(suscripciones.buscarConfirmadasPorSector(MANGA)).willReturn(List.of());
 
-        servicio.alActualizarSector(evento());
+        servicio.notificarCambioDeEstado(sector());
 
         verify(notificador, never()).avisarCambioDeEstado(any(), any());
     }
@@ -93,7 +92,7 @@ class NotificarSuscripcionesServiceTest {
     void debeConsultarLasSuscripcionesDelSectorDelEventoYNoDeOtro() {
         given(suscripciones.buscarConfirmadasPorSector(any())).willReturn(List.of());
 
-        servicio.alActualizarSector(evento());
+        servicio.notificarCambioDeEstado(sector());
 
         verify(suscripciones).buscarConfirmadasPorSector(MANGA);
     }

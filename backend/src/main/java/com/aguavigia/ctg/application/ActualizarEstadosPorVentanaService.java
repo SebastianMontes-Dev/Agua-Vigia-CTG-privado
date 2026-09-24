@@ -15,7 +15,6 @@ import com.aguavigia.ctg.domain.port.out.SectorRepository;
 import com.aguavigia.ctg.domain.port.out.TransaccionPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -39,7 +38,6 @@ import java.util.stream.Collectors;
  * traía ventana, el sector no se toca. Y solo escribe cuando el estado cambia de verdad, para no
  * disparar correo, push y SSE en cada barrido.
  */
-@Service
 public class ActualizarEstadosPorVentanaService implements ActualizarEstadosPorVentanaUseCase {
 
     private static final Logger log = LoggerFactory.getLogger(ActualizarEstadosPorVentanaService.class);

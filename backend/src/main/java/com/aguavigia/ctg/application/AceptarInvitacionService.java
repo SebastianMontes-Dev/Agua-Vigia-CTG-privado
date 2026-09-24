@@ -9,13 +9,11 @@ import com.aguavigia.ctg.domain.port.in.AceptarInvitacionUseCase;
 import com.aguavigia.ctg.domain.port.out.CifradorClavePort;
 import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.UsuarioRepository;
-import org.springframework.stereotype.Service;
 
 /**
  * La invitación ya probó el correo y ya trae el rol decidido: fijar la clave deja la cuenta ACTIVA
  * sin más aprobaciones. No hace falta una segunda — quien invitó es justamente quien aprueba.
  */
-@Service
 public class AceptarInvitacionService implements AceptarInvitacionUseCase {
 
     private final UsuarioRepository usuarios;

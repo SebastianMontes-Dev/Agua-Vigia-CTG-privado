@@ -8,7 +8,6 @@ import com.aguavigia.ctg.domain.port.out.GeneradorSecretosPort;
 import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.TokenCuentaRepository;
 import com.aguavigia.ctg.domain.port.out.UsuarioRepository;
-import org.springframework.stereotype.Component;
 
 /**
  * Emite y consume los enlaces de un solo uso. Los tres flujos que los usan —verificar correo,
@@ -18,7 +17,6 @@ import org.springframework.stereotype.Component;
  * En la base de datos vive solo el hash. Quien consiga leer la colección de tokens no puede
  * fabricar el enlace, igual que no puede fabricar una contraseña con la tabla de usuarios.
  */
-@Component
 public class EmisorDeTokensDeCuenta {
 
     private final TokenCuentaRepository tokens;
