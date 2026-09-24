@@ -191,6 +191,21 @@ simulada (RNF001). El mapa debe cargar primero el estado y después la geometrí
 
 ---
 
+### Requisito: Un frontend en su propio dev server puede llamar a la API en local
+
+En el entorno local (perfiles `dev` y `docker`) la API deja pasar, por CORS, a los orígenes de los dev servers habituales (`5173`, `3000`, `4200`) o a los que declare `CORS_ORIGENES`. En producción sigue cerrado: todo va detrás del mismo proxy.
+
+#### Escenario: Preflight desde un origen permitido
+
+- **Dado** el entorno levantado con `docker compose up`
+- **Cuando** el navegador hace `OPTIONS /api/sectores` con `Origin: http://localhost:5173`
+- **Entonces** responde `200` con `Access-Control-Allow-Origin: http://localhost:5173`
+
+#### Escenario: Preflight desde un origen ajeno
+
+- **Cuando** el `Origin` no está en la lista
+- **Entonces** responde `403` y no emite cabeceras CORS
+
 ## Reporte ciudadano
 
 *M2 · M10 · M11 · RF005–RF008, RF037, RF038*

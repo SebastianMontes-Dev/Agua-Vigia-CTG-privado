@@ -56,6 +56,15 @@ jobs:
       - name: Construir la imagen del backend
         run: docker compose -f docker-compose.prod.yml build backend
 
+      # BUG-101: sin este directorio en la imagen, el volumen de fotos nacía como root y el usuario sin
+      # privilegios no podía escribir en él (toda subida de foto respondía 500 en una instalación limpia).
+      - name: El directorio de fotos debe existir en la imagen y ser del usuario de la aplicación
+        run: |
+          IMAGEN=$(docker compose -f docker-compose.prod.yml config --images | grep backend | head -1)
+          DUENO=$(docker run --rm --entrypoint stat "$IMAGEN" -c '%U' /app/data/fotos)
+          echo "Dueño de /app/data/fotos en $IMAGEN: $DUENO"
+          [ "$DUENO" = "aguavigia" ] || { echo "::error::/app/data/fotos no es de aguavigia (es de '$DUENO')"; exit 1; }
+
       # El proxy no se construye (usa la imagen oficial de nginx con la configuración montada), así
       # que un error de sintaxis en infra/nginx solo aparecería al arrancar en producción.
       # `--add-host` porque nginx resuelve el nombre del backend al validar.

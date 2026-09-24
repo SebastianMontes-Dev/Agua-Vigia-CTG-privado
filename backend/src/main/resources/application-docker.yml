@@ -12,3 +12,11 @@ spring:
   mail:
     host: ${MAIL_HOST:mailhog}
     port: ${MAIL_PORT:1025}
+
+# El frontend se sirve con su propio dev server (otro origen que el backend en :8081), así que este
+# perfil —el del entorno local con docker-compose— tiene que dejarlo pasar. Por defecto los puertos
+# habituales de Vite (5173), React/Next (3000) y Angular (4200); CORS_ORIGENES los reemplaza con una
+# lista separada por comas. Producción usa otro perfil y sigue cerrado (todo pasa por el mismo proxy).
+aguavigia:
+  cors:
+    origenes-permitidos: ${CORS_ORIGENES:http://localhost:5173,http://localhost:3000,http://localhost:4200}

@@ -18,6 +18,7 @@
  *   node scripts/codigo-totp.mjs --autoprueba          # vectores del RFC 6238
  */
 import { createHmac } from 'node:crypto'
+import { pathToFileURL } from 'node:url'
 
 const ALFABETO = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
 const DIGITOS = 6
@@ -87,9 +88,12 @@ function autoprueba() {
   console.log('\nLos 4 vectores del RFC 6238 coinciden.')
 }
 
+const esCli = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href
 const argumento = process.argv[2]
 
-if (argumento === '--autoprueba') {
+if (!esCli) {
+  // importado como módulo (p. ej. por verificar-flujos.mjs): solo exporta codigoTotp
+} else if (argumento === '--autoprueba') {
   autoprueba()
 } else if (!argumento) {
   console.error('Uso: node scripts/codigo-totp.mjs <SECRETO_BASE32>')
