@@ -27,11 +27,11 @@ Referencias cruzadas: `ADR-NNN` · `BUG-NNN` · `RF0NN` · `archivo:línea`.
 
 ### 2026-09-24 · `chore/entorno-para-frontend`
 **Qué:** Fase 5 del plan de Yordy: entorno construido desde cero (copia del repo sin `.env` ni datos, `up --build`, siembra) y recorrido con HTTP real por el nuevo `scripts/verificar-flujos.mjs`: 21 pasos, 0 fallos (plan de pruebas §8). Hallazgos: `BUG-101` (volumen de fotos como `root` → 500 al subir foto en instalación limpia; corregido en el `Dockerfile` y vigilado en `despliegue-ci.yml`), CORS cerrado en el perfil `docker` (ahora abre 5173/3000/4200, `CORS_ORIGENES`, `CorsPorPerfilTest`) y la trampa del `$` del hash en `.env` (documentada). Guía de consumo, entorno local y comportamiento actualizados. Build: 884 pruebas, 0 fallos. Un fallo de revocación de sesión visto una vez con estado sucio no se reprodujo (3 intentos) y queda sin explicar.
-**Sigue:** Fusionar los PR #48 y el de esta rama (este apunta a la rama del #48) y registrar ambas implementaciones. Del dueño: `sprint-6.md` y qué cuenta como demo sin frontend propio (`REC-018`); un volumen `fotos-data` creado con la imagen vieja sigue siendo de `root` (borrarlo o `chown` una vez). Sin cubrir: `RF041`, TLS/proxy de producción y los 50 000 usuarios (`ADR-057`).
+**Sigue:** Los PR #48 y #49 quedaron fusionados y registrados. Del dueño: `sprint-6.md` y qué cuenta como demo sin frontend propio (`REC-018`); un volumen `fotos-data` creado con la imagen vieja sigue siendo de `root` (borrarlo o `chown` una vez). Sin cubrir: `RF041`, TLS/proxy de producción y los 50 000 usuarios (`ADR-057`).
 
 ### 2026-09-23 · `refactor/casos-de-uso-sin-spring`
 **Qué:** Fase 4 del plan de Yordy completa (`ADR-065`): `application/` sin ningún import de Spring (`CasosDeUsoConfig` los registra), listeners, evento y SSE movidos a `infrastructure/eventos` y `infrastructure/sse`, y la lógica de tres controladores (histórico de cortes, sustento de bitácora, Open311) pasada a casos de uso nuevos con `Pagina.deLista`. Dos reglas de ArchUnit nuevas; build completa: 881 pruebas, 0 fallos. No se dividieron `AdministrarCuentaService` ni `ConfigurarSegundoFactorService` (guardas compartidas, ver ADR).
-**Sigue:** Al fusionar el PR, registrar la implementación. Fase 5 (entregar el entorno al frontend: arranque limpio, CORS, flujos HTTP reales) sin empezar. Del dueño: borrar `./respaldos-mongo-drill/`, `REC-018` y las 5 etiquetas git viejas.
+**Sigue:** Fase 5 (hecha después, ver la entrada de arriba). PR #48 fusionado y registrado. Del dueño: borrar `./respaldos-mongo-drill/`, `REC-018` y las 5 etiquetas git viejas.
 
 ### 2026-09-22 · `feat/transacciones-estado-bitacora`
 **Qué:** Fase 3 del plan de Yordy, tercer punto: `TransaccionPort`/`TransaccionMongoAdapter` (`ADR-064`,
