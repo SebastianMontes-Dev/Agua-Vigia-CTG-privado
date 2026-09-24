@@ -112,4 +112,21 @@ Corrida de `scripts/verificar-flujos.mjs` (2026-09-24) contra un entorno **const
 (volumen de fotos como `root`), CORS cerrado en el perfil `docker` (corregido, `CorsPorPerfilTest`) y la trampa del `$` del
 hash en el `.env` (documentada). **No cubre** el envío real de WhatsApp/Telegram (`RF041`), TLS/proxy de producción ni la carga
 de 50 000 usuarios (`ADR-057`). Un fallo de revocación de sesión visto una vez en una repetición con estado sucio
-(`token` aún válido tras `cierre`) no se reprodujo en tres intentos posteriores y queda sin explicar.
+(`token` aún válido tras `cierre`) no se reprodujo en tres intentos posteriores. **Explicación probable (2026-09-24, no reproducida a
+propósito):** `JwtAuthenticationFilter.sigueVigente` compara `iat` y la marca de revocación truncadas a segundos y acepta
+**a propósito** que un token emitido en el mismo segundo de la revocación sobreviva (su comentario lo explica). El script hace el
+login con TOTP al inicio del panel, y si todos los pasos hasta el cierre caben en ese mismo segundo, el paso «cerrar sesión revoca
+el token» falla sin que el sistema esté mal. Volvió a verse el 2026-09-24 en una primera corrida, contra una imagen anterior a los
+PR #48 y #49. Arreglo pendiente y barato: que el script espere algo más de un segundo antes del cierre.
+
+### Corrida desde una copia limpia sobre `main` (2026-09-24, Sprint 6)
+
+`git archive` de `origin/main` (`488bb6c`) en una carpeta nueva **sin `.env` ni datos**, proyecto de Docker y volúmenes nuevos
+(`docker compose -p … up -d --build --wait`), `npm install` y `sembrar-sectores.mjs` en la copia, y una sola pasada de
+`scripts/verificar-flujos.mjs`: **21 pasos, 0 fallos a la primera** (incluido CORS, la foto y el cierre de sesión).
+- Sin `.env` en la carpeta, el backend arranca sano pero **no siembra ADMIN** y lo avisa en el log («Sin ADMIN_INICIAL_CORREO o
+  VEEDOR_PASSWORD_HASH…»). `docker compose --env-file` **no basta**: alimenta la interpolación del compose (por eso llegó
+  `ADMIN_INICIAL_CORREO`) pero no el `env_file: .env` del servicio, así que `JWT_SECRET` y el hash llegaron vacíos. Hace falta
+  el `.env` dentro de la carpeta del compose y recrear el backend.
+- La copia usó el `.env` del dueño (mismos `JWT_SECRET` y hash), no uno generado desde `.env.example`.
+- El directorio de fotos del contenedor pertenece a `aguavigia` (con `BUG-101` corregido, volumen nuevo).
