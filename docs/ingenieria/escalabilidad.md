@@ -89,6 +89,19 @@ comparar antes/después y para ver el orden de magnitud; **no son la capacidad d
 | 1 000 req/s | backend directo (sin caché) | 172 750 | 0,03 % | 7,7 ms | 16 ms | ≈ 1 núcleo de CPU; RSS ≈ 460 MB |
 | 5 000 req/s (media 3 730) | **nginx** (con micro-caché), k6 en su misma red | **862 591** | **0** | **12,7 ms** | 42 ms | nginx ≈ 1,2 núcleos; **el backend ≈ 13 s de CPU en 231 s (≈ 6 % de un núcleo)** |
 
+**Repetición del 2026-09-24 (Sprint 6, `RNF027`)**, mismo script, backend directo, k6 en Docker contra
+`host.docker.internal:8081`, sobre la base de la demo (211 sectores, histórico sembrado, ~20 000 usuarios):
+
+| Objetivo | Peticiones | Errores | p95 | p99 | Umbrales de k6 |
+|---|---|---|---|---|---|
+| 500 req/s | 86 375 | 0,03 % (32) | 5,2 ms | 7,0 ms | cumplidos |
+| 1 000 req/s | 172 750 | 0,03 % (65) | 7,9 ms | 18,8 ms | cumplidos |
+
+Los 97 errores de las dos corridas son `dial: i/o timeout`, la misma observación abierta de abajo (no se aisló la
+causa). Mismo orden de magnitud que la medición anterior; **no se midió CPU/RSS durante la carga** y no se repitió
+la prueba contra nginx, la de escritura en pico ni la de SSE. `RNF002` (`rnf002-registrar-reporte.js`, 20 reportes/min
+durante 2 min, 41 reportes): p95 = 32,6 ms, 0 % de errores, umbral de 1 s.
+
 - Con la micro-caché, el backend casi no nota la carga: la CPU del backend fue ~17 veces menor que sirviendo
   1 000 req/s sin caché, con 3–5 veces más tráfico. Ese es el mecanismo que sostiene los 50 000.
 - Los errores del backend directo (0,01–0,03 %) son `dial: i/o timeout` en ráfagas de 1–2 s: fallos de

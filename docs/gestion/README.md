@@ -91,7 +91,7 @@ puede mostrar, el sprint cierra aunque hayan pasado tres días.
 | **3** | Administración y alertas | El veedor registra un corte y el suscriptor recibe el correo |
 | **4** | Ingesta y Cumplimiento ⭐ | Un boletín real de Acuacar entra solo y se calcula su índice |
 | **5** | Calidad del backend | Cobertura ≥ 70% en `domain/` y `application/` (`RNF017`), exigida en cada build — la parte de interfaz de este foco original (WCAG, PWA, E2E) queda retirada por alcance hasta el frontend nuevo (`ADR-048`), no es entregable de ningún sprint numerado hoy |
-| **6** | Entrega final | Demo corriendo en local con `docker compose` (`ADR-057`) y dataset histórico cargado — qué cuenta como "demo" sin frontend propio es una decisión pendiente del dueño |
+| **6** | Entrega final | Demo corriendo en local con `docker compose` (`ADR-057`) y dataset histórico cargado — [`sprint-6.md`](sprint-6.md) propone qué cuenta como "demo" sin frontend propio; pendiente que el dueño la acepte (`REC-018`) |
 
 ---
 

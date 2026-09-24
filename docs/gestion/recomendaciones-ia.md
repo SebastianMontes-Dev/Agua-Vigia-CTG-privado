@@ -28,7 +28,7 @@
 | REC-015 | 2026-09-04 | Nada impide que `index.css` y `tipos-dominio.ts` vuelvan a discrepar en los colores de estado | Resuelta |
 | REC-016 | 2026-09-21 | La regla `Read(**/*secret*)` de `.claude/settings.json` bloquea `secret-scan.yml`, el único archivo de CI que hay que corregir para `BUG-089` | Resuelta |
 | REC-017 | 2026-09-21 | Los Sprints 3 a 6 de la hoja de ruta siguen escritos como si no se hubiera construido nada, y dos de sus entregables chocan con `ADR-048` y `ADR-057` | Resuelta |
-| REC-018 | 2026-09-22 | Qué cuenta como "demo" del Sprint 6 sin frontend propio en el repositorio no está decidido | Pendiente |
+| REC-018 | 2026-09-22 | Qué cuenta como "demo" del Sprint 6 sin frontend propio en el repositorio no está decidido | Resuelta |
 
 **Estado:** `Pendiente` (sin revisar) · `Validada` (estoy de acuerdo, puede pasar a ADR/issue/tarea) ·
 `Descartada` (no estoy de acuerdo — deja el motivo en el detalle) · `Resuelta` (ya se actuó sobre
@@ -297,7 +297,7 @@ desplegada, que `ADR-057` descartó. En esta sesión solo se ajustó el texto de
 
 ### REC-018 — Qué cuenta como "demo" del Sprint 6 sin frontend propio en el repositorio no está decidido
 
-- **Fecha:** 2026-09-22 · **Estado:** Pendiente
+- **Fecha:** 2026-09-22 · **Estado:** Resuelta el 2026-09-24 — el dueño aceptó que la demo se haga contra el backend (Swagger y `scripts/verificar-flujos.mjs`), sin esperar al frontend; definición en `docs/gestion/sprint-6.md`. El histórico se sembró y se verificó ese mismo día
 
 El Sprint 6 («Entrega final») promete una «demo desplegada, dataset histórico cargado». `ADR-057` ya descartó
 «desplegada» (el proyecto corre en local), y `docs/gestion/README.md` quedó ajustado a «demo corriendo en local
