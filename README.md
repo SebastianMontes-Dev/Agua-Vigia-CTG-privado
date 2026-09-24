@@ -6,8 +6,8 @@ AguaVigía cruza los avisos oficiales con reportes ciudadanos georreferenciados 
 
 > Cartagena de Indias · 2026
 
-**Estado actual:** backend, bases de datos e infraestructura completos salvo RF041 (webhook real de
-WhatsApp/Telegram), que depende de credenciales de terceros. **823 pruebas** de backend en verde, con la
+**Estado actual:** backend, bases de datos e infraestructura completos. RF041 (alertas por Telegram) está construido y
+armado, y se activa con `TELEGRAM_BOT_TOKEN`; falta conectarlo al bot real. **929 pruebas** de backend en verde, con la
 cobertura de `domain/` y `application/` por encima del 85% que exige la build (`./mvnw verify` con Docker
 abierto). El detalle requisito por requisito, con el nombre de la prueba que sostiene cada uno, está en la
 [matriz de trazabilidad](docs/ingenieria/matriz-trazabilidad.md).
@@ -54,7 +54,7 @@ El proyecto está construido bajo una estricta **Arquitectura Limpia (Puertos y 
 | **M11** | Validación Comunitaria | Confirmaciones de un toque para un reporte existente. |
 | **M12** | API Abierta Open311 | Estándar internacional para consumo de datos cívicos. |
 | **M13** | Integración IoT Pasiva | Telemetría en tiempo real desde sensores de presión locales. |
-| **M14** | Alertas Push | La cadena evento → caso de uso → puerto está cableada y probada; el adaptador que llama al proveedor real (RF041) sigue pendiente porque exige credenciales de WhatsApp Business o Telegram. Hoy registra en el log. |
+| **M14** | Alertas Push | Alertas por Telegram (RF041, `ADR-066`): el bot recibe por sondeo y avisa al cambiar el estado de un sector. Apagado hasta poner `TELEGRAM_BOT_TOKEN`; sin probar contra Telegram real. Guía: `docs/ingenieria/telegram.md`. |
 | **M15** | Cuentas y permisos | Cuentas individuales del panel (RF042-RF046). Registro abierto con verificación de correo y aprobación de un administrador, o invitación directa con rol asignado. Roles (ADMIN/VEEDOR/OBSERVADOR) como paquetes de permisos, con ajustes por persona; segundo factor TOTP obligatorio para ADMIN; revocación inmediata de sesiones y bitácora de auditoría. Reemplaza la credencial compartida de `ADR-016` — ver `ADR-039`. |
 
 ---
@@ -103,7 +103,7 @@ origen en `application-dev.yml` o servirlo detrás del mismo proxy. Detalle en
 
 ## 🧪 Pruebas y Aseguramiento de Calidad (QA)
 
-El backend de AguaVigía cuenta con **823 pruebas unitarias y de integración**, y la build falla si la
+El backend de AguaVigía cuenta con **929 pruebas unitarias y de integración**, y la build falla si la
 cobertura de `domain/` o `application/` baja del 85% (RNF017) o si se viola una capa de la
 arquitectura (RNF018, ArchUnit).
 

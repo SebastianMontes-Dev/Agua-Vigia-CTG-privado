@@ -195,12 +195,12 @@ A partir de la estabilización del núcleo del sistema, se proponen las siguient
 ### M13 — Integración IoT Pasiva
 | ID | Requisito | Prioridad | Actor | Origen |
 |---|---|---|---|---|
-| RF040 | El sistema debe exponer un endpoint seguro para recibir reportes automáticos de caída de presión desde sensores IoT residenciales (ej. ESP32). | Podría | Sensor IoT | Automatización comunitaria |
+| RF040 | El sistema debe exponer un endpoint seguro para recibir reportes automáticos de caída de presión desde sensores IoT residenciales (ej. ESP32). | Podría | Sensor IoT | Automatización comunitaria · **Solución que se implementaría en físico**: el endpoint está construido y probado, pero no hay sensores instalados |
 
 ### M14 — Alertas Push Instantáneas
 | ID | Requisito | Prioridad | Actor | Origen |
 |---|---|---|---|---|
-| RF041 | El sistema debe permitir la suscripción a alertas de sector mediante plataformas de mensajería instantánea (Telegram/WhatsApp) como alternativa al correo. | Debe | Vecino | Propuesta Fase 2 |
+| RF041 | El sistema debe permitir la suscripción a alertas de sector mediante plataformas de mensajería instantánea (Telegram/WhatsApp) como alternativa al correo. | Debe | Vecino | Propuesta Fase 2 · **Telegram construido y armado** (`ADR-066`): recibe por sondeo y queda apagado hasta poner `TELEGRAM_BOT_TOKEN`; sin probar contra Telegram real. WhatsApp queda fuera |
 
 ### M15 — Cuentas y permisos del panel
 

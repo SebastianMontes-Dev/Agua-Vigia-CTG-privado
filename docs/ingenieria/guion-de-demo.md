@@ -22,6 +22,8 @@ curl -s localhost:8081/actuator/health/readiness        # {"status":"UP"}
 - **La siembra histórica es aleatoria** (`Math.random()`): las cifras del índice cambian en cada corrida. En
   la corrida de referencia dieron 99,62 % global; **lee el valor real en pantalla, no lo cites de este archivo.**
 - **Sembrar borra los cortes y reportes de mayo–julio 2026** que hubiera antes (`deleteMany` del script).
+- **Copia de la base de la demo** (211 sectores, histórico y 40 001 cuentas, 2026-09-24): `C:UserssabasDocumentosespaldos-aguavigiaaguavigia-demo-2026-09-24.archive.gz`, fuera del repo. Para volver a ese estado (sustituye la base actual):
+  `docker exec -i aguavigia-mongo mongorestore --archive --gzip --drop < <ruta del archivo>`. Contiene los datos de cuentas, incluido el hash del ADMIN: no la subas a git.
 - Abre en pestañas: `http://localhost:8081/swagger-ui.html` y MailHog `http://localhost:8025`.
 
 ## 1. El problema: «¿tengo agua o no?» (mapa y estado)
@@ -157,7 +159,8 @@ node scripts/verificar-flujos.mjs
 | Tema | Estado |
 |---|---|
 | **50 000 usuarios simultáneos** (`RNF027`) | No se demuestra en local (`ADR-057`). Se muestra la arquitectura preparada y las mediciones locales de `scripts/carga/`, dichas como banco local, no producción. |
-| **`RF041`** webhook de WhatsApp/Telegram | Sin construir: depende de credenciales de terceros. |
+| **`RF041`** alertas por Telegram | Construido y armado, pero **apagado**: falta el bot real (`TELEGRAM_BOT_TOKEN`, ver `telegram.md`). No se muestra en vivo hasta conectarlo. WhatsApp no existe. |
+| **IoT (`RF040`)** | Solución que se implementaría en físico: el endpoint `POST /api/iot/presion` existe y está probado, pero no hay sensores instalados. |
 | **TLS, dominio, CDN, hosting** | No existen por decisión del proyecto (`ADR-057`). |
 | **Interfaz web** | No hay frontend en `main` (`ADR-048`); se demuestra la API con Swagger y `curl`. |
 | **Datos históricos reales** | Los de mayo–julio son sintéticos. |

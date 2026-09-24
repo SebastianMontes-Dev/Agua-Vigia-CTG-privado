@@ -926,7 +926,8 @@ Lo publicado debe ser el estado agregado por sector, no cada reporte ciudadano i
 
 Dejar que un sensor de presión casero —un ESP32 en la casa de un vecino— reporte solo, sin que
 nadie tenga que abrir la aplicación. Un sensor no es un ciudadano: se autentica con su propia
-clave y tiene su propio cupo, porque reporta cada pocos minutos por diseño. Cubre M13 (RF040).
+clave y tiene su propio cupo, porque reporta cada pocos minutos por diseño. Es una **solución que se implementaría en físico**:
+el endpoint está construido y probado, pero no hay sensores instalados. Cubre M13 (RF040).
 
 ### Requisito: Endpoint autenticado para sensores de presión
 
@@ -969,32 +970,71 @@ debe existir: una clave filtrada o un sensor mal configurado no puede inundar el
 
 *M14 · RF041*
 
-Ofrecer al vecino que su aviso llegue por mensajería instantánea en vez del correo. La cadena
-evento → caso de uso → puerto está construida y probada; el adaptador que llama al proveedor real
-sigue pendiente porque exige credenciales de WhatsApp Business o Telegram que el proyecto no tiene.
-Cubre M14 (RF041).
+Ofrecer al vecino que su aviso llegue por Telegram en vez del correo. El bot recibe por sondeo (sin webhook, porque el
+proyecto corre en local sin dominio, `ADR-066`) y **queda apagado hasta que exista `TELEGRAM_BOT_TOKEN`**. Está probado contra
+un servidor HTTP falso y un Mongo real, **no contra Telegram real**. Cubre M14 (RF041).
 
-### Requisito: Notificación de cambio de estado por un puerto de mensajería
+### Requisito: Suscribirse por Telegram sin doble opt-in
 
-El sistema debe disparar una notificación push hacia un puerto de salida cuando un sector cambie
-de estado, de forma que cambiar de proveedor no toque el dominio ni el caso de uso.
+El sistema debe permitir seguir uno o varios sectores escribiéndole al bot desde un chat privado, sin registro ni cuenta.
+El propio mensaje es la confirmación: solo la persona puede escribir desde su chat.
 
-#### Escenario: Cambio de estado con suscriptores push
+#### Escenario: Seguir un sector
 
-- **Cuando** un sector con suscriptores push cambia de estado
-- **Entonces** el caso de uso invoca el puerto de notificación push con el sector y el mensaje
+- **Cuando** una persona escribe `/suscribir Bocagrande` al bot
+- **Entonces** el chat queda suscrito a ese sector, sin distinguir mayúsculas ni tildes
+- **Y** el bot responde confirmando el sector
 
-### Requisito: El adaptador real está pendiente y se declara como tal
+#### Escenario: Sector desconocido
 
-Mientras no existan credenciales del proveedor, la implementación del puerto debe registrar el
-envío en el log y no debe simular un envío exitoso ante el usuario. El estado pendiente de esta
-capacidad se declara en la documentación en vez de disimularse.
+- **Cuando** el nombre no corresponde a ningún sector
+- **Entonces** no se guarda nada
+- **Y** el bot sugiere hasta cinco sectores parecidos
 
-#### Escenario: Entorno sin credenciales del proveedor
+#### Escenario: Límite de sectores por chat
 
-- **Cuando** se dispara una alerta push y no hay proveedor configurado
-- **Entonces** queda registrada en el log
-- **Y** la interfaz no le promete al vecino un mensaje que no va a llegar
+- **Cuando** un chat ya sigue diez sectores y pide otro
+- **Entonces** el bot lo rechaza y explica cómo liberar uno con `/baja`
+
+### Requisito: La baja borra el dato personal
+
+El sistema debe borrar el identificador del chat cuando deja de seguir el último sector o pide `/baja` sin sector (`RNF009`).
+
+#### Escenario: Baja completa
+
+- **Cuando** el chat escribe `/baja` o deja de seguir su último sector
+- **Entonces** el registro del chat se elimina de la base
+
+### Requisito: Aviso al cambiar el estado de un sector
+
+El sistema debe avisar por Telegram a los chats que siguen un sector cuando este cambia de estado, sin que un chat que falla
+impida avisar a los demás.
+
+#### Escenario: Cambio de estado con suscriptores
+
+- **Cuando** un sector cambia de estado
+- **Entonces** cada chat que lo sigue recibe un mensaje con el nombre del sector y su estado en palabras
+- **Y** un sector sin estado verificado se describe como «sin datos», nunca como «con servicio»
+
+#### Escenario: El usuario bloqueó al bot
+
+- **Cuando** Telegram responde que el usuario bloqueó al bot o que el chat ya no existe
+- **Entonces** el chat se da de baja y su registro se borra
+
+#### Escenario: Fallo pasajero de Telegram
+
+- **Cuando** Telegram falla de forma pasajera (red, error 5xx)
+- **Entonces** el chat conserva su suscripción y los demás chats reciben su aviso
+
+### Requisito: Canal armado pero apagado sin token
+
+El sistema debe arrancar y funcionar igual cuando falta `TELEGRAM_BOT_TOKEN`, sin enviar ni recibir nada por Telegram.
+
+#### Escenario: Entorno sin token
+
+- **Cuando** el backend arranca sin `TELEGRAM_BOT_TOKEN`
+- **Entonces** registra en el log que Telegram está desactivado
+- **Y** no sondea ni envía mensajes
 
 ---
 

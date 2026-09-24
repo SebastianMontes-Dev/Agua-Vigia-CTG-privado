@@ -43,3 +43,9 @@ con invalidación al confirmar consenso, y reglas de rate limiting para `/api/ve
 **Sigue:** —
 
 ---
+
+### 2026-08-09 · `feature/bitacora-publica`
+**Qué:** `BitacoraController` público en `GET /api/bitacora` (RF027), directo a
+`EventoBitacoraRepository` sin caso de uso (ADR-015). 178/178 pruebas en verde. Fusionado a
+`develop` en el PR #120 — **M8 completo**.
+**Sigue:** —

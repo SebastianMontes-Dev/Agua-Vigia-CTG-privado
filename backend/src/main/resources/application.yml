@@ -42,6 +42,12 @@ server:
   forward-headers-strategy: framework
 
 aguavigia:
+  telegram:
+    # RF041 (ADR-066). Sin token el canal queda armado pero apagado; con token, el backend sondea el bot cada
+    # `intervalo-ms`. Solo una instancia puede sondear el mismo bot.
+    token: ${TELEGRAM_BOT_TOKEN:}
+    base-url: https://api.telegram.org
+    intervalo-ms: 3000
   mongo:
     # Los defaults del driver (100 conexiones, 2 minutos de espera) dejaban las peticiones
     # encoladas mucho mas alla de los 15 s tras los que nginx ya cortaba. Falla rapido.
