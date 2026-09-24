@@ -2677,8 +2677,53 @@ mover de vuelta los listeners. Es mecánico, sin datos ni contratos involucrados
 
 ---
 
+## ADR-066 — Las alertas por mensajería se arman sobre Telegram, recibiendo por sondeo y quedando apagadas hasta tener el token del bot
+
+- **Fecha:** 2026-09-24
+- **Estado:** Aceptada
+- **Decide:** Dueño del proyecto
+
+### Contexto
+`RF041` («Debe») pedía alertas por Telegram o WhatsApp y era el único requisito sin construir: el adaptador de *push*
+(`NotificadorPushWebhookAdapter`) solo escribía «Simulando envío» en el log y nadie podía suscribirse. El dueño pidió
+construirlo por Telegram y dejarlo armado para conectarlo después. Restricciones verificadas en el repo: el proyecto
+corre en local, sin dominio ni HTTPS (`ADR-057`); no hay frontend (`ADR-048`); el presupuesto es cero; y no existe todavía
+un bot ni su token, que entrega `@BotFather` y es una credencial de un tercero.
+
+### Alternativas consideradas
+| Opción | A favor | En contra |
+|---|---|---|
+| A. Telegram con webhook | Latencia mínima; sin sondeo | Exige una URL pública con HTTPS: imposible en local (`ADR-057`) |
+| B. Telegram con sondeo (`getUpdates`) | Funciona en local y detrás de cualquier red; sin dominio ni certificado | Latencia de unos segundos; solo una instancia puede sondear el bot (dos consumidores dan 409) |
+| C. WhatsApp Business | Canal más usado en la ciudad | Cuenta de empresa, verificación y coste por mensaje: choca con presupuesto cero |
+| D. Dejarlo declarado sin construir | Cero trabajo y cero riesgo | Deja un «Debe» incumplido y el canal sin probar |
+
+### Decisión
+Opción B. Un bot que recibe por **sondeo corto** (cada 3 s, sin espera larga: el planificador tiene un solo hilo y no debe
+bloquear el barrido del consenso) y entiende cinco comandos (`/suscribir`, `/baja`, `/estado`, `/mis`, `/ayuda`). Una
+suscripción por chat, hasta 10 sectores; **no hay doble opt-in** como en el correo (`RF013`), porque solo la persona puede
+escribirle al bot desde su chat y ese mensaje es la confirmación. La baja **borra** el registro del chat (`RNF009`), y un chat
+que bloquea al bot se da de baja solo. Sin `TELEGRAM_BOT_TOKEN` el canal queda **armado pero apagado**
+(`TelegramDesactivadoAdapter`, como `IOT_KEY` vacía): el resto de la plataforma no cambia. Reemplaza el simulacro de `M14`.
+
+### Consecuencias
+- **Gana:** `RF041` deja de estar sin construir; se conecta poniendo un token y reiniciando el backend, sin tocar código; cero
+  costo; el dominio y la aplicación no saben que existe Telegram (puertos `EnvioTelegramPort` y `RecepcionTelegramPort`).
+- **Pierde / queda condicionado:** **no se probó contra Telegram real**, solo contra un servidor HTTP falso y un Mongo real; el
+  primer arranque con un token verdadero puede revelar diferencias. Latencia de unos segundos. Solo una instancia del backend
+  puede sondear el mismo bot. El offset de sondeo vive en memoria: tras un reinicio Telegram reenvía lo no confirmado, y los
+  comandos son idempotentes. WhatsApp queda fuera.
+- **Guarda un dato personal nuevo:** el id de chat de Telegram, mientras haya al menos un sector seguido.
+
+### Cómo se revierte
+Quitar `TELEGRAM_BOT_TOKEN` apaga el canal sin tocar código. Retirarlo del todo: borrar las clases `*Telegram*`, la colección
+`suscripciones_telegram` y devolver `EnviarAlertaPushService` a un puerto de salida. Es mecánico y sin contratos públicos
+involucrados (no hay endpoint HTTP nuevo).
+
+---
+
 <!--
-Siguiente número disponible: ADR-066
+Siguiente número disponible: ADR-067
 Para agregar: usa la skill `registrar-decision`.
 Recuerda: append-only. Las entradas viejas solo cambian de estado, no de contenido.
 -->

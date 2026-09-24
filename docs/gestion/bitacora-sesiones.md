@@ -25,6 +25,10 @@ Referencias cruzadas: `ADR-NNN` · `BUG-NNN` · `RF0NN` · `archivo:línea`.
 
 ## Preparación del backend
 
+### 2026-09-24 · `feat/mensajeria-telegram`
+**Qué:** `RF041` construido por Telegram y apagado hasta tener el token (`ADR-066`): sondeo sin webhook, `/suscribir`, `/baja`, `/estado`, `/mis`, baja que borra el chat; reemplaza el simulacro de M14. `./mvnw verify`: 929 pruebas, 0 fallos; probado de extremo a extremo con un Telegram falso, **no contra Telegram real**. Limpieza hecha con copia previa (base de la demo y etiquetas viejas en `Documentos/respaldos-aguavigia`); `verificar-flujos.mjs` espera 1,1 s antes del cierre de sesión.
+**Sigue:** Crear el bot con `@BotFather` y poner `TELEGRAM_BOT_TOKEN` (`docs/ingenieria/telegram.md`); fusionar el PR y registrarlo; fecha real de la presentación para la retrospectiva.
+
 ### 2026-09-24 · `docs/sprint-6-demo-y-credenciales`
 **Qué:** Sprint 6 abierto y cerrado (`REC-018`: demo local contra el backend): histórico sembrado y verificado, guion ensayado y `verificar-flujos.mjs` en 21/0 sobre una copia limpia de `main` y sobre la base de la demo (ADMIN nuevo, 40 001 cuentas). `RNF027` queda parcial; el fallo intermitente del cierre de sesión es el margen de 1 s del filtro JWT, no un bug.
 **Sigue:** Fusionar el PR #50 y registrarlo; `ADR-066` (credenciales con valor) sin subir: falta el inventario y las dos líneas de `.gitleaks.toml`; decidir el recorte de alcance (IoT, `RF041`, cuentas del panel).
@@ -176,12 +180,6 @@ reporte sin moderar" (nace `PENDIENTE`) en vez de inventar una heurística de fr
 209/209 pruebas en verde.
 **Sigue:** Alcance acotado a propósito: descartar no recalcula consenso ni
 el conteo de RF006 (ver el propio ADR).
-
-### 2026-08-09 · `feature/bitacora-publica`
-**Qué:** `BitacoraController` público en `GET /api/bitacora` (RF027), directo a
-`EventoBitacoraRepository` sin caso de uso (ADR-015). 178/178 pruebas en verde. Fusionado a
-`develop` en el PR #120 — **M8 completo**.
-**Sigue:** —
 
 ## Sprints 0 y 1
 

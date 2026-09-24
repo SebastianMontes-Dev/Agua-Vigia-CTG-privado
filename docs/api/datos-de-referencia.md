@@ -120,5 +120,5 @@ Lo que el frontend **no** puede pedir hoy, para no buscarlo:
 - **Listar reportes ciudadanos públicamente.** Solo existe la cola de moderación (con sesión).
 - **Cerrar un corte detectado por la ingesta.**
 - **Refrescar el token del panel.**
-- **Avisos por WhatsApp o Telegram** (RF041): no está implementado; el adaptador de *push* solo escribe en el
-  log. Requiere credenciales de terceros.
+- **Avisos por Telegram** (RF041): el bot existe en el backend (sin endpoint HTTP: recibe por sondeo) y está apagado hasta
+  que haya `TELEGRAM_BOT_TOKEN`; el frontend no participa. WhatsApp no está implementado.

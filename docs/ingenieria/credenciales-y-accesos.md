@@ -29,6 +29,7 @@ y le pasas al agente solo la salida, sin la clave.
 | `VEEDOR_PASSWORD_HASH` | Hash BCrypt de la clave del **primer ADMIN**. Del hash no se recupera la clave | `.env` (cada `$` escapado como `$$`) | Ver §3 |
 | `ADMIN_INICIAL_CORREO` | Correo de esa cuenta ADMIN | `.env` | No es secreto; lo eliges |
 | `IOT_KEY` | Clave de los sensores IoT (`POST /api/iot/presion`) | `.env` | Vacía = el endpoint responde 503. Inventar otra y ponerla en los sensores |
+| `TELEGRAM_BOT_TOKEN` | Token del bot de Telegram (RF041); lo entrega `@BotFather` | `.env` y tu gestor de contraseñas | Revocarlo con `/revoke` en `@BotFather` y pedir otro. Vacío = el canal queda apagado |
 | `MONGO_ROOT_USERNAME` / `MONGO_ROOT_PASSWORD` | Usuario de Mongo (perfil de producción) | `.env` | En local no se usa: el compose de desarrollo no exige clave |
 | `REDIS_PASSWORD` | Clave de Redis, solo producción | `.env` | Ídem |
 | `MAIL_USERNAME` / `MAIL_PASSWORD` | SMTP real, solo producción | `.env` | En local el correo va a MailHog (`localhost:8025`), sin clave |

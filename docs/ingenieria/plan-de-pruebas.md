@@ -117,7 +117,7 @@ propósito):** `JwtAuthenticationFilter.sigueVigente` compara `iat` y la marca d
 **a propósito** que un token emitido en el mismo segundo de la revocación sobreviva (su comentario lo explica). El script hace el
 login con TOTP al inicio del panel, y si todos los pasos hasta el cierre caben en ese mismo segundo, el paso «cerrar sesión revoca
 el token» falla sin que el sistema esté mal. Volvió a verse el 2026-09-24 en una primera corrida, contra una imagen anterior a los
-PR #48 y #49. Arreglo pendiente y barato: que el script espere algo más de un segundo antes del cierre.
+PR #48 y #49. El script ya espera 1,1 s antes del cierre (2026-09-24).
 
 ### Corrida desde una copia limpia sobre `main` (2026-09-24, Sprint 6)
 

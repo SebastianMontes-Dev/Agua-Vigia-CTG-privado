@@ -24,8 +24,8 @@ vacío de información que multiplica el daño. Toda decisión de alcance se juz
 repositorio** desde la guía `docs/api/`, para juntarlo todo después. **Es un proyecto académico que corre en local**
 (`ADR-057`): sin hosting, dominio ni CDN. Requisito de escalabilidad: **50 000 usuarios simultáneos** (`ADR-049`,
 `docs/ingenieria/escalabilidad.md`), que en local solo puede medirse a escala reducida.
-Falta `RF041` (webhook real de WhatsApp/Telegram), que depende de credenciales de terceros.
-**823 pruebas de backend** (las de integración exigen Docker y no corren sin él).
+`RF041` (alertas por Telegram) está construido y armado (`ADR-066`), apagado hasta tener `TELEGRAM_BOT_TOKEN`; sin probar contra Telegram real.
+**929 pruebas de backend** (`./mvnw verify` del 2026-09-24: 0 fallos, 1 omitida; las de integración exigen Docker y no corren sin él).
 
 ⚠️ **`sprint-3.md` a `sprint-5.md` se reconstruyeron retroactivamente el 2026-09-22** (`REC-017`): el código ya
 entregaba lo que prometían, sin que nadie lo hubiera escrito. `sprint-6.md` se abrió y cerró el 2026-09-24: la demo es local

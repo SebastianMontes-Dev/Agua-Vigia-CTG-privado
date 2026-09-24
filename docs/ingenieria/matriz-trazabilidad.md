@@ -153,7 +153,7 @@
 
 | RF | Historia | Caso de prueba | Obj. | Sprint | Estado |
 |---|---|---|---|---|---|
-| RF041 Suscripción por WhatsApp/Telegram | HU041 | CP041 | 1, 3 | Fase 2 | ⬜ (Pendiente — `NotificadorPushWebhookAdapter` solo registra un log "Simulando envío", sin webhook real) |
+| RF041 Suscripción por WhatsApp/Telegram | HU041 | CP041 | 1, 3 | Fase 2 | 🟡 (Telegram construido y armado, `ADR-066`; probado contra un servidor falso y Mongo real; falta conectar el bot real con `TELEGRAM_BOT_TOKEN`) |
 
 ### M15 — Cuentas y permisos del panel (Fase 2) · Amplía RF019/M5 · ADR-039 (reemplaza a ADR-016)
 
@@ -230,5 +230,5 @@ No son huecos de trazabilidad: están declarados y con su razón.
 
 | Qué | Por qué sigue abierto |
 |---|---|
-| RF041 (webhook real de WhatsApp/Telegram) | Exige credenciales de WhatsApp Business API o un bot de Telegram, que no dependen del backend. La cadena evento → caso de uso → puerto ya está cableada y probada; falta el adaptador que llame al proveedor |
+| RF041 (conectar el bot real de Telegram) | Falta un bot creado con `@BotFather` y su token, que entrega un tercero. El canal está construido y apagado sin él (`ADR-066`); WhatsApp queda fuera |
 | RNF021 (bucket, no disco local) | Decisión explícita del 2026-08-11: mantener disco local mientras el despliegue sea de servidor único (Anexo 5). `AlmacenamientoPort` ya aísla el cambio si se migra después |

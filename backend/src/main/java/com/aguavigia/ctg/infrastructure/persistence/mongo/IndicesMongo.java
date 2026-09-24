@@ -77,6 +77,10 @@ public class IndicesMongo {
             indicesSuscripciones.ensureIndex(new Index().on("sectorIds", Sort.Direction.ASC));
             log.info("Indices de `suscripciones` asegurados: tokenConfirmacion (unico) y sectorIds");
 
+            var indicesSuscripcionesTelegram = mongoTemplate.indexOps(SuscripcionTelegramDocumento.class);
+            indicesSuscripcionesTelegram.ensureIndex(new Index().on("sectorIds", Sort.Direction.ASC));
+            log.info("Indices de `suscripciones_telegram` asegurados: sectorIds");
+
             var indicesBitacora = mongoTemplate.indexOps(EventoBitacoraDocumento.class);
             indicesBitacora.ensureIndex(new Index().on("timestamp", Sort.Direction.DESC));
             // La bitacora de un sector: sin esto recorria todos los eventos y filtraba por sector.

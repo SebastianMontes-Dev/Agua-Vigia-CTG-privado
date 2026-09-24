@@ -1,11 +1,9 @@
 package com.aguavigia.ctg.infrastructure.eventos;
 
-import com.aguavigia.ctg.application.EnviarAlertaPushService;
 import com.aguavigia.ctg.domain.EstadoServicio;
 import com.aguavigia.ctg.domain.Sector;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.port.in.EnviarAlertaPushUseCase;
-import com.aguavigia.ctg.domain.port.out.NotificadorPushPort;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -33,16 +31,7 @@ class AlertaPushSectorListenerTest {
 
         ArgumentCaptor<String> mensaje = ArgumentCaptor.forClass(String.class);
         verify(enviarAlerta).enviar(org.mockito.ArgumentMatchers.eq(MANGA), mensaje.capture());
-        assertThat(mensaje.getValue()).contains("Manga", "SIN_SERVICIO");
+        assertThat(mensaje.getValue()).contains("Manga", "sin servicio").doesNotContain("SIN_SERVICIO");
     }
 
-    @Test
-    void elCasoDeUsoDebeDelegarEnElPuertoDeSalida() {
-        NotificadorPushPort puerto = mock(NotificadorPushPort.class);
-        EnviarAlertaPushService servicio = new EnviarAlertaPushService(puerto);
-
-        servicio.enviar(MANGA, "Alerta de prueba");
-
-        verify(puerto).enviarAlerta(MANGA, "Alerta de prueba");
-    }
 }

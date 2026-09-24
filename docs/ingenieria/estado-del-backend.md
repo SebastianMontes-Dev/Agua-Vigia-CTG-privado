@@ -28,7 +28,7 @@ juntarlo todo después. Lo que hay en `main` es **backend + datos + infraestruct
 
 | Qué | Valor | Cómo se comprobó |
 |---|---|---|
-| Pruebas de backend | **823** (1 solo corre a petición: regenerar el contrato) · 0 fallos | `./mvnw verify`, 2026-09-21 |
+| Pruebas de backend | **929** (1 solo corre a petición: regenerar el contrato) · 0 fallos | `./mvnw verify`, 2026-09-24 |
 | Cobertura | JaCoCo ≥ 85 % en `domain/` y `application/` | El propio `verify` lo exige |
 | Arquitectura | 5+ reglas ArchUnit en verde | `ReglaDeOroArchitectureTest` |
 | API | **66 operaciones** en 21 controladores, 37 esquemas | `backend/openapi.yaml` (generado) |
@@ -37,7 +37,7 @@ juntarlo todo después. Lo que hay en `main` es **backend + datos + infraestruct
 | Jobs | ingesta cada 10 min, ventanas cada 60 s, limpieza de fotos y purga de evidencia (diarias) | `@Scheduled`, todos vía `EjecucionUnica` |
 | CI | `backend-ci`, `despliegue-ci`, `secret-scan` | `.github/workflows/` |
 
-**Requisitos:** 46 RF → 40 cumplidos, 5 descartados por decisión (RF032–036, IA) y **1 pendiente: RF041**
+**Requisitos:** 46 RF → 40 cumplidos, 5 descartados por decisión (RF032–036, IA) y **1 armado sin conectar: RF041** (Telegram, `ADR-066`)
 (webhook real de WhatsApp/Telegram, depende de credenciales de terceros). Los requisitos de interfaz quedan
 **retirados por alcance** hasta que exista el frontend nuevo (`ADR-048`).
 

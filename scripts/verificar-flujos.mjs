@@ -443,6 +443,9 @@ if (!ADMIN_CLAVE) {
     })
 
     await paso('cerrar sesión revoca el token', async () => {
+      // El filtro JWT acepta a propósito un token emitido en el mismo segundo de la revocación (iat tiene precisión de
+      // segundo). Sin esta espera, el paso falla a veces si todo el panel cabe en el segundo del login.
+      await new Promise((resolver) => setTimeout(resolver, 1100))
       esperarEstado(await http('POST', '/api/veedor/sesion/cierre', { token }), 204, 'cierre')
       esperarEstado(await http('GET', '/api/veedor/yo', { token }), 401, 'token revocado')
     })
