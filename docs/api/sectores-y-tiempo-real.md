@@ -43,7 +43,9 @@ sector inexistente, `404`. Pídelo **al abrir la ficha del sector**, no en segun
 
 ## `GET /api/sectores/geometria`
 
-`application/geo+json`. Un `Feature` por sector; su **`id` es el mismo identificador** que devuelve el
+`application/geo+json`. **No fuerces `Accept: application/json` en esta petición**: la ruta solo produce
+`geo+json`, y con otro `Accept` el servidor la confunde con `GET /api/sectores/{id}` y responde un `404`
+engañoso («No existe el sector 'geometria'»). `fetch` sin cabecera (`*/*`) funciona. Un `Feature` por sector; su **`id` es el mismo identificador** que devuelve el
 listado, así que se unen sin calcular nada:
 
 ```json

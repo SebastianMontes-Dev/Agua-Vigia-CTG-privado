@@ -93,3 +93,23 @@ Una prueba está **Hecha** cuando (alineado con `docs/gestion/README.md` § Defi
 Cuando exista `/backend` con al menos un caso de uso (Sprint 1-2): escribir los primeros tests
 unitarios reales y verificar que la fila de JaCoCo/ArchUnit de la matriz corre en CI de verdad, no solo
 en el papel.
+
+## 8. Verificación de flujos HTTP (Fase 5)
+
+Corrida de `scripts/verificar-flujos.mjs` (2026-09-24) contra un entorno **construido desde cero**: copia del repo sin
+`.env` ni datos previos, `cp .env.example .env` con `JWT_SECRET`, hash del ADMIN y correo, `docker compose up -d
+--build` (Mongo como *replica set*, Redis, MailHog y API), `sembrar-sectores.mjs`, y una sola pasada del script.
+
+| Área | Pasos | Resultado |
+|---|---|---|
+| Mapa | readiness, 211 sectores, geometría, sector y 404 RFC 7807, CORS (permite 5173, rechaza origen ajeno) | ✔ |
+| Suscripción | alta `PENDIENTE_CONFIRMACION`, correo en MailHog, confirmación por `POST`, aviso al cambiar el sector, baja | ✔ |
+| Reporte y consenso | 6 reportes de dispositivos distintos → `SIN_SERVICIO`, reporte por coordenada infiere sector, foto, confirmación, aviso SSE | ✔ (la foto falló 500 hasta corregir `BUG-101`) |
+| Historia pública | bitácora paginada por cabeceras y sustento, estadísticas, CSV, cumplimiento, histórico de cortes, Open311 | ✔ |
+| Panel | 401 sin token, login del ADMIN con alta de TOTP, `yo`, corte oficial (crear/cerrar), moderación, ingesta, invitación de una cuenta y su login, 403 del OBSERVADOR al gestionar cortes, auditoría, cierre de sesión revoca | ✔ |
+
+**21 pasos, 0 fallos**, y una segunda pasada inmediata con el TOTP ya dado de alta también 21/0. Hallazgos de la fase: `BUG-101`
+(volumen de fotos como `root`), CORS cerrado en el perfil `docker` (corregido, `CorsPorPerfilTest`) y la trampa del `$` del
+hash en el `.env` (documentada). **No cubre** el envío real de WhatsApp/Telegram (`RF041`), TLS/proxy de producción ni la carga
+de 50 000 usuarios (`ADR-057`). Un fallo de revocación de sesión visto una vez en una repetición con estado sucio
+(`token` aún válido tras `cierre`) no se reprodujo en tres intentos posteriores y queda sin explicar.

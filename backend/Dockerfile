@@ -28,7 +28,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl \
 # en un WORKDIR que Docker crea como root — el contenedor no llegaba a arrancar.
 RUN addgroup --system aguavigia && adduser --system --ingroup aguavigia aguavigia
 COPY --from=build /build/target/*.jar app.jar
-RUN chown -R aguavigia:aguavigia /app
+# data/fotos se crea AQUI, en la imagen, y no al arrancar: docker-compose monta ahi un volumen con nombre, y
+# Docker solo copia dueño y permisos al volumen nuevo si el directorio ya existe en la imagen. Sin esto el
+# volumen nacia como root y toda subida de foto respondia 500 en una instalacion limpia (BUG-101).
+RUN mkdir -p /app/data/fotos && chown -R aguavigia:aguavigia /app
 USER aguavigia
 
 EXPOSE 8080

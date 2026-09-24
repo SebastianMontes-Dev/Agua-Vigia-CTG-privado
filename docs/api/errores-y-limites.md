@@ -125,14 +125,20 @@ leerlas.
 
 ## CORS
 
-**Cerrado por defecto**: `aguavigia.cors.origenes-permitidos` está vacío en todos los perfiles y, vacío, no
-se emite ninguna cabecera CORS. En producción el frontend y la API van **detrás del mismo proxy**, así que el
-navegador nunca hace una petición cruzada.
+**Cerrado en producción**: `aguavigia.cors.origenes-permitidos` está vacío y, vacío, no se emite ninguna cabecera
+CORS. En producción el frontend y la API van **detrás del mismo proxy**, así que el navegador nunca hace una
+petición cruzada.
+
+**Abierto en local**: los perfiles `dev` (backend desde el IDE) y `docker` (el de `docker compose up`, con la API
+en `http://localhost:8081`) dejan pasar a `http://localhost:5173` (Vite), `http://localhost:3000` (React/Next) y
+`http://localhost:4200` (Angular). Con Docker se cambia con `CORS_ORIGENES` en el `.env` (lista separada por
+comas, sustituye a los tres). Un origen no permitido recibe `403` en el preflight.
 
 Un frontend en **otro origen** (un dev server local, un hosting estático aparte) tiene dos caminos:
 
-1. **Declarar el origen**: `aguavigia.cors.origenes-permitidos: [http://localhost:3000]` en
-   `application-dev.yml` (o `AGUAVIGIA_CORS_ORIGENES_PERMITIDOS` en el entorno).
+1. **Declarar el origen**: en local, `CORS_ORIGENES=http://localhost:8000` en el `.env` (perfil `docker`) o
+   `aguavigia.cors.origenes-permitidos` en `application-dev.yml` (o `AGUAVIGIA_CORS_ORIGENES_PERMITIDOS` en el
+   entorno).
 2. **Servirlo detrás del mismo proxy** que la API (recomendado en producción).
 
 Si se habilita, **`Retry-After` no se expone** a JavaScript (solo las cabeceras de paginación): quien
