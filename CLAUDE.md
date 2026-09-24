@@ -19,7 +19,7 @@ vacío de información que multiplica el daño. Toda decisión de alcance se juz
 
 ## Estado actual
 
-**Sprint 0 a 5 cerrados; el 6 (entrega final) sigue abierto.** M1–M15 están construidos en el backend. **El frontend se retiró de `main`
+**Sprints 0 a 6 cerrados** (el 6, «entrega final», el 2026-09-24, con `RNF027` parcial: `docs/gestion/sprint-6.md`). M1–M15 están construidos en el backend. **El frontend se retiró de `main`
 (`ADR-048`; su código sigue en la etiqueta git `pre-retiro-frontend`) y se rehace en otras ramas de este mismo
 repositorio** desde la guía `docs/api/`, para juntarlo todo después. **Es un proyecto académico que corre en local**
 (`ADR-057`): sin hosting, dominio ni CDN. Requisito de escalabilidad: **50 000 usuarios simultáneos** (`ADR-049`,
@@ -28,8 +28,8 @@ Falta `RF041` (webhook real de WhatsApp/Telegram), que depende de credenciales d
 **823 pruebas de backend** (las de integración exigen Docker y no corren sin él).
 
 ⚠️ **`sprint-3.md` a `sprint-5.md` se reconstruyeron retroactivamente el 2026-09-22** (`REC-017`): el código ya
-entregaba lo que prometían, sin que nadie lo hubiera escrito. Falta `sprint-6.md`: su entregable («demo») está
-redefinido para local (`ADR-057`) pero no abierto — qué cuenta como demo sin frontend propio es decisión del dueño.
+entregaba lo que prometían, sin que nadie lo hubiera escrito. `sprint-6.md` se abrió y cerró el 2026-09-24: la demo es local
+y contra el backend, sin esperar al frontend (`ADR-057`, `REC-018` resuelta).
 
 **7 sprints: Sprint 0 (preparación) + Sprints 1–6. Un sprint no cierra por calendario: cierra cuando
 su entregable se demuestra funcionando.** Los 7 entregables, en `docs/gestion/README.md`.

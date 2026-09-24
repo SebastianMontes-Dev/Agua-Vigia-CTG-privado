@@ -89,6 +89,19 @@ comparar antes/después y para ver el orden de magnitud; **no son la capacidad d
 | 1 000 req/s | backend directo (sin caché) | 172 750 | 0,03 % | 7,7 ms | 16 ms | ≈ 1 núcleo de CPU; RSS ≈ 460 MB |
 | 5 000 req/s (media 3 730) | **nginx** (con micro-caché), k6 en su misma red | **862 591** | **0** | **12,7 ms** | 42 ms | nginx ≈ 1,2 núcleos; **el backend ≈ 13 s de CPU en 231 s (≈ 6 % de un núcleo)** |
 
+**Repetición del 2026-09-24 (Sprint 6, `RNF027`)**, mismo script, backend directo, k6 en Docker contra
+`host.docker.internal:8081`, sobre la base de la demo (211 sectores, histórico sembrado, ~20 000 usuarios):
+
+| Objetivo | Peticiones | Errores | p95 | p99 | Umbrales de k6 |
+|---|---|---|---|---|---|
+| 500 req/s | 86 375 | 0,03 % (32) | 5,2 ms | 7,0 ms | cumplidos |
+| 1 000 req/s | 172 750 | 0,03 % (65) | 7,9 ms | 18,8 ms | cumplidos |
+
+Los 97 errores de las dos corridas son `dial: i/o timeout`, la misma observación abierta de abajo (no se aisló la
+causa). Mismo orden de magnitud que la medición anterior; **no se midió CPU/RSS durante la carga** y no se repitió
+la prueba contra nginx, la de escritura en pico ni la de SSE. `RNF002` (`rnf002-registrar-reporte.js`, 20 reportes/min
+durante 2 min, 41 reportes): p95 = 32,6 ms, 0 % de errores, umbral de 1 s.
+
 - Con la micro-caché, el backend casi no nota la carga: la CPU del backend fue ~17 veces menor que sirviendo
   1 000 req/s sin caché, con 3–5 veces más tráfico. Ese es el mecanismo que sostiene los 50 000.
 - Los errores del backend directo (0,01–0,03 %) son `dial: i/o timeout` en ráfagas de 1–2 s: fallos de
@@ -103,6 +116,20 @@ comparar antes/después y para ver el orden de magnitud; **no son la capacidad d
 | Conexiones | Abiertas | Rechazadas | Primer evento (p50 / p95 / máx) | Aviso a las 10 000 | API durante la carga |
 |---|---|---|---|---|---|
 | 10 000 (un backend, directo) | 10 000 | 0 | 331 / 575 / 679 ms | sí, en ≤ 6 s (resolución del muestreo) | `GET /api/sectores` en 13 ms |
+
+**Repetición del 2026-09-24 (Sprint 6)**, `sse-conexiones.mjs --conexiones 2000 --rampa 200 --duracion 45`, backend
+directo, tres corridas:
+
+| Conexiones | Abiertas | Errores | Primer evento (p50 / p95 / máx) | Latidos | Backend (docker stats) |
+|---|---|---|---|---|---|
+| 2 000 | 1 995 | 5 (sin código de estado) | 114 / 205 / 237 ms (2.ª corrida: 89 / 154 / 214 ms) | recibidos | memoria 552 → 754 MiB, CPU ≈ 0,5 % |
+
+- **Hallazgo abierto:** con las 2 000 conexiones SSE abiertas, `GET /api/sectores` **desde el host** por el puerto publicado
+  (`localhost:8081`) falló las tres veces con «Connection was reset», y **desde dentro del contenedor respondió bien**
+  en el mismo momento. Apunta al reenvío de puertos de Docker Desktop (misma familia que los `dial: i/o timeout` de
+  arriba), no al backend, pero **no se aisló la causa** y **contradice la fila anterior** (10 000 conexiones con la API en
+  13 ms): esa medición no se repitió aquí, y no sé qué condición cambió.
+- No se repitieron 10 000 conexiones, ni la escritura en pico, ni nginx con micro-caché.
 
 - **Memoria: ≈ 100 KB vivos por conexión** (heap tras un GC forzado: ~1,18 GB con 10 000 abiertas; RSS ~1,8 GB).
   Con el tope por defecto de 20 000 por instancia hacen falta ~2 GB de heap vivo → contenedor de **≥ 4 GB**. Para
