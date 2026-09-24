@@ -117,6 +117,20 @@ durante 2 min, 41 reportes): p95 = 32,6 ms, 0 % de errores, umbral de 1 s.
 |---|---|---|---|---|---|
 | 10 000 (un backend, directo) | 10 000 | 0 | 331 / 575 / 679 ms | sí, en ≤ 6 s (resolución del muestreo) | `GET /api/sectores` en 13 ms |
 
+**Repetición del 2026-09-24 (Sprint 6)**, `sse-conexiones.mjs --conexiones 2000 --rampa 200 --duracion 45`, backend
+directo, tres corridas:
+
+| Conexiones | Abiertas | Errores | Primer evento (p50 / p95 / máx) | Latidos | Backend (docker stats) |
+|---|---|---|---|---|---|
+| 2 000 | 1 995 | 5 (sin código de estado) | 114 / 205 / 237 ms (2.ª corrida: 89 / 154 / 214 ms) | recibidos | memoria 552 → 754 MiB, CPU ≈ 0,5 % |
+
+- **Hallazgo abierto:** con las 2 000 conexiones SSE abiertas, `GET /api/sectores` **desde el host** por el puerto publicado
+  (`localhost:8081`) falló las tres veces con «Connection was reset», y **desde dentro del contenedor respondió bien**
+  en el mismo momento. Apunta al reenvío de puertos de Docker Desktop (misma familia que los `dial: i/o timeout` de
+  arriba), no al backend, pero **no se aisló la causa** y **contradice la fila anterior** (10 000 conexiones con la API en
+  13 ms): esa medición no se repitió aquí, y no sé qué condición cambió.
+- No se repitieron 10 000 conexiones, ni la escritura en pico, ni nginx con micro-caché.
+
 - **Memoria: ≈ 100 KB vivos por conexión** (heap tras un GC forzado: ~1,18 GB con 10 000 abiertas; RSS ~1,8 GB).
   Con el tope por defecto de 20 000 por instancia hacen falta ~2 GB de heap vivo → contenedor de **≥ 4 GB**. Para
   50 000 conexiones: al menos 3 instancias con tope de 20 000, o 5 con 10 000.

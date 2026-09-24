@@ -59,7 +59,7 @@ curl -s localhost:8081/api/sectores/albornoz
 el sector pasa a `SIN_SERVICIO`. Con menos de 3 no cambia nada.
 
 ```bash
-curl -s "localhost:8081/api/bitacora?sectorId=albornoz&size=1"
+curl -s "localhost:8081/api/bitacora?sectorId=albornoz&tamano=1"
 # tipo CORTE_CONFIRMADO_POR_CIUDADANOS, cantidadReportesSustento 3
 ```
 
@@ -112,7 +112,7 @@ ventana). Cada enlace de correo trae además `/cancelar?token=…` para darse de
 curl -s localhost:8081/api/cumplimiento
 # global: duracionPrometidaSegundos / duracionRealSegundos / porcentajeCumplimiento (99,62 en la corrida)
 curl -s localhost:8081/api/cumplimiento/sectores/ciudadela-11-de-noviembre
-curl -s localhost:8081/api/cumplimiento/serie          # por mes: 2026-05, 2026-06, 2026-07, 2026-08
+curl -s localhost:8081/api/cumplimiento/serie          # por mes: 2026-05 en adelante (los meses de la siembra más los que tengan cortes reales o de prueba)
 curl -s -o cumplimiento.csv localhost:8081/api/cumplimiento/serie.csv
 curl -s localhost:8081/api/estadisticas                # sectores más afectados, cortes por día, duración media
 ```
@@ -125,7 +125,7 @@ reales entran por la ingesta de Acuacar (sección 5).
 ## 5. Ingesta de boletines reales (Acuacar)
 
 ```bash
-curl -s "localhost:8081/api/bitacora?size=2"    # eventos CORTE_DETECTADO_POR_INGESTA con urlOriginal al boletín
+curl -s "localhost:8081/api/bitacora?tamano=2"    # eventos CORTE_DETECTADO_POR_INGESTA con urlOriginal al boletín
 ```
 
 **Qué decir:** nada llega al mapa sin verificación; la IA debe citar la frase exacta del boletín (ética de
