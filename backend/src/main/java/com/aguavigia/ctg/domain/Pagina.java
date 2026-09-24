@@ -49,6 +49,13 @@ public record Pagina<T>(List<T> contenido, int pagina, int tamano, long totalEle
         return solicitada == null || solicitada < 0 ? 0 : solicitada;
     }
 
+    /** Corta el tramo pedido de una lista ya ordenada y en memoria. Una página pasada del final sale vacía. */
+    public static <T> Pagina<T> deLista(List<T> todos, int pagina, int tamano) {
+        int desde = (int) Math.min((long) pagina * tamano, todos.size());
+        int hasta = Math.min(desde + tamano, todos.size());
+        return new Pagina<>(todos.subList(desde, hasta), pagina, tamano, todos.size());
+    }
+
     public int totalPaginas() {
         return (int) Math.ceil((double) totalElementos / tamano);
     }

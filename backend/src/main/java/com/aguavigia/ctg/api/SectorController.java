@@ -1,5 +1,6 @@
 package com.aguavigia.ctg.api;
 
+import com.aguavigia.ctg.infrastructure.sse.SseSectoresBroadcaster;
 import com.aguavigia.ctg.api.dto.GeometriaSectoresRespuesta;
 import com.aguavigia.ctg.api.dto.RespuestaSectores;
 import com.aguavigia.ctg.api.dto.SectorRespuesta;
@@ -24,10 +25,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
-import org.springframework.context.event.EventListener;
-import com.aguavigia.ctg.application.SectorActualizadoEvent;
 
 /**
  * M1 — mapa en vivo (RF001-RF004).
@@ -70,22 +68,6 @@ public class SectorController {
     @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter streamSectores() {
         return sseBroadcaster.registrar();
-    }
-
-    /**
-     * @Async porque este listener corre en el hilo que guardó el sector — el POST /api/reportes de
-     * un vecino, o el ciclo de ingesta. Sin esto, ese vecino esperaba a que se recorrieran todos
-     * los emisores conectados, con una consulta del listado completo por medio, antes de recibir su
-     * 201. RNF002 exige confirmar un reporte en menos de un segundo.
-     *
-     * Publica en Redis en vez de difundir directo: SseSectoresBroadcaster.onMessage() es quien
-     * empuja a los clientes, en TODAS las instancias suscritas — no solo en esta (estado-del-backend.md
-     * #6.1, "SSE de una sola instancia").
-     */
-    @Async
-    @EventListener
-    public void onSectorActualizado(SectorActualizadoEvent event) {
-        sseBroadcaster.notificarActualizacion();
     }
 
     @Operation(summary = "Listar los sectores con su estado conocido",

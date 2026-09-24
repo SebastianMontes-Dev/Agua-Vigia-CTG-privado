@@ -89,30 +89,34 @@ class ReglaDeOroArchitectureTest {
     }
 
     /**
-     * "Aplicación solo depende de dominio y puertos" (plan de validación del backend, Fase 1) es el
-     * objetivo, pero application/ ya usa marcadores de cableado de Spring que no implican tecnología
-     * concreta: `@Service`/`@Component` (detección del bean), `@EventListener` (suscripción a
-     * eventos), `@Async` (hilo de ejecución), `@Value` (inyección de configuración). Sacarlos exige
-     * un refactor propio — pasar a `@Bean` explícitos en infrastructure/config — que es la Fase 4
-     * del mismo plan, no esta. Esta regla veta lo que sí importa: que application/ toque tecnología
-     * concreta de verdad (persistencia, web, seguridad, correo, Redis), no que use anotaciones de
-     * cableado del framework que ya lo hospeda.
+     * Plan de validación del backend, Fase 4: application/ solo depende de dominio, de sus propios
+     * casos de uso, de Java y del logging (slf4j). El cableado —detección de beans, listeners de
+     * eventos, ejecución asíncrona, lectura de configuración— vive en infrastructure/
+     * (`CasosDeUsoConfig`, `infrastructure/eventos`).
      */
     @Test
-    void applicationNoDebeDependerDeTecnologiaConcreta() {
+    void applicationSoloDebeDependerDeDominioJavaYLogging() {
         ArchRule regla = noClasses()
                 .that().resideInAPackage("..application..")
-                .should().dependOnClassesThat().resideInAnyPackage(
-                        "org.springframework.web..",
-                        "org.springframework.security..",
-                        "org.springframework.mail..",
-                        "jakarta.servlet..",
-                        "jakarta.mail..",
-                        "io.lettuce..",
-                        "redis.clients..",
-                        "org.testcontainers..");
+                .should().dependOnClassesThat()
+                .resideOutsideOfPackages("com.aguavigia.ctg.domain..", "com.aguavigia.ctg.application..",
+                        "java..", "javax..", "org.slf4j..");
 
-        regla.check(CLASES);
+        regla.check(CLASES_PRODUCCION);
+    }
+
+    /**
+     * Plan de validación del backend, Fase 4: escuchar eventos y ejecutar en segundo plano es
+     * infraestructura (`infrastructure/eventos`, `infrastructure/sse`), no cosa de un controlador.
+     */
+    @Test
+    void apiNoDebeEscucharEventosNiProgramarTareas() {
+        ArchRule regla = noClasses()
+                .that().resideInAPackage("..api..")
+                .should().dependOnClassesThat().resideInAnyPackage(
+                        "org.springframework.context.event..", "org.springframework.scheduling..");
+
+        regla.check(CLASES_PRODUCCION);
     }
 
     /**

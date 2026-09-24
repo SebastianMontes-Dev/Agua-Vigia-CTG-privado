@@ -7,13 +7,11 @@ import com.aguavigia.ctg.domain.Usuario;
 import com.aguavigia.ctg.domain.port.in.VerificarCorreoUseCase;
 import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.UsuarioRepository;
-import org.springframework.stereotype.Service;
 
 /**
  * Verificar el correo no da acceso: mueve la cuenta a PENDIENTE_APROBACION y ahí se queda hasta que
  * un ADMIN decida. Es el punto donde el registro abierto deja de ser un riesgo.
  */
-@Service
 public class VerificarCorreoService implements VerificarCorreoUseCase {
 
     private final UsuarioRepository usuarios;

@@ -3,9 +3,7 @@ package com.aguavigia.ctg.application;
 import com.aguavigia.ctg.domain.Suscripcion;
 import com.aguavigia.ctg.domain.port.in.CancelarSuscripcionUseCase;
 import com.aguavigia.ctg.domain.port.out.SuscripcionRepository;
-import org.springframework.stereotype.Service;
 
-@Service
 public class CancelarSuscripcionService implements CancelarSuscripcionUseCase {
 
     private final SuscripcionRepository suscripciones;

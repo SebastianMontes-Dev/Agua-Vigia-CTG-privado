@@ -12,7 +12,6 @@ import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.SectorRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -27,7 +26,6 @@ import java.util.UUID;
  * misma guarda de estado repetido, mismo evento de bitácora, mismos correos y SSE— y no pueden
  * divergir con el tiempo.
  */
-@Service
 public class RegistrarPropuestaIngestaService implements RegistrarPropuestaIngestaUseCase {
 
     private static final Logger log = LoggerFactory.getLogger(RegistrarPropuestaIngestaService.class);

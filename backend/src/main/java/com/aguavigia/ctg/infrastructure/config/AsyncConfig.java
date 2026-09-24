@@ -11,7 +11,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 
 /**
  * Habilita @Async — lo usan MailNotificacionAdapter (para no bloquear el hilo HTTP en el envío de
- * correo), NotificarSuscripcionesService, AlertaPushSectorListener y el emisor SSE de
+ * correo), NotificarSuscripcionesListener, AlertaPushSectorListener y el emisor SSE de
  * SectorController.
  */
 @Configuration

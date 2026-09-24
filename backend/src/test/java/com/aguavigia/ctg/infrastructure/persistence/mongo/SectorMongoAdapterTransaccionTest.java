@@ -1,6 +1,6 @@
 package com.aguavigia.ctg.infrastructure.persistence.mongo;
 
-import com.aguavigia.ctg.application.SectorActualizadoEvent;
+import com.aguavigia.ctg.infrastructure.eventos.SectorActualizadoEvent;
 import com.aguavigia.ctg.domain.EstadoServicio;
 import com.aguavigia.ctg.domain.Sector;
 import com.aguavigia.ctg.domain.SectorId;

@@ -11,7 +11,6 @@ import com.aguavigia.ctg.domain.port.out.NotificacionPort;
 import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.SectorRepository;
 import com.aguavigia.ctg.domain.port.out.SuscripcionRepository;
-import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.UUID;
@@ -21,7 +20,6 @@ import java.util.UUID;
  * partir la suscripción entre "válidos" e "inválidos" en silencio dejaría al vecino sin saber
  * que uno de sus barrios nunca quedó suscrito.
  */
-@Service
 public class SuscribirseService implements SuscribirseUseCase {
 
     private final SectorRepository sectores;

@@ -1,4 +1,4 @@
-package com.aguavigia.ctg.api;
+package com.aguavigia.ctg.infrastructure.sse;
 
 import com.aguavigia.ctg.domain.LimiteDePeticionesExcedidoException;
 import com.aguavigia.ctg.domain.port.out.RelojPort;
@@ -15,7 +15,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.time.Instant;
 
-import static com.aguavigia.ctg.api.SseSectoresBroadcaster.CANAL;
+import static com.aguavigia.ctg.infrastructure.sse.SseSectoresBroadcaster.CANAL;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;

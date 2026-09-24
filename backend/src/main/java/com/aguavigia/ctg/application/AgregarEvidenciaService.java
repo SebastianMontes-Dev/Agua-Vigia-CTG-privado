@@ -6,11 +6,9 @@ import com.aguavigia.ctg.domain.ReporteId;
 import com.aguavigia.ctg.domain.port.in.AgregarEvidenciaUseCase;
 import com.aguavigia.ctg.domain.port.out.AlmacenamientoPort;
 import com.aguavigia.ctg.domain.port.out.ReporteCiudadanoRepository;
-import org.springframework.stereotype.Service;
 
 import java.util.Map;
 
-@Service
 public class AgregarEvidenciaService implements AgregarEvidenciaUseCase {
 
     /**

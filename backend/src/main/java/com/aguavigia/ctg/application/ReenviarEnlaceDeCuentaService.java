@@ -12,7 +12,6 @@ import com.aguavigia.ctg.domain.port.in.ReenviarEnlaceDeCuentaUseCase;
 import com.aguavigia.ctg.domain.port.out.ControlIntentosPort;
 import com.aguavigia.ctg.domain.port.out.NotificacionCuentaPort;
 import com.aguavigia.ctg.domain.port.out.UsuarioRepository;
-import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 
@@ -21,7 +20,6 @@ import java.time.Duration;
  * no recibía el de verificación tenía que registrarse otra vez. Reemitir invalida el enlace anterior
  * ({@link EmisorDeTokensDeCuenta#emitir}), así que nunca hay dos enlaces vivos.
  */
-@Service
 public class ReenviarEnlaceDeCuentaService implements ReenviarEnlaceDeCuentaUseCase {
 
     private static final Duration ENFRIAMIENTO_VERIFICACION = Duration.ofMinutes(2);

@@ -1,8 +1,7 @@
 package com.aguavigia.ctg.api;
 
-import com.aguavigia.ctg.domain.EstadoServicio;
 import com.aguavigia.ctg.domain.Sector;
-import com.aguavigia.ctg.domain.port.out.SectorRepository;
+import com.aguavigia.ctg.domain.port.in.ListarSectoresAfectadosUseCase;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -35,10 +34,10 @@ public class Open311Controller {
     /** Código de servicio del estándar. Uno solo: esta plataforma reporta un único tipo de problema. */
     private static final String CODIGO_DE_SERVICIO = "AGUA-001";
 
-    private final SectorRepository sectorRepository;
+    private final ListarSectoresAfectadosUseCase sectoresAfectados;
 
-    public Open311Controller(SectorRepository sectorRepository) {
-        this.sectorRepository = sectorRepository;
+    public Open311Controller(ListarSectoresAfectadosUseCase sectoresAfectados) {
+        this.sectoresAfectados = sectoresAfectados;
     }
 
     @Operation(summary = "Listar los sectores con el servicio afectado, en formato Open311",
@@ -49,8 +48,7 @@ public class Open311Controller {
     @ApiResponse(responseCode = "200", description = "Listado generado")
     @GetMapping
     public List<Open311Response> getRequests() {
-        return sectorRepository.listarTodos().stream()
-                .filter(this::isActiveIssue)
+        return sectoresAfectados.listar().stream()
                 .map(s -> new Open311Response(
                         s.id().valor(),
                         "open",
@@ -62,13 +60,6 @@ public class Open311Controller {
                         s.estadoActualizadoEn()
                 ))
                 .toList();
-    }
-
-    private boolean isActiveIssue(Sector s) {
-        if (s.estadoActual() == null) {
-            return false;
-        }
-        return s.estadoActual() != EstadoServicio.CON_SERVICIO;
     }
 
     private static String descripcionDe(Sector sector) {

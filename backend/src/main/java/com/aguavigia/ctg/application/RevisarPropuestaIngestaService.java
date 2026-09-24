@@ -16,7 +16,6 @@ import com.aguavigia.ctg.domain.port.out.PropuestaIngestaRepository;
 import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.SectorRepository;
 import com.aguavigia.ctg.domain.port.out.TransaccionPort;
-import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
@@ -29,7 +28,6 @@ import java.util.UUID;
  * (RF026). Descartar no toca nada: la propuesta se archiva, no se borra — la bitácora es de solo
  * anexado y la cola de revisión debe poder auditarse.
  */
-@Service
 public class RevisarPropuestaIngestaService implements RevisarPropuestaIngestaUseCase {
 
     private final PropuestaIngestaRepository propuestas;

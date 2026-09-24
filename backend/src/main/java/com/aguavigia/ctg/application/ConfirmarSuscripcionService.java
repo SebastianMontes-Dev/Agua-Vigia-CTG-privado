@@ -4,8 +4,6 @@ import com.aguavigia.ctg.domain.Suscripcion;
 import com.aguavigia.ctg.domain.port.in.ConfirmarSuscripcionUseCase;
 import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.SuscripcionRepository;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -15,7 +13,6 @@ import java.time.Instant;
  * le dice al vecino "el enlace vence en {{horasVigencia}} horas" — la misma propiedad
  * `aguavigia.suscripcion.horas-vigencia-token` se lee aqui para que el codigo cumpla esa promesa.
  */
-@Service
 public class ConfirmarSuscripcionService implements ConfirmarSuscripcionUseCase {
 
     private final SuscripcionRepository suscripciones;
@@ -24,7 +21,7 @@ public class ConfirmarSuscripcionService implements ConfirmarSuscripcionUseCase 
 
     public ConfirmarSuscripcionService(SuscripcionRepository suscripciones,
                                         RelojPort reloj,
-                                        @Value("${aguavigia.suscripcion.horas-vigencia-token:48}") long horasVigenciaToken) {
+                                        long horasVigenciaToken) {
         this.suscripciones = suscripciones;
         this.reloj = reloj;
         this.horasVigenciaToken = horasVigenciaToken;

@@ -13,8 +13,6 @@ import com.aguavigia.ctg.domain.port.out.ContadorReportesPort;
 import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.ReporteCiudadanoRepository;
 import com.aguavigia.ctg.domain.port.out.SectorRepository;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.util.UUID;
@@ -37,7 +35,6 @@ import java.util.UUID;
  * RF009: cada reporte dispara la evaluación de consenso de su sector — "automáticamente" no
  * significa "en un job aparte que alguien tiene que acordarse de programar".
  */
-@Service
 public class RegistrarReporteService implements RegistrarReporteUseCase {
 
     private final SectorRepository sectores;
@@ -54,9 +51,9 @@ public class RegistrarReporteService implements RegistrarReporteUseCase {
                                     ContadorReportesPort contadorReportes,
                                     EvaluarConsensoUseCase evaluarConsenso,
                                     RelojPort reloj,
-                                    @Value("${aguavigia.reportes.limite-por-dispositivo:3}") int limitePorDispositivo,
-                                    @Value("${aguavigia.reportes.limite-por-sensor:30}") int limitePorSensor,
-                                    @Value("${aguavigia.reportes.ventana-limite-minutos:30}") long ventanaLimiteMinutos) {
+                                    int limitePorDispositivo,
+                                    int limitePorSensor,
+                                    long ventanaLimiteMinutos) {
         this.sectores = sectores;
         this.reportes = reportes;
         this.contadorReportes = contadorReportes;

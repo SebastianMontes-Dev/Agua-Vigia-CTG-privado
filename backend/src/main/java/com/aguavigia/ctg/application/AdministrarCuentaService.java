@@ -13,7 +13,6 @@ import com.aguavigia.ctg.domain.port.out.NotificacionCuentaPort;
 import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.RevocacionSesionPort;
 import com.aguavigia.ctg.domain.port.out.UsuarioRepository;
-import org.springframework.stereotype.Service;
 
 /**
  * Lo que un ADMIN puede hacerle a una cuenta ajena. Tres guardas atraviesan todas las acciones y
@@ -31,7 +30,6 @@ import org.springframework.stereotype.Service;
  * - **Todo cambio de acceso revoca las sesiones vivas de la persona afectada.** Sin esto, suspender
  *   a alguien no lo saca: su token sigue firmado y válido hasta 8 horas más (RNF011).
  */
-@Service
 public class AdministrarCuentaService implements AdministrarCuentaUseCase {
 
     private final UsuarioRepository usuarios;

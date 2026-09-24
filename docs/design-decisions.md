@@ -2626,8 +2626,59 @@ cierra.
 
 ---
 
+## ADR-065 — Los casos de uso no llevan anotaciones de Spring; el cableado, los listeners y las tareas viven en `infrastructure/`
+
+- **Fecha:** 2026-09-23
+- **Estado:** Aceptada
+- **Decide:** Sebastián (delegado: «continúa la Fase 4»)
+
+### Contexto
+El plan de validación (`plan-validacion-backend.md`, Fase 4) exige que los casos de uso no dependan
+de Spring ni de Mongo. Hasta hoy 33 archivos de `application/` importaban Spring (`@Service`,
+`@Component`, `@Value`, `@Async`, `@EventListener`), y `ArchUnit` solo vetaba la tecnología concreta
+(Fase 1 del mismo plan). `SectorController` también escuchaba eventos con `@Async`/`@EventListener`, y
+`SseSectoresBroadcaster` (Redis + `@Scheduled`) vivía en `api/`. Tres controladores tenían reglas:
+`HistorialDeCortesController` (orden y paginación), la paginación del sustento en `BitacoraController`
+y el filtro «sector afectado» en `Open311Controller`.
+
+### Alternativas consideradas
+| Opción | A favor | En contra |
+|---|---|---|
+| A. `@Bean` explícito para cada caso de uso | Cableado 100 % visible | 35 métodos de puro trámite |
+| B. `@ComponentScan` con filtro de nombres + `@Bean` solo para los 6 que leen `aguavigia.*` | Poco código; los servicios quedan sin anotación | El filtro es por nombre (`*Service`): una clase nueva con otro nombre no se registra |
+| C. Dejar las anotaciones (estado previo) | Cero cambio | Incumple la Fase 4 |
+| D. Dividir `AdministrarCuentaService` (5 acciones) y `ConfigurarSegundoFactorService` (3) | Un servicio = una acción literal | Copia las guardas de seguridad comunes (no auto-administrarse, último admin, revocar sesiones) 5 veces, justo lo que el javadoc de `AdministrarCuentaUseCase` quería evitar |
+
+### Decisión
+Opción B. `CasosDeUsoConfig` (en `infrastructure/config`) escanea `application/` por nombre y declara a
+mano los seis servicios con propiedades. Los listeners (`AlertaPushSectorListener`,
+`NotificarSuscripcionesListener`, `AvisoSseSectorListener`) y `SectorActualizadoEvent` pasan a
+`infrastructure/eventos`; `SseSectoresBroadcaster` y su config, a `infrastructure/sse`. El orden y la
+paginación del histórico de cortes, el sustento de un evento y el filtro de Open311 pasan a tres casos
+de uso nuevos. No se divide `AdministrarCuentaService` ni `ConfigurarSegundoFactorService` (opción D
+descartada): son familias cohesivas con guardas compartidas, no servicios que hagan «dos cosas»
+sueltas. `ArchUnit` exige ahora que `application/` solo dependa de dominio, Java y slf4j, y que `api/`
+no escuche eventos ni programe tareas.
+
+### Consecuencias
+- **Gana:** la aplicación se puede ejecutar sin Spring; el cableado está en un solo lugar; reglas
+  automáticas que impiden regresar.
+- **Pierde:** el registro por nombre es una convención frágil (un caso de uso llamado distinto no se
+  registra y el fallo aparece al arrancar, no al compilar); los tests de controlador `@WebMvcTest`
+  deben importar el servicio real con `@Import`.
+- **Sigue sin resolverse:** las lecturas directas a repositorios desde controladores (`ADR-015`) se
+  conservan por decisión del plan, incluido `IngestaFallidosController`, que usa el repositorio Mongo
+  concreto; `SectorController` sigue inyectando `SseSectoresBroadcaster` (infraestructura) para
+  abrir el stream SSE.
+
+### Cómo se revierte
+Devolver `@Service`/`@Component`/`@Value` a las clases de `application/` y borrar `CasosDeUsoConfig`;
+mover de vuelta los listeners. Es mecánico, sin datos ni contratos involucrados.
+
+---
+
 <!--
-Siguiente número disponible: ADR-065
+Siguiente número disponible: ADR-066
 Para agregar: usa la skill `registrar-decision`.
 Recuerda: append-only. Las entradas viejas solo cambian de estado, no de contenido.
 -->
