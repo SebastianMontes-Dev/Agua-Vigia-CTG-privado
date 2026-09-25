@@ -114,6 +114,61 @@
     color: var(--tinta-secundaria);
   }
 
+  .combinaciones {
+    list-style: none;
+    padding: 0;
+    display: grid;
+    gap: var(--espacio-2);
+  }
+
+  .combinacion {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--espacio-2) var(--espacio-4);
+    min-height: var(--objetivo-tactil);
+    border: 1px solid var(--linea);
+    border-radius: var(--radio);
+    padding: var(--espacio-3) var(--espacio-4);
+  }
+
+  .textoAcento {
+    color: var(--acento);
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+
+  .razon {
+    font-family: var(--fuente-utilidad);
+    font-size: var(--texto-s);
+    font-variant-numeric: tabular-nums;
+    color: var(--tinta-secundaria);
+  }
+
+  .relleno {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--objetivo-tactil);
+    border-radius: var(--radio);
+    padding-inline: var(--espacio-4);
+    background: var(--acento);
+    color: var(--superficie);
+    font-weight: 600;
+  }
+
+  /* guia-frontend.md §2.2: en oscuro el texto del relleno de acento es --fondo, no --superficie. */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) .relleno {
+      color: var(--fondo);
+    }
+  }
+
+  :root[data-theme='dark'] .relleno {
+    color: var(--fondo);
+  }
+
   .tipografia {
     border-top: 1px solid var(--linea);
     padding-top: var(--espacio-4);

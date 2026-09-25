@@ -3,8 +3,6 @@
 > Guía de diseño de producto e interfaz. El agente lee este archivo antes de generar cualquier
 > pantalla, componente o pieza visual. Si una propuesta contradice algo de aquí, gana este archivo.
 > Desarrollo por pantalla: [guía del frontend](docs/diseno/guia-frontend.md) (`ADR-069`).
-> El ajuste de acento claro está aprobado como propuesta pendiente de aplicación conjunta con el CSS;
-> los valores vigentes de las tablas siguientes no cambian en esta entrega documental.
 
 ---
 
@@ -57,7 +55,7 @@ solo es un refuerzo, no el mensaje.
 ## 3. Paleta base
 
 ```
-Acento turquesa   #087f8c  (claro)   #54c6ca  (oscuro)
+Acento turquesa   #06747f  (claro)   #54c6ca  (oscuro)
 Acento vivo       #0796a5            #78d9db
 Acento suave      #dcefee            #153f44
 Tinta             #102f39            #eef8f7
@@ -69,7 +67,7 @@ Fondo             #f2f7f6            #061c23
 ```
 
 Fuente única vigente: esta tabla; `frontend/src/estilos/tokens.css` la reproduce (`ADR-067`).
-La migración de acento aprobada en `ADR-069` se aplicará aquí y en el CSS en el mismo cambio.
+El acento claro pasa AA como texto sobre fondo, superficie y acento suave (`ADR-069`, `REC-019`).
 
 Los neutros tienen un sesgo azulado sutil, no son grises puros. Es una decisión: el gris neutro se lee
 como plantilla sin criterio; un neutro con temperatura se lee como elegido.

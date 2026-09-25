@@ -2,7 +2,7 @@
 
 **Fecha:** 2026-09-25, Cartagena · **Decisión:** [ADR-069](../design-decisions.md).
 
-**Aprobado:** el dueño encargó implementar este plan documental para todo el frontend. **Pendiente de aplicación:** el acento claro y las composiciones descritas aquí. **Implementado antes de esta guía:** F0 y los avances de F1 registrados en el [plan de construcción](../ingenieria/plan-frontend.md). Esta entrega no aprueba el prototipo existente, no cierra F1 y no inicia F2.
+**Aprobado:** el dueño encargó implementar este plan documental para todo el frontend. **Pendiente de aplicación:** las composiciones descritas aquí. **Aplicado:** el acento claro de §2.1 (paso 1 de §7, 2026-09-25). **Implementado antes de esta guía:** F0 y los avances de F1 registrados en el [plan de construcción](../ingenieria/plan-frontend.md). Esta entrega no aprueba el prototipo existente, no cierra F1 y no inicia F2.
 
 ## Índice
 
@@ -34,7 +34,7 @@
 | El muestrario muestra colores pero no la jerarquía del producto | Diseñar alrededor de una ficha de respuesta y sus acciones, no copiar la página de muestras como portada |
 | Los polígonos del prototipo dominan frente al texto | Reducir su relleno y conservar bordes, glifos y nombres legibles |
 | Barrio, estado y horas compiten en la misma frase | Separar barrio, estado, horario y antigüedad en cuatro niveles |
-| El acento claro falla como texto sobre algunos fondos | Aplicar REC-019 en el futuro cambio conjunto de documentación y tokens (§2) |
+| El acento claro falla como texto sobre algunos fondos | REC-019 aplicada en DESIGN.md y tokens a la vez (§2) |
 | «Ver los reportes» y «Cortes que más se pasaron» sugieren datos no expuestos públicamente de esa forma | Mostrar sustento como referencias y comparación por sector; no prometer contenido o clasificación global sin soporte (§5) |
 | Fecha antigua de estado confundible con fallo del canal | Separar registro del estado, generación del listado, consulta y conexión (§6) |
 
@@ -44,15 +44,9 @@ No recuperar la carta náutica archivada en ADR-041, el shell administrativo de 
 
 ## 2. Color y contraste
 
-### 2.1 Fuente única y cambio pendiente
+### 2.1 Fuente única
 
-Los **13 pares de valores vigentes**, incluidos todos los estados y neutros, siguen exclusivamente en [DESIGN.md §2–§3](../../DESIGN.md#2-los-cuatro-estados--el-núcleo-del-lenguaje-visual). No se modifica todavía `frontend/src/estilos/tokens.css`.
-
-| Único cambio cromático aprobado para aplicar después | Vigente | Objetivo |
-|---|---|---|
-| `--acento`, tema claro | Consultar la tabla canónica de DESIGN.md | **`#06747f`** |
-
-El acento oscuro, los estados y el resto de la paleta se conservan. Esta fila es una **migración pendiente**, no un segundo sistema de tokens. Cuando Claude la aplique, deberá mover el valor objetivo a DESIGN.md y al CSS en el mismo cambio, y sustituir esta fila por un enlace a la tabla canónica. No copiar valores hexadecimales a componentes o estilos del mapa.
+Los **13 pares de valores vigentes**, incluidos todos los estados, los neutros y el acento claro de `REC-019`, viven exclusivamente en la [tabla canónica de DESIGN.md §2–§3](../../DESIGN.md#3-paleta-base); `frontend/src/estilos/tokens.css` la reproduce y `tokens.test.ts` falla si divergen. No copiar valores hexadecimales a esta guía, a componentes ni a estilos del mapa.
 
 ### 2.2 Roles y combinaciones
 
@@ -60,7 +54,7 @@ El acento oscuro, los estados y el resto de la paleta se conservan. Esta fila es
 |---|---|---|
 | Página / panel / énfasis suave | `--fondo` / `--superficie` / `--acento-suave` | Superficies opacas; el énfasis suave no identifica un estado del agua |
 | Texto de lectura / ayuda y fecha | `--tinta` / `--tinta-secundaria` | Nunca bajar la opacidad del texto para mostrar antigüedad |
-| Enlace | `--acento`, subrayado; hover con subrayado más grueso | Antes de la migración, solo sobre `--superficie`; después, también sobre fondo y acento suave |
+| Enlace | `--acento`, subrayado; hover con subrayado más grueso | Sobre `--fondo`, `--superficie` o `--acento-suave`; sobre otro fondo, medirlo antes |
 | Botón principal | Relleno `--acento`; texto `--superficie` en claro y `--fondo` en oscuro | Hover conserva los colores y añade contorno interior del color del texto; no usar `--acento-vivo` como relleno de hover con texto claro |
 | Botón secundario / campo | Superficie, texto tinta, borde tinta terciaria | El borde funcional no depende de `--linea` |
 | Foco | Contorno de 2 px en acento con separación de 2 px | Los controles sobre el mapa llevan placa opaca; comprobar el anillo contra la placa |
@@ -76,13 +70,13 @@ El acento oscuro, los estados y el resto de la paleta se conservan. Esta fila es
 
 Medición sRGB con luminancia relativa de WCAG: `(L mayor + 0,05) / (L menor + 0,05)`. Comparar valores sin redondear contra 4,5:1 (texto normal) y 3:1 (gráficos y bordes funcionales). Las cifras se redondean solo al presentarlas. Fuentes: [contraste de texto](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html), [contraste no textual](https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html) y [uso del color](https://www.w3.org/WAI/WCAG22/Understanding/use-of-color.html).
 
-| Par | Claro vigente | Claro objetivo | Oscuro conservado |
+| Par | Claro anterior a REC-019 | Claro vigente | Oscuro |
 |---|---:|---:|---:|
 | Acento / fondo | 4,39 | 5,09 | 8,60 |
 | Acento / superficie | 4,65 | 5,39 | 7,57 |
 | Acento / acento suave | 3,98 | 4,62 | 5,64 |
 
-El resto de las parejas permitidas se verifican en [contraste.test.ts](../../frontend/src/estilos/contraste.test.ts): tinta y secundaria sobre los tres fondos; estados sobre fondo y superficie; texto sobre rellenos sólidos; bordes y glifos sobre fondo y superficie. La migración debe añadir acento/fondo y acento/acento-suave a los pares de texto. El test existente no valida aún el nuevo color ni la composición translúcida del mapa.
+El resto de las parejas permitidas se verifican en [contraste.test.ts](../../frontend/src/estilos/contraste.test.ts): tinta y secundaria sobre los tres fondos; estados sobre fondo y superficie; texto sobre rellenos sólidos; bordes y glifos sobre fondo y superficie. Acento sobre los tres fondos forma parte de los pares de texto, y la misma prueba fija las cifras vigentes y oscuras de esta tabla; el muestrario las mide en pantalla. El test no cubre la composición translúcida del mapa.
 
 ### 2.4 Mapa en los dos temas
 
@@ -301,7 +295,7 @@ Esta es una entrega documental sobre `d366ad9`. Los cambios de F1 que ya estaban
 
 | Orden | Trabajo posterior | Evidencia de salida |
 |---|---|---|
-| 1. Fundamentos | Migrar el acento claro de §2.1 en DESIGN.md y tokens.css juntos; ampliar pares de contraste; reemplazar la propuesta numérica por enlace canónico. Mantener los estados y contratos | Pruebas de tokens y contraste, tema manual en ambas direcciones, muestrario actualizado. REC-019 pasa de validada a resuelta solo tras implementación |
+| 1. Fundamentos ✅ 2026-09-25 | Migrar el acento claro de §2.1 en DESIGN.md y tokens.css juntos; ampliar pares de contraste; reemplazar la propuesta numérica por enlace canónico. Mantener los estados y contratos | Hecho: pruebas de tokens y contraste, tema manual en ambas direcciones, muestrario con las combinaciones del acento en 360/1280 px y ambos temas. REC-019 resuelta |
 | 2. F1 | Adaptar los cuatro prototipos a esta guía; añadir ejemplos de cuentas/panel y condiciones sin datos. Medir y preparar PMTiles; conservar glifos locales | Capturas de §8 y revisión visual del dueño. La aprobación del documento no sustituye esa revisión |
 | 3. Mapa y reportes | Aplicar ficha, navegación, lista, búsqueda, tiempo y flujo de reporte; estados de error contra API real | RF001–RF008, RF037–RF038 y casos de §8 |
 | 4. Historia pública | Cumplimiento, estadísticas, bitácora y sustento sin datos inventados | Correspondencia entre cada cifra y respuesta; CSV y paginación coherentes |

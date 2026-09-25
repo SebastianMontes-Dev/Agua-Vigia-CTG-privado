@@ -8,8 +8,8 @@
 > publicados, glifos SVG, contraste medido, glifos del mapa decididos (`ADR-068`) y guía integral aprobada
 > (`ADR-069`). **Falta:** adaptar y aprobar visualmente los prototipos y obtener el extracto PMTiles, que la red de
 > la sesión en la nube no deja descargar.
-> **Diseño (2026-09-25):** guía integral aprobada como especificación documental (`ADR-069`); aplicación del
-> acento claro y ajuste de prototipos pendientes. Esta aprobación no cierra F1 ni inicia F2.
+> **Diseño (2026-09-25):** guía integral aprobada como especificación documental (`ADR-069`); acento claro ya
+> aplicado (guía §7, paso 1) y ajuste de prototipos pendiente. Esto no cierra F1 ni inicia F2.
 >
 > **Fuente de verdad.** Este plan **no reemplaza** a `DESIGN.md` (diseño), a `docs/api/` (cómo consumir la API) ni a
 > `backend/openapi.yaml` (el contrato). Resume lo que hace falta tener a mano y apunta a esos documentos. Si algo de
@@ -138,7 +138,7 @@ comentarios solo explican el porqué. Las pruebas llevan nombre descriptivo en e
 
 La tabla vigente es `DESIGN.md` §2–§3; `frontend/src/estilos/tokens.css` la reproduce y `tokens.test.ts`
 comprueba su igualdad. El mapa y la leyenda leen esos mismos tokens. No mantener otra tabla de valores aquí.
-El ajuste aprobado de REC-019 sigue **pendiente de aplicación conjunta**, según la [guía §2](../diseno/guia-frontend.md#2-color-y-contraste).
+El ajuste de REC-019 ya está aplicado en ambos a la vez ([guía §2](../diseno/guia-frontend.md#2-color-y-contraste)).
 
 ### 5.2 Lenguaje visual
 
@@ -151,7 +151,7 @@ La ficha separa barrio, estado, horario disponible y antigüedad; no fuerza una 
 Mínimos generales: `DESIGN.md` §7–§8. Parejas de colores y restricciones vigentes/objetivo:
 [guía §2](../diseno/guia-frontend.md#2-color-y-contraste). Criterios por escenario y tamaño:
 [guía §8](../diseno/guia-frontend.md#8-aceptacion-y-verificacion).
-`contraste.test.ts` comprueba las parejas actuales; al aplicar REC-019 se amplían los pares de texto.
+`contraste.test.ts` comprueba las parejas permitidas, acento sobre fondo, superficie y acento suave incluido.
 Una fecha antigua de estado no demuestra caída del colector: aplicar la distinción de tiempos de la guía §6.
 
 ---
@@ -348,7 +348,7 @@ cuando su entregable se demuestra funcionando**, no por calendario.
       deniega `build.protomaps.com`; `scripts/preparar-mapa-base.sh pmtiles` está listo para correrlo en local.
       Glifos de texto decididos en `ADR-068` y ya en `frontend/public/mapa/glifos/`.
 - [x] Tabla de contraste AA medida: `frontend/src/estilos/contraste.test.ts` y las restricciones de §5.3. De ahí salió
-      `REC-019` (el acento claro no pasa como texto sobre `--fondo`); validada documentalmente por el dueño en `ADR-069`, aún sin cambio de tokens.
+      `REC-019` (el acento claro no pasa como texto sobre `--fondo`); validada en `ADR-069` y aplicada el 2026-09-25 (`DESIGN.md`, `tokens.css` y pruebas).
 - [x] Guía integral documentada (`ADR-069`): composiciones, colores, pantallas y criterios de aceptación.
 - [ ] Adaptar y revisar los prototipos con la guía; su aprobación visual sigue pendiente.
 - **Hecho cuando:** el dueño aprueba los prototipos. **Sin esa aprobación no empieza F2.**
@@ -458,5 +458,5 @@ a veces falla por el margen de 1 s del filtro JWT (`plan-de-pruebas.md` §8).
 
 1. ~~¿Esto abre un **Sprint 7**?~~ Sí: `sprint-7.md`, abierto el 2026-09-25.
 2. En F1: ~~¿glifos locales o mapa sin texto?~~ Glifos locales (`ADR-068`). ¿El PMTiles se versiona o se genera?
-   (se decide al medirlo). ¿Se aprueban los prototipos adaptados a la guía? `REC-019` aceptada en `ADR-069`; falta aplicarla al código.
+   (se decide al medirlo). ¿Se aprueban los prototipos adaptados a la guía? `REC-019` aceptada en `ADR-069` y aplicada.
 3. En F4/F5: ¿URL de los correos con una propiedad nueva (`url-frontend`) o reutilizando `url-publica`?
