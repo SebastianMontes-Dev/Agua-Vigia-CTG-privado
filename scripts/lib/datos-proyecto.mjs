@@ -136,11 +136,11 @@ function leerDetalleSprint(n) {
   };
 }
 
-// ─── Sprints: docs/gestion/README.md, tabla "Los siete sprints" ───
+// ─── Sprints: docs/gestion/README.md, tabla "Los ocho sprints" ───
 function obtenerSprints() {
   const texto = leer("docs/gestion/README.md");
   const tabla = texto.match(/\| Sprint \| Foco \| Entregable que lo cierra \|.*?\n\|---.*?\n([\s\S]*?)\n\n/);
-  if (!tabla) throw new Error("No se pudo parsear la tabla de sprints — revisar formato de docs/gestion/README.md, sección \"Los siete sprints\"");
+  if (!tabla) throw new Error("No se pudo parsear la tabla de sprints — revisar formato de docs/gestion/README.md, sección \"Los ocho sprints\"");
   const limpiar = (s) => s.replace(/\*\*/g, "").replace(/`/g, "").trim();
   const filas = tabla[1].trim().split("\n").filter((l) => l.startsWith("|"));
   const sprints = filas.map((f) => {
