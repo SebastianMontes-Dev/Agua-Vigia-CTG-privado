@@ -27,7 +27,7 @@ Referencias cruzadas: `ADR-NNN` · `BUG-NNN` · `RF0NN` · `archivo:línea`.
 
 ### 2026-09-25 · `claude/wonderful-maxwell-dfxfgu`
 **Qué:** Paso 1 de la guía §7 (fundamentos visuales) aplicado sobre `docs/guia-diseno-frontend`: acento claro `#06747f` en `DESIGN.md` y `tokens.css` a la vez, pares de contraste ampliados y cifras fijadas, muestrario con las combinaciones del acento medidas en pantalla; `REC-019` resuelta. 110 unitarias y 14 E2E (360/1280, ambos temas) en verde. F1 sigue abierto.
-**Sigue:** Adaptar los cuatro prototipos a la guía (con ejemplos de cuentas, panel y «Sin datos verificados»), obtener y medir el PMTiles en local y pedir la aprobación visual del dueño; sin ella no empieza F2.
+**Sigue:** Fusionar primero `docs/guia-diseno-frontend` y luego esta rama (el commit va encima; sin PR abierto). Después, paso 2 de la guía §7: adaptar los cuatro prototipos (con cuentas, panel y «Sin datos verificados»), obtener el PMTiles en local y pedir la aprobación visual; sin ella no empieza F2.
 
 ### 2026-09-25 · `docs/guia-diseno-frontend`
 **Qué:** Completada la guía integral del frontend y `ADR-069`: matriz de rutas, composiciones adaptables, contraste, estados y presentación honesta de `estado: null`; `REC-019` quedó validada, no implementada. F1 sigue abierto.
