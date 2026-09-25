@@ -88,7 +88,7 @@ El resto de las parejas permitidas se verifican en [contraste.test.ts](../../fro
 | Borde de estado | Token sólido, 1,5 px | Token sólido, 1,5 px |
 | Sector seleccionado | Borde semántico 3 px con halo de superficie 5 px | Igual; no cambiar el sector a turquesa por seleccionarlo |
 | Etiquetas | Tinta sobre halo opaco de superficie | Igual; nunca texto directamente sobre relleno transparente |
-| Sin datos | Superficie con trama de tinta secundaria: trazo 1 px cada 8 px, inclinación 45° | Igual |
+| Sin datos | Superficie con trama de tinta secundaria: trazo 1 px cada 8 px (baldosa de 8 × 8 px de `trama-sin-datos.svg`), inclinación 45° | Igual |
 
 Las opacidades solo suavizan áreas; no comunican el estado por sí mismas. Cada borde semántico lleva una base de superficie de 3,5 px para conservar contraste sobre calles o polígonos vecinos. Leyenda con glifo sólido y texto; muestra de relleno con la misma opacidad y fondo de tierra del mapa. No exigir 3:1 a un relleno decorativo: verificar el borde/glifo que identifica la zona y la alternativa textual.
 
@@ -296,7 +296,7 @@ Esta es una entrega documental sobre `d366ad9`. Los cambios de F1 que ya estaban
 | Orden | Trabajo posterior | Evidencia de salida |
 |---|---|---|
 | 1. Fundamentos ✅ 2026-09-25 | Migrar el acento claro de §2.1 en DESIGN.md y tokens.css juntos; ampliar pares de contraste; reemplazar la propuesta numérica por enlace canónico. Mantener los estados y contratos | Hecho: pruebas de tokens y contraste, tema manual en ambas direcciones, muestrario con las combinaciones del acento en 360/1280 px y ambos temas. REC-019 resuelta |
-| 2. F1 🟡 2026-09-25 | Adaptar los cuatro prototipos a esta guía; añadir ejemplos de cuentas/panel y condiciones sin datos. Medir y preparar PMTiles; conservar glifos locales | Prototipos adaptados (Artifact, versión 2) y 62 capturas en 360/768/1280 px y ambos temas. Falta el PMTiles y la revisión visual del dueño; la aprobación del documento no la sustituye |
+| 2. F1 🟡 2026-09-25 | Adaptar los cuatro prototipos a esta guía; añadir ejemplos de cuentas/panel y condiciones sin datos. Medir y preparar PMTiles; conservar glifos locales | Prototipos adaptados (Artifact, versión 3) y 62 capturas en 360/768/1280 px y ambos temas. Falta el PMTiles y la revisión visual del dueño; la aprobación del documento no la sustituye |
 | 3. Mapa y reportes | Aplicar ficha, navegación, lista, búsqueda, tiempo y flujo de reporte; estados de error contra API real | RF001–RF008, RF037–RF038 y casos de §8 |
 | 4. Historia pública | Cumplimiento, estadísticas, bitácora y sustento sin datos inventados | Correspondencia entre cada cifra y respuesta; CSV y paginación coherentes |
 | 5. Avisos y cuentas | Formularios, enlaces y TOTP; aplicar decisión técnica pendiente sobre URLs de correo en su fase correspondiente | Recorridos de enlace válido, vencido, usado, doble pulsación y segundo factor |

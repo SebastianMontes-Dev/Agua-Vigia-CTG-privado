@@ -102,10 +102,11 @@
   }
 
   .trama {
+    /* Misma trama que iconos/trama-sin-datos.svg: su baldosa de 8 px en diagonal deja 8/√2 px entre líneas. */
     background: repeating-linear-gradient(
-      -45deg,
-      var(--tinta-terciaria) 0 2px,
-      transparent 2px 6px
+      45deg,
+      var(--tinta-secundaria) 0 1px,
+      var(--superficie) 1px 5.657px
     );
   }
 

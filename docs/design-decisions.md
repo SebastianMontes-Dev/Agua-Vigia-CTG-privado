@@ -2843,8 +2843,8 @@ cierra F1 y no inicia F2.
 
 `estado: null` se presenta como **«Sin datos verificados»**, con trama, glifo y texto, sin añadir un quinto valor al
 dominio. `ADR-035` queda reemplazada; la parte contractual de `ADR-014` permanece: el backend sigue transmitiendo
-el nulo. También se valida `REC-019`: el acento claro objetivo será `#06747f`, pero se aplicará después en
-`DESIGN.md` y `frontend/src/estilos/tokens.css` dentro del mismo cambio, con sus pruebas de contraste.
+el nulo. También se valida `REC-019`: el acento claro pasa a `#06747f`, aplicado a la vez en `DESIGN.md` y
+`frontend/src/estilos/tokens.css`, con sus pruebas de contraste (2026-09-25, paso 1 de la guía §7).
 
 ### Consecuencias
 - **Gana:** cada ruta tiene jerarquía, estados y límites de datos trazables; «sin datos» deja de parecer servicio
@@ -2852,13 +2852,13 @@ el nulo. También se valida `REC-019`: el acento claro objetivo será `#06747f`,
 - **Pierde:** el mapa puede mostrar más zonas neutrales, y los cuatro prototipos deben adaptarse y volver a revisión
   visual antes de cerrar F1.
 - **No cambia:** React, CSS propio, PMTiles local, rutas, contratos, dependencias y colores semánticos del servicio.
-- **Condiciona:** el nuevo acento sigue sin estar implementado; `REC-019` no se resuelve hasta mover ambos tokens y
-  verificar el muestrario en los dos temas.
+- **Condiciona:** el acento se movió en ambos tokens y se verificó el muestrario en los dos temas; `REC-019` quedó
+  resuelta. F1 sigue esperando la revisión visual de los prototipos adaptados.
 
 ### Cómo se revierte
 Un ADR futuro puede sustituir la guía o una parte de ella. Volver a presentar el nulo como servicio exige restaurar
-expresamente el riesgo aceptado por `ADR-035`; cancelar el acento antes de implementarlo solo requiere descartar la
-migración pendiente, sin tocar código ni datos.
+expresamente el riesgo aceptado por `ADR-035`; volver al acento anterior exige cambiar a la vez `DESIGN.md`,
+`tokens.css` y las cifras fijadas en `contraste.test.ts`, y reabre el incumplimiento de contraste de `REC-019`.
 
 ---
 

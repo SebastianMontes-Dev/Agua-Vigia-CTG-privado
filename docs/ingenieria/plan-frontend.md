@@ -350,7 +350,7 @@ cuando su entregable se demuestra funcionando**, no por calendario.
 - [x] Tabla de contraste AA medida: `frontend/src/estilos/contraste.test.ts` y las restricciones de §5.3. De ahí salió
       `REC-019` (el acento claro no pasa como texto sobre `--fondo`); validada en `ADR-069` y aplicada el 2026-09-25 (`DESIGN.md`, `tokens.css` y pruebas).
 - [x] Guía integral documentada (`ADR-069`): composiciones, colores, pantallas y criterios de aceptación.
-- [x] Prototipos adaptados a la guía el 2026-09-25 (mismo Artifact, versión 2): cabecera y menú de §4, ficha en el
+- [x] Prototipos adaptados a la guía el 2026-09-25 (mismo Artifact, versión 3): cabecera y menú de §4, ficha en el
       orden barrio → estado → horario → registro, hoja en tres posiciones, estado nulo con trama, casos de §6.2,
       reporte con sus 8 respuestas, cumplimiento sin cifras que el agregado no trae, bitácora sin filtro por origen,
       avisos, cuentas y panel. 62 capturas en 360/768/1280 px y ambos temas: sin errores de script ni scroll horizontal.
@@ -462,5 +462,5 @@ a veces falla por el margen de 1 s del filtro JWT (`plan-de-pruebas.md` §8).
 
 1. ~~¿Esto abre un **Sprint 7**?~~ Sí: `sprint-7.md`, abierto el 2026-09-25.
 2. En F1: ~~¿glifos locales o mapa sin texto?~~ Glifos locales (`ADR-068`). ¿El PMTiles se versiona o se genera?
-   (se decide al medirlo). ¿Se aprueban los prototipos adaptados a la guía (versión 2 del Artifact)? `REC-019` aceptada en `ADR-069` y aplicada.
+   (se decide al medirlo). ¿Se aprueban los prototipos adaptados a la guía (versión 3 del Artifact)? `REC-019` aceptada en `ADR-069` y aplicada.
 3. En F4/F5: ¿URL de los correos con una propiedad nueva (`url-frontend`) o reutilizando `url-publica`?

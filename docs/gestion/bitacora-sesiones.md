@@ -26,7 +26,7 @@ Referencias cruzadas: `ADR-NNN` · `BUG-NNN` · `RF0NN` · `archivo:línea`.
 ## Sprint 7 — Frontend nuevo
 
 ### 2026-09-25 · `claude/tender-gauss-ntutsm`
-**Qué:** Paso 2 de la guía §7: prototipos F1 adaptados en el mismo Artifact (versión 2), con cabecera y menú de §4, ficha barrio → estado → horario → registro, estado nulo, casos de §6.2, reporte con 8 respuestas, cuentas y panel; 62 capturas (360/768/1280, ambos temas) sin errores ni scroll horizontal. PMTiles sigue bloqueado (`build.protomaps.com` da 403 en la red de la sesión).
+**Qué:** Paso 2 de la guía §7: prototipos F1 adaptados en el mismo Artifact (versión 3), con cabecera y menú de §4, ficha barrio → estado → horario → registro, estado nulo, casos de §6.2, reporte con 8 respuestas, cuentas y panel; 62 capturas (360/768/1280, ambos temas) sin errores ni scroll horizontal. PMTiles sigue bloqueado (`build.protomaps.com` da 403 en la red de la sesión). Tras revisar el PR #55: trama de «sin datos» a 1 px con prueba, `ADR-069` y `sprint-7.md` corregidos y autoría de la rama reescrita al dueño.
 **Sigue:** El dueño revisa y aprueba o corrige los prototipos; abrir `build.protomaps.com` en la red del entorno o correr `preparar-mapa-base.sh pmtiles` en local. Sin ambas cosas no empieza F2. Ramas aún sin fusionar: esta va encima de `claude/wonderful-maxwell-dfxfgu`.
 
 ### 2026-09-25 · `claude/wonderful-maxwell-dfxfgu`
