@@ -2,7 +2,8 @@
 
 > Guía de diseño de producto e interfaz. El agente lee este archivo antes de generar cualquier
 > pantalla, componente o pieza visual. Si una propuesta contradice algo de aquí, gana este archivo.
-> Desarrollo por pantalla: [guía del frontend](docs/diseno/guia-frontend.md) (`ADR-069`).
+> Desarrollo por pantalla: [guía del frontend](docs/diseno/guia-frontend.md) (`ADR-069`). Identidad nueva en adopción:
+> [identidad formal](docs/diseno/identidad.md) (`ADR-070`). Antes de tocar la interfaz, skill `disenar-frontend`.
 
 ---
 
@@ -66,7 +67,8 @@ Superficie        #fbfdfc            #0c2830
 Fondo             #f2f7f6            #061c23
 ```
 
-Fuente única vigente: esta tabla; `frontend/src/estilos/tokens.css` la reproduce (`ADR-067`).
+Fuente única vigente: esta tabla; `frontend/src/estilos/tokens.css` la reproduce (`ADR-067`). **En migración:** la
+reemplaza la paleta de `docs/diseno/identidad.md` §2 tras la aprobación visual, en un solo cambio (`ADR-070`).
 El acento claro pasa AA como texto sobre fondo, superficie y acento suave (`ADR-069`, `REC-019`).
 
 Los neutros tienen un sesgo azulado sutil, no son grises puros. Es una decisión: el gris neutro se lee
@@ -92,6 +94,9 @@ realidad nunca ocurre. Solo pilas de sistema.
 
 **Nada de webfonts por CDN.** La política de seguridad de contenido las bloquea y caen en silencio a
 una fuente de sistema. Se usan pilas de fuentes locales.
+
+**En migración (`ADR-070`):** Newsreader y Schibsted Grotesk servidas en local reemplazan estas pilas tras la
+aprobación visual (`docs/diseno/identidad.md` §3).
 
 Reglas: texto corrido a ~65 caracteres de ancho · `text-wrap: balance` en titulares ·
 `font-variant-numeric: tabular-nums` en cualquier columna de cifras · mayúsculas siempre con

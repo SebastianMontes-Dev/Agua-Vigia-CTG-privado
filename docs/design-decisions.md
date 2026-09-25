@@ -2725,7 +2725,7 @@ involucrados (no hay endpoint HTTP nuevo).
 ## ADR-067 — El frontend nuevo se hace con React 19, Vite y CSS propio, sobre un mapa base PMTiles local y sin el shell de ADR-029
 
 - **Fecha:** 2026-09-25
-- **Estado:** Aceptada
+- **Estado:** Parcialmente reemplazada por ADR-070 — solo la exclusión de webfonts; el stack sigue vigente
 - **Decide:** Dueño del proyecto
 
 ### Contexto
@@ -2814,7 +2814,7 @@ Barato: se quitan las capas `symbol` del estilo y la carpeta `glifos/`, y el map
 ## ADR-069 — La guía integral del frontend rige cada pantalla y el estado nulo vuelve a «Sin datos verificados»
 
 - **Fecha:** 2026-09-25
-- **Estado:** Aceptada
+- **Estado:** Parcialmente reemplazada por ADR-070 — su parte visual; siguen las reglas de datos, estados y el nulo
 - **Decide:** Dueño del proyecto
 
 ### Contexto
@@ -2862,8 +2862,52 @@ expresamente el riesgo aceptado por `ADR-035`; volver al acento anterior exige c
 
 ---
 
+## ADR-070 — El frontend adopta una identidad formal: cardenillo y latón, Newsreader con Schibsted Grotesk y movimiento especificado
+
+- **Fecha:** 2026-09-25
+- **Estado:** Aceptada — la dirección; los valores concretos esperan la aprobación visual del prototipo
+- **Decide:** Dueño del proyecto
+
+### Contexto
+Al ver los prototipos de F1 adaptados a la guía (`ADR-069`), el dueño los rechazó: la interfaz seguía el esquema del
+frontend retirado (mapa arriba, hoja con la ficha, botón turquesa, fuente del sistema) y «se ve hecha por IA». Pidió
+un rediseño total: **formal, minimalista, con colores no genéricos, animaciones y transiciones que den sensación
+premium y la vista web como prioridad**, más skills y documentación que mantengan esa orientación. Las guías
+consultadas sobre interfaces generadas por IA coinciden en la causa (el modelo vuelve a la estética promedio) y en el
+remedio: especificación escrita antes del código, referencias reales, reglas que prohíban lo genérico y movimiento
+planeado. Se exploraron tres rumbos (Cartel, Vecino, Reloj del corte) antes de fijar este.
+
+### Alternativas consideradas
+| Opción | A favor | En contra |
+|---|---|---|
+| Mantener la identidad de `DESIGN.md` §3–§4 y pulir | Sin migración | Es justamente lo que el dueño rechazó |
+| Rumbo «Cartel», «Vecino» o «Reloj del corte» | Cada uno cambia la experiencia | Ninguno responde a «formal y minimalista»; el dueño pidió otra dirección |
+| **Rumbo formal: cardenillo y latón, serif editorial y movimiento especificado** | Sobrio, propio del acueducto, legible en escritorio y celular | Dos fuentes a servir; se rehacen el muestrario y los prototipos |
+
+### Decisión
+Adoptar la identidad de `docs/diseno/identidad.md`: paleta cardenillo y latón con neutros de sesgo verde, Newsreader
+para titulares y cifras y Schibsted Grotesk para la interfaz (ambas OFL, **servidas desde el propio proyecto**),
+reglas finas en vez de tarjetas, composición de escritorio propia y la tabla de movimiento de su §5. Los cuatro
+estados del servicio (`DESIGN.md` §2, `ADR-042`) y todas las reglas de datos de la guía no cambian. Dos skills
+(`disenar-frontend` y `revisar-diseno`) obligan a leer esa especificación y a revisar capturas antes de dar por
+terminada una pantalla. **Reemplaza en parte a `ADR-067`** (la exclusión de webfonts: ahora se permiten las dos
+fuentes locales) y **a `ADR-069`** (su parte visual: acento, tipografía y composición de la guía §2–§4).
+
+### Consecuencias
+- **Gana:** una identidad que no se confunde con una plantilla y reglas escritas que cualquier sesión debe seguir.
+- **Pierde:** el acento `#06747f` y las composiciones de la guía §4 recién aplicadas; los prototipos F1 anteriores
+  quedan como histórico. Unos 160 KB de fuentes que el celular descarga una vez.
+- **Condiciona:** la migración de `DESIGN.md` §3–§4, `tokens.css`, sus pruebas y el muestrario se hace en un solo
+  cambio después de la aprobación visual (`identidad.md` §8). F1 no cierra ni F2 empieza sin esa aprobación.
+
+### Cómo se revierte
+Otro ADR vuelve a la identidad anterior: `DESIGN.md` §3–§4 siguen en el historial y el prototipo de la guía está en
+el Artifact de F1. Mientras no se migre, revertir solo exige descartar `identidad.md` y las dos skills.
+
+---
+
 <!--
-Siguiente número disponible: ADR-070
+Siguiente número disponible: ADR-071
 Para agregar: usa la skill `registrar-decision`.
 Recuerda: append-only. Las entradas viejas solo cambian de estado, no de contenido.
 -->

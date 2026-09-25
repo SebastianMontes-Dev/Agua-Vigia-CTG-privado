@@ -43,6 +43,7 @@ Redis (caché, rate limiting, ventana de consenso, pub/sub). **Sin SDK de IA**: 
 **Infraestructura** Docker multi-etapa + docker compose · nginx (proxy y micro-caché, `infra/nginx/`) · GitHub Actions
 
 **Frontend** (en construcción, `ADR-067`) React 19 · Vite · TS estricto · CSS propio. Contrato: `backend/openapi.yaml`; guía: `docs/api/`.
+Identidad visual: `docs/diseno/identidad.md` (`ADR-070`). **Antes de tocar la interfaz, skill `disenar-frontend`; antes del PR, `revisar-diseno`.**
 
 ---
 

@@ -26,8 +26,8 @@ Referencias cruzadas: `ADR-NNN` · `BUG-NNN` · `RF0NN` · `archivo:línea`.
 ## Sprint 7 — Frontend nuevo
 
 ### 2026-09-25 · `claude/tender-gauss-ntutsm`
-**Qué:** Paso 2 de la guía §7: prototipos F1 adaptados en el mismo Artifact (versión 3), con cabecera y menú de §4, ficha barrio → estado → horario → registro, estado nulo, casos de §6.2, reporte con 8 respuestas, cuentas y panel; 62 capturas (360/768/1280, ambos temas) sin errores ni scroll horizontal. PMTiles sigue bloqueado (`build.protomaps.com` da 403 en la red de la sesión). Tras revisar el PR #55: trama de «sin datos» a 1 px con prueba, `ADR-069` y `sprint-7.md` corregidos y autoría de la rama reescrita al dueño.
-**Sigue:** El dueño revisa y aprueba o corrige los prototipos; abrir `build.protomaps.com` en la red del entorno o correr `preparar-mapa-base.sh pmtiles` en local. Sin ambas cosas no empieza F2. Ramas aún sin fusionar: esta va encima de `claude/wonderful-maxwell-dfxfgu`.
+**Qué:** Prototipos adaptados a la guía y PR #55 abierto; revisión atendida (trama a 1 px con prueba, `ADR-069`, `sprint-7.md`). El dueño rechazó la interfaz por genérica: identidad formal nueva (`ADR-070`, `docs/diseno/identidad.md`), prototipo en Artifact y skills `disenar-frontend` y `revisar-diseno`. PMTiles sigue bloqueado (403).
+**Sigue:** Aprobación visual del rumbo formal y migración de `identidad.md` §8. La rama local reescribió la autoría al dueño y no se pudo subir (force-push bloqueado): el dueño decide si autoriza el push o cierra el PR #55.
 
 ### 2026-09-25 · `claude/wonderful-maxwell-dfxfgu`
 **Qué:** Paso 1 de la guía §7 (fundamentos visuales) aplicado sobre `docs/guia-diseno-frontend`: acento claro `#06747f` en `DESIGN.md` y `tokens.css` a la vez, pares de contraste ampliados y cifras fijadas, muestrario con las combinaciones del acento medidas en pantalla; `REC-019` resuelta. 110 unitarias y 14 E2E (360/1280, ambos temas) en verde. F1 sigue abierto.

@@ -2,6 +2,10 @@
 
 **Fecha:** 2026-09-25, Cartagena · **Decisión:** [ADR-069](../design-decisions.md).
 
+> **Parte visual reemplazada (`ADR-070`, 2026-09-25):** color, tipografía, componentes y composición (§2–§4) los define
+> ahora la [identidad formal](identidad.md). De esta guía siguen vigentes los datos, las rutas, los estados y los
+> mensajes (§5–§8). Antes de tocar la interfaz, skill `disenar-frontend`.
+
 **Aprobado:** el dueño encargó implementar este plan documental para todo el frontend. **Pendiente de aplicación:** las composiciones descritas aquí. **Aplicado:** el acento claro de §2.1 (paso 1 de §7) y la adaptación de los prototipos (paso 2, a la espera de la revisión visual del dueño), ambos el 2026-09-25. **Implementado antes de esta guía:** F0 y los avances de F1 registrados en el [plan de construcción](../ingenieria/plan-frontend.md). Esta entrega no aprueba el prototipo existente, no cierra F1 y no inicia F2.
 
 ## Índice

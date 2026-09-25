@@ -8,8 +8,9 @@
 > publicados, glifos SVG, contraste medido, glifos del mapa decididos (`ADR-068`) y guía integral aprobada
 > (`ADR-069`). **Falta:** la aprobación visual del dueño sobre los prototipos adaptados y el extracto PMTiles, que
 > la red de la sesión en la nube no deja descargar.
-> **Diseño (2026-09-25):** guía integral aprobada como especificación documental (`ADR-069`); acento claro aplicado
-> (guía §7, paso 1) y prototipos adaptados a la guía (paso 2), a la espera de revisión. Esto no cierra F1 ni inicia F2.
+> **Diseño (2026-09-25):** el dueño rechazó los prototipos adaptados a la guía por genéricos y pidió un rediseño total.
+> Nueva identidad formal en `docs/diseno/identidad.md` (`ADR-070`), con prototipo propio y las skills `disenar-frontend`
+> y `revisar-diseno`. Falta su aprobación visual; después se migran tokens y fuentes. Esto no cierra F1 ni inicia F2.
 >
 > **Fuente de verdad.** Este plan **no reemplaza** a `DESIGN.md` (diseño), a `docs/api/` (cómo consumir la API) ni a
 > `backend/openapi.yaml` (el contrato). Resume lo que hace falta tener a mano y apunta a esos documentos. Si algo de
@@ -80,8 +81,8 @@ Las dependencias se agregan en la fase que las usa, no todas en F0: F0 trae la b
 herramientas de prueba; el router, Query y React Aria entran con las primeras pantallas (F2); MapLibre y `pmtiles`
 con el mapa (F1/F2); la PWA con la integración (F6).
 
-**Tipografía:** solo las pilas de sistema de `DESIGN.md` §4. Nada de webfonts. El carácter sale de la escala, el
-contraste de pesos, `tabular-nums` y el mono para horas y códigos.
+**Tipografía:** Newsreader y Schibsted Grotesk servidas desde `frontend/public/fuentes/` (`ADR-070`,
+`docs/diseno/identidad.md` §3), nunca desde un CDN. Hasta su migración rigen las pilas de sistema de `DESIGN.md` §4.
 
 > **Etiquetas del mapa:** decidido en `ADR-068`: glifos Noto Sans Regular y Medium servidos en local,
 > ya versionados en `frontend/public/mapa/glifos/`. Excepción limitada al lienzo; la interfaz mantiene fuentes
@@ -354,7 +355,11 @@ cuando su entregable se demuestra funcionando**, no por calendario.
       orden barrio → estado → horario → registro, hoja en tres posiciones, estado nulo con trama, casos de §6.2,
       reporte con sus 8 respuestas, cumplimiento sin cifras que el agregado no trae, bitácora sin filtro por origen,
       avisos, cuentas y panel. 62 capturas en 360/768/1280 px y ambos temas: sin errores de script ni scroll horizontal.
-- [ ] **Aprobación visual del dueño** sobre esa versión.
+- [x] ~~Aprobación visual de esa versión~~: rechazada el 2026-09-25 por genérica. Rediseño total pedido por el dueño.
+- [x] Identidad formal especificada (`docs/diseno/identidad.md`, `ADR-070`), prototipo de escritorio y celular
+      (<https://claude.ai/artifact/KzhpRbnun3cVuEe6SSKQ6D>) y skills `disenar-frontend` y `revisar-diseno`.
+- [ ] **Aprobación visual del dueño** sobre el rumbo formal; después, migración de `identidad.md` §8 y prototipos de
+      cuentas y panel con la nueva identidad.
 - **Hecho cuando:** el dueño aprueba los prototipos. **Sin esa aprobación no empieza F2.**
 
 ### F2 — Núcleo ciudadano (M1, M2)
