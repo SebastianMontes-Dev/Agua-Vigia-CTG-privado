@@ -23,7 +23,11 @@ Referencias cruzadas: `ADR-NNN` · `BUG-NNN` · `RF0NN` · `archivo:línea`.
 
 ---
 
-## Frontend nuevo (sin sprint asignado)
+## Sprint 7 — Frontend nuevo
+
+### 2026-09-25 · `claude/laughing-bardeen-a4p6nb`
+**Qué:** Registrado el PR #54 (F0) y abierto el Sprint 7. F1 casi completo: glifos del mapa (`ADR-068`, Noto locales ya en `frontend/public/mapa/glifos/`), glifos de estado en SVG, contraste AA en `contraste.test.ts` (`REC-019`), prototipos publicados en un Artifact y `scripts/preparar-mapa-base.sh`.
+**Sigue:** El dueño aprueba o corrige los prototipos y decide `REC-019`; correr `preparar-mapa-base.sh pmtiles` en local (aquí `build.protomaps.com` está bloqueado), medir el `.pmtiles` y decidir si se versiona; luego F2.
 
 ### 2026-09-25 · `claude/youthful-lovelace-de7ult`
 **Qué:** Plan del frontend (`docs/ingenieria/plan-frontend.md`) y `ADR-067` (React 19 + Vite + CSS propio, PMTiles local; `ADR-029` reemplazado). F0 construido en `frontend/`: tokens verificados contra `DESIGN.md`, cliente tipado con `api:check`, RFC 7807 por `type`, CI propio; 22 unitarias y 6 E2E en verde.
@@ -163,20 +167,6 @@ en `settings.json`). `docker-compose.prod.yml` sigue sin *replica set*, a propó
 ### 2026-08-09 · `fix/integrar-formulario-reportes`
 **Qué:** RF008 conectado a `POST /api/reportes`: formulario real en dos pasos, huella anónima SHA-256, ubicación opcional, errores RFC 7807 y contrato OpenAPI regenerado; 26 pruebas, lint, build y `npm audit` en verde.
 **Sigue:** Fusionar el PR a `main`; después registrar la entrega en `registro-de-implementaciones.md`.
-
-### 2026-08-09 · `develop` (cierre de sesión)
-**Qué:** Sesión larga sobre todo el backend — 8 PRs fusionados (#112, #113,
-#116, #118, #119, #120, #121, #124). Con esto **M1–M6 y M8 quedan completos**: los 9 puertos de
-entrada y 8 de salida del dominio tienen implementación real. Regenerado `backend/openapi.yaml` (de 7
-a 17 rutas — faltaban los cuatro módulos nuevos, PR #124). Puesta al día `registro-de-implementaciones.md`
-(7 PRs sin registrar) y su tabla de cobertura, que seguía en el estado del Sprint 1 (36 RF: 28% → 78%
-funcional real). `/security-review` sobre las cuatro superficies nuevas: sin hallazgos que superaran
-el umbral de confianza.
-**Hallazgo real:** RF014 (avisar al suscriptor cuando su sector cambia de estado) sigue sin conectar
-— `NotificacionPort` solo se dispara al suscribirse (`SuscribirseService`), ni `EvaluarConsensoService`
-ni `GestionarCorteOficialService` lo llaman. M4 queda en 75%, no 100%, por esto.
-**Sigue:** M9 (etapa IA) descartada (`ADR-025`). RF014 es el hueco funcional real más concreto
-que queda en lo ya construido.
 
 ## Sprints 0 y 1
 

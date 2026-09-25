@@ -2773,8 +2773,46 @@ pantallas; los tokens, el cliente generado del contrato y las pruebas E2E contra
 
 ---
 
+## ADR-068 — El mapa lleva etiquetas con glifos Noto Sans servidos en local, solo en los rangos que usa el español
+
+- **Fecha:** 2026-09-25
+- **Estado:** Aceptada
+- **Decide:** Dueño del proyecto
+
+### Contexto
+`ADR-067` dejó abierto si el mapa lleva texto. MapLibre no pinta texto con las fuentes del sistema: pide glifos SDF
+en `.pbf` por bloques de 256 puntos de código (`{fontstack}/{range}.pbf`) según los caracteres de cada etiqueta. El
+proyecto no carga webfonts (`DESIGN.md` §4, `ADR-041`) y no depende de internet para el mapa (`ADR-057`). Medido el
+2026-09-25 en `protomaps/basemaps-assets` (licencia SIL OFL 1.1): Noto Sans Regular pesa 76 KB en `0-255`, 128 KB en
+`256-511` y 64 KB en `8192-8447`; Medium, 78, 130 y 65 KB. Con `0-255` se cubre todo el español (tildes, ñ, ¿, ¡).
+
+### Alternativas consideradas
+| Opción | A favor | En contra |
+|---|---|---|
+| A. Glifos Noto locales, solo los rangos necesarios | El vecino se orienta por calles y barrios en el mapa; mismo origen, sin internet; ~150 KB en el caso común | Es una fuente, aunque solo la usa el lienzo del mapa: excepción a «nada de webfonts» que hay que acotar |
+| B. Mapa sin texto | Cero fuentes; el mapa pesa menos | Sin nombres, ubicar el barrio propio en un celular depende del buscador y la lista; el mapa pierde su función de orientación |
+| C. Glifos desde `protomaps.github.io` | Cero trabajo | Depende de internet y de un tercero: choca con `ADR-057` y con la CSP del mismo origen |
+
+### Decisión
+Opción A. Se versionan en `frontend/public/mapa/glifos/` Noto Sans Regular y Medium en los rangos `0-255`, `256-511` y
+`8192-8447` (guiones y comillas tipográficas), con su `OFL.txt`, y el estilo de MapLibre apunta a
+`/mapa/glifos/{fontstack}/{range}.pbf`. **La excepción es solo para el lienzo del mapa:** la interfaz sigue con las
+pilas de sistema de `DESIGN.md` §4.
+
+### Consecuencias
+- **Gana:** etiquetas de calles, barrios y agua en el mapa, sin internet ni terceros.
+- **Pierde:** ~540 KB en el repositorio y ~150 KB extra la primera vez que se pinta el mapa (después, caché). La
+  tarjeta de respuesta no espera a los glifos, así que no toca el presupuesto de `RNF001`.
+- **Obliga:** un nombre con un carácter fuera de esos rangos se pinta sin ese carácter (MapLibre registra el `404` y
+  sigue); si pasa con un nombre real de Cartagena, se agrega el rango. Conservar `OFL.txt` junto a los archivos.
+
+### Cómo se revierte
+Barato: se quitan las capas `symbol` del estilo y la carpeta `glifos/`, y el mapa queda como la opción B.
+
+---
+
 <!--
-Siguiente número disponible: ADR-068
+Siguiente número disponible: ADR-069
 Para agregar: usa la skill `registrar-decision`.
 Recuerda: append-only. Las entradas viejas solo cambian de estado, no de contenido.
 -->

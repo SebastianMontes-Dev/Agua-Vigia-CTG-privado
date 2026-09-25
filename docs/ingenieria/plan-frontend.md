@@ -4,8 +4,9 @@
 > empezar a trabajar: las decisiones tomadas, el stack, la estructura, las pantallas, las reglas que no se negocian,
 > las trampas de la API, las fases con criterios de terminado y cómo se verifica cada una.
 >
-> **Estado (2026-09-25):** plan aprobado por el dueño. `ADR-067` escrito. F0 (andamiaje) construido; falta verlo pasar
-> en el CI de GitHub. Lo siguiente es F1 (prototipos), que necesita la aprobación del dueño antes de F2.
+> **Estado (2026-09-25):** F0 fusionado (PR #54) y Sprint 7 abierto (`sprint-7.md`). F1 casi completo: prototipos
+> publicados, glifos SVG, contraste medido y glifos del mapa decididos (`ADR-068`). **Falta:** la aprobación del
+> dueño de los prototipos y el extracto PMTiles, que la red de la sesión en la nube no deja descargar.
 >
 > **Fuente de verdad.** Este plan **no reemplaza** a `DESIGN.md` (diseño), a `docs/api/` (cómo consumir la API) ni a
 > `backend/openapi.yaml` (el contrato). Resume lo que hace falta tener a mano y apunta a esos documentos. Si algo de
@@ -167,6 +168,19 @@ Contraste AA en los dos temas · todo operable con teclado y `:focus-visible` de
 los formularios · funciona desde 360 px · el cuerpo nunca hace scroll horizontal · primero se pinta el estado y después
 la geometría · primera respuesta útil en menos de 3 s en 3G (`RNF001`).
 
+**Contraste medido (F1, 2026-09-25).** `frontend/src/estilos/contraste.test.ts` mide con la fórmula de WCAG los pares
+que la interfaz puede usar, en los dos temas, y falla si un token cambia y un par baja del mínimo. Lo que **no** está
+permitido, porque no llega a 4,5:1 en al menos un tema:
+
+| Par | Claro | Oscuro | Regla |
+|---|---|---|---|
+| `--acento` como texto sobre `--fondo` | 4,39 | 8,60 | Los enlaces y botones de texto turquesa van sobre `--superficie` (4,65), no sobre `--fondo` |
+| Cualquier texto de color sobre `--acento-suave` | 3,98 (acento) · 4,18 (con servicio) | 3,51 (sin servicio) | Sobre `--acento-suave` solo `--tinta` y `--tinta-secundaria` |
+| `--tinta-terciaria` como texto | 3,30 | 4,66 | Solo para bordes de controles, separadores con función y texto grande |
+| `--acento-vivo` como texto | 3,48 | 9,36 | Solo *hover*, foco y rellenos |
+| `--tinta` sobre un relleno de estado o de acento | 2,18–2,97 | 1,88–3,03 | El texto sobre un relleno es `--superficie` en claro y `--fondo` en oscuro |
+| `--linea` como borde único de un control | 1,20–1,27 | 1,49–1,69 | Los campos llevan borde `--tinta-terciaria` (≥ 3:1); `--linea` solo separa |
+
 ---
 
 ## 6. La API: lo que el frontend debe hacer bien
@@ -297,12 +311,11 @@ Detalle completo en `docs/api/`. Aquí van las reglas que, si se olvidan, rompen
 
 ## 8. Mapa base PMTiles (a verificar en F1)
 
-1. Instalar el CLI de `pmtiles` (go-pmtiles) y extraer Cartagena de un *build* diario de Protomaps:
-   `pmtiles extract https://build.protomaps.com/<AAAAMMDD>.pmtiles cartagena.pmtiles --bbox=-75.70,10.25,-75.40,10.55 --maxzoom=15`
-   (el bbox y el zoom máximo se ajustan viendo el resultado). El comando se deja en un script de `scripts/` para
-   poder repetirlo.
-2. **Medir el tamaño** y decidir si se versiona (con git LFS o sin él) o si se genera al preparar el entorno. Si se
-   genera, va a `.gitignore` y se documenta en `docs/ingenieria/entorno-local.md`.
+1. `scripts/preparar-mapa-base.sh pmtiles` (necesita go-pmtiles) extrae Cartagena de un *build* diario de Protomaps
+   a `frontend/public/mapa/cartagena.pmtiles`. El bbox inicial de este plan (`-75.70,10.25,-75.40,10.55`) dejaba fuera
+   17 de los 213 barrios; el script usa `-75.76,10.13,-75.31,10.69`, que solo deja fuera San Bernardo e Isla Fuerte.
+2. **Medir el tamaño** y decidir si se versiona (con git LFS o sin él) o si se genera al preparar el entorno. Mientras
+   no se decida, `frontend/public/mapa/*.pmtiles` está en `.gitignore` para que no entre por accidente.
 3. Estilo propio a partir de las capas de `@protomaps/basemaps`: agua, tierra, vías y edificios pintados con los
    neutros de §5.1, sin colores de estado, en claro y oscuro.
 4. Licencia **ODbL**: atribución visible «© OpenStreetMap». Queda registrado en `ADR-067`.
@@ -352,11 +365,17 @@ cuando su entregable se demuestra funcionando**, no por calendario.
 - **Las E2E de F0 no necesitan backend.** Desde F2 las que sí lo necesitan irán en un job aparte con `docker compose`.
 
 ### F1 — Prototipos y lenguaje visual (sin código de producción)
-- [ ] Prototipos HTML en Artifacts de: mapa + tarjeta + ficha, reporte en 2 toques, cumplimiento con la regla de
-      tiempo y bitácora. Cada uno en 360 y 1280 px, en claro y oscuro.
-- [ ] Glifos de estado y trama de «sin datos» en SVG.
-- [ ] Extracto PMTiles y estilo MapLibre claro/oscuro (§8). Decidir los glifos de texto (§3) en un ADR propio.
-- [ ] Tabla de contraste AA medida para cada par de texto y fondo, en los dos temas.
+- [x] Prototipos HTML en Artifacts de: mapa + tarjeta + ficha, reporte en 2 toques, cumplimiento con la regla de
+      tiempo y bitácora. Cada uno en 360 y 1280 px, en claro y oscuro. **Publicados el 2026-09-25** en un solo Artifact
+      privado del dueño (<https://claude.ai/artifact/G88U8LYbsqwWsZN47B9JAA>), con los 189 barrios del casco urbano
+      dibujados desde `data/geoespacial/barrios-cartagena.geojson`. Sin mapa base: el extracto sigue pendiente.
+- [x] Glifos de estado y trama de «sin datos» en SVG: `frontend/src/iconos/`, con `currentColor` (`iconos.test.ts`
+      impide colores fijos).
+- [ ] Extracto PMTiles y estilo MapLibre claro/oscuro (§8). **Bloqueado:** la política de red de la sesión en la nube
+      deniega `build.protomaps.com`; `scripts/preparar-mapa-base.sh pmtiles` está listo para correrlo en local.
+      Glifos de texto decididos en `ADR-068` y ya en `frontend/public/mapa/glifos/`.
+- [x] Tabla de contraste AA medida: `frontend/src/estilos/contraste.test.ts` y las restricciones de §5.3. De ahí salió
+      `REC-019` (el acento claro no pasa como texto sobre `--fondo`).
 - **Hecho cuando:** el dueño aprueba los prototipos. **Sin esa aprobación no empieza F2.**
 
 ### F2 — Núcleo ciudadano (M1, M2)
@@ -462,6 +481,7 @@ a veces falla por el margen de 1 s del filtro JWT (`plan-de-pruebas.md` §8).
 
 ## 13. Pendientes que decide el dueño
 
-1. ¿Esto abre un **Sprint 7** en `docs/gestion/`?
-2. En F1: ¿glifos locales para las etiquetas del mapa, o un mapa sin texto? ¿El PMTiles se versiona o se genera?
+1. ~~¿Esto abre un **Sprint 7**?~~ Sí: `sprint-7.md`, abierto el 2026-09-25.
+2. En F1: ~~¿glifos locales o mapa sin texto?~~ Glifos locales (`ADR-068`). ¿El PMTiles se versiona o se genera?
+   (se decide al medirlo). ¿Se aprueban los prototipos? ¿Se acepta `REC-019`?
 3. En F4/F5: ¿URL de los correos con una propiedad nueva (`url-frontend`) o reutilizando `url-publica`?
