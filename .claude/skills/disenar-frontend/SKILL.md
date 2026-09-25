@@ -33,8 +33,8 @@ Tres a seis líneas en la conversación, no en un archivo:
 
 - **Colores:** solo tokens. Nada de hexadecimales en componentes. Un solo color de acción (`--cardenillo`). Los
   colores de estado solo para estados del servicio, siempre con glifo y palabra.
-- **Tipografía:** Newsreader para titulares, barrio y cifras; Schibsted Grotesk para interfaz y texto. Cifras
-  siempre `tabular-nums`. Nunca la fuente del sistema como identidad.
+- **Tipografía (`ADR-071`):** Newsreader solo en la marca, el titular de la página y el nombre del barrio; la pila
+  del sistema en controles, texto y cifras. Cifras siempre `tabular-nums`. Nada espera a que cargue la serif.
 - **Forma:** reglas de 1 px en vez de tarjetas; sombra solo en lo que flota; radios según `identidad.md` §4.
 - **Movimiento:** solo lo de `identidad.md` §5, con sus duraciones y curvas; solo `transform`, `opacity`,
   `stroke-dashoffset` y colores; `prefers-reduced-motion` lo desactiva todo. Si una animación deja contenido

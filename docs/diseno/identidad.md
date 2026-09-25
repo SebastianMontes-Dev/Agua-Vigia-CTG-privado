@@ -1,12 +1,13 @@
 # Identidad visual del frontend — rumbo formal
 
-**Fecha:** 2026-09-25, Cartagena · **Decisión:** [ADR-070](../design-decisions.md) · **Prototipo de referencia:**
+**Fecha:** 2026-09-25, Cartagena · **Decisiones:** [ADR-070](../design-decisions.md) y ADR-071 · **Prototipo de referencia:**
 [rumbo formal](https://claude.ai/artifact/KzhpRbnun3cVuEe6SSKQ6D) (Artifact privado del dueño).
 
-**Estado:** dirección pedida por el dueño (formal, minimalista, con movimiento cuidado y la vista web como prioridad).
-Los valores de este documento están **propuestos y pendientes de aprobación visual** sobre el prototipo. Hasta que se
-aprueben, `DESIGN.md` §3–§4 y `frontend/src/estilos/tokens.css` siguen con la identidad anterior; la migración se hace
-en un solo cambio (§8). Antes de tocar la interfaz, usa la skill `disenar-frontend`.
+**Estado:** adoptada por el dueño el 2026-09-25 con su plan «identidad propia y respuestas claras» (`ADR-071`): la
+paleta de §2 rige; la identidad editorial queda **contenida** en la marca y los titulares (§3), y búsquedas,
+formularios, mapa y datos se presentan de forma directa. El prototipo de referencia muestra la tipografía anterior
+(serif en cifras y Schibsted Grotesk): donde difiera, gana este documento. La migración se hace en un solo cambio (§8).
+Antes de tocar la interfaz, usa la skill `disenar-frontend`.
 
 Este documento manda sobre **cómo se ve y cómo se mueve** el frontend. Lo que se muestra y con qué datos lo sigue
 mandando la [guía del frontend](guia-frontend.md) y el contrato; lo que es un estado del servicio, `DESIGN.md` §2.
@@ -57,29 +58,35 @@ de un estado va en `--tinta` junto a su glifo de color; el color solo no es mens
 
 | Rol | Familia | Uso |
 |---|---|---|
-| Serif | **Newsreader** (Production Type, OFL), variable con eje óptico | Titulares, nombre del barrio, horas y cifras grandes, preguntas |
-| Sans | **Schibsted Grotesk** (Schibsted, OFL) | Interfaz, texto corrido, botones, rótulos |
+| Serif | **Newsreader** (Production Type, OFL), variable | **Solo** la marca, el titular de cada página y el nombre del barrio en la ficha |
+| Sistema | La pila de `DESIGN.md` §4 | Todo lo demás: controles, buscador, formularios, texto, rótulos, horas y cifras |
 
-Se sirven **desde el propio proyecto** (`frontend/public/fuentes/`, `woff2` variable, subconjunto latino,
-`font-display: swap`, `preload` de la serif). Nunca desde un CDN (`ADR-057`). Presupuesto: ≤ 160 KB entre las dos.
+La serif se sirve **desde el propio proyecto** (`frontend/public/fuentes/`, `woff2`, subconjunto latino,
+`font-display: swap`). Nunca desde un CDN (`ADR-057`). Presupuesto: ≤ 90 KB. Si no ha llegado, el titular sale en la
+serif del sistema y nada espera por ella: la primera respuesta no depende de la fuente (`ADR-071`).
 
 | Nivel | Estilo | Ejemplo |
 |---|---|---|
-| Titular de página | Newsreader 300, `clamp(44px, 6vw, 84px)`, interlineado 0,98, tracking −3,5 %, segunda línea en cursiva | «Lo prometido *y lo que duró*» |
-| Barrio | Newsreader 400, 44 px (36 px en celular), tracking −2,2 % | «Bocagrande» |
-| Cifra | Newsreader 300–400, 34–54 px, `tabular-nums lining-nums` | «6:10», «99,6 %» |
-| Sección | Newsreader 400, 22–28 px | «Cortes cerrados en Manga» |
-| Cuerpo | Schibsted 400, 16–17 px, interlineado 1,55, ≤ 65 caracteres | |
-| Acción | Schibsted 600, 15 px | «Reportar lo que pasa en mi casa» |
-| Rótulo | Schibsted 600, 11,5 px, mayúsculas, tracking +14 % | «INICIO ANUNCIADO» |
+| Marca | Newsreader 500, 24–25 px | «AguaVigía» |
+| Titular de página | Newsreader 300–400, `clamp(32px, 4.5vw, 56px)`, interlineado 1,05, tracking −2 %. Breve: una línea en escritorio | «Lo prometido y lo que duró» |
+| Barrio | Newsreader 400, 40 px (32 px en celular), tracking −2 % | «Bocagrande» |
+| Cifra | Sistema 600, 28–40 px, `tabular-nums` | «6:10», «99,6 %» |
+| Sección | Sistema 600, 18–20 px | «Cortes cerrados en Manga» |
+| Cuerpo | Sistema 400, 16–17 px, interlineado 1,5, ≤ 65 caracteres | |
+| Acción | Sistema 600, 15–16 px | «Reportar lo que pasa en mi casa» |
+| Rótulo | Sistema 600, 12 px, mayúsculas, tracking +8 % | «INICIO ANUNCIADO» |
 
-La cursiva de Newsreader es el único recurso expresivo del texto: se usa en la segunda mitad de un titular o en una
-indicación («Busca tu barrio»). Nunca negrita en la serif.
+Ninguna página repite por obligación un gran titular editorial: Bitácora, Estadísticas y Avisos abren con su función
+(filtros, patrones, formulario). Nunca negrita en la serif.
 
 ## 4. Composición
 
-**Escritorio (≥ 1100 px)** — cabecera de 68 px con marca, navegación centrada, estado «en vivo» y tema.
-- **Mapa:** panel de 460 px a la izquierda (buscador, respuesta, historial) y mapa a la derecha, sin tarjetas
+**Navegación (`ADR-071`)** — escritorio: Mapa, Cumplimiento, Bitácora, Estadísticas y Avisos. Celular: Mapa,
+Historial (Bitácora, Cumplimiento y Estadísticas) y Avisos. El panel del veedor tiene su propia navegación.
+«Especificación» no está en la navegación ciudadana. «En vivo» solo aparece en el mapa y solo con el canal conectado.
+
+**Escritorio (≥ 1100 px)** — cabecera de 68 px con marca, navegación centrada y tema.
+- **Mapa:** panel contextual compacto de 400–460 px a la izquierda (buscador, respuesta, historial) y mapa a la derecha, sin tarjetas
   flotando encima salvo leyenda, zoom y crédito. Sin barrio elegido, el panel muestra Cartagena ahora: barra de la
   ciudad por estado, conteos y barrios con novedades.
 - **Páginas de lectura:** ancho máximo 1180 px; encabezado a dos columnas (titular a la izquierda, entrada a la
@@ -88,7 +95,8 @@ indicación («Busca tu barrio»). Nunca negrita en la serif.
 
 **Tableta (600–1099 px)** — navegación en «Menú»; el mapa arriba (44 vh) y el panel debajo.
 
-**Celular (< 600 px)** — mismo orden; márgenes de 20 px; el reporte sube como hoja inferior.
+**Celular (< 600 px)** — búsqueda visible arriba, mapa y ficha inferior; márgenes de 16–20 px; el reporte sube como
+hoja inferior. El mapa, el buscador y la lista accesible abren la misma ficha.
 
 **Elementos**
 - Separación por **reglas de 1 px**, no por cajas. Una regla de tinta abre los bloques de cifras.
@@ -105,10 +113,10 @@ El movimiento explica qué cambió; nunca retrasa la respuesta ni se repite sin 
 
 | Momento | Efecto | Duración | Curva |
 |---|---|---|---|
-| Carga del mapa | Los barrios se trazan de oeste a este y después se rellenan | 1,4 s (una vez) | `--suave` |
+| Carga del mapa | Los barrios aparecen ya rellenos con su estado; sin trazo previo, que retrasaría la respuesta | — | — |
 | Elegir barrio | La cámara viaja al barrio; el contorno de latón se dibuja | 620 ms | `--lento` |
 | Cambio de panel o página | El contenido entra escalonado 50 ms, 10 px hacia arriba | 560 ms | `--suave` |
-| Cifras destacadas | Cuentan desde cero una sola vez al entrar | 1,1 s | salida cúbica |
+| Cifras destacadas | Aparecen con el contenido; **no** cuentan desde cero (una cifra que corre retrasa la lectura) | — | — |
 | Barras y reglas de tiempo | Crecen desde su origen | 0,9–1,1 s | `--suave` |
 | Enlaces, opciones, navegación | Subrayado de latón que crece desde la izquierda; flecha que avanza 3–4 px | 320 ms | `--suave` |
 | Reporte | El cajón entra desde la derecha (desde abajo en celular); la marca de recibido se dibuja | 480 ms | `--suave` |
@@ -123,7 +131,8 @@ excepción; el punto «en vivo» queda fijo. Ninguna animación bloquea la inter
 
 ## 6. Prohibido
 
-- **Fuentes:** la fuente del sistema como identidad, Inter, Roboto, Arial, Space Grotesk, Poppins, Montserrat.
+- **Fuentes:** una webfont en la interfaz fuera de la serif de §3, Inter, Roboto, Space Grotesk, Poppins, Montserrat.
+  La fuente del sistema se usa para leer, no como identidad: la identidad la dan la marca, la paleta y las reglas.
 - **Colores:** turquesa o azul genérico como acción, índigo, degradados, gris puro, crema con terracota, neón.
 - **Formas de plantilla:** tarjetas con sombra y el mismo radio para todo, pastillas de colores para cada dato,
   barrita de color al costado de una tarjeta, iconos decorativos, emojis, ilustraciones.
@@ -140,10 +149,10 @@ excepción; el punto «en vivo» queda fijo. Ninguna animación bloquea la inter
 
 ## 8. Migración
 
-Tras la aprobación visual, en un solo cambio: `DESIGN.md` §3–§4 pasan a este documento (con sus tablas), `tokens.css`
-y `tokens.test.ts` adoptan los tokens de §2, `contraste.test.ts` fija las cifras de §2, las fuentes se versionan en
-`frontend/public/fuentes/` con su licencia y el muestrario se rehace con esta identidad. Luego se rehacen los
-prototipos que faltan (cuentas y panel) y F2 arranca sobre esta base.
+En un solo cambio: `DESIGN.md` §3–§4 pasan a esta paleta y a esta tipografía, `tokens.css` y `tokens.test.ts` adoptan
+los tokens de §2, `contraste.test.ts` fija las cifras de §2, Newsreader se versiona en `frontend/public/fuentes/` con
+su licencia y el muestrario se rehace con esta identidad. Luego se rehacen los prototipos de F1
+(`plan-frontend.md` §10) y F2 arranca sobre esta base después de revisarlos en un teléfono real.
 
 ## 9. Verificación de cada pantalla
 

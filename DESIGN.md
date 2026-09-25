@@ -2,8 +2,8 @@
 
 > Guía de diseño de producto e interfaz. El agente lee este archivo antes de generar cualquier
 > pantalla, componente o pieza visual. Si una propuesta contradice algo de aquí, gana este archivo.
-> Desarrollo por pantalla: [guía del frontend](docs/diseno/guia-frontend.md) (`ADR-069`). Identidad nueva en adopción:
-> [identidad formal](docs/diseno/identidad.md) (`ADR-070`). Antes de tocar la interfaz, skill `disenar-frontend`.
+> Desarrollo por pantalla: [guía del frontend](docs/diseno/guia-frontend.md) (`ADR-069`). Identidad adoptada:
+> [identidad formal](docs/diseno/identidad.md) (`ADR-070`, contenida por `ADR-071`). Antes de tocar la interfaz, skill `disenar-frontend`.
 
 ---
 

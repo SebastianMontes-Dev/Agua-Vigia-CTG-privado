@@ -2865,7 +2865,7 @@ expresamente el riesgo aceptado por `ADR-035`; volver al acento anterior exige c
 ## ADR-070 — El frontend adopta una identidad formal: cardenillo y latón, Newsreader con Schibsted Grotesk y movimiento especificado
 
 - **Fecha:** 2026-09-25
-- **Estado:** Aceptada — la dirección; los valores concretos esperan la aprobación visual del prototipo
+- **Estado:** Parcialmente reemplazada por ADR-071 — tipografía, navegación y alcance de la serif; la paleta sigue vigente
 - **Decide:** Dueño del proyecto
 
 ### Contexto
@@ -2906,8 +2906,138 @@ el Artifact de F1. Mientras no se migre, revertir solo exige descartar `identida
 
 ---
 
+## ADR-071 — Identidad editorial contenida: Newsreader local solo en la marca y los titulares, fuente del sistema en todo lo demás
+
+- **Fecha:** 2026-09-25
+- **Estado:** Aceptada
+- **Decide:** Dueño del proyecto
+
+### Contexto
+El dueño revisó el prototipo del rumbo formal (`ADR-070`) y fijó un plan para el frontend completo («identidad propia y
+respuestas claras»). Mantiene la paleta cardenillo y latón y los cuatro colores de estado (`ADR-042`), pero pide que la
+identidad editorial quede en la marca y en titulares breves, y que búsquedas, formularios, mapa y datos se presenten de
+forma directa. La prueba que manda sigue siendo responder en menos de 5 s, desde el celular, qué estado tiene el barrio,
+cuándo se verificó y qué se sabe del restablecimiento (`DESIGN.md` §1). Dos fuentes de 160 KB en total y una cifra en
+serif compiten con esa respuesta en 3G (`RNF001`); la fuente del sistema ya está en el teléfono.
+
+### Alternativas consideradas
+| Opción | A favor | En contra |
+|---|---|---|
+| A. `ADR-070` tal cual: Newsreader en titulares, barrio y cifras; Schibsted Grotesk en la interfaz | Identidad más marcada | Dos descargas; la interfaz depende de la fuente; las cifras en serif son más lentas de leer en una tabla |
+| **B. Newsreader local solo en marca y titulares; sistema en controles, texto y cifras** | Una sola fuente, que no bloquea (`swap`); la respuesta sale con lo que ya trae el teléfono | La identidad descansa más en la paleta, las reglas y la composición que en la tipografía |
+| C. Solo fuente del sistema | Cero descargas | Es lo que se rechazó por genérico en `ADR-070` |
+
+### Decisión
+Opción B. **Newsreader** (Production Type, SIL OFL), servida desde `frontend/public/fuentes/` en `woff2` con subconjunto
+latino y `font-display: swap`, se usa solo en la marca, en el titular de cada página y en el nombre del barrio de la
+ficha. Controles, texto, rótulos, horas y cifras usan la pila del sistema de `DESIGN.md` §4, con `tabular-nums`. Se
+mantienen la paleta de `docs/diseno/identidad.md` §2 (el latón es el acento cálido de identidad, nunca una señal de
+estado) y los dos temas. **Navegación:** en escritorio, Mapa, Cumplimiento, Bitácora, Estadísticas y Avisos; en celular,
+Mapa, Historial (que reúne Bitácora, Cumplimiento y Estadísticas) y Avisos; el panel del veedor tiene su propia
+navegación. «Especificación» sale de la navegación ciudadana y queda como documentación del proyecto. «En vivo» solo
+aparece en el mapa y solo con el canal SSE conectado. Ninguna página repite por obligación el gran titular editorial.
+
+### Consecuencias
+- **Gana:** una sola fuente fuera del mapa, que no retrasa la primera respuesta; cifras y formularios más legibles.
+- **Pierde:** Schibsted Grotesk y la serif en las cifras; hay que rehacer el muestrario y los prototipos de F1.
+- **Condiciona:** `DESIGN.md` §3–§4, `tokens.css` y sus pruebas migran en un solo cambio a la paleta de `identidad.md`
+  §2 y a esta tipografía; `identidad.md` §3–§4 y las skills `disenar-frontend` y `revisar-diseno` se corrigen igual.
+  Presupuesto de la fuente: el que se mida al versionarla, sin pasar de 90 KB.
+- **Excepción acotada a `ADR-067`:** se sirve una webfont, local y del mismo origen, además de los glifos del mapa
+  (`ADR-068`). Ninguna otra.
+
+### Cómo se revierte
+Barato: se quita la `@font-face` y el token de la serif cae a la pila del sistema. Volver a `ADR-070` completo es otro
+ADR y la migración de Schibsted.
+
+---
+
+## ADR-072 — El mapa base PMTiles de Cartagena se versiona con Git LFS, extraído de una fuente y versión fijadas
+
+- **Fecha:** 2026-09-25
+- **Estado:** Aceptada
+- **Decide:** Dueño del proyecto
+
+### Contexto
+`ADR-067` dejó abierto si el `.pmtiles` se versiona o se genera en cada máquina. El plan del frontend de esta misma
+fecha pide que el mapa (costa, vías y nombres de barrio con densidad según el zoom) funcione sin internet en el entorno
+local y que se sirva desde el mismo origen que la SPA. `scripts/preparar-mapa-base.sh pmtiles` ya fija la fuente y el
+recuadro, pero la red de la sesión en la nube deniega `build.protomaps.com` (`sprint-7.md` §3): el archivo todavía no
+se ha medido. Un binario de varios megabytes en el historial normal de git crece con cada regeneración y no se puede
+podar sin reescribir la historia.
+
+### Alternativas consideradas
+| Opción | A favor | En contra |
+|---|---|---|
+| A. Generarlo en cada máquina con el script | El repositorio no crece | Cada instalación depende de internet y de un tercero; dos máquinas pueden terminar con mapas distintos |
+| B. Versionarlo en git normal | Un clon trae el mapa | El historial guarda cada versión para siempre |
+| **C. Versionarlo con Git LFS, desde una fuente y versión fijadas** | Un clon con LFS trae el mapa exacto; el historial solo guarda punteros | Exige `git lfs` en la máquina y `lfs: true` en el CI que lo necesite; consume la cuota de LFS de la cuenta |
+
+### Decisión
+Opción C. El `.pmtiles` de Cartagena se extrae con `scripts/preparar-mapa-base.sh pmtiles` (fuente, versión y recuadro
+fijados en el script), se guarda en `frontend/public/mapa/` y se sigue con Git LFS (`.gitattributes`). Se registra su
+tamaño y su suma SHA-256 al versionarlo. La atribución «© OpenStreetMap» (ODbL) va visible en el mapa.
+
+### Consecuencias
+- **Gana:** el mapa se sirve local y sin internet, idéntico en todas las máquinas.
+- **Pierde:** un clon sin `git lfs` trae un puntero y el mapa base no carga (la ficha y la lista siguen funcionando).
+- **Pendiente:** extraerlo en una máquina con acceso a `build.protomaps.com` (la del dueño o una sesión con esa red
+  permitida) y medirlo; hasta entonces F2 trabaja con los polígonos de `/api/sectores/geometria`.
+
+### Cómo se revierte
+Se deja de seguir el archivo con LFS (`git lfs untrack`) y se vuelve a la opción A; los punteros viejos quedan en el
+historial sin coste.
+
+---
+
+## ADR-073 — La API amplía lo mínimo para el frontend: filtros de la bitácora y fecha de última verificación de cada sector
+
+- **Fecha:** 2026-09-25
+- **Estado:** Aceptada
+- **Decide:** Dueño del proyecto
+
+### Contexto
+El plan del frontend pide dos cosas que el contrato no daba. **Bitácora:** filtrar por barrio, tipo y fecha. `GET
+/api/bitacora` solo paginaba, así que un filtro en el cliente habría buscado en los 50 eventos cargados, no en todo el
+historial. **Frescura:** advertir «Sin verificación reciente» tras 24 horas sin una nueva verificación, sin cambiar el
+estado publicado. El único dato era `actualizadoEn`, que el adaptador solo escribe cuando el estado *cambia*
+(`SectorMongoAdapter.guardar` y `cambiarEstadoSiEs`): un barrio con servicio estable no cambia en días, y la advertencia
+habría salido sobre casi todo el mapa, casi siempre.
+
+### Alternativas consideradas
+| Opción | A favor | En contra |
+|---|---|---|
+| Filtrar la bitácora en el cliente | Sin tocar el backend | Busca solo en la página cargada: el vecino no encuentra un corte de hace tres meses |
+| **Filtros en `GET /api/bitacora` (`sectorId`, `tipo`, `desde`, `hasta`)** | Busca en todo el historial con los índices que ya existen | Un parámetro más por filtro en el contrato |
+| Advertencia sobre `actualizadoEn` | Sin tocar el backend | Falso aviso en casi todos los barrios estables |
+| Advertencia solo en estados de corte | Sin tocar el backend | Un «con servicio» de hace una semana nunca advertiría nada |
+| **Campo `verificadoEn`** | Distingue «cambió hace 3 días» de «se sostuvo hace una hora» | Hay que decidir qué cuenta como verificación y cuidar la carga en averías masivas |
+
+### Decisión
+**Bitácora:** `GET /api/bitacora` acepta `sectorId`, `tipo`, `desde` (inclusivo) y `hasta` (exclusivo), en UTC; el
+filtro se resuelve en Mongo, el enlace `Link` conserva los filtros y una búsqueda sin resultados es una página vacía.
+**Frescura:** `SectorRespuesta` suma `verificadoEn`: la última vez que una fuente con autoridad sostuvo el estado, haya
+cambiado o no. Cuentan el consenso de vecinos (mayoría clara de dispositivos distintos), un corte del veedor y un
+boletín aprobado; **no** cuenta el barrido periódico de ventanas, que solo reaplica un anuncio ya recibido. Todo cambio
+de estado es también verificación, así que `verificadoEn` nunca es anterior a `actualizadoEn`. Verificar sin cambiar no
+anexa eventos a la bitácora ni avisa a los suscriptores, y el consenso lo hace como mucho una vez cada 5 minutos por
+sector. El umbral de 24 horas lo aplica la interfaz.
+
+### Consecuencias
+- **Gana:** la bitácora filtrable de verdad y una advertencia de frescura que solo aparece cuando corresponde.
+- **Pierde:** un campo y un método de puerto más (`SectorRepository.confirmarEstado`). Verificar sin cambiar no emite
+  evento SSE, así que un cliente abierto ve la nueva marca al volver a pedir la lista.
+- **Hallazgo:** el listado de cuentas del panel perdía el filtro `estado` en el enlace a la página siguiente (`BUG-102`),
+  corregido con el mismo cambio de `CabecerasDePaginacion`.
+
+### Cómo se revierte
+Los filtros son opcionales: quitarlos no rompe a ningún cliente que no los use. `verificadoEn` se puede dejar de
+escribir; los documentos lo leen entonces como `actualizadoEn`, que es el comportamiento anterior.
+
+---
+
 <!--
-Siguiente número disponible: ADR-071
+Siguiente número disponible: ADR-074
 Para agregar: usa la skill `registrar-decision`.
 Recuerda: append-only. Las entradas viejas solo cambian de estado, no de contenido.
 -->

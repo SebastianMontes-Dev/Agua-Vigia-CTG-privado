@@ -10,7 +10,12 @@
 > la red de la sesión en la nube no deja descargar.
 > **Diseño (2026-09-25):** el dueño rechazó los prototipos adaptados a la guía por genéricos y pidió un rediseño total.
 > Nueva identidad formal en `docs/diseno/identidad.md` (`ADR-070`), con prototipo propio y las skills `disenar-frontend`
-> y `revisar-diseno`. Falta su aprobación visual; después se migran tokens y fuentes. Esto no cierra F1 ni inicia F2.
+> y `revisar-diseno`.
+> **Plan «identidad propia y respuestas claras» (2026-09-25):** el dueño fijó el alcance del producto completo. La
+> identidad editorial queda contenida en la marca y los titulares (`ADR-071`), el PMTiles se versiona con Git LFS
+> (`ADR-072`) y la API suma los filtros de la bitácora y `verificadoEn` (`ADR-073`, construidos en la rama
+> `claude/intelligent-curie-dhs2jr`). Siguen: la migración de tokens y fuente, los prototipos de F1 a 360/375 y
+> 1280 px y la revisión en un teléfono real. Esto no cierra F1 ni inicia F2.
 >
 > **Fuente de verdad.** Este plan **no reemplaza** a `DESIGN.md` (diseño), a `docs/api/` (cómo consumir la API) ni a
 > `backend/openapi.yaml` (el contrato). Resume lo que hace falta tener a mano y apunta a esos documentos. Si algo de
@@ -50,6 +55,10 @@ como marcadores, las tarjetas redondeadas con barrita de color al costado y los 
 | Registro formal | `ADR-067` en `docs/design-decisions.md`: stack, dirección visual y alternativas descartadas. `ADR-029` queda reemplazado | **Escrito (2026-09-25)** |
 | Sprint 7 | Frontend nuevo por fases F0–F6 | Abierto el 2026-09-25; ver `sprint-7.md` |
 | Diseño de todas las pantallas | [Guía del frontend](../diseno/guia-frontend.md), `ADR-069` | Especificación documental aprobada; implementación pendiente |
+| Identidad visual | Paleta cardenillo y latón (`ADR-070`); Newsreader local solo en marca y titulares, sistema en lo demás (`ADR-071`) | Decidido por el dueño (2026-09-25) |
+| Navegación | Escritorio: Mapa, Cumplimiento, Bitácora, Estadísticas, Avisos. Celular: Mapa, Historial, Avisos. Panel con navegación propia (`ADR-071`) | Decidido por el dueño (2026-09-25) |
+| Mapa base | PMTiles de fuente y versión fijadas, versionado con Git LFS (`ADR-072`) | Decidido; falta extraerlo y medirlo |
+| API | Filtros de la bitácora y `verificadoEn` por sector (`ADR-073`) | Construido; pendiente de PR |
 
 Las alternativas descartadas (SvelteKit, Astro con islas, mapa sin fondo, tiles de OSM/Esri) y su motivo están en
 `ADR-067`.
@@ -81,8 +90,9 @@ Las dependencias se agregan en la fase que las usa, no todas en F0: F0 trae la b
 herramientas de prueba; el router, Query y React Aria entran con las primeras pantallas (F2); MapLibre y `pmtiles`
 con el mapa (F1/F2); la PWA con la integración (F6).
 
-**Tipografía:** Newsreader y Schibsted Grotesk servidas desde `frontend/public/fuentes/` (`ADR-070`,
-`docs/diseno/identidad.md` §3), nunca desde un CDN. Hasta su migración rigen las pilas de sistema de `DESIGN.md` §4.
+**Tipografía:** Newsreader servida desde `frontend/public/fuentes/` solo para la marca, el titular de cada página y el
+nombre del barrio (`ADR-071`), con `font-display: swap`, nunca desde un CDN. Controles, texto y cifras usan la pila
+del sistema de `DESIGN.md` §4. Schibsted Grotesk de `ADR-070` queda descartada.
 
 > **Etiquetas del mapa:** decidido en `ADR-068`: glifos Noto Sans Regular y Medium servidos en local,
 > ya versionados en `frontend/public/mapa/glifos/`. Excepción limitada al lienzo; la interfaz mantiene fuentes
@@ -147,6 +157,17 @@ Composiciones, componentes, tipografía, todas las pantallas y textos viven en l
 [guía del frontend](../diseno/guia-frontend.md), que desarrolla DESIGN.md sin sustituir el contrato.
 La ficha separa barrio, estado, horario disponible y antigüedad; no fuerza una sola línea en móvil.
 
+**Confianza en los datos (`ADR-073`):**
+- Se muestran por separado la hora de la última consulta del listado (`generadoEn`) y la del último cambio del barrio
+  (`actualizadoEn`).
+- «En vivo» aparece solo en el mapa y solo mientras el canal SSE esté conectado.
+- Tras **24 horas sin una nueva verificación** (`verificadoEn`), se añade «Sin verificación reciente» **sin cambiar el
+  estado publicado**.
+- Sin conexión, se indica la fecha del último listado guardado.
+- `estado: null` sigue siendo «Sin datos verificados».
+- La ficha enlaza a los eventos públicos del barrio (`/bitacora?sectorId=`) cuando existen, sin atribuir una fuente que
+  la API no entregue.
+
 ### 5.3 Mínimos de accesibilidad y rendimiento
 
 Mínimos generales: `DESIGN.md` §7–§8. Parejas de colores y restricciones vigentes/objetivo:
@@ -179,7 +200,7 @@ Detalle completo en `docs/api/`. Aquí van las reglas que, si se olvidan, rompen
 
 1. `GET /api/sectores/geometria` **una vez**, guardada en IndexedDB. Tiene caché de un día y pesa ~0,7 MB.
    **No mandes `Accept: application/json`**: el servidor responde un `404` engañoso. Deja el `*/*` de `fetch`.
-2. `GET /api/sectores` (211 sectores con `estado`, `actualizadoEn`, `poblacion` y `generadoEn`). Se une a la
+2. `GET /api/sectores` (211 sectores con `estado`, `actualizadoEn`, `verificadoEn`, `poblacion` y `generadoEn`). Se une a la
    geometría por `id` sin calcular nada. **Nunca más de una vez cada 5 s.**
 3. `GET /api/sectores/{id}` y `GET /api/sectores/{id}/cortes` (paginado) al abrir la ficha, no en segundo plano.
 4. Las coordenadas del GeoJSON van como `[lon, lat]`; las del reporte llevan `latitud` y `longitud` con nombre.
@@ -218,7 +239,8 @@ Detalle completo en `docs/api/`. Aquí van las reglas que, si se olvidan, rompen
 
 ### 6.5 Historia pública (`docs/api/bitacora-estadisticas-cumplimiento.md`)
 
-- `GET /api/bitacora` (paginado). Hay que tolerar `null` en `sectorId`, `corteId`, `estado`, `urlOriginal` e
+- `GET /api/bitacora` (paginado y filtrable por `sectorId`, `tipo`, `desde` inclusivo y `hasta` exclusivo, en UTC:
+  la interfaz convierte las fechas elegidas desde la hora de Cartagena y sigue el `Link`, que conserva los filtros). Hay que tolerar `null` en `sectorId`, `corteId`, `estado`, `urlOriginal` e
   `imagenUrl`. **La fuente (`urlOriginal`) se enlaza cuando existe; no se inventa cuando es nula.** En `imagenUrl` se cambia
   `https://www.acuacar.com/wp-content/uploads/` por `/acuacar-media/`. El sustento
   (`/api/bitacora/{id}/sustento`) solo se pide al abrir el detalle.
@@ -269,10 +291,11 @@ Detalle completo en `docs/api/`. Aquí van las reglas que, si se olvidan, rompen
 | `/sectores/:id` | Ficha (en la hoja o el panel): estado, frescura, histórico de cortes, cumplimiento del sector, reportar, avisos | sectores/{id}, /cortes, cumplimiento/sectores/{id} | RF002, RF021 |
 | (hoja sobre el mapa) | Reportar en 2 toques + foto opcional | reportes, /foto | RF005–RF008, RF037 |
 | `/confirmar/:id` | «¿Tú también estás sin agua?» | reportes/{id}/confirmar | RF038 |
-| `/cumplimiento` | Índice global, regla de tiempo, serie mensual, CSV | cumplimiento, /serie, /serie.csv | RF020–RF022, RF024 |
-| `/bitacora` | Acta pública paginada con su sustento | bitacora, /{id}/sustento | RF011, RF026–RF028 |
-| `/estadisticas` | Sectores más afectados, cortes por día, duración media, CSV | estadisticas, exportar.csv | RF023, RF025 |
-| `/avisos`, `/avisos/confirmar`, `/avisos/baja` | Suscribirse, confirmar y darse de baja | suscripciones | RF012–RF015, RF041 |
+| `/historial` | Solo en celular: entrada a Bitácora, Cumplimiento y Estadísticas | — | — |
+| `/cumplimiento` | Abre con la conclusión en palabras (prometido, real, diferencia); después la comparación, la serie mensual con cuántos cortes sustentan cada mes y el CSV | cumplimiento, /serie, /serie.csv | RF020–RF022, RF024 |
+| `/bitacora` | Cronología filtrable por barrio, tipo y fecha, con procedencia, boletín cuando existe y sustento | bitacora, /{id}/sustento | RF011, RF026–RF028 |
+| `/estadisticas` | Patrones legibles (sectores más afectados, cortes por día, duración media) con tablas equivalentes y CSV | estadisticas, exportar.csv | RF023, RF025 |
+| `/avisos`, `/avisos/confirmar`, `/avisos/baja` | El correo y los barrios elegidos al frente; qué pasa antes y después de confirmar; confirmar y dar de baja en pantallas propias | suscripciones | RF012–RF015, RF041 |
 | `/cuenta/solicitar`, `/cuenta/verificar`, `/cuenta/invitacion`, `/cuenta/olvide`, `/cuenta/restablecer` | Alta y recuperación de cuenta | cuentas/** | RF042, RF043, RF046 |
 | `/panel/ingreso`, `/panel/segundo-factor` | Ingreso y alta de TOTP | veedor/sesion, segundo-factor/** | RF019, RNF025 |
 | `/panel` | Cola de moderación | reportes/pendientes, aprobar, descartar | RF018 |
@@ -288,8 +311,9 @@ Detalle completo en `docs/api/`. Aquí van las reglas que, si se olvidan, rompen
 1. `scripts/preparar-mapa-base.sh pmtiles` (necesita go-pmtiles) extrae Cartagena de un *build* diario de Protomaps
    a `frontend/public/mapa/cartagena.pmtiles`. El bbox inicial de este plan (`-75.70,10.25,-75.40,10.55`) dejaba fuera
    17 de los 213 barrios; el script usa `-75.76,10.13,-75.31,10.69`, que solo deja fuera San Bernardo e Isla Fuerte.
-2. **Medir el tamaño** y decidir si se versiona (con git LFS o sin él) o si se genera al preparar el entorno. Mientras
-   no se decida, `frontend/public/mapa/*.pmtiles` está en `.gitignore` para que no entre por accidente.
+2. **Se versiona con Git LFS** (`ADR-072`): al extraerlo, se mide, se registra su tamaño y su SHA-256, se quita
+   `frontend/public/mapa/*.pmtiles` de `.gitignore` y se sigue con `git lfs track`. Costa, vías y nombres de barrio
+   cambian de densidad con el zoom.
 3. Estilo propio a partir de las capas de `@protomaps/basemaps`: agua, tierra, vías y edificios pintados con los
    neutros de §5.1, sin colores de estado, en claro y oscuro.
 4. Licencia **ODbL**: atribución visible «© OpenStreetMap». Queda registrado en `ADR-067`.
@@ -338,7 +362,7 @@ cuando su entregable se demuestra funcionando**, no por calendario.
   sesión no tenía Docker). La página del muestrario es provisional: la reemplaza el mapa en F2.
 - **Las E2E de F0 no necesitan backend.** Desde F2 las que sí lo necesitan irán en un job aparte con `docker compose`.
 
-### F1 — Prototipos y lenguaje visual (sin código de producción)
+### F1 — Prototipos aprobables (sin código de producción)
 - [x] Prototipos HTML en Artifacts de: mapa + tarjeta + ficha, reporte en 2 toques, cumplimiento con la regla de
       tiempo y bitácora. Cada uno en 360 y 1280 px, en claro y oscuro. **Publicados el 2026-09-25** en un solo Artifact
       privado del dueño (<https://claude.ai/artifact/G88U8LYbsqwWsZN47B9JAA>), con los 189 barrios del casco urbano
@@ -358,43 +382,57 @@ cuando su entregable se demuestra funcionando**, no por calendario.
 - [x] ~~Aprobación visual de esa versión~~: rechazada el 2026-09-25 por genérica. Rediseño total pedido por el dueño.
 - [x] Identidad formal especificada (`docs/diseno/identidad.md`, `ADR-070`), prototipo de escritorio y celular
       (<https://claude.ai/artifact/KzhpRbnun3cVuEe6SSKQ6D>) y skills `disenar-frontend` y `revisar-diseno`.
-- [ ] **Aprobación visual del dueño** sobre el rumbo formal; después, migración de `identidad.md` §8 y prototipos de
-      cuentas y panel con la nueva identidad.
-- **Hecho cuando:** el dueño aprueba los prototipos. **Sin esa aprobación no empieza F2.**
+- [x] Plan «identidad propia y respuestas claras» del dueño: identidad contenida (`ADR-071`), PMTiles con LFS
+      (`ADR-072`) y ampliación de la API (`ADR-073`, filtros de la bitácora y `verificadoEn`, con pruebas).
+- [ ] Migración de `DESIGN.md` §3–§4, `tokens.css`, sus pruebas y Newsreader local (`ADR-071`); muestrario rehecho.
+- [ ] Prototipos a **360/375 y 1280 px, en claro y oscuro**, de: mapa, ficha, reporte en dos toques, Cumplimiento,
+      Bitácora, Estadísticas, Avisos y una tarea representativa del panel. Contraste medido.
+- [ ] **Revisión en un teléfono real** por el dueño antes de F2.
+- **Hecho cuando:** el dueño aprueba los prototipos después de verlos en un teléfono real. **Sin eso no empieza F2.**
 
 ### F2 — Núcleo ciudadano (M1, M2)
 - [ ] Geometría en IndexedDB, estado unido por `id`, `MultiPolygon`, trama para `null`.
 - [ ] `canal-en-vivo.ts` con todas las reglas de §6.3 y pruebas unitarias del jitter, el backoff, el `429` y la
       visibilidad.
-- [ ] Tarjeta de respuesta, ficha del sector, lista accesible y buscador.
-- [ ] Reporte en 2 toques con huella, ubicación opcional, foto y todos los errores de §6.4. `/confirmar/:id`.
+- [ ] Mapa local (PMTiles y glifos), búsqueda visible, lista textual y ficha. En celular, ficha inferior; en
+      escritorio, panel contextual compacto. El mapa, el buscador y la lista abren **la misma ficha**.
+- [ ] Estados de frescura de §5.2: dos horas separadas, «En vivo» solo con SSE conectado, «Sin verificación
+      reciente» a las 24 horas, último listado guardado sin conexión.
+- [ ] Reporte sin cuenta en 2 toques con huella, ubicación opcional, foto **después** del reporte, mensajes fieles al
+      resultado y todos los errores de §6.4. `/confirmar/:id`. Se conservan las reglas de SSE, caché, reconexión y
+      la prohibición de reintentar solo un `POST`.
 - [ ] E2E: abrir el mapa, reportar, llegar al cuarto reporte y recibir el `429` con su mensaje, cambio de estado por
       consenso (3 huellas) que llega por SSE, y confirmar un reporte.
 - **Hecho cuando:** pasa el checklist de `DESIGN.md` §10 y el mapa muestra todos los estados en menos de 3 s en 3G.
 
 ### F3 — Historia pública (M6, M7, M8)
-- [ ] Bitácora paginada con fuente, portada por `/acuacar-media/` y sustento bajo demanda.
-- [ ] Cumplimiento global y por sector, la regla de tiempo, la serie mensual con `cantidadCortes` y el CSV.
-- [ ] Estadísticas con los días ordenados y el CSV.
-- [ ] Estados vacíos: un `400` sin cortes cerrados se muestra como «aún sin datos».
+- [ ] Bitácora paginada y filtrable por barrio, tipo y fecha contra la API (`ADR-073`), con fuente, portada por
+      `/acuacar-media/` y sustento bajo demanda.
+- [ ] Cumplimiento global y por sector, con la conclusión en palabras primero, la regla de tiempo, la serie mensual
+      con `cantidadCortes` y el CSV.
+- [ ] Estadísticas con los días ordenados, tablas equivalentes a cada gráfico y el CSV.
+- [ ] Cifras en formato colombiano (coma decimal, punto de miles).
+- [ ] Estados vacíos que distinguen «no hay cortes cerrados» (un `400` de cumplimiento) de un error real.
 
 ### F4 — Avisos (M4)
-- [ ] Formulario de suscripción y pantallas de confirmar y dar de baja (§6.6).
+- [ ] Formulario de suscripción y pantallas de confirmar y dar de baja (§6.6), con doble confirmación; abrir un
+      enlace del correo **nunca** ejecuta la acción.
 - [ ] **Backend en el mismo PR:** `MailNotificacionAdapter`
       (`backend/src/main/java/com/aguavigia/ctg/infrastructure/mail/`) arma hoy `urlReportar` como
       `urlBasePublica + "/api/sectores/{id}"` y los enlaces de confirmar y dar de baja hacia `/api/suscripciones/…`.
-      Hay que apuntarlos a `/sectores/{id}`, `/avisos/confirmar` y `/avisos/baja`. Decidir si se usa una propiedad
-      nueva (p. ej. `aguavigia.app.url-frontend`) o la misma `url-publica`: hoy vale `http://localhost:8081` en
-      `docker-compose.yml`, que es la API y no la SPA. Hay que actualizar sus pruebas y
-      `comportamiento-del-sistema.md`.
+      Hay que apuntarlos a `/sectores/{id}`, `/avisos/confirmar` y `/avisos/baja` con **una URL pública explícita
+      del frontend** (propiedad nueva, decidida por el dueño; no se reutiliza `url-publica`, que hoy es la API en
+      `:8081`). Se registra en un ADR con su nombre y se actualizan sus pruebas y `comportamiento-del-sistema.md`.
 - [ ] E2E con Mailhog (`:8025`): suscribirse, abrir el enlace, confirmar y darse de baja.
 
 ### F5 — Cuentas y panel (M5, M15)
 - [ ] Ingreso con todos los errores de §6.7, alta de TOTP con QR local, `yo`, cierre de sesión y reacción a `401`.
-- [ ] Cola de moderación, cortes (registrar y cerrar), ingesta (cita, fuente y salud), cuentas, permisos, invitaciones
-      y auditoría. Todo según `permisos[]`.
+- [ ] Interfaz densa y orientada a tareas: colas, evidencia junto a cada decisión, cortes (registrar y cerrar), ingesta
+      (cita, fuente y salud), cuentas, permisos, invitaciones y auditoría. Acciones según `permisos[]`; carga, vacío,
+      error y confirmación siempre visibles.
 - [ ] Pantallas de `/cuenta/*`. **Backend:** `MailCuentaAdapter` arma hoy `…/api/cuentas/enlaces/{ruta}?token=` y
-      hay que apuntarlo a `/cuenta/verificar`, `/cuenta/invitacion` y `/cuenta/restablecer`.
+      hay que apuntarlo a `/cuenta/verificar`, `/cuenta/invitacion` y `/cuenta/restablecer`, con la misma URL pública
+      del frontend de F4.
 - [ ] E2E: ingreso de un VEEDOR, primer ingreso de un ADMIN con TOTP, moderar, registrar y cerrar un corte, invitar
       y aceptar la invitación leyendo el correo en Mailhog.
 
@@ -402,7 +440,10 @@ cuando su entregable se demuestra funcionando**, no por calendario.
 - [ ] `frontend/Dockerfile` multi-etapa. nginx (`infra/nginx/`) sirve la SPA en `/` con `try_files` a `index.html`,
       *assets* con hash e `immutable`, `.pmtiles` con *range* y CSP estricta, todo del mismo origen. **Esto cambia la
       condición de `ADR-048`** («el proxy sirve solo la API»), así que se registra en un ADR nuevo.
+- [ ] SPA, mapa y glifos desde el mismo origen; el mapa sigue funcionando sin internet.
 - [ ] Servicio en `docker-compose.yml`: todo se levanta con un solo comando (`RNF020`).
+- [ ] PWA: muestra el último estado guardado **con su fecha**; un reporte sin conexión pide un nuevo envío manual
+      (`ADR-044`).
 - [ ] Lighthouse CI con presupuesto de 3G, axe sin violaciones y capturas de regresión en 360 y 1280 px, en los dos
       temas.
 - [ ] Reactivar `RNF001`, `RNF012`–`RNF016` y las partes de UI de `RF001`–`RF004` y `RF008` en
@@ -451,10 +492,21 @@ Trampas del entorno (`MEMORY.md`): después de traer cambios de `main`, reconstr
 `docker compose up -d --build backend`. Sin un `.env` junto al compose, el backend arranca sin ADMIN. «Cerrar sesión»
 a veces falla por el margen de 1 s del filtro JWT (`plan-de-pruebas.md` §8).
 
+**Verificación del producto (criterios de aceptación del plan del dueño):**
+
+- Con backend real: los 211 sectores, `estado: null`, datos con más de 24 h sin verificar, pérdida de red, reconexión
+  SSE, límites `429`, reportes, correos en Mailhog, permisos y segundo factor. Pruebas del contrato y del filtro de la
+  bitácora.
+- A 360, 375 y 1280 px en ambos temas: sin desplazamiento horizontal, foco visible, operación por teclado, alternativa
+  textual al mapa y objetivos táctiles de 44 px como mínimo. Contraste AA, axe y movimiento reducido.
+- Primera respuesta útil del mapa en menos de 3 s con 3G simulado; la fuente editorial y el mapa base no la bloquean.
+- Personas en un teléfono real encuentran el estado de su barrio en menos de 5 s.
+- Cada fase cierra con una demostración de su flujo completo y los registros al día.
+
 **Verificación por pantalla, antes de cerrar su PR:**
 
 1. Checklist de `DESIGN.md` §10 completo.
-2. Playwright MCP: capturas en 360 y 1280 px en claro y oscuro, y el flujo recorrido solo con teclado.
+2. Playwright MCP: capturas en 360, 375 y 1280 px en claro y oscuro, y el flujo recorrido solo con teclado.
 3. axe sin violaciones. Contraste AA medido.
 4. Chrome DevTools MCP: la traza con 3G muestra la respuesta útil en menos de 3 s (en el mapa) y **no hay peticiones
    de sondeo con la pestaña oculta**.
@@ -466,7 +518,9 @@ a veces falla por el margen de 1 s del filtro JWT (`plan-de-pruebas.md` §8).
 ## 13. Pendientes que decide el dueño
 
 1. ~~¿Esto abre un **Sprint 7**?~~ Sí: `sprint-7.md`, abierto el 2026-09-25.
-2. En F1: ~~¿glifos locales o mapa sin texto?~~ Glifos locales (`ADR-068`). ¿El PMTiles se versiona o se genera?
-   (se decide al medirlo). ~~¿Se aprueban los prototipos adaptados a la guía?~~ Rechazados por genéricos. ¿Se aprueba
-   el prototipo del rumbo formal (`ADR-070`, `docs/diseno/identidad.md`)? `REC-019` aceptada en `ADR-069` y aplicada.
-3. En F4/F5: ¿URL de los correos con una propiedad nueva (`url-frontend`) o reutilizando `url-publica`?
+2. En F1: ~~¿glifos locales o mapa sin texto?~~ Glifos locales (`ADR-068`). ~~¿El PMTiles se versiona o se genera?~~
+   Se versiona con Git LFS (`ADR-072`). ~~¿Se aprueban los prototipos adaptados a la guía?~~ Rechazados por genéricos.
+   ~~¿Rumbo formal?~~ Adoptado con la identidad contenida de `ADR-071`. Falta aprobar los prototipos nuevos en un
+   teléfono real. `REC-019` aceptada en `ADR-069` y aplicada.
+3. ~~En F4/F5: ¿URL de los correos con una propiedad nueva o reutilizando `url-publica`?~~ Propiedad nueva y explícita
+   para el frontend (plan del dueño, 2026-09-25); su nombre se fija en el ADR de F4.

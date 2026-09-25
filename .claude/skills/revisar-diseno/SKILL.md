@@ -19,7 +19,8 @@ Una revisión de diseño que no mira las pantallas no es revisión. Necesitas ca
 
 ## 1. ¿Se ve genérico?
 
-- Fuente del sistema, Inter, Roboto, Arial o Space Grotesk en vez de Newsreader + Schibsted Grotesk.
+- Marca y titulares sin Newsreader; Inter, Roboto, Space Grotesk u otra webfont en la interfaz; la serif fuera de
+  la marca, el titular y el barrio (`ADR-071`); un gran titular editorial repetido en páginas que no lo necesitan.
 - Turquesa, índigo o azul genérico como acción; degradados; gris puro; crema con terracota.
 - Tarjetas con sombra y el mismo radio en todo; pastillas de colores en cada dato; barrita de color al costado.
 - Todo centrado; secciones apiladas de igual peso; iconos decorativos o emojis.
