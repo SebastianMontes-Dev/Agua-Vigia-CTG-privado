@@ -2,6 +2,9 @@
 
 > Guía de diseño de producto e interfaz. El agente lee este archivo antes de generar cualquier
 > pantalla, componente o pieza visual. Si una propuesta contradice algo de aquí, gana este archivo.
+> Desarrollo por pantalla: [guía del frontend](docs/diseno/guia-frontend.md) (`ADR-069`).
+> El ajuste de acento claro está aprobado como propuesta pendiente de aplicación conjunta con el CSS;
+> los valores vigentes de las tablas siguientes no cambian en esta entrega documental.
 
 ---
 
@@ -29,7 +32,7 @@ Todo el producto gira alrededor de cuatro estados. Son la única jerarquía crom
 | **Con servicio** | `#1c7f55` | `#4fbf89` | Sector operando normal | No usar verde para "éxito" genérico de la interfaz |
 | **Sin servicio** | `#ae3428` | `#e2695b` | Corte confirmado | No usar rojo para errores de formulario |
 | **Presión baja** | `#94640c` | `#d9a63c` | Servicio degradado | No usar ámbar para advertencias de la interfaz |
-| **Corte programado** | `#2a628f` | `#6ba8da` | Anunciado, aún no iniciado | No usar este gris para texto secundario genérico |
+| **Corte programado** | `#2a628f` | `#6ba8da` | Anunciado, aún no iniciado | No usar este azul para texto secundario genérico |
 
 Los cuatro son más oscuros en el tema claro que la paleta viva de la que salieron (`#34c759`,
 `#ff453a`, `#ff9f0a`, `#98989d`): esa versión daba entre 2.0:1 y 3.3:1 sobre superficie clara y no
@@ -65,8 +68,8 @@ Superficie        #fbfdfc            #0c2830
 Fondo             #f2f7f6            #061c23
 ```
 
-Fuente única: esta tabla. Con el frontend retirado (`ADR-048`) ya no hay un CSS que la contradiga;
-el frontend nuevo debe declararla tal cual en su `:root`.
+Fuente única vigente: esta tabla; `frontend/src/estilos/tokens.css` la reproduce (`ADR-067`).
+La migración de acento aprobada en `ADR-069` se aplicará aquí y en el CSS en el mismo cambio.
 
 Los neutros tienen un sesgo azulado sutil, no son grises puros. Es una decisión: el gris neutro se lee
 como plantilla sin criterio; un neutro con temperatura se lee como elegido.
@@ -132,9 +135,10 @@ otra. Un `87%` sin referencia no comunica nada; `Prometieron 2 horas · Fueron 8
 ### Estados de carga y vacío
 - **Nunca un spinner solo.** Esqueleto con la forma del contenido que viene.
 - **El vacío explica.** `Todavía nadie ha reportado en este sector` + acción para ser el primero.
-- **Frescura siempre visible.** Cada sector muestra `actualizado hace X`. Si una fuente lleva horas
-  muda, se marca como degradada. Un mapa congelado mostrando datos viejos como actuales es peor que
-  un mapa que admite que no sabe.
+- **Frescura siempre visible.** Cada sector muestra cuándo se registró su estado y la interfaz
+  distingue esa fecha de la última consulta y de la conectividad. Una fecha antigua no demuestra
+  que una fuente esté degradada; la salud solo se muestra donde exista ese dato. Un mapa congelado
+  mostrando datos viejos como actuales es peor que un mapa que admite que no sabe.
 
 ---
 

@@ -25,6 +25,10 @@ Referencias cruzadas: `ADR-NNN` · `BUG-NNN` · `RF0NN` · `archivo:línea`.
 
 ## Sprint 7 — Frontend nuevo
 
+### 2026-09-25 · `docs/guia-diseno-frontend`
+**Qué:** Completada la guía integral del frontend y `ADR-069`: matriz de rutas, composiciones adaptables, contraste, estados y presentación honesta de `estado: null`; `REC-019` quedó validada, no implementada. F1 sigue abierto.
+**Sigue:** Aplicar el acento junto con sus pruebas, adaptar los prototipos, obtener y medir el PMTiles y pedir la aprobación visual del dueño antes de F2.
+
 ### 2026-09-25 · `claude/laughing-bardeen-a4p6nb`
 **Qué:** Registrado el PR #54 (F0) y abierto el Sprint 7. F1 casi completo: glifos del mapa (`ADR-068`, Noto locales ya en `frontend/public/mapa/glifos/`), glifos de estado en SVG, contraste AA en `contraste.test.ts` (`REC-019`), prototipos publicados en un Artifact y `scripts/preparar-mapa-base.sh`.
 **Sigue:** El dueño aprueba o corrige los prototipos y decide `REC-019`; correr `preparar-mapa-base.sh pmtiles` en local (aquí `build.protomaps.com` está bloqueado), medir el `.pmtiles` y decidir si se versiona; luego F2.

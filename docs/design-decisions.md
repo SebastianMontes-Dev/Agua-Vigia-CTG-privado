@@ -1298,7 +1298,7 @@ restaurar `ADR-028` y `ADR-032` a *Aceptada*. El color es un cambio de una const
 ## ADR-035 — Sin corte anunciado ni reporte vigente, el barrio se muestra con servicio
 
 - **Fecha:** 2026-08-30
-- **Estado:** Aceptada
+- **Estado:** Reemplazada por ADR-069
 
 ### Contexto
 `ADR-014` decidió lo contrario y su argumento era correcto **en su momento**: el 2026-08-08 no
@@ -2811,8 +2811,59 @@ Barato: se quitan las capas `symbol` del estilo y la carpeta `glifos/`, y el map
 
 ---
 
+## ADR-069 — La guía integral del frontend rige cada pantalla y el estado nulo vuelve a «Sin datos verificados»
+
+- **Fecha:** 2026-09-25
+- **Estado:** Aceptada
+- **Decide:** Dueño del proyecto
+
+### Contexto
+F1 produjo prototipos de mapa, reporte, cumplimiento y bitácora, pero el frontend abarca también avisos, cuentas y
+el panel. Llevar esos prototipos directamente a código dejaba sin resolver composiciones adaptables, estados de
+error y vacío, datos realmente expuestos por cada contrato y la distinción entre estado, consulta y conectividad.
+Además, `REC-019` comprobó que el acento claro vigente no llega a 4,5:1 como texto sobre fondo ni acento suave.
+
+La revisión del contrato encontró otra contradicción: `ADR-035` pintaba `estado: null` como `CON_SERVICIO`, aunque
+el backend conserva el nulo y no fabrica `actualizadoEn`. La ausencia de aviso puede ser una señal operativa útil,
+pero no prueba que un hogar tenga agua; la interfaz principal debe contestar sin convertir esa ausencia en un
+estado verificado.
+
+### Alternativas consideradas
+| Opción | A favor | En contra |
+|---|---|---|
+| Implementar los prototipos de F1 tal como están | Menos trabajo antes de F2 | Solo cubren cuatro pantallas y contienen controles y cifras de simulación que la API no ofrece |
+| Mantener reglas repartidas entre DESIGN.md y el plan | Menos documentación nueva | Obliga a reconstruir jerarquía, estados y límites del contrato en cada fase |
+| Adoptar una guía por pantalla y representar el nulo de forma explícita | Una referencia verificable para toda la SPA; no afirma servicio sin dato | Exige adaptar los prototipos antes de aprobar F1 y hace visible que algunos barrios carecen de verificación |
+
+### Decisión
+Adoptar `docs/diseno/guia-frontend.md` como especificación de desarrollo por pantalla, subordinada a `DESIGN.md` y
+al contrato OpenAPI. Cubre composiciones de 360, 768 y 1280 px, componentes, rutas, datos permitidos, estados de
+interacción y criterios de aceptación. Su aprobación es **documental**: no aprueba los prototipos actuales, no
+cierra F1 y no inicia F2.
+
+`estado: null` se presenta como **«Sin datos verificados»**, con trama, glifo y texto, sin añadir un quinto valor al
+dominio. `ADR-035` queda reemplazada; la parte contractual de `ADR-014` permanece: el backend sigue transmitiendo
+el nulo. También se valida `REC-019`: el acento claro objetivo será `#06747f`, pero se aplicará después en
+`DESIGN.md` y `frontend/src/estilos/tokens.css` dentro del mismo cambio, con sus pruebas de contraste.
+
+### Consecuencias
+- **Gana:** cada ruta tiene jerarquía, estados y límites de datos trazables; «sin datos» deja de parecer servicio
+  confirmado y el turquesa vuelve a reservarse a acciones.
+- **Pierde:** el mapa puede mostrar más zonas neutrales, y los cuatro prototipos deben adaptarse y volver a revisión
+  visual antes de cerrar F1.
+- **No cambia:** React, CSS propio, PMTiles local, rutas, contratos, dependencias y colores semánticos del servicio.
+- **Condiciona:** el nuevo acento sigue sin estar implementado; `REC-019` no se resuelve hasta mover ambos tokens y
+  verificar el muestrario en los dos temas.
+
+### Cómo se revierte
+Un ADR futuro puede sustituir la guía o una parte de ella. Volver a presentar el nulo como servicio exige restaurar
+expresamente el riesgo aceptado por `ADR-035`; cancelar el acento antes de implementarlo solo requiere descartar la
+migración pendiente, sin tocar código ni datos.
+
+---
+
 <!--
-Siguiente número disponible: ADR-069
+Siguiente número disponible: ADR-070
 Para agregar: usa la skill `registrar-decision`.
 Recuerda: append-only. Las entradas viejas solo cambian de estado, no de contenido.
 -->
