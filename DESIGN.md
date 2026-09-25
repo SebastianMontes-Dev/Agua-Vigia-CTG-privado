@@ -44,7 +44,7 @@ y de otro en la leyenda, y el color deja de significar algo.** El backend usa es
 en las plantillas de correo y en `EstadoServicio`; cambiarlos es cambiar todos a la vez.
 
 **Regla estricta:** estos cuatro colores están reservados para el estado del servicio. La interfaz
-usa el acento turquesa para todo lo demás. Si un botón de "guardar" es verde, el mapa pierde su
+usa el cardenillo para la acción y el latón para foco y selección. Si un botón de "guardar" es verde, el mapa pierde su
 lenguaje.
 
 **El color nunca va solo.** Cada estado se acompaña de forma o texto — un punto con etiqueta, un
@@ -56,22 +56,24 @@ solo es un refuerzo, no el mensaje.
 ## 3. Paleta base
 
 ```
-Acento turquesa   #06747f  (claro)   #54c6ca  (oscuro)
-Acento vivo       #0796a5            #78d9db
-Acento suave      #dcefee            #153f44
-Tinta             #102f39            #eef8f7
-Tinta secundaria  #526a70            #aac0c0
-Tinta terciaria   #789095            #789296
-Línea             #d8e5e3            #24454b
-Superficie        #fbfdfc            #0c2830
-Fondo             #f2f7f6            #061c23
+Papel             #f5f5f2  (claro)   #0f1214  (oscuro)
+Superficie        #fbfbf9            #15191c
+Elevada           #ffffff            #1b2024
+Tinta             #15191c            #eceeea
+Tinta 2           #4a5157            #a9b0b3
+Tinta 3           #7b838a            #6d767b
+Línea             #dddcd6            #2a3034
+Línea suave       #e9e8e3            #20252a
+Cardenillo        #2f5f57            #8cc2b4
+Sobre cardenillo  #ffffff            #0f1214
+Cardenillo suave  #e3ece8            #1c2c29
+Latón             #836430            #c9a567
 ```
 
-Fuente única vigente: esta tabla; `frontend/src/estilos/tokens.css` la reproduce (`ADR-067`). **En migración:** la
-reemplaza la paleta de `docs/diseno/identidad.md` §2 tras la aprobación visual, en un solo cambio (`ADR-070`).
-El acento claro pasa AA como texto sobre fondo, superficie y acento suave (`ADR-069`, `REC-019`).
+Cardenillo y latón (`ADR-070`): uso, contraste medido y reglas en `docs/diseno/identidad.md` §2. Esta tabla es
+la fuente; `frontend/src/estilos/tokens.css` la reproduce. **Tinta 3 nunca es texto** (3,52:1 en claro).
 
-Los neutros tienen un sesgo azulado sutil, no son grises puros. Es una decisión: el gris neutro se lee
+Los neutros tienen un sesgo verde sutil, no son grises puros. Es una decisión: el gris neutro se lee
 como plantilla sin criterio; un neutro con temperatura se lee como elegido.
 
 **Ambos temas son obligatorios.** Se definen como custom properties en `:root`, se redefinen bajo
@@ -84,19 +86,14 @@ como plantilla sin criterio; un neutro con temperatura se lee como elegido.
 
 | Rol | Familia | Uso |
 |---|---|---|
-| Display | `-apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif` | Titulares, cifras grandes |
-| Cuerpo | `-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif` | Todo el texto corrido |
-| Utilidad | `ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace` | Códigos (RF001), horas, etiquetas, datos tabulares |
+| Marca | `"Newsreader", Georgia, "Times New Roman", serif` | **Solo** la marca, el titular de página y el barrio de la ficha (`ADR-071`) |
+| Cuerpo | `-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", "Helvetica Neue", Arial, sans-serif` | Controles, texto, rótulos, horas y cifras |
+| Utilidad | `ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace` | Solo códigos (RF001) |
 
-**Ninguna familia se nombra si no se carga.** El proyecto no trae webfonts, así que un token que
-diga `Inter` cae en silencio a la siguiente de la pila: se lee como una decisión tipográfica que en
-realidad nunca ocurre. Solo pilas de sistema.
-
-**Nada de webfonts por CDN.** La política de seguridad de contenido las bloquea y caen en silencio a
-una fuente de sistema. Se usan pilas de fuentes locales.
-
-**En migración (`ADR-070`):** Newsreader y Schibsted Grotesk servidas en local reemplazan estas pilas tras la
-aprobación visual (`docs/diseno/identidad.md` §3).
+**Newsreader es la única webfont de la interfaz:** 58 KB en `frontend/public/fuentes/`, subconjunto latino,
+`font-display: swap`, con su `OFL.txt`. Nada espera por ella. Fuera de eso, solo pilas de sistema: un token
+que nombre una familia que no se carga cae en silencio a la siguiente. **Nada de webfonts por CDN.** Niveles
+y tamaños: `docs/diseno/identidad.md` §3.
 
 Reglas: texto corrido a ~65 caracteres de ancho · `text-wrap: balance` en titulares ·
 `font-variant-numeric: tabular-nums` en cualquier columna de cifras · mayúsculas siempre con

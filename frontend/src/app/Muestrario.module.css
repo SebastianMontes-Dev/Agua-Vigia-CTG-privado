@@ -1,96 +1,154 @@
 @layer componentes {
   .pagina {
+    --margen: max(16px, 3vw);
     display: grid;
-    gap: var(--espacio-6);
-    max-width: 56rem;
-    margin-inline: auto;
-    padding: var(--espacio-6) var(--espacio-4) var(--espacio-7);
   }
 
   .cabecera {
-    display: grid;
-    gap: var(--espacio-2);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--espacio-3) var(--espacio-5);
+    min-height: 68px;
+    padding: var(--espacio-3) var(--margen);
     border-bottom: 1px solid var(--linea);
-    padding-bottom: var(--espacio-5);
   }
 
-  .cabecera h1 {
-    font-size: var(--texto-xxl);
-    font-weight: 700;
-    letter-spacing: -0.02em;
-  }
-
-  .antetitulo {
-    font-family: var(--fuente-utilidad);
-    font-size: var(--texto-xs);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--acento);
-  }
-
-  .bajada,
-  .secundario {
-    color: var(--tinta-secundaria);
-  }
-
-  .pagina section {
-    display: grid;
+  .marca {
+    display: flex;
+    align-items: baseline;
     gap: var(--espacio-3);
+    font-family: var(--fuente-marca);
+    font-size: 1.5rem;
+    font-weight: 500;
+    line-height: 1;
   }
 
-  .pagina section h2 {
-    font-size: var(--texto-l);
+  .marca span {
+    font-family: var(--fuente-cuerpo);
+    font-size: var(--texto-xs);
     font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--tinta-2);
+  }
+
+  .oculto {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 
   .tema {
     display: flex;
-    flex-wrap: wrap;
-    gap: var(--espacio-2) var(--espacio-4);
+    gap: 2px;
     border: 1px solid var(--linea);
-    border-radius: var(--radio);
-    padding: var(--espacio-3) var(--espacio-4);
-    background: var(--superficie);
-  }
-
-  .tema legend {
-    padding-inline: var(--espacio-2);
-    font-weight: 600;
+    border-radius: var(--radio-pastilla);
+    padding: 3px;
   }
 
   .opcion {
+    position: relative;
     display: inline-flex;
     align-items: center;
-    gap: var(--espacio-2);
     min-height: var(--objetivo-tactil);
+    padding-inline: var(--espacio-4);
+    border-radius: var(--radio-pastilla);
+    font-size: var(--texto-s);
+    font-weight: 500;
+    color: var(--tinta-2);
     cursor: pointer;
   }
 
+  /* El radio sigue en la página para el teclado y el lector de pantalla; la pastilla es su etiqueta. */
   .opcion input {
-    width: 1.25rem;
-    height: 1.25rem;
-    accent-color: var(--acento);
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    margin: 0;
+    cursor: pointer;
   }
 
-  .estados,
-  .paleta {
-    list-style: none;
-    padding: 0;
-    display: grid;
-    border-top: 1px solid var(--linea);
+  .opcion:has(input:checked) {
+    background: var(--tinta);
+    color: var(--papel);
   }
 
-  .estado,
-  .color {
+  .opcion:has(input:focus-visible) {
+    outline: var(--grosor-foco) solid var(--laton);
+    outline-offset: 2px;
+  }
+
+  .contenido {
     display: grid;
-    grid-template-columns: 2rem 1fr auto;
-    align-items: center;
-    gap: var(--espacio-3);
-    min-height: var(--objetivo-tactil);
+    gap: var(--espacio-7);
+    width: 100%;
+    max-width: 60rem;
+    margin-inline: auto;
+    padding: var(--espacio-7) var(--margen);
+  }
+
+  .encabezado {
+    display: grid;
+    gap: var(--espacio-4);
+    padding-bottom: var(--espacio-6);
     border-bottom: 1px solid var(--linea);
   }
 
-  .estado {
+  .encabezado h1 {
+    font-size: var(--texto-titular);
+    font-weight: 300;
+  }
+
+  .rotulo {
+    font-size: var(--texto-xs);
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--tinta-2);
+  }
+
+  .bajada,
+  .secundario {
+    color: var(--tinta-2);
+  }
+
+  .bloque {
+    display: grid;
+    gap: var(--espacio-4);
+  }
+
+  .bloque h2 {
+    font-size: var(--texto-l);
+  }
+
+  .lista {
+    list-style: none;
+    padding: 0;
+    display: grid;
+    border-top: 1px solid var(--tinta);
+  }
+
+  .fila,
+  .combinacion {
+    display: grid;
+    grid-template-columns: 2rem minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--espacio-3);
+    min-height: 52px;
+    border-bottom: 1px solid var(--linea-suave);
+  }
+
+  .combinacion {
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding-inline: var(--espacio-3);
+  }
+
+  .nombreEstado {
     font-weight: 600;
   }
 
@@ -98,95 +156,101 @@
     width: 2rem;
     height: 1.25rem;
     border: 1px solid var(--linea);
-    border-radius: 2px;
   }
 
   .trama {
     /* Misma trama que iconos/trama-sin-datos.svg: su baldosa de 8 px en diagonal deja 8/√2 px entre líneas. */
-    background: repeating-linear-gradient(
-      45deg,
-      var(--tinta-secundaria) 0 1px,
-      var(--superficie) 1px 5.657px
-    );
+    background: repeating-linear-gradient(45deg, var(--tinta-2) 0 1px, var(--papel) 1px 5.657px);
   }
 
   .token {
     font-size: var(--texto-xs);
-    color: var(--tinta-secundaria);
+    color: var(--tinta-2);
+    overflow-wrap: anywhere;
   }
 
-  .combinaciones {
-    list-style: none;
-    padding: 0;
-    display: grid;
-    gap: var(--espacio-2);
-  }
-
-  .combinacion {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--espacio-2) var(--espacio-4);
-    min-height: var(--objetivo-tactil);
-    border: 1px solid var(--linea);
-    border-radius: var(--radio);
-    padding: var(--espacio-3) var(--espacio-4);
-  }
-
-  .textoAcento {
-    color: var(--acento);
+  .textoAccion {
+    color: var(--cardenillo);
     font-weight: 600;
-    text-decoration: underline;
-    text-underline-offset: 0.2em;
+  }
+
+  .textoLaton {
+    color: var(--laton);
+    font-weight: 600;
   }
 
   .razon {
-    font-family: var(--fuente-utilidad);
     font-size: var(--texto-s);
     font-variant-numeric: tabular-nums;
-    color: var(--tinta-secundaria);
+    color: var(--tinta-2);
   }
 
-  .relleno {
+  .boton {
     display: inline-flex;
     align-items: center;
-    min-height: var(--objetivo-tactil);
-    border-radius: var(--radio);
-    padding-inline: var(--espacio-4);
-    background: var(--acento);
-    color: var(--superficie);
+    justify-self: start;
+    min-height: 50px;
+    padding-inline: var(--espacio-5);
+    border-radius: var(--radio-pastilla);
+    background: var(--cardenillo);
+    color: var(--sobre-cardenillo);
     font-weight: 600;
   }
 
-  /* guia-frontend.md §2.2: en oscuro el texto del relleno de acento es --fondo, no --superficie. */
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme='light']) .relleno {
-      color: var(--fondo);
-    }
+  .tipos {
+    display: grid;
+    border-top: 1px solid var(--tinta);
   }
 
-  :root[data-theme='dark'] .relleno {
-    color: var(--fondo);
+  .tipos div {
+    display: grid;
+    gap: var(--espacio-2);
+    padding-block: var(--espacio-4);
+    border-bottom: 1px solid var(--linea-suave);
   }
 
-  .tipografia {
-    border-top: 1px solid var(--linea);
-    padding-top: var(--espacio-4);
+  .tipos dt {
+    font-size: var(--texto-s);
+    color: var(--tinta-2);
   }
 
-  .display {
-    font-family: var(--fuente-display);
+  .tipos dd {
+    margin: 0;
+  }
+
+  .barrio {
+    font-family: var(--fuente-marca);
     font-size: var(--texto-xl);
-    font-weight: 700;
-    line-height: 1.2;
-    text-wrap: balance;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+  }
+
+  .cifra {
+    font-size: var(--texto-xl);
+    font-weight: 600;
+    line-height: 1;
+  }
+
+  @media (max-width: 29.99rem) {
+    .fila {
+      grid-template-columns: 2rem minmax(0, 1fr);
+      padding-block: var(--espacio-2);
+    }
+
+    .fila .token {
+      grid-column: 2;
+    }
   }
 
   @media (min-width: 48rem) {
     .paleta {
       grid-template-columns: 1fr 1fr;
       column-gap: var(--espacio-6);
+    }
+
+    .tipos div {
+      grid-template-columns: 12rem minmax(0, 1fr);
+      align-items: baseline;
     }
   }
 }

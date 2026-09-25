@@ -6,7 +6,7 @@
 **Estado:** adoptada por el dueño el 2026-09-25 con su plan «identidad propia y respuestas claras» (`ADR-071`): la
 paleta de §2 rige; la identidad editorial queda **contenida** en la marca y los titulares (§3), y búsquedas,
 formularios, mapa y datos se presentan de forma directa. El prototipo de referencia muestra la tipografía anterior
-(serif en cifras y Schibsted Grotesk): donde difiera, gana este documento. La migración se hace en un solo cambio (§8).
+(serif en cifras y Schibsted Grotesk): donde difiera, gana este documento. Migrada el 2026-09-25 (§8).
 Antes de tocar la interfaz, usa la skill `disenar-frontend`.
 
 Este documento manda sobre **cómo se ve y cómo se mueve** el frontend. Lo que se muestra y con qué datos lo sigue

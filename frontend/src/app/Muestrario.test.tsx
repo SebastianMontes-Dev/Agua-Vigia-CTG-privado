@@ -10,14 +10,15 @@ describe('Muestrario', () => {
     }
   })
 
-  it('debeMostrarElAcentoSoloEnLasCombinacionesPermitidas', () => {
+  it('debeMostrarLaAccionSoloEnLasCombinacionesPermitidas', () => {
     render(<Muestrario />)
-    const combinaciones = within(screen.getByRole('region', { name: 'Acento y combinaciones permitidas' }))
+    const combinaciones = within(screen.getByRole('region', { name: 'Acción y combinaciones permitidas' }))
     for (const texto of [
-      'Acento sobre fondo',
-      'Acento sobre superficie',
-      'Acento sobre acento suave',
+      'Cardenillo sobre papel',
+      'Cardenillo sobre superficie',
+      'Cardenillo sobre cardenillo suave',
       'Botón principal',
+      'Latón: foco y selección',
     ]) {
       expect(combinaciones.getByText(texto)).toBeInTheDocument()
     }
@@ -27,6 +28,12 @@ describe('Muestrario', () => {
     render(<Muestrario />)
     expect(screen.queryByText(/Bocagrande/)).not.toBeInTheDocument()
     expect(screen.getByText('Texto de muestra, no describe ningún barrio real.')).toBeInTheDocument()
+  })
+
+  it('debeLlevarLaMarcaYUnSoloTitularDePagina', () => {
+    render(<Muestrario />)
+    expect(screen.getByText('AguaVigía')).toBeInTheDocument()
+    expect(screen.getAllByRole('heading', { level: 1 }).map((h) => h.textContent)).toEqual(['Identidad del frontend'])
   })
 
   it('debeCambiarElAtributoDeTemaYRecordarlo', async () => {

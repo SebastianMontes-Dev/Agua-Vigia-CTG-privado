@@ -13,15 +13,18 @@ const ESTADOS: Record<string, string> = {
 }
 
 const BASE: Record<string, string> = {
-  'Acento turquesa': '--acento',
-  'Acento vivo': '--acento-vivo',
-  'Acento suave': '--acento-suave',
-  Tinta: '--tinta',
-  'Tinta secundaria': '--tinta-secundaria',
-  'Tinta terciaria': '--tinta-terciaria',
-  Línea: '--linea',
+  Papel: '--papel',
   Superficie: '--superficie',
-  Fondo: '--fondo',
+  Elevada: '--elevada',
+  Tinta: '--tinta',
+  'Tinta 2': '--tinta-2',
+  'Tinta 3': '--tinta-3',
+  Línea: '--linea',
+  'Línea suave': '--linea-suave',
+  Cardenillo: '--cardenillo',
+  'Sobre cardenillo': '--sobre-cardenillo',
+  'Cardenillo suave': '--cardenillo-suave',
+  Latón: '--laton',
 }
 
 function valoresDeDiseno(): Map<string, { claro: string; oscuro: string }> {
@@ -55,7 +58,7 @@ describe('tokens.css', () => {
   const oscuroSistema = bloque(":root:not([data-theme='light']) {")
   const oscuroInterruptor = bloque(":root[data-theme='dark'] {")
 
-  it('debeCopiarLosTreceColoresDeDisenoEnElTemaClaro', () => {
+  it('debeCopiarLosDieciseisColoresDeDisenoEnElTemaClaro', () => {
     for (const [variable, { claro: esperado }] of diseno) {
       expect(valorEn(claro, variable), variable).toBe(esperado)
     }
@@ -69,7 +72,7 @@ describe('tokens.css', () => {
   })
 
   it('noDebeDeclararColoresFueraDeLosTokens', () => {
-    const declarados = new Set([...tokens.matchAll(/(--[a-z-]+):\s*#/g)].map((m) => m[1]))
+    const declarados = new Set([...tokens.matchAll(/(--[a-z0-9-]+):\s*#/g)].map((m) => m[1]))
     expect([...declarados].sort()).toEqual([...diseno.keys()].sort())
   })
 })
