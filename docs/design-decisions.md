@@ -1298,7 +1298,7 @@ restaurar `ADR-028` y `ADR-032` a *Aceptada*. El color es un cambio de una const
 ## ADR-035 — Sin corte anunciado ni reporte vigente, el barrio se muestra con servicio
 
 - **Fecha:** 2026-08-30
-- **Estado:** Aceptada
+- **Estado:** Reemplazada por ADR-069
 
 ### Contexto
 `ADR-014` decidió lo contrario y su argumento era correcto **en su momento**: el 2026-08-08 no
@@ -2725,7 +2725,7 @@ involucrados (no hay endpoint HTTP nuevo).
 ## ADR-067 — El frontend nuevo se hace con React 19, Vite y CSS propio, sobre un mapa base PMTiles local y sin el shell de ADR-029
 
 - **Fecha:** 2026-09-25
-- **Estado:** Aceptada
+- **Estado:** Parcialmente reemplazada por ADR-070 — solo la exclusión de webfonts; el stack sigue vigente
 - **Decide:** Dueño del proyecto
 
 ### Contexto
@@ -2773,8 +2773,141 @@ pantallas; los tokens, el cliente generado del contrato y las pruebas E2E contra
 
 ---
 
+## ADR-068 — El mapa lleva etiquetas con glifos Noto Sans servidos en local, solo en los rangos que usa el español
+
+- **Fecha:** 2026-09-25
+- **Estado:** Aceptada
+- **Decide:** Dueño del proyecto
+
+### Contexto
+`ADR-067` dejó abierto si el mapa lleva texto. MapLibre no pinta texto con las fuentes del sistema: pide glifos SDF
+en `.pbf` por bloques de 256 puntos de código (`{fontstack}/{range}.pbf`) según los caracteres de cada etiqueta. El
+proyecto no carga webfonts (`DESIGN.md` §4, `ADR-041`) y no depende de internet para el mapa (`ADR-057`). Medido el
+2026-09-25 en `protomaps/basemaps-assets` (licencia SIL OFL 1.1): Noto Sans Regular pesa 76 KB en `0-255`, 128 KB en
+`256-511` y 64 KB en `8192-8447`; Medium, 78, 130 y 65 KB. Con `0-255` se cubre todo el español (tildes, ñ, ¿, ¡).
+
+### Alternativas consideradas
+| Opción | A favor | En contra |
+|---|---|---|
+| A. Glifos Noto locales, solo los rangos necesarios | El vecino se orienta por calles y barrios en el mapa; mismo origen, sin internet; ~150 KB en el caso común | Es una fuente, aunque solo la usa el lienzo del mapa: excepción a «nada de webfonts» que hay que acotar |
+| B. Mapa sin texto | Cero fuentes; el mapa pesa menos | Sin nombres, ubicar el barrio propio en un celular depende del buscador y la lista; el mapa pierde su función de orientación |
+| C. Glifos desde `protomaps.github.io` | Cero trabajo | Depende de internet y de un tercero: choca con `ADR-057` y con la CSP del mismo origen |
+
+### Decisión
+Opción A. Se versionan en `frontend/public/mapa/glifos/` Noto Sans Regular y Medium en los rangos `0-255`, `256-511` y
+`8192-8447` (guiones y comillas tipográficas), con su `OFL.txt`, y el estilo de MapLibre apunta a
+`/mapa/glifos/{fontstack}/{range}.pbf`. **La excepción es solo para el lienzo del mapa:** la interfaz sigue con las
+pilas de sistema de `DESIGN.md` §4.
+
+### Consecuencias
+- **Gana:** etiquetas de calles, barrios y agua en el mapa, sin internet ni terceros.
+- **Pierde:** ~540 KB en el repositorio y ~150 KB extra la primera vez que se pinta el mapa (después, caché). La
+  tarjeta de respuesta no espera a los glifos, así que no toca el presupuesto de `RNF001`.
+- **Obliga:** un nombre con un carácter fuera de esos rangos se pinta sin ese carácter (MapLibre registra el `404` y
+  sigue); si pasa con un nombre real de Cartagena, se agrega el rango. Conservar `OFL.txt` junto a los archivos.
+
+### Cómo se revierte
+Barato: se quitan las capas `symbol` del estilo y la carpeta `glifos/`, y el mapa queda como la opción B.
+
+---
+
+## ADR-069 — La guía integral del frontend rige cada pantalla y el estado nulo vuelve a «Sin datos verificados»
+
+- **Fecha:** 2026-09-25
+- **Estado:** Parcialmente reemplazada por ADR-070 — su parte visual; siguen las reglas de datos, estados y el nulo
+- **Decide:** Dueño del proyecto
+
+### Contexto
+F1 produjo prototipos de mapa, reporte, cumplimiento y bitácora, pero el frontend abarca también avisos, cuentas y
+el panel. Llevar esos prototipos directamente a código dejaba sin resolver composiciones adaptables, estados de
+error y vacío, datos realmente expuestos por cada contrato y la distinción entre estado, consulta y conectividad.
+Además, `REC-019` comprobó que el acento claro vigente no llega a 4,5:1 como texto sobre fondo ni acento suave.
+
+La revisión del contrato encontró otra contradicción: `ADR-035` pintaba `estado: null` como `CON_SERVICIO`, aunque
+el backend conserva el nulo y no fabrica `actualizadoEn`. La ausencia de aviso puede ser una señal operativa útil,
+pero no prueba que un hogar tenga agua; la interfaz principal debe contestar sin convertir esa ausencia en un
+estado verificado.
+
+### Alternativas consideradas
+| Opción | A favor | En contra |
+|---|---|---|
+| Implementar los prototipos de F1 tal como están | Menos trabajo antes de F2 | Solo cubren cuatro pantallas y contienen controles y cifras de simulación que la API no ofrece |
+| Mantener reglas repartidas entre DESIGN.md y el plan | Menos documentación nueva | Obliga a reconstruir jerarquía, estados y límites del contrato en cada fase |
+| Adoptar una guía por pantalla y representar el nulo de forma explícita | Una referencia verificable para toda la SPA; no afirma servicio sin dato | Exige adaptar los prototipos antes de aprobar F1 y hace visible que algunos barrios carecen de verificación |
+
+### Decisión
+Adoptar `docs/diseno/guia-frontend.md` como especificación de desarrollo por pantalla, subordinada a `DESIGN.md` y
+al contrato OpenAPI. Cubre composiciones de 360, 768 y 1280 px, componentes, rutas, datos permitidos, estados de
+interacción y criterios de aceptación. Su aprobación es **documental**: no aprueba los prototipos actuales, no
+cierra F1 y no inicia F2.
+
+`estado: null` se presenta como **«Sin datos verificados»**, con trama, glifo y texto, sin añadir un quinto valor al
+dominio. `ADR-035` queda reemplazada; la parte contractual de `ADR-014` permanece: el backend sigue transmitiendo
+el nulo. También se valida `REC-019`: el acento claro pasa a `#06747f`, aplicado a la vez en `DESIGN.md` y
+`frontend/src/estilos/tokens.css`, con sus pruebas de contraste (2026-09-25, paso 1 de la guía §7).
+
+### Consecuencias
+- **Gana:** cada ruta tiene jerarquía, estados y límites de datos trazables; «sin datos» deja de parecer servicio
+  confirmado y el turquesa vuelve a reservarse a acciones.
+- **Pierde:** el mapa puede mostrar más zonas neutrales, y los cuatro prototipos deben adaptarse y volver a revisión
+  visual antes de cerrar F1.
+- **No cambia:** React, CSS propio, PMTiles local, rutas, contratos, dependencias y colores semánticos del servicio.
+- **Condiciona:** el acento se movió en ambos tokens y se verificó el muestrario en los dos temas; `REC-019` quedó
+  resuelta. F1 sigue esperando la revisión visual de los prototipos adaptados.
+
+### Cómo se revierte
+Un ADR futuro puede sustituir la guía o una parte de ella. Volver a presentar el nulo como servicio exige restaurar
+expresamente el riesgo aceptado por `ADR-035`; volver al acento anterior exige cambiar a la vez `DESIGN.md`,
+`tokens.css` y las cifras fijadas en `contraste.test.ts`, y reabre el incumplimiento de contraste de `REC-019`.
+
+---
+
+## ADR-070 — El frontend adopta una identidad formal: cardenillo y latón, Newsreader con Schibsted Grotesk y movimiento especificado
+
+- **Fecha:** 2026-09-25
+- **Estado:** Aceptada — la dirección; los valores concretos esperan la aprobación visual del prototipo
+- **Decide:** Dueño del proyecto
+
+### Contexto
+Al ver los prototipos de F1 adaptados a la guía (`ADR-069`), el dueño los rechazó: la interfaz seguía el esquema del
+frontend retirado (mapa arriba, hoja con la ficha, botón turquesa, fuente del sistema) y «se ve hecha por IA». Pidió
+un rediseño total: **formal, minimalista, con colores no genéricos, animaciones y transiciones que den sensación
+premium y la vista web como prioridad**, más skills y documentación que mantengan esa orientación. Las guías
+consultadas sobre interfaces generadas por IA coinciden en la causa (el modelo vuelve a la estética promedio) y en el
+remedio: especificación escrita antes del código, referencias reales, reglas que prohíban lo genérico y movimiento
+planeado. Se exploraron tres rumbos (Cartel, Vecino, Reloj del corte) antes de fijar este.
+
+### Alternativas consideradas
+| Opción | A favor | En contra |
+|---|---|---|
+| Mantener la identidad de `DESIGN.md` §3–§4 y pulir | Sin migración | Es justamente lo que el dueño rechazó |
+| Rumbo «Cartel», «Vecino» o «Reloj del corte» | Cada uno cambia la experiencia | Ninguno responde a «formal y minimalista»; el dueño pidió otra dirección |
+| **Rumbo formal: cardenillo y latón, serif editorial y movimiento especificado** | Sobrio, propio del acueducto, legible en escritorio y celular | Dos fuentes a servir; se rehacen el muestrario y los prototipos |
+
+### Decisión
+Adoptar la identidad de `docs/diseno/identidad.md`: paleta cardenillo y latón con neutros de sesgo verde, Newsreader
+para titulares y cifras y Schibsted Grotesk para la interfaz (ambas OFL, **servidas desde el propio proyecto**),
+reglas finas en vez de tarjetas, composición de escritorio propia y la tabla de movimiento de su §5. Los cuatro
+estados del servicio (`DESIGN.md` §2, `ADR-042`) y todas las reglas de datos de la guía no cambian. Dos skills
+(`disenar-frontend` y `revisar-diseno`) obligan a leer esa especificación y a revisar capturas antes de dar por
+terminada una pantalla. **Reemplaza en parte a `ADR-067`** (la exclusión de webfonts: ahora se permiten las dos
+fuentes locales) y **a `ADR-069`** (su parte visual: acento, tipografía y composición de la guía §2–§4).
+
+### Consecuencias
+- **Gana:** una identidad que no se confunde con una plantilla y reglas escritas que cualquier sesión debe seguir.
+- **Pierde:** el acento `#06747f` y las composiciones de la guía §4 recién aplicadas; los prototipos F1 anteriores
+  quedan como histórico. Unos 160 KB de fuentes que el celular descarga una vez.
+- **Condiciona:** la migración de `DESIGN.md` §3–§4, `tokens.css`, sus pruebas y el muestrario se hace en un solo
+  cambio después de la aprobación visual (`identidad.md` §8). F1 no cierra ni F2 empieza sin esa aprobación.
+
+### Cómo se revierte
+Otro ADR vuelve a la identidad anterior: `DESIGN.md` §3–§4 siguen en el historial y el prototipo de la guía está en
+el Artifact de F1. Mientras no se migre, revertir solo exige descartar `identidad.md` y las dos skills.
+
+---
+
 <!--
-Siguiente número disponible: ADR-068
+Siguiente número disponible: ADR-071
 Para agregar: usa la skill `registrar-decision`.
 Recuerda: append-only. Las entradas viejas solo cambian de estado, no de contenido.
 -->

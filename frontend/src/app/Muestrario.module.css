@@ -102,16 +102,72 @@
   }
 
   .trama {
+    /* Misma trama que iconos/trama-sin-datos.svg: su baldosa de 8 px en diagonal deja 8/√2 px entre líneas. */
     background: repeating-linear-gradient(
-      -45deg,
-      var(--tinta-terciaria) 0 2px,
-      transparent 2px 6px
+      45deg,
+      var(--tinta-secundaria) 0 1px,
+      var(--superficie) 1px 5.657px
     );
   }
 
   .token {
     font-size: var(--texto-xs);
     color: var(--tinta-secundaria);
+  }
+
+  .combinaciones {
+    list-style: none;
+    padding: 0;
+    display: grid;
+    gap: var(--espacio-2);
+  }
+
+  .combinacion {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--espacio-2) var(--espacio-4);
+    min-height: var(--objetivo-tactil);
+    border: 1px solid var(--linea);
+    border-radius: var(--radio);
+    padding: var(--espacio-3) var(--espacio-4);
+  }
+
+  .textoAcento {
+    color: var(--acento);
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+
+  .razon {
+    font-family: var(--fuente-utilidad);
+    font-size: var(--texto-s);
+    font-variant-numeric: tabular-nums;
+    color: var(--tinta-secundaria);
+  }
+
+  .relleno {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--objetivo-tactil);
+    border-radius: var(--radio);
+    padding-inline: var(--espacio-4);
+    background: var(--acento);
+    color: var(--superficie);
+    font-weight: 600;
+  }
+
+  /* guia-frontend.md §2.2: en oscuro el texto del relleno de acento es --fondo, no --superficie. */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) .relleno {
+      color: var(--fondo);
+    }
+  }
+
+  :root[data-theme='dark'] .relleno {
+    color: var(--fondo);
   }
 
   .tipografia {

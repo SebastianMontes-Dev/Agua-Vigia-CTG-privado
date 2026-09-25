@@ -23,7 +23,23 @@ Referencias cruzadas: `ADR-NNN` · `BUG-NNN` · `RF0NN` · `archivo:línea`.
 
 ---
 
-## Frontend nuevo (sin sprint asignado)
+## Sprint 7 — Frontend nuevo
+
+### 2026-09-25 · `claude/tender-gauss-ntutsm`
+**Qué:** Prototipos adaptados a la guía y PR #55 abierto; revisión atendida (trama a 1 px con prueba, `ADR-069`, `sprint-7.md`). El dueño rechazó la interfaz por genérica: identidad formal nueva (`ADR-070`, `docs/diseno/identidad.md`), prototipo en Artifact y skills `disenar-frontend` y `revisar-diseno`. PMTiles sigue bloqueado (403).
+**Sigue:** Aprobación visual del rumbo formal y migración de `identidad.md` §8. La rama local reescribió la autoría al dueño y no se pudo subir (force-push bloqueado): el dueño decide si autoriza el push o cierra el PR #55.
+
+### 2026-09-25 · `claude/wonderful-maxwell-dfxfgu`
+**Qué:** Paso 1 de la guía §7 (fundamentos visuales) aplicado sobre `docs/guia-diseno-frontend`: acento claro `#06747f` en `DESIGN.md` y `tokens.css` a la vez, pares de contraste ampliados y cifras fijadas, muestrario con las combinaciones del acento medidas en pantalla; `REC-019` resuelta. 110 unitarias y 14 E2E (360/1280, ambos temas) en verde. F1 sigue abierto.
+**Sigue:** Fusionar primero `docs/guia-diseno-frontend` y luego esta rama (el commit va encima; sin PR abierto). Después, paso 2 de la guía §7: adaptar los cuatro prototipos (con cuentas, panel y «Sin datos verificados»), obtener el PMTiles en local y pedir la aprobación visual; sin ella no empieza F2.
+
+### 2026-09-25 · `docs/guia-diseno-frontend`
+**Qué:** Completada la guía integral del frontend y `ADR-069`: matriz de rutas, composiciones adaptables, contraste, estados y presentación honesta de `estado: null`; `REC-019` quedó validada, no implementada. F1 sigue abierto.
+**Sigue:** Aplicar el acento junto con sus pruebas, adaptar los prototipos, obtener y medir el PMTiles y pedir la aprobación visual del dueño antes de F2.
+
+### 2026-09-25 · `claude/laughing-bardeen-a4p6nb`
+**Qué:** Registrado el PR #54 (F0) y abierto el Sprint 7. F1 casi completo: glifos del mapa (`ADR-068`, Noto locales ya en `frontend/public/mapa/glifos/`), glifos de estado en SVG, contraste AA en `contraste.test.ts` (`REC-019`), prototipos publicados en un Artifact y `scripts/preparar-mapa-base.sh`.
+**Sigue:** El dueño aprueba o corrige los prototipos y decide `REC-019`; correr `preparar-mapa-base.sh pmtiles` en local (aquí `build.protomaps.com` está bloqueado), medir el `.pmtiles` y decidir si se versiona; luego F2.
 
 ### 2026-09-25 · `claude/youthful-lovelace-de7ult`
 **Qué:** Plan del frontend (`docs/ingenieria/plan-frontend.md`) y `ADR-067` (React 19 + Vite + CSS propio, PMTiles local; `ADR-029` reemplazado). F0 construido en `frontend/`: tokens verificados contra `DESIGN.md`, cliente tipado con `api:check`, RFC 7807 por `type`, CI propio; 22 unitarias y 6 E2E en verde.
@@ -151,32 +167,6 @@ en `settings.json`). `docker-compose.prod.yml` sigue sin *replica set*, a propó
 ### 2026-09-19 · `main`
 **Qué:** Se investigó el E2E en rojo del frontend: la bitácora pública no recibía los boletines (`BUG-071`) y no se cargaba el CSS de escritorio (`BUG-072`), ambos corregidos; quedan abiertos el rotulado del mapa (`BUG-073`) y los props sin cablear que rompen `npm run build` (`BUG-074`). Netty subió a 4.1.137 por CVE-2026-75595 y el CI del backend volvió a verde.
 **Sigue:** Decidir el cálculo de «% operativa» y si se construye el rotulado de barrios; hasta entonces el Frontend CI seguirá en rojo.
-
-### 2026-09-19 · `main`
-**Qué:** El proyecto pasó a ser individual (`ADR-045`): se retiraron los roles D1–D5, las compuertas, el registro de bloqueos y Pages; registros y Javadoc quedaron sin actores y la Sala de control se genera solo en local desde `docs/`. `verify` del backend sin fallos (660 casos).
-**Sigue:** Contrastar `sprint-2.md` contra el código (M10–M15 ya están entregados) y subir el commit a `origin`.
-
-### 2026-09-08 · `main`
-**Qué:** Refactor costero aplicado sin alterar Leaflet/GeoJSON/endpoints; feed público limitado a Acuacar, mapa rotulado y estable ante clics rápidos, y veeduría Stitch con olas dobles animadas. Build, lint, 107 pruebas unitarias y 12 E2E en verde.
-**Sigue:** Revisar los cambios en la rama de trabajo y abrir un PR.
-
-### 2026-08-09 · `fix/integrar-formulario-reportes`
-**Qué:** RF008 conectado a `POST /api/reportes`: formulario real en dos pasos, huella anónima SHA-256, ubicación opcional, errores RFC 7807 y contrato OpenAPI regenerado; 26 pruebas, lint, build y `npm audit` en verde.
-**Sigue:** Fusionar el PR a `main`; después registrar la entrega en `registro-de-implementaciones.md`.
-
-### 2026-08-09 · `develop` (cierre de sesión)
-**Qué:** Sesión larga sobre todo el backend — 8 PRs fusionados (#112, #113,
-#116, #118, #119, #120, #121, #124). Con esto **M1–M6 y M8 quedan completos**: los 9 puertos de
-entrada y 8 de salida del dominio tienen implementación real. Regenerado `backend/openapi.yaml` (de 7
-a 17 rutas — faltaban los cuatro módulos nuevos, PR #124). Puesta al día `registro-de-implementaciones.md`
-(7 PRs sin registrar) y su tabla de cobertura, que seguía en el estado del Sprint 1 (36 RF: 28% → 78%
-funcional real). `/security-review` sobre las cuatro superficies nuevas: sin hallazgos que superaran
-el umbral de confianza.
-**Hallazgo real:** RF014 (avisar al suscriptor cuando su sector cambia de estado) sigue sin conectar
-— `NotificacionPort` solo se dispara al suscribirse (`SuscribirseService`), ni `EvaluarConsensoService`
-ni `GestionarCorteOficialService` lo llaman. M4 queda en 75%, no 100%, por esto.
-**Sigue:** M9 (etapa IA) descartada (`ADR-025`). RF014 es el hueco funcional real más concreto
-que queda en lo ya construido.
 
 ## Sprints 0 y 1
 
