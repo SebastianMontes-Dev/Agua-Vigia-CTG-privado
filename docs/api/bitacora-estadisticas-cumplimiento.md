@@ -7,7 +7,7 @@ que promete**. Todo público, sin sesión.
 
 | Método y ruta | Qué devuelve | Caché |
 |---|---|---|
-| `GET /api/bitacora?pagina&tamano` | Eventos, más recientes primero. Paginado. | 5 s |
+| `GET /api/bitacora?pagina&tamano&sectorId&tipo&desde&hasta` | Eventos, más recientes primero. Paginado y filtrable. | 5 s |
 | `GET /api/estadisticas` | Sectores más afectados, cortes por día de la semana, duración media. | 5 s |
 | `GET /api/estadisticas/exportar.csv` | Lo mismo en CSV. | — |
 | `GET /api/cumplimiento` | Índice de Cumplimiento **global**. | 5 s |
@@ -98,6 +98,21 @@ Campos que **pueden ser nulos** y que la interfaz debe tolerar: `sectorId`, `cor
 - **`cantidadReportesSustento`** dice cuántos reportes sostuvieron el cambio. **Los ids no vienen en el listado**
   (en una avería grande pueden ser miles y una página llegó a pesar 205 KB): se piden con
   `GET /api/bitacora/{id}/sustento`, ver abajo.
+
+### Filtrar la bitácora
+
+`GET /api/bitacora?sectorId=manga&tipo=CORTE_RESTABLECIDO&desde=2026-09-01T05:00:00Z&hasta=2026-09-08T05:00:00Z`
+
+- Los cuatro filtros son opcionales y se combinan. Buscan en **todo el historial**, no en la página que ya
+  cargaste: el total de `X-Total-Count` es el del filtro.
+- **`desde` es inclusivo y `hasta` exclusivo**, ambos instantes ISO 8601 en **UTC**. Un día de Cartagena
+  (UTC−5) va de `…T05:00:00Z` a `…T05:00:00Z` del día siguiente: convierte la fecha que elige la persona,
+  no mandes la medianoche UTC.
+- El enlace `Link` a la siguiente página **conserva los filtros**: síguelo tal cual.
+- Sin coincidencias, la respuesta es `[]` con `X-Total-Count: 0` («No hay eventos con esos filtros»), no
+  un error. Un `sectorId` que no existe también da `[]`.
+- `400` si `tipo` no es uno de los cuatro de la tabla, si una fecha está mal formada o si `hasta` no es
+  posterior a `desde`.
 
 ### Los reportes que sustentan un evento (RF011)
 

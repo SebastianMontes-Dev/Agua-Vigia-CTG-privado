@@ -41,14 +41,14 @@ Bitácora pública de eventos, de solo anexado (RF026-RF028)
 
 **Listar los eventos de la bitácora, más recientes primero**
 
-Paginado: la bitácora es de solo anexado (RF028), así que crece sin cota. El total, la página y el enlace a la siguiente viajan en las cabeceras `X-Total-Count`, `X-Total-Pages`, `X-Page`, `X-Page-Size` y `Link` — el cuerpo sigue siendo un arreglo JSON, así que un cliente que las ignore no se rompe. Por defecto 50 eventos; el máximo por página es 200.
+Paginado: la bitácora es de solo anexado (RF028), así que crece sin cota. El total, la página y el enlace a la siguiente viajan en las cabeceras `X-Total-Count`, `X-Total-Pages`, `X-Page`, `X-Page-Size` y `Link` — el cuerpo sigue siendo un arreglo JSON, así que un cliente que las ignore no se rompe. Por defecto 50 eventos; el máximo por página es 200. Filtros opcionales, que se combinan y buscan en todo el historial: `sectorId`, `tipo`, `desde` (inclusivo) y `hasta` (exclusivo), ambos instantes ISO 8601 en UTC. El enlace `Link` a la siguiente página conserva los filtros. Sin coincidencias, la respuesta es una página vacía, no un error; un `tipo` que no existe o un `hasta` que no es posterior a `desde` son un 400.
 
 | | |
 |---|---|
 | **Acceso** | Público |
-| **Parámetros** | `pagina` (query)<br>`tamano` (query) |
+| **Parámetros** | `pagina` (query)<br>`tamano` (query)<br>`sectorId` (query)<br>`tipo` (query)<br>`desde` (query)<br>`hasta` (query) |
 | **Cuerpo** | — |
-| **Respuestas** | `200` Listado generado → lista de [EventoBitacoraRespuesta](#esquema-eventobitacorarespuesta) |
+| **Respuestas** | `200` Listado generado → lista de [EventoBitacoraRespuesta](#esquema-eventobitacorarespuesta)<br>`400` Tipo de evento desconocido, fecha mal formada o rango invertido → [ProblemDetail](#esquema-problemdetail) |
 
 ### `GET /api/bitacora/{id}/sustento`
 

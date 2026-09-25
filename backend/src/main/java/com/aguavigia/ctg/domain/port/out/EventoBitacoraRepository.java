@@ -2,6 +2,7 @@ package com.aguavigia.ctg.domain.port.out;
 
 import com.aguavigia.ctg.domain.EventoBitacora;
 import com.aguavigia.ctg.domain.EventoId;
+import com.aguavigia.ctg.domain.FiltroBitacora;
 import com.aguavigia.ctg.domain.Pagina;
 
 /**
@@ -16,9 +17,11 @@ public interface EventoBitacoraRepository {
 
     /**
      * Paginado y no completo: la bitácora es de solo anexado, así que crece monotónicamente y nunca
-     * se poda. Traerla entera materializaba toda la colección en memoria en cada consulta.
+     * se poda. Traerla entera materializaba toda la colección en memoria en cada consulta. El filtro se
+     * aplica en la consulta y no sobre la página ya cargada: si no, buscar en un barrio solo miraría los
+     * últimos 50 eventos de la ciudad.
      */
-    Pagina<EventoBitacora> listar(int pagina, int tamano);
+    Pagina<EventoBitacora> listar(FiltroBitacora filtro, int pagina, int tamano);
 
     /** El detalle de un evento: incluye los reportes que lo sustentan (RF011), que el listado no trae. */
     Optional<EventoBitacora> buscarPorId(EventoId id);

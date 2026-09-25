@@ -3,6 +3,7 @@ package com.aguavigia.ctg.infrastructure.persistence.mongo;
 import com.aguavigia.ctg.domain.EstadoServicio;
 import com.aguavigia.ctg.domain.EventoBitacora;
 import com.aguavigia.ctg.domain.EventoId;
+import com.aguavigia.ctg.domain.FiltroBitacora;
 import com.aguavigia.ctg.domain.ReporteId;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.TipoEvento;
@@ -66,7 +67,7 @@ class EventoBitacoraMongoAdapterTest {
                 com.aguavigia.ctg.domain.EstadoServicio.SIN_SERVICIO, null, null,
                 List.of(new com.aguavigia.ctg.domain.ReporteId("r1"), new com.aguavigia.ctg.domain.ReporteId("r2"))));
 
-        EventoBitacora leido = adaptador.listar(0, 50).contenido().get(0);
+        EventoBitacora leido = adaptador.listar(FiltroBitacora.sinFiltro(), 0, 50).contenido().get(0);
 
         assertThat(leido.reportesSustento()).extracting(r -> r.valor()).containsExactly("r1", "r2");
     }
@@ -78,7 +79,7 @@ class EventoBitacoraMongoAdapterTest {
                 .append("_id", "viejo").append("tipo", "CORTE_ANUNCIADO").append("sectorId", "manga")
                 .append("timestamp", java.util.Date.from(AHORA)).append("descripcion", "anuncio previo"));
 
-        EventoBitacora leido = adaptador.listar(0, 50).contenido().get(0);
+        EventoBitacora leido = adaptador.listar(FiltroBitacora.sinFiltro(), 0, 50).contenido().get(0);
 
         assertThat(leido.reportesSustento()).isEmpty();
     }
@@ -90,7 +91,7 @@ class EventoBitacoraMongoAdapterTest {
         adaptador.guardar(new EventoBitacora(new EventoId("e2"), TipoEvento.CORTE_RESTABLECIDO,
                 new SectorId("bocagrande"), null, AHORA.plusSeconds(60), "segundo"));
 
-        List<EventoBitacora> eventos = adaptador.listar(0, 50).contenido();
+        List<EventoBitacora> eventos = adaptador.listar(FiltroBitacora.sinFiltro(), 0, 50).contenido();
 
         assertThat(eventos).extracting(e -> e.id().valor()).containsExactly("e2", "e1");
     }
@@ -104,5 +105,65 @@ class EventoBitacoraMongoAdapterTest {
         assertThat(adaptador.buscarPorId(new EventoId("e-sustento")))
                 .get().extracting(e -> e.reportesSustento().size()).isEqualTo(2);
         assertThat(adaptador.buscarPorId(new EventoId("no-existe"))).isEmpty();
+    }
+
+    private void sembrarTresBarriosYDosTipos() {
+        adaptador.guardar(new EventoBitacora(new EventoId("m1"), TipoEvento.CORTE_ANUNCIADO,
+                new SectorId("manga"), null, AHORA, "anuncio en manga"));
+        adaptador.guardar(new EventoBitacora(new EventoId("m2"), TipoEvento.CORTE_RESTABLECIDO,
+                new SectorId("manga"), null, AHORA.plusSeconds(3_600), "restablecido en manga"));
+        adaptador.guardar(new EventoBitacora(new EventoId("b1"), TipoEvento.CORTE_ANUNCIADO,
+                new SectorId("bocagrande"), null, AHORA.plusSeconds(7_200), "anuncio en bocagrande"));
+    }
+
+    /** El filtro se resuelve en Mongo: el total es el del barrio, no el de la página cargada. */
+    @Test
+    void debeFiltrarPorBarrioYContarSoloLosDelBarrio() {
+        sembrarTresBarriosYDosTipos();
+
+        var pagina = adaptador.listar(new FiltroBitacora(new SectorId("manga"), null, null, null), 0, 1);
+
+        assertThat(pagina.contenido()).extracting(e -> e.id().valor()).containsExactly("m2");
+        assertThat(pagina.totalElementos()).isEqualTo(2);
+    }
+
+    @Test
+    void debeFiltrarPorTipo() {
+        sembrarTresBarriosYDosTipos();
+
+        var eventos = adaptador.listar(
+                new FiltroBitacora(null, TipoEvento.CORTE_ANUNCIADO, null, null), 0, 50).contenido();
+
+        assertThat(eventos).extracting(e -> e.id().valor()).containsExactly("b1", "m1");
+    }
+
+    @Test
+    void elRangoDebeIncluirDesdeYExcluirHasta() {
+        sembrarTresBarriosYDosTipos();
+
+        var eventos = adaptador.listar(
+                new FiltroBitacora(null, null, AHORA, AHORA.plusSeconds(7_200)), 0, 50).contenido();
+
+        assertThat(eventos).extracting(e -> e.id().valor()).containsExactly("m2", "m1");
+    }
+
+    @Test
+    void debeCombinarBarrioTipoYRango() {
+        sembrarTresBarriosYDosTipos();
+
+        var eventos = adaptador.listar(new FiltroBitacora(new SectorId("manga"), TipoEvento.CORTE_RESTABLECIDO,
+                AHORA.plusSeconds(1), null), 0, 50).contenido();
+
+        assertThat(eventos).extracting(e -> e.id().valor()).containsExactly("m2");
+    }
+
+    @Test
+    void unFiltroSinCoincidenciasDebeDarUnaPaginaVacia() {
+        sembrarTresBarriosYDosTipos();
+
+        var pagina = adaptador.listar(new FiltroBitacora(new SectorId("no-existe"), null, null, null), 0, 50);
+
+        assertThat(pagina.contenido()).isEmpty();
+        assertThat(pagina.totalElementos()).isZero();
     }
 }

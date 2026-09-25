@@ -36,6 +36,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -117,5 +118,20 @@ class AdminUsuariosControllerTest {
                 .andExpect(jsonPath("$[0].correo").value("veedor@aguavigia.ctg"))
                 .andExpect(jsonPath("$[0].nombre").value("Veedor CTG"))
                 .andExpect(jsonPath("$[0].rol").value("VEEDOR"));
+    }
+
+    @Test
+    void elEnlaceALaSiguientePaginaDeCuentasDebeConservarElFiltroDeEstado() throws Exception {
+        given(jwtProvider.validar(TOKEN))
+                .willReturn(Optional.of(AutenticacionDePrueba.sesionCon(Permiso.GESTIONAR_USUARIOS)));
+        given(revocacion.revocadasAntesDe(any())).willReturn(Optional.empty());
+        given(cuentas.listar(EstadoCuenta.PENDIENTE_APROBACION, 0, 2))
+                .willReturn(new Pagina<>(List.of(), 0, 2, 5));
+
+        mockMvc.perform(get("/api/veedor/usuarios").param("estado", "pendiente_aprobacion").param("tamano", "2")
+                        .header("Authorization", "Bearer " + TOKEN))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Link",
+                        "</api/veedor/usuarios?pagina=1&tamano=2&estado=PENDIENTE_APROBACION>; rel=\"next\""));
     }
 }

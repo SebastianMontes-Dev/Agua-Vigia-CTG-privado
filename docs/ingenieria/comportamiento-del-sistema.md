@@ -705,6 +705,15 @@ La bitácora debe ser consultable públicamente, sin autenticación.
 - **Entonces** obtiene los eventos, paginados y en orden cronológico
 - **Y** de cada evento de consenso ve cuántos reportes lo sustentaron (`cantidadReportesSustento`), no sus ids
 
+#### Escenario: Filtro por barrio, tipo y fecha en todo el historial
+
+- **Cuando** cualquiera consulta `GET /api/bitacora` con `sectorId`, `tipo`, `desde` o `hasta`
+- **Entonces** obtiene solo los eventos que cumplen todos los filtros, buscados en todo el historial y no
+  en la página ya cargada, con `desde` inclusivo y `hasta` exclusivo en UTC
+- **Y** el enlace `Link` a la siguiente página conserva los filtros
+- **Y** sin coincidencias recibe una página vacía; un tipo desconocido, una fecha mal formada o un `hasta`
+  que no es posterior a `desde` responden 400
+
 #### Escenario: Detalle de los reportes que sustentan un evento
 
 - **Cuando** cualquiera consulta `GET /api/bitacora/{id}/sustento`

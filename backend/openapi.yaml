@@ -2095,6 +2095,12 @@ paths:
         `X-Total-Count`, `X-Total-Pages`, `X-Page`, `X-Page-Size` y `Link` — el cuerpo
         sigue siendo un arreglo JSON, así que un cliente que las ignore no se rompe.
         Por defecto 50 eventos; el máximo por página es 200.
+
+        Filtros opcionales, que se combinan y buscan en todo el historial: `sectorId`,
+        `tipo`, `desde` (inclusivo) y `hasta` (exclusivo), ambos instantes ISO 8601 en
+        UTC. El enlace `Link` a la siguiente página conserva los filtros. Sin
+        coincidencias, la respuesta es una página vacía, no un error; un `tipo` que no
+        existe o un `hasta` que no es posterior a `desde` son un 400.
       operationId: listar_2
       parameters:
       - name: pagina
@@ -2109,6 +2115,33 @@ paths:
         schema:
           type: integer
           format: int32
+      - name: sectorId
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: tipo
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - CORTE_ANUNCIADO
+          - CORTE_CONFIRMADO_POR_CIUDADANOS
+          - CORTE_RESTABLECIDO
+          - CORTE_DETECTADO_POR_INGESTA
+      - name: desde
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date-time
+      - name: hasta
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date-time
       responses:
         "200":
           description: Listado generado
@@ -2118,6 +2151,12 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/EventoBitacoraRespuesta"
+        "400":
+          description: "Tipo de evento desconocido, fecha mal formada o rango invertido"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
   /api/bitacora/{id}/sustento:
     get:
       tags:
