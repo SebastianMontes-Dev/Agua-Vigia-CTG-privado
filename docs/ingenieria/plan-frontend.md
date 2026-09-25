@@ -4,9 +4,12 @@
 > empezar a trabajar: las decisiones tomadas, el stack, la estructura, las pantallas, las reglas que no se negocian,
 > las trampas de la API, las fases con criterios de terminado y cómo se verifica cada una.
 >
-> **Estado (2026-09-25):** F0 fusionado (PR #54) y Sprint 7 abierto (`sprint-7.md`). F1 casi completo: prototipos
-> publicados, glifos SVG, contraste medido y glifos del mapa decididos (`ADR-068`). **Falta:** la aprobación del
-> dueño de los prototipos y el extracto PMTiles, que la red de la sesión en la nube no deja descargar.
+> **Estado (2026-09-25):** F0 fusionado (PR #54) y Sprint 7 abierto (`sprint-7.md`). F1 en curso: prototipos
+> publicados, glifos SVG, contraste medido, glifos del mapa decididos (`ADR-068`) y guía integral aprobada
+> (`ADR-069`). **Falta:** adaptar y aprobar visualmente los prototipos y obtener el extracto PMTiles, que la red de
+> la sesión en la nube no deja descargar.
+> **Diseño (2026-09-25):** guía integral aprobada como especificación documental (`ADR-069`); aplicación del
+> acento claro y ajuste de prototipos pendientes. Esta aprobación no cierra F1 ni inicia F2.
 >
 > **Fuente de verdad.** Este plan **no reemplaza** a `DESIGN.md` (diseño), a `docs/api/` (cómo consumir la API) ni a
 > `backend/openapi.yaml` (el contrato). Resume lo que hace falta tener a mano y apunta a esos documentos. Si algo de
@@ -44,7 +47,8 @@ como marcadores, las tarjetas redondeadas con barrita de color al costado y los 
 | Mapa base | **PMTiles propio de Cartagena** (extracto de OSM servido por nginx, estilo con la paleta del proyecto) | Decidido por el dueño |
 | Ejecución | Claude en ramas propias, un PR por fase, con los registros al día | Decidido por el dueño |
 | Registro formal | `ADR-067` en `docs/design-decisions.md`: stack, dirección visual y alternativas descartadas. `ADR-029` queda reemplazado | **Escrito (2026-09-25)** |
-| ¿Es el Sprint 7? | Sin decidir. Los sprints 0–6 están cerrados | **Lo decide el dueño** |
+| Sprint 7 | Frontend nuevo por fases F0–F6 | Abierto el 2026-09-25; ver `sprint-7.md` |
+| Diseño de todas las pantallas | [Guía del frontend](../diseno/guia-frontend.md), `ADR-069` | Especificación documental aprobada; implementación pendiente |
 
 Las alternativas descartadas (SvelteKit, Astro con islas, mapa sin fondo, tiles de OSM/Esri) y su motivo están en
 `ADR-067`.
@@ -79,11 +83,9 @@ con el mapa (F1/F2); la PWA con la integración (F6).
 **Tipografía:** solo las pilas de sistema de `DESIGN.md` §4. Nada de webfonts. El carácter sale de la escala, el
 contraste de pesos, `tabular-nums` y el mono para horas y códigos.
 
-> **Ojo con las etiquetas del mapa.** Para pintar texto, MapLibre necesita glifos SDF (`.pbf`), que no son una
-> webfont de interfaz pero sí son fuentes. Hay dos salidas, y se deciden en F1 **con un ADR propio** (la bitácora es
-> append-only: `ADR-067` no se edita): (a) servir en local los glifos Noto de Protomaps (`basemaps-assets`),
-> dejándolo registrado como excepción acotada al mapa; o (b) mapa sin etiquetas de texto, con los nombres en la
-> tarjeta, la ficha y la lista. **No se cargan glifos desde internet.**
+> **Etiquetas del mapa:** decidido en `ADR-068`: glifos Noto Sans Regular y Medium servidos en local,
+> ya versionados en `frontend/public/mapa/glifos/`. Excepción limitada al lienzo; la interfaz mantiene fuentes
+> del sistema. No cargar glifos desde internet.
 
 ---
 
@@ -132,54 +134,25 @@ comentarios solo explican el porqué. Las pruebas llevan nombre descriptivo en e
 
 ## 5. Diseño
 
-### 5.1 Tokens (copiar tal cual de `DESIGN.md` §2–§3)
+### 5.1 Tokens
 
-- **Estado del servicio:** con servicio `#1c7f55`/`#4fbf89` · sin servicio `#ae3428`/`#e2695b` · presión baja
-  `#94640c`/`#d9a63c` · corte programado `#2a628f`/`#6ba8da` (claro/oscuro).
-- **Base:** acento `#087f8c`/`#54c6ca`, acento vivo `#0796a5`/`#78d9db`, acento suave `#dcefee`/`#153f44`, tinta
-  `#102f39`/`#eef8f7`, tinta secundaria `#526a70`/`#aac0c0`, tinta terciaria `#789095`/`#789296`, línea
-  `#d8e5e3`/`#24454b`, superficie `#fbfdfc`/`#0c2830`, fondo `#f2f7f6`/`#061c23`.
-- Van en `:root`, se redefinen en `@media (prefers-color-scheme: dark)` y otra vez bajo `:root[data-theme="dark"]` y
-  `:root[data-theme="light"]`, para que el interruptor gane en las dos direcciones.
-- **El estilo de MapLibre lee los mismos valores** (desde `getComputedStyle` o desde un módulo que exporte los
-  tokens). Si el mapa y la leyenda dan dos colores distintos para un mismo estado, el color deja de significar algo.
-- **Los cuatro colores de estado no se usan para nada más:** ni verde de éxito, ni rojo de error de formulario, ni
-  ámbar de advertencia. Todo lo demás de la interfaz usa el acento turquesa.
+La tabla vigente es `DESIGN.md` §2–§3; `frontend/src/estilos/tokens.css` la reproduce y `tokens.test.ts`
+comprueba su igualdad. El mapa y la leyenda leen esos mismos tokens. No mantener otra tabla de valores aquí.
+El ajuste aprobado de REC-019 sigue **pendiente de aplicación conjunta**, según la [guía §2](../diseno/guia-frontend.md#2-color-y-contraste).
 
 ### 5.2 Lenguaje visual
 
-| Pieza | Cómo es |
-|---|---|
-| **Mapa (pantalla principal)** | Ocupa toda la pantalla, sin shell ni sidebar. En móvil hay una hoja inferior con tres posiciones (asomada, media, completa); en escritorio, un panel lateral |
-| **Tarjeta de respuesta** | Lo primero que se lee, en una línea: `Bocagrande · Sin agua desde las 6:10 a. m. · Prometieron volver a las 2:00 p. m.`, y abajo `actualizado hace 4 min` |
-| **Glifos de estado** | Una forma propia por estado, además del color: con servicio (gota llena), sin servicio (gota tachada), presión baja (gota a medias), programado (gota con reloj). Van siempre con su texto |
-| **«Sin datos»** | **Trama diagonal** en el mapa y en la leyenda, con el texto «Sin datos verificados». Nunca verde |
-| **Frescura** | `hace X` en cada sector. Si un dato envejece, se atenúa y lo dice («dato de hace 3 horas») |
-| **Índice de Cumplimiento** | Una **regla de tiempo**: el tramo prometido y el real sobre un eje de horas, con el exceso marcado. Texto: `Prometieron 2 horas · Fueron 8`. La serie mensual muestra `cantidadCortes` («sobre 3 cortes») |
-| **Bitácora** | Un **acta pública**: hora en mono a la izquierda, evento en prosa y enlace a la fuente. Los eventos con `estado: null` van neutros |
-| **Panel del veedor** | Denso y pensado para teclado: tablas y colas con atajos (`j`/`k` para moverse, `a` aprobar, `d` descartar, con confirmación). Sin tarjetas de KPI |
-| **Carga y vacío** | Esqueletos con la forma del contenido, nunca un spinner solo. El vacío explica y ofrece una acción: `Todavía nadie ha reportado en este sector` |
-| **Textos** | Tuteo, voz activa y escritos desde el lado del vecino. Errores que dicen qué pasó y cómo salir (`DESIGN.md` §5) |
+Composiciones, componentes, tipografía, todas las pantallas y textos viven en la
+[guía del frontend](../diseno/guia-frontend.md), que desarrolla DESIGN.md sin sustituir el contrato.
+La ficha separa barrio, estado, horario disponible y antigüedad; no fuerza una sola línea en móvil.
 
-### 5.3 Mínimos de accesibilidad y rendimiento (`DESIGN.md` §7–§8)
+### 5.3 Mínimos de accesibilidad y rendimiento
 
-Contraste AA en los dos temas · todo operable con teclado y `:focus-visible` de 2 px · objetivos táctiles de al menos
-44×44 px · `prefers-reduced-motion` · lista textual de sectores como alternativa al mapa (RF004) · etiquetas reales en
-los formularios · funciona desde 360 px · el cuerpo nunca hace scroll horizontal · primero se pinta el estado y después
-la geometría · primera respuesta útil en menos de 3 s en 3G (`RNF001`).
-
-**Contraste medido (F1, 2026-09-25).** `frontend/src/estilos/contraste.test.ts` mide con la fórmula de WCAG los pares
-que la interfaz puede usar, en los dos temas, y falla si un token cambia y un par baja del mínimo. Lo que **no** está
-permitido, porque no llega a 4,5:1 en al menos un tema:
-
-| Par | Claro | Oscuro | Regla |
-|---|---|---|---|
-| `--acento` como texto sobre `--fondo` | 4,39 | 8,60 | Los enlaces y botones de texto turquesa van sobre `--superficie` (4,65), no sobre `--fondo` |
-| Cualquier texto de color sobre `--acento-suave` | 3,98 (acento) · 4,18 (con servicio) | 3,51 (sin servicio) | Sobre `--acento-suave` solo `--tinta` y `--tinta-secundaria` |
-| `--tinta-terciaria` como texto | 3,30 | 4,66 | Solo para bordes de controles, separadores con función y texto grande |
-| `--acento-vivo` como texto | 3,48 | 9,36 | Solo *hover*, foco y rellenos |
-| `--tinta` sobre un relleno de estado o de acento | 2,18–2,97 | 1,88–3,03 | El texto sobre un relleno es `--superficie` en claro y `--fondo` en oscuro |
-| `--linea` como borde único de un control | 1,20–1,27 | 1,49–1,69 | Los campos llevan borde `--tinta-terciaria` (≥ 3:1); `--linea` solo separa |
+Mínimos generales: `DESIGN.md` §7–§8. Parejas de colores y restricciones vigentes/objetivo:
+[guía §2](../diseno/guia-frontend.md#2-color-y-contraste). Criterios por escenario y tamaño:
+[guía §8](../diseno/guia-frontend.md#8-aceptacion-y-verificacion).
+`contraste.test.ts` comprueba las parejas actuales; al aplicar REC-019 se amplían los pares de texto.
+Una fecha antigua de estado no demuestra caída del colector: aplicar la distinción de tiempos de la guía §6.
 
 ---
 
@@ -245,7 +218,7 @@ Detalle completo en `docs/api/`. Aquí van las reglas que, si se olvidan, rompen
 ### 6.5 Historia pública (`docs/api/bitacora-estadisticas-cumplimiento.md`)
 
 - `GET /api/bitacora` (paginado). Hay que tolerar `null` en `sectorId`, `corteId`, `estado`, `urlOriginal` e
-  `imagenUrl`. **La fuente (`urlOriginal`) se muestra siempre.** En `imagenUrl` se cambia
+  `imagenUrl`. **La fuente (`urlOriginal`) se enlaza cuando existe; no se inventa cuando es nula.** En `imagenUrl` se cambia
   `https://www.acuacar.com/wp-content/uploads/` por `/acuacar-media/`. El sustento
   (`/api/bitacora/{id}/sustento`) solo se pide al abrir el detalle.
 - `GET /api/cumplimiento`, `/sectores/{id}` y `/serie`. **Un `400` sin cortes cerrados es «aún sin datos», no un
@@ -360,7 +333,7 @@ cuando su entregable se demuestra funcionando**, no por calendario.
   detecta un cambio forzado en el contrato.
 - **Verificado (2026-09-25):** 22 pruebas unitarias y 6 E2E en verde; `api:check` falla con un valor agregado al
   enum de estado en `openapi.yaml` y vuelve a verde al quitarlo; el proxy probado contra un servidor falso en `:8081`.
-  **Falta:** el CI en GitHub (corre al abrir el PR) y probar el proxy contra el backend real (el contenedor de esta
+  **Actualización:** F0 fusionado con CI en verde (PR #54). **Falta:** probar el proxy contra el backend real (el contenedor de esta
   sesión no tenía Docker). La página del muestrario es provisional: la reemplaza el mapa en F2.
 - **Las E2E de F0 no necesitan backend.** Desde F2 las que sí lo necesitan irán en un job aparte con `docker compose`.
 
@@ -375,7 +348,9 @@ cuando su entregable se demuestra funcionando**, no por calendario.
       deniega `build.protomaps.com`; `scripts/preparar-mapa-base.sh pmtiles` está listo para correrlo en local.
       Glifos de texto decididos en `ADR-068` y ya en `frontend/public/mapa/glifos/`.
 - [x] Tabla de contraste AA medida: `frontend/src/estilos/contraste.test.ts` y las restricciones de §5.3. De ahí salió
-      `REC-019` (el acento claro no pasa como texto sobre `--fondo`).
+      `REC-019` (el acento claro no pasa como texto sobre `--fondo`); validada documentalmente por el dueño en `ADR-069`, aún sin cambio de tokens.
+- [x] Guía integral documentada (`ADR-069`): composiciones, colores, pantallas y criterios de aceptación.
+- [ ] Adaptar y revisar los prototipos con la guía; su aprobación visual sigue pendiente.
 - **Hecho cuando:** el dueño aprueba los prototipos. **Sin esa aprobación no empieza F2.**
 
 ### F2 — Núcleo ciudadano (M1, M2)
@@ -483,5 +458,5 @@ a veces falla por el margen de 1 s del filtro JWT (`plan-de-pruebas.md` §8).
 
 1. ~~¿Esto abre un **Sprint 7**?~~ Sí: `sprint-7.md`, abierto el 2026-09-25.
 2. En F1: ~~¿glifos locales o mapa sin texto?~~ Glifos locales (`ADR-068`). ¿El PMTiles se versiona o se genera?
-   (se decide al medirlo). ¿Se aprueban los prototipos? ¿Se acepta `REC-019`?
+   (se decide al medirlo). ¿Se aprueban los prototipos adaptados a la guía? `REC-019` aceptada en `ADR-069`; falta aplicarla al código.
 3. En F4/F5: ¿URL de los correos con una propiedad nueva (`url-frontend`) o reutilizando `url-publica`?

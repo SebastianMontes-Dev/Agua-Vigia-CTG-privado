@@ -21,7 +21,7 @@ su panel.**
 | RF/RNF | Entregable | Depende de |
 |---|---|---|
 | — | ✅ F0 — Decisión y andamiaje: `ADR-067`, `frontend/`, cliente tipado con `api:check`, `frontend-ci.yml` en verde (PR #54, fusionado el 2026-09-25) | Plan aprobado por el dueño |
-| — | 🟡 F1 — Prototipos y lenguaje visual, sin código de producción. Hecho el 2026-09-25: prototipos de las 4 pantallas publicados en un Artifact, glifos de estado en SVG, contraste AA medido en prueba (`REC-019`) y glifos del mapa decididos y descargados (`ADR-068`). Falta: la aprobación del dueño de los prototipos y el extracto PMTiles | Red del entorno con acceso a `build.protomaps.com` para el extracto |
+| — | 🟡 F1 — Prototipos y lenguaje visual, sin código de producción. Hecho el 2026-09-25: prototipos de 4 pantallas, glifos de estado en SVG, contraste AA medido (`REC-019`), glifos locales (`ADR-068`) y guía integral aprobada como especificación documental (`ADR-069`). Falta: adaptar y aprobar visualmente los prototipos y obtener el extracto PMTiles | Red del entorno con acceso a `build.protomaps.com` para el extracto |
 | RF001–RF008, RF037, RF038 | F2 — Núcleo ciudadano: mapa, tarjeta, ficha, lista, buscador, SSE y reporte en 2 toques | F1 aprobado |
 | RF011, RF020–RF028 | F3 — Historia pública: bitácora, cumplimiento y estadísticas | F2 |
 | RF012–RF015, RF041 | F4 — Avisos, con los enlaces de los correos apuntando a la SPA | F2 · URL de los correos decidida (`plan-frontend.md` §13.3) |
