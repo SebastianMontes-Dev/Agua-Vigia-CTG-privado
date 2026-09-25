@@ -7,4 +7,4 @@ Aquí llegan los registros que superaron su límite en `docs/gestion/`, agrupado
 
 La rotación se hace al cerrar el sprint. Ver `../protocolo-de-contexto.md` §5.
 
-Rotados hasta ahora: `bitacora-sprint-0.md` y `bitacora-sprint-1.md` (2026-09-21) y `bitacora-sprint-2.md` (2026-09-24; ampliado el 2026-09-25 con tres entradas más, ya en el Sprint 7).
+Rotados hasta ahora: `bitacora-sprint-0.md` y `bitacora-sprint-1.md` (2026-09-21) y `bitacora-sprint-2.md` (2026-09-24; ampliado el 2026-09-25 con cuatro entradas más, ya en el Sprint 7).

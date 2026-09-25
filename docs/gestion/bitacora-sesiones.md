@@ -25,6 +25,10 @@ Referencias cruzadas: `ADR-NNN` · `BUG-NNN` · `RF0NN` · `archivo:línea`.
 
 ## Sprint 7 — Frontend nuevo
 
+### 2026-09-25 · `claude/tender-gauss-ntutsm`
+**Qué:** Paso 2 de la guía §7: prototipos F1 adaptados en el mismo Artifact (versión 2), con cabecera y menú de §4, ficha barrio → estado → horario → registro, estado nulo, casos de §6.2, reporte con 8 respuestas, cuentas y panel; 62 capturas (360/768/1280, ambos temas) sin errores ni scroll horizontal. PMTiles sigue bloqueado (`build.protomaps.com` da 403 en la red de la sesión).
+**Sigue:** El dueño revisa y aprueba o corrige los prototipos; abrir `build.protomaps.com` en la red del entorno o correr `preparar-mapa-base.sh pmtiles` en local. Sin ambas cosas no empieza F2. Ramas aún sin fusionar: esta va encima de `claude/wonderful-maxwell-dfxfgu`.
+
 ### 2026-09-25 · `claude/wonderful-maxwell-dfxfgu`
 **Qué:** Paso 1 de la guía §7 (fundamentos visuales) aplicado sobre `docs/guia-diseno-frontend`: acento claro `#06747f` en `DESIGN.md` y `tokens.css` a la vez, pares de contraste ampliados y cifras fijadas, muestrario con las combinaciones del acento medidas en pantalla; `REC-019` resuelta. 110 unitarias y 14 E2E (360/1280, ambos temas) en verde. F1 sigue abierto.
 **Sigue:** Fusionar primero `docs/guia-diseno-frontend` y luego esta rama (el commit va encima; sin PR abierto). Después, paso 2 de la guía §7: adaptar los cuatro prototipos (con cuentas, panel y «Sin datos verificados»), obtener el PMTiles en local y pedir la aprobación visual; sin ella no empieza F2.
@@ -163,10 +167,6 @@ en `settings.json`). `docker-compose.prod.yml` sigue sin *replica set*, a propó
 ### 2026-09-19 · `main`
 **Qué:** Se investigó el E2E en rojo del frontend: la bitácora pública no recibía los boletines (`BUG-071`) y no se cargaba el CSS de escritorio (`BUG-072`), ambos corregidos; quedan abiertos el rotulado del mapa (`BUG-073`) y los props sin cablear que rompen `npm run build` (`BUG-074`). Netty subió a 4.1.137 por CVE-2026-75595 y el CI del backend volvió a verde.
 **Sigue:** Decidir el cálculo de «% operativa» y si se construye el rotulado de barrios; hasta entonces el Frontend CI seguirá en rojo.
-
-### 2026-09-19 · `main`
-**Qué:** El proyecto pasó a ser individual (`ADR-045`): se retiraron los roles D1–D5, las compuertas, el registro de bloqueos y Pages; registros y Javadoc quedaron sin actores y la Sala de control se genera solo en local desde `docs/`. `verify` del backend sin fallos (660 casos).
-**Sigue:** Contrastar `sprint-2.md` contra el código (M10–M15 ya están entregados) y subir el commit a `origin`.
 
 ## Sprints 0 y 1
 
