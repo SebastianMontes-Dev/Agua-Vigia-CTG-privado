@@ -20,8 +20,8 @@ vacío de información que multiplica el daño. Toda decisión de alcance se juz
 ## Estado actual
 
 **Sprints 0 a 6 cerrados** (el 6, «entrega final», el 2026-09-24, con `RNF027` parcial: `docs/gestion/sprint-6.md`). M1–M15 están construidos en el backend. **El frontend se retiró de `main`
-(`ADR-048`; su código sigue en la etiqueta git `pre-retiro-frontend`) y se rehace en otras ramas de este mismo
-repositorio** desde la guía `docs/api/`, para juntarlo todo después. **Es un proyecto académico que corre en local**
+(`ADR-048`; su código sigue en la etiqueta git `pre-retiro-frontend`) y se rehace en `frontend/`** con el stack de
+`ADR-067`, por fases (F0–F6): `docs/ingenieria/plan-frontend.md`. **Es un proyecto académico que corre en local**
 (`ADR-057`): sin hosting, dominio ni CDN. Requisito de escalabilidad: **50 000 usuarios simultáneos** (`ADR-049`,
 `docs/ingenieria/escalabilidad.md`), que en local solo puede medirse a escala reducida.
 `RF041` (alertas por Telegram) está construido y armado (`ADR-066`), apagado hasta tener `TELEGRAM_BOT_TOKEN`; sin probar contra Telegram real.
@@ -42,7 +42,7 @@ su entregable se demuestra funcionando.** Los 7 entregables, en `docs/gestion/RE
 Redis (caché, rate limiting, ventana de consenso, pub/sub). **Sin SDK de IA**: se descartó en `ADR-025`
 **Infraestructura** Docker multi-etapa + docker compose · nginx (proxy y micro-caché, `infra/nginx/`) · GitHub Actions
 
-**No hay frontend en el repositorio.** El contrato es `backend/openapi.yaml`; cómo consumirlo, en `docs/api/`.
+**Frontend** (en construcción, `ADR-067`) React 19 · Vite · TS estricto · CSS propio. Contrato: `backend/openapi.yaml`; guía: `docs/api/`.
 
 ---
 
@@ -141,7 +141,7 @@ docs/                   brief.md · product-requirements.md (46 RF, 27 RNF) · d
 docs/api/               Guía para construir el frontend: flujos, rutas, errores, escala (referencia generada)
 docs/ingenieria/        Pipeline de datos, auditoría de fuentes, matriz de trazabilidad, comportamiento del sistema, escalabilidad
 docs/gestion/           Sprints, bitácora, bugs e implementaciones
-backend/ · infra/       Spring Boot · nginx del proxy de producción
+backend/ · frontend/ · infra/   Spring Boot · SPA en construcción · nginx del proxy
 scripts/                Siembra de datos, pruebas de carga (`carga/`), generador de la referencia de la API
 ```
 

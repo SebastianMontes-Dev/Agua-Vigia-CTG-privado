@@ -1,0 +1,66 @@
+name: Frontend CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "frontend/**"
+      - "backend/openapi.yaml"
+      - "DESIGN.md"
+      - ".github/workflows/frontend-ci.yml"
+  pull_request:
+    paths:
+      - "frontend/**"
+      - "backend/openapi.yaml"
+      - "DESIGN.md"
+      - ".github/workflows/frontend-ci.yml"
+
+jobs:
+  build:
+    name: Lint, tipos, contrato, pruebas y build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Configurar Node 22
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: npm ci
+
+      - name: Lint (oxlint)
+        run: npm run lint
+
+      - name: Tipos (tsc -b)
+        run: npm run typecheck
+
+      # Un cambio en backend/openapi.yaml sin `npm run api:sync` deja al cliente tipado contra un contrato viejo.
+      - name: Contrato de la API sin deriva
+        run: npm run api:check
+
+      # tokens.test.ts compara tokens.css con DESIGN.md: por eso DESIGN.md dispara este workflow.
+      - name: Pruebas unitarias (Vitest)
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Instalar Chromium para Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Pruebas E2E (Playwright, sin backend)
+        run: npm run test:e2e
+
+      - name: Publicar el reporte de Playwright
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: frontend/test-results/
+          retention-days: 14

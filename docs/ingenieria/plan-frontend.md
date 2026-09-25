@@ -4,7 +4,8 @@
 > empezar a trabajar: las decisiones tomadas, el stack, la estructura, las pantallas, las reglas que no se negocian,
 > las trampas de la API, las fases con criterios de terminado y cómo se verifica cada una.
 >
-> **Estado (2026-09-25):** plan aprobado por el dueño. `ADR-067` escrito. F0 (andamiaje) en curso.
+> **Estado (2026-09-25):** plan aprobado por el dueño. `ADR-067` escrito. F0 (andamiaje) construido; falta verlo pasar
+> en el CI de GitHub. Lo siguiente es F1 (prototipos), que necesita la aprobación del dueño antes de F2.
 >
 > **Fuente de verdad.** Este plan **no reemplaza** a `DESIGN.md` (diseño), a `docs/api/` (cómo consumir la API) ni a
 > `backend/openapi.yaml` (el contrato). Resume lo que hace falta tener a mano y apunta a esos documentos. Si algo de
@@ -332,14 +333,23 @@ cuando su entregable se demuestra funcionando**, no por calendario.
 
 ### F0 — Decisión y andamiaje
 - [x] `ADR-067`: stack, dirección visual y alternativas descartadas. `ADR-029` pasa a *Reemplazada*.
-- [ ] `frontend/` con Vite, React 19 y TS `strict`. Estructura de §4, `tokens.css` de §5.1 y `base.css`.
-- [ ] `api:sync` y `api:check` con openapi-typescript. `cliente.ts` con la normalización RFC 7807 (como referencia de
-      lógica, no de estilo: `git show pre-retiro-frontend:frontend/src/api/client.ts`).
-- [ ] Proxy de Vite a `:8081`. Vitest, Playwright y oxlint configurados, con una prueba mínima de cada uno.
-- [ ] `.github/workflows/frontend-ci.yml` (con `paths: frontend/**`): lint, tipos, `api:check`, pruebas y build.
-- [ ] Playwright MCP y Chrome DevTools MCP en `.mcp.json`.
+- [x] `frontend/` con Vite 8, React 19 y TS `strict` (configuraciones separadas para la app, Node y las pruebas).
+      `tokens.css` copiado de `DESIGN.md` (`tokens.test.ts` falla si divergen), `base.css` y `capas.css`.
+- [x] `api:sync` y `api:check` (`scripts/contrato-api.mjs`, con openapi-typescript). `cliente.ts` con openapi-fetch,
+      normalización RFC 7807 por `type` y cierre de sesión ante un `401` que no sea de credencial ni de segundo
+      factor. `dominio/estados.ts` con `null` → «Sin datos verificados».
+- [x] Proxy de Vite a `:8081` para `/api`, `/fotos` y `/acuacar-media` (variable `AGUAVIGIA_BACKEND` para cambiarlo).
+      Vitest, Playwright (360 y 1280 px) y oxlint configurados, con pruebas de cada uno.
+- [x] `.github/workflows/frontend-ci.yml`: lint, tipos, `api:check`, pruebas, build y E2E. Se dispara también con
+      cambios en `backend/openapi.yaml` y en `DESIGN.md`.
+- [x] Playwright MCP y Chrome DevTools MCP en `.mcp.json`.
 - **Hecho cuando:** `npm run dev` muestra una página con los tokens en los dos temas, el CI pasa y `api:check`
   detecta un cambio forzado en el contrato.
+- **Verificado (2026-09-25):** 22 pruebas unitarias y 6 E2E en verde; `api:check` falla con un valor agregado al
+  enum de estado en `openapi.yaml` y vuelve a verde al quitarlo; el proxy probado contra un servidor falso en `:8081`.
+  **Falta:** el CI en GitHub (corre al abrir el PR) y probar el proxy contra el backend real (el contenedor de esta
+  sesión no tenía Docker). La página del muestrario es provisional: la reemplaza el mapa en F2.
+- **Las E2E de F0 no necesitan backend.** Desde F2 las que sí lo necesitan irán en un job aparte con `docker compose`.
 
 ### F1 — Prototipos y lenguaje visual (sin código de producción)
 - [ ] Prototipos HTML en Artifacts de: mapa + tarjeta + ficha, reporte en 2 toques, cumplimiento con la regla de

@@ -1,0 +1,136 @@
+@layer componentes {
+  .pagina {
+    display: grid;
+    gap: var(--espacio-6);
+    max-width: 56rem;
+    margin-inline: auto;
+    padding: var(--espacio-6) var(--espacio-4) var(--espacio-7);
+  }
+
+  .cabecera {
+    display: grid;
+    gap: var(--espacio-2);
+    border-bottom: 1px solid var(--linea);
+    padding-bottom: var(--espacio-5);
+  }
+
+  .cabecera h1 {
+    font-size: var(--texto-xxl);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  .antetitulo {
+    font-family: var(--fuente-utilidad);
+    font-size: var(--texto-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--acento);
+  }
+
+  .bajada,
+  .secundario {
+    color: var(--tinta-secundaria);
+  }
+
+  .pagina section {
+    display: grid;
+    gap: var(--espacio-3);
+  }
+
+  .pagina section h2 {
+    font-size: var(--texto-l);
+    font-weight: 600;
+  }
+
+  .tema {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--espacio-2) var(--espacio-4);
+    border: 1px solid var(--linea);
+    border-radius: var(--radio);
+    padding: var(--espacio-3) var(--espacio-4);
+    background: var(--superficie);
+  }
+
+  .tema legend {
+    padding-inline: var(--espacio-2);
+    font-weight: 600;
+  }
+
+  .opcion {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--espacio-2);
+    min-height: var(--objetivo-tactil);
+    cursor: pointer;
+  }
+
+  .opcion input {
+    width: 1.25rem;
+    height: 1.25rem;
+    accent-color: var(--acento);
+  }
+
+  .estados,
+  .paleta {
+    list-style: none;
+    padding: 0;
+    display: grid;
+    border-top: 1px solid var(--linea);
+  }
+
+  .estado,
+  .color {
+    display: grid;
+    grid-template-columns: 2rem 1fr auto;
+    align-items: center;
+    gap: var(--espacio-3);
+    min-height: var(--objetivo-tactil);
+    border-bottom: 1px solid var(--linea);
+  }
+
+  .estado {
+    font-weight: 600;
+  }
+
+  .muestra {
+    width: 2rem;
+    height: 1.25rem;
+    border: 1px solid var(--linea);
+    border-radius: 2px;
+  }
+
+  .trama {
+    background: repeating-linear-gradient(
+      -45deg,
+      var(--tinta-terciaria) 0 2px,
+      transparent 2px 6px
+    );
+  }
+
+  .token {
+    font-size: var(--texto-xs);
+    color: var(--tinta-secundaria);
+  }
+
+  .tipografia {
+    border-top: 1px solid var(--linea);
+    padding-top: var(--espacio-4);
+  }
+
+  .display {
+    font-family: var(--fuente-display);
+    font-size: var(--texto-xl);
+    font-weight: 700;
+    line-height: 1.2;
+    text-wrap: balance;
+  }
+
+  @media (min-width: 48rem) {
+    .paleta {
+      grid-template-columns: 1fr 1fr;
+      column-gap: var(--espacio-6);
+    }
+  }
+}

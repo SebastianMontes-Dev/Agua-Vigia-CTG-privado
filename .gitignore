@@ -19,11 +19,13 @@ target/
 *.war
 hs_err_pid*
 
-# ─── Node (solo scripts/) ───
+# ─── Node (scripts/ y frontend/) ───
 node_modules/
 dist/
 *.local
 coverage/
+frontend/test-results/
+frontend/playwright-report/
 
 # ─── IDEs ───
 .idea/
