@@ -31,8 +31,8 @@ vacío de información que multiplica el daño. Toda decisión de alcance se juz
 entregaba lo que prometían, sin que nadie lo hubiera escrito. `sprint-6.md` se abrió y cerró el 2026-09-24: la demo es local
 y contra el backend, sin esperar al frontend (`ADR-057`, `REC-018` resuelta).
 
-**7 sprints: Sprint 0 (preparación) + Sprints 1–6. Un sprint no cierra por calendario: cierra cuando
-su entregable se demuestra funcionando.** Los 7 entregables, en `docs/gestion/README.md`.
+**8 sprints: Sprint 0 (preparación) + Sprints 1–6 + Sprint 7 (frontend nuevo, abierto el 2026-09-25). Un sprint no
+cierra por calendario: cierra cuando su entregable se demuestra funcionando.** Los 8 entregables, en `docs/gestion/README.md`.
 
 ---
 
