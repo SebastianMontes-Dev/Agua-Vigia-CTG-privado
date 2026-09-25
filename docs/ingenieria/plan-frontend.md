@@ -467,5 +467,6 @@ a veces falla por el margen de 1 s del filtro JWT (`plan-de-pruebas.md` §8).
 
 1. ~~¿Esto abre un **Sprint 7**?~~ Sí: `sprint-7.md`, abierto el 2026-09-25.
 2. En F1: ~~¿glifos locales o mapa sin texto?~~ Glifos locales (`ADR-068`). ¿El PMTiles se versiona o se genera?
-   (se decide al medirlo). ¿Se aprueban los prototipos adaptados a la guía (versión 3 del Artifact)? `REC-019` aceptada en `ADR-069` y aplicada.
+   (se decide al medirlo). ~~¿Se aprueban los prototipos adaptados a la guía?~~ Rechazados por genéricos. ¿Se aprueba
+   el prototipo del rumbo formal (`ADR-070`, `docs/diseno/identidad.md`)? `REC-019` aceptada en `ADR-069` y aplicada.
 3. En F4/F5: ¿URL de los correos con una propiedad nueva (`url-frontend`) o reutilizando `url-publica`?
