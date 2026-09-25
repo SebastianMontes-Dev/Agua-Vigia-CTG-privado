@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { contraste } from './contraste'
 
 const tokens = readFileSync(resolve(import.meta.dirname, 'tokens.css'), 'utf8')
 
@@ -16,28 +17,14 @@ function colores(tema: Tema): Map<string, string> {
   return new Map([...bloque.matchAll(/--([a-z-]+):\s*(#[0-9a-f]{6});/g)].map((m) => [m[1] ?? '', m[2] ?? '']))
 }
 
-function luminancia(hex: string): number {
-  const [r, g, b] = [1, 3, 5].map((i) => {
-    const canal = parseInt(hex.slice(i, i + 2), 16) / 255
-    return canal <= 0.04045 ? canal / 12.92 : ((canal + 0.055) / 1.055) ** 2.4
-  })
-  return 0.2126 * (r ?? 0) + 0.7152 * (g ?? 0) + 0.0722 * (b ?? 0)
-}
-
-function contraste(a: string, b: string): number {
-  const [claro, oscuro] = [luminancia(a), luminancia(b)].sort((x, y) => y - x)
-  return ((claro ?? 0) + 0.05) / ((oscuro ?? 0) + 0.05)
-}
-
 const ESTADOS = ['estado-con-servicio', 'estado-sin-servicio', 'estado-presion-baja', 'estado-corte-programado']
 
-// Los pares que la interfaz puede usar. Lo que no está aquí no se usa como texto: por ejemplo --acento sobre
-// --fondo en claro da 4,39:1, y --tinta-terciaria no llega a 4,5:1 en claro (plan-frontend.md §5.3).
+// Los pares que la interfaz puede usar. Lo que no está aquí no se usa como texto: por ejemplo --tinta-terciaria
+// no llega a 4,5:1 en claro ni --acento-vivo se usa como texto (guia-frontend.md §2.2).
 const TEXTO: ReadonlyArray<[string, string]> = [
-  ...['tinta', 'tinta-secundaria'].flatMap((t): Array<[string, string]> =>
+  ...['tinta', 'tinta-secundaria', 'acento'].flatMap((t): Array<[string, string]> =>
     ['superficie', 'fondo', 'acento-suave'].map((f) => [t, f]),
   ),
-  ['acento', 'superficie'],
   ...ESTADOS.flatMap((e): Array<[string, string]> => [
     [e, 'superficie'],
     [e, 'fondo'],
@@ -75,6 +62,28 @@ describe.each<Tema>(['claro', 'oscuro'])('contraste en el tema %s', (tema) => {
 
   it.each(NO_TEXTO)('debeLlegarATresAUnoFueraDelTexto: --%s sobre --%s', (color, fondo) => {
     expect(medir(color, fondo)).toBeGreaterThanOrEqual(3)
+  })
+})
+
+// Cifras de guia-frontend.md §2.3: si cambian, cambió el acento o un fondo y hay que volver a medir y documentar.
+const ACENTO_MEDIDO: Record<Tema, ReadonlyArray<[string, number]>> = {
+  claro: [
+    ['fondo', 5.09],
+    ['superficie', 5.39],
+    ['acento-suave', 4.62],
+  ],
+  oscuro: [
+    ['fondo', 8.6],
+    ['superficie', 7.57],
+    ['acento-suave', 5.64],
+  ],
+}
+
+describe.each<Tema>(['claro', 'oscuro'])('acento en el tema %s', (tema) => {
+  const paleta = colores(tema)
+
+  it.each(ACENTO_MEDIDO[tema])('debeDarElContrasteDocumentado: --acento sobre --%s = %s:1', (fondo, esperado) => {
+    expect(contraste(paleta.get('acento') ?? '', paleta.get(fondo) ?? '')).toBeCloseTo(esperado, 2)
   })
 })
 

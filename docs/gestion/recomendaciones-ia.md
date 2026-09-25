@@ -29,7 +29,7 @@
 | REC-016 | 2026-09-21 | La regla `Read(**/*secret*)` de `.claude/settings.json` bloquea `secret-scan.yml`, el único archivo de CI que hay que corregir para `BUG-089` | Resuelta |
 | REC-017 | 2026-09-21 | Los Sprints 3 a 6 de la hoja de ruta siguen escritos como si no se hubiera construido nada, y dos de sus entregables chocan con `ADR-048` y `ADR-057` | Resuelta |
 | REC-018 | 2026-09-22 | Qué cuenta como "demo" del Sprint 6 sin frontend propio en el repositorio no está decidido | Resuelta |
-| REC-019 | 2026-09-25 | El acento turquesa del tema claro no llega a AA como texto sobre `--fondo` ni sobre `--acento-suave` | Validada |
+| REC-019 | 2026-09-25 | El acento turquesa del tema claro no llega a AA como texto sobre `--fondo` ni sobre `--acento-suave` | Resuelta |
 
 **Estado:** `Pendiente` (sin revisar) · `Validada` (estoy de acuerdo, puede pasar a ADR/issue/tarea) ·
 `Descartada` (no estoy de acuerdo — deja el motivo en el detalle) · `Resuelta` (ya se actuó sobre
@@ -314,11 +314,13 @@ No se resuelve aquí a propósito: es una decisión de alcance del proyecto, no 
 
 ### REC-019 — El acento turquesa del tema claro no llega a AA como texto sobre `--fondo` ni sobre `--acento-suave`
 
-- **Fecha:** 2026-09-25 · **Estado:** Validada
+- **Fecha:** 2026-09-25 · **Estado:** Resuelta
 
 Medido en F1 (`frontend/src/estilos/contraste.test.ts`): `#087f8c` da 4,39:1 sobre `--fondo` y 3,98:1 sobre
 `--acento-suave`; solo pasa sobre `--superficie` (4,65). Hoy se resuelve con una regla de uso (`plan-frontend.md`
 §5.3), pero es fácil de romper en cada pantalla: un enlace sobre el fondo de la página ya incumple `DESIGN.md` §7.
 Oscurecerlo a `#06747f` (5,09 sobre fondo, 4,62 sobre acento suave, 5,39 sobre superficie, mismo tono) quita la
 restricción. Toca `DESIGN.md` §3 y `tokens.css` a la vez (`tokens.test.ts` las ata); decide el dueño.
-El dueño validó el cambio objetivo en `ADR-069`; sigue sin estar resuelto hasta aplicarlo y verificar ambos temas.
+El dueño validó el cambio objetivo en `ADR-069`. **Resuelta el 2026-09-25:** `#06747f` aplicado a la vez en `DESIGN.md` §3 y
+`tokens.css`; `contraste.test.ts` admite el acento como texto sobre los tres fondos y fija 5,09 / 5,39 / 4,62; el
+muestrario lo mide en 360 y 1280 px, en claro y oscuro (E2E).

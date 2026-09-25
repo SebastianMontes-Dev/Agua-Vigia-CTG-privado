@@ -25,6 +25,10 @@ Referencias cruzadas: `ADR-NNN` · `BUG-NNN` · `RF0NN` · `archivo:línea`.
 
 ## Sprint 7 — Frontend nuevo
 
+### 2026-09-25 · `claude/wonderful-maxwell-dfxfgu`
+**Qué:** Paso 1 de la guía §7 (fundamentos visuales) aplicado sobre `docs/guia-diseno-frontend`: acento claro `#06747f` en `DESIGN.md` y `tokens.css` a la vez, pares de contraste ampliados y cifras fijadas, muestrario con las combinaciones del acento medidas en pantalla; `REC-019` resuelta. 110 unitarias y 14 E2E (360/1280, ambos temas) en verde. F1 sigue abierto.
+**Sigue:** Adaptar los cuatro prototipos a la guía (con ejemplos de cuentas, panel y «Sin datos verificados»), obtener y medir el PMTiles en local y pedir la aprobación visual del dueño; sin ella no empieza F2.
+
 ### 2026-09-25 · `docs/guia-diseno-frontend`
 **Qué:** Completada la guía integral del frontend y `ADR-069`: matriz de rutas, composiciones adaptables, contraste, estados y presentación honesta de `estado: null`; `REC-019` quedó validada, no implementada. F1 sigue abierto.
 **Sigue:** Aplicar el acento junto con sus pruebas, adaptar los prototipos, obtener y medir el PMTiles y pedir la aprobación visual del dueño antes de F2.
@@ -163,14 +167,6 @@ en `settings.json`). `docker-compose.prod.yml` sigue sin *replica set*, a propó
 ### 2026-09-19 · `main`
 **Qué:** El proyecto pasó a ser individual (`ADR-045`): se retiraron los roles D1–D5, las compuertas, el registro de bloqueos y Pages; registros y Javadoc quedaron sin actores y la Sala de control se genera solo en local desde `docs/`. `verify` del backend sin fallos (660 casos).
 **Sigue:** Contrastar `sprint-2.md` contra el código (M10–M15 ya están entregados) y subir el commit a `origin`.
-
-### 2026-09-08 · `main`
-**Qué:** Refactor costero aplicado sin alterar Leaflet/GeoJSON/endpoints; feed público limitado a Acuacar, mapa rotulado y estable ante clics rápidos, y veeduría Stitch con olas dobles animadas. Build, lint, 107 pruebas unitarias y 12 E2E en verde.
-**Sigue:** Revisar los cambios en la rama de trabajo y abrir un PR.
-
-### 2026-08-09 · `fix/integrar-formulario-reportes`
-**Qué:** RF008 conectado a `POST /api/reportes`: formulario real en dos pasos, huella anónima SHA-256, ubicación opcional, errores RFC 7807 y contrato OpenAPI regenerado; 26 pruebas, lint, build y `npm audit` en verde.
-**Sigue:** Fusionar el PR a `main`; después registrar la entrega en `registro-de-implementaciones.md`.
 
 ## Sprints 0 y 1
 

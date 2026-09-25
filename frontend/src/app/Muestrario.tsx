@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useSyncExternalStore } from 'react'
 import { ORDEN_ESTADOS, presentarEstado } from '../dominio/estados'
+import { contraste } from '../estilos/contraste'
 import { aplicarTema, leerPreferenciaTema, type PreferenciaTema } from './tema'
 import estilos from './Muestrario.module.css'
 
@@ -21,8 +22,59 @@ const PALETA_BASE = [
   ['--fondo', 'Fondo'],
 ] as const
 
+// Las combinaciones en que --acento puede ir como texto (guia-frontend.md §2.2), más el botón principal.
+const COMBINACIONES_ACENTO = [
+  ['--fondo', 'Acento sobre fondo'],
+  ['--superficie', 'Acento sobre superficie'],
+  ['--acento-suave', 'Acento sobre acento suave'],
+] as const
+
+type TemaEnUso = 'claro' | 'oscuro'
+
+interface LecturaTokens {
+  tema: TemaEnUso
+  color: (variable: string) => string
+}
+
+// El tema lo decide el atributo data-theme o, sin él, la preferencia del sistema: se escuchan los dos.
+function suscribirTema(avisar: () => void): () => void {
+  const consulta = window.matchMedia?.('(prefers-color-scheme: dark)')
+  consulta?.addEventListener('change', avisar)
+  const observador = new MutationObserver(avisar)
+  observador.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
+  return () => {
+    consulta?.removeEventListener('change', avisar)
+    observador.disconnect()
+  }
+}
+
+function leerEsquema(): string {
+  return getComputedStyle(document.documentElement).colorScheme
+}
+
+function useLecturaTokens(): LecturaTokens | null {
+  const esquema = useSyncExternalStore(suscribirTema, leerEsquema)
+  if (esquema !== 'light' && esquema !== 'dark') return null
+  const estilo = getComputedStyle(document.documentElement)
+  return {
+    tema: esquema === 'dark' ? 'oscuro' : 'claro',
+    color: (variable) => estilo.getPropertyValue(variable).trim(),
+  }
+}
+
+const formatoRazon = new Intl.NumberFormat('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
+function razon(lectura: LecturaTokens | null, texto: string, fondo: string): string | null {
+  const a = lectura?.color(texto)
+  const b = lectura?.color(fondo)
+  if (!a || !b) return null
+  return `${formatoRazon.format(contraste(a, b))}:1`
+}
+
 export function Muestrario() {
   const [tema, setTema] = useState<PreferenciaTema>(leerPreferenciaTema)
+  const lectura = useLecturaTokens()
+  const textoSobreAcento = lectura?.tema === 'oscuro' ? '--fondo' : '--superficie'
 
   function cambiarTema(preferencia: PreferenciaTema) {
     setTema(preferencia)
@@ -74,6 +126,25 @@ export function Muestrario() {
         </ul>
       </section>
 
+      <section aria-labelledby="titulo-acento">
+        <h2 id="titulo-acento">Acento y combinaciones permitidas</h2>
+        <p className={estilos.secundario}>
+          Contraste medido en esta pantalla{lectura ? `, tema ${lectura.tema}` : ''}. El texto normal exige 4,5:1.
+        </p>
+        <ul className={estilos.combinaciones}>
+          {COMBINACIONES_ACENTO.map(([fondo, nombre]) => (
+            <li key={fondo} className={estilos.combinacion} style={{ background: `var(${fondo})` }}>
+              <span className={estilos.textoAcento}>{nombre}</span>
+              <span className={estilos.razon}>{razon(lectura, '--acento', fondo)}</span>
+            </li>
+          ))}
+          <li className={estilos.combinacion} style={{ background: 'var(--superficie)' }}>
+            <span className={estilos.relleno}>Botón principal</span>
+            <span className={estilos.razon}>{razon(lectura, textoSobreAcento, '--acento')}</span>
+          </li>
+        </ul>
+      </section>
+
       <section aria-labelledby="titulo-base">
         <h2 id="titulo-base">Paleta base</h2>
         <ul className={estilos.paleta}>
@@ -89,10 +160,11 @@ export function Muestrario() {
 
       <section aria-labelledby="titulo-tipografia" className={estilos.tipografia}>
         <h2 id="titulo-tipografia">Tipografía</h2>
-        <p className={estilos.display}>Bocagrande · Sin agua desde las 6:10 a. m.</p>
-        <p>Prometieron volver a las 2:00 p. m. Tu reporte cuenta junto con el de tus vecinos.</p>
+        <p className={estilos.secundario}>Texto de muestra, no describe ningún barrio real.</p>
+        <p className={estilos.display}>Nombre del barrio · Estado del agua</p>
+        <p>Texto corrido de lectura: así se ve un párrafo de ayuda en el cuerpo de la página.</p>
         <p className={estilos.secundario}>
-          actualizado hace <time dateTime="PT4M">4 min</time> · <span className="mono">RF001</span>
+          Texto secundario · <span className="mono">RF001</span>
         </p>
       </section>
     </main>

@@ -2,6 +2,16 @@
 
 Entradas rotadas desde `docs/gestion/bitacora-sesiones.md` el 2026-09-24 (la bitácora superó las 30 entradas al cerrar el Sprint 6). Son las 5 más antiguas del bloque «Preparación del backend»: el Sprint 2 y trabajo que se adelantó de los Sprints 3 y 4.
 
+> Las dos entradas siguientes se rotaron el 2026-09-25, en la sesión de fundamentos visuales del Sprint 7, al volver a superar la bitácora las 30 entradas.
+
+### 2026-09-08 · `main`
+**Qué:** Refactor costero aplicado sin alterar Leaflet/GeoJSON/endpoints; feed público limitado a Acuacar, mapa rotulado y estable ante clics rápidos, y veeduría Stitch con olas dobles animadas. Build, lint, 107 pruebas unitarias y 12 E2E en verde.
+**Sigue:** Revisar los cambios en la rama de trabajo y abrir un PR.
+
+### 2026-08-09 · `fix/integrar-formulario-reportes`
+**Qué:** RF008 conectado a `POST /api/reportes`: formulario real en dos pasos, huella anónima SHA-256, ubicación opcional, errores RFC 7807 y contrato OpenAPI regenerado; 26 pruebas, lint, build y `npm audit` en verde.
+**Sigue:** Fusionar el PR a `main`; después registrar la entrega en `registro-de-implementaciones.md`.
+
 > La entrada siguiente se rotó el 2026-09-25, al superar la bitácora las 30 entradas otra vez (Sprint 7).
 
 ### 2026-08-09 · `develop` (cierre de sesión)
