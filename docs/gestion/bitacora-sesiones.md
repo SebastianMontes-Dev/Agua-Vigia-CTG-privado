@@ -27,7 +27,7 @@ Referencias cruzadas: `ADR-NNN` · `BUG-NNN` · `RF0NN` · `archivo:línea`.
 
 ### 2026-09-25 · `claude/charming-shannon-9xqogb`
 **Qué:** Registrada la fusión del PR #57 y cerrado `BUG-104` (coautoría de Claude en el squash; `autoria.yml` lo impide). Prototipos de F1 con la identidad contenida publicados en un Artifact: ocho pantallas a 390–1440 px, ambos temas, contraste AA medido en vivo (`plan-frontend.md` §10). F1 sigue abierto.
-**Sigue:** El dueño revisa los prototipos en un teléfono real y aprueba o corrige; correr `scripts/preparar-mapa-base.sh pmtiles` en local para el extracto. Sin eso no empieza F2.
+**Sigue:** Ver el CI del PR #59 (primera corrida de `autoria.yml`), fusionarlo y registrarlo; el dueño revisa los prototipos en un teléfono real y corre `scripts/preparar-mapa-base.sh pmtiles` en local. Sin eso no empieza F2.
 
 ### 2026-09-25 · `claude/intelligent-curie-dhs2jr`
 **Qué:** Registrada la fusión del PR #56. Aplicado el plan «identidad propia y respuestas claras» del dueño: `ADR-071` (Newsreader solo en marca y titulares), `ADR-072` (PMTiles con Git LFS), `ADR-073` (filtros de la bitácora y `verificadoEn`, backend con pruebas; `BUG-102`), tokens y fuente migrados con el muestrario (`BUG-103`). Frontend 127 unitarias y 16 E2E; backend sin fallos salvo las 24 suites que exigen Docker, sin correr aquí. Sin PR.
