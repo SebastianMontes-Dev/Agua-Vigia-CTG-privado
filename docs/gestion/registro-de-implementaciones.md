@@ -213,6 +213,17 @@ cada PR y en `estado-del-backend.md` (`./mvnw verify`: 823 pruebas, 0 fallos).
 
 ---
 
+## Frontend nuevo (sin sprint asignado)
+
+Fases de `docs/ingenieria/plan-frontend.md` (`ADR-067`). Ningún requisito de interfaz se reactiva hasta F6: estas
+filas no cuentan para la cobertura.
+
+| RF/RNF | Tipo | Qué | PR | Prueba |
+|---|---|---|---|---|
+| — | andamio | F0 del frontend nuevo: plan y `ADR-067` (`ADR-029` reemplazado); `frontend/` con React 19, Vite 8 y TS estricto, tokens copiados de `DESIGN.md`, tipos generados del contrato (`api:sync`/`api:check`), cliente con RFC 7807 por `type` y cierre de sesión solo ante un 401 que no sea de credencial ni de segundo factor, proxy de Vite a `:8081`, `frontend-ci.yml` y los MCP de Playwright y Chrome DevTools. La página es un muestrario provisional de los tokens | #54 | `tokens.test.ts` (rojo con un color cambiado a propósito), `cliente.test.ts`, `estados.test.ts`, `Muestrario.test.tsx`: 22 pruebas · `e2e/muestrario.spec.ts`: 6 en 360 y 1280 px · `api:check` rojo con un valor agregado al enum de estado en `openapi.yaml` · `Frontend CI`, gitleaks, Trivy y la construcción de imágenes en verde en el PR · ⚠️ el proxy solo se probó contra un servidor falso, no contra el backend real |
+
+---
+
 ## Estado de cobertura de requisitos
 
 Se actualiza al cerrar cada sprint. Es el insumo directo de `docs/ingenieria/matriz-trazabilidad.md` y

@@ -4,8 +4,8 @@
 > empezar a trabajar: las decisiones tomadas, el stack, la estructura, las pantallas, las reglas que no se negocian,
 > las trampas de la API, las fases con criterios de terminado y cómo se verifica cada una.
 >
-> **Estado (2026-09-25):** plan aprobado por el dueño. `ADR-067` escrito. F0 (andamiaje) construido; falta verlo pasar
-> en el CI de GitHub. Lo siguiente es F1 (prototipos), que necesita la aprobación del dueño antes de F2.
+> **Estado (2026-09-25):** plan aprobado por el dueño. `ADR-067` escrito. F0 (andamiaje) fusionado (PR #54, CI en
+> verde). Lo siguiente es F1 (prototipos), que necesita la aprobación del dueño antes de F2.
 >
 > **Fuente de verdad.** Este plan **no reemplaza** a `DESIGN.md` (diseño), a `docs/api/` (cómo consumir la API) ni a
 > `backend/openapi.yaml` (el contrato). Resume lo que hace falta tener a mano y apunta a esos documentos. Si algo de
@@ -347,7 +347,7 @@ cuando su entregable se demuestra funcionando**, no por calendario.
   detecta un cambio forzado en el contrato.
 - **Verificado (2026-09-25):** 22 pruebas unitarias y 6 E2E en verde; `api:check` falla con un valor agregado al
   enum de estado en `openapi.yaml` y vuelve a verde al quitarlo; el proxy probado contra un servidor falso en `:8081`.
-  **Falta:** el CI en GitHub (corre al abrir el PR) y probar el proxy contra el backend real (el contenedor de esta
+  Fusionado en el PR #54 con el CI en verde. **Falta:** probar el proxy contra el backend real (el contenedor de esa
   sesión no tenía Docker). La página del muestrario es provisional: la reemplaza el mapa en F2.
 - **Las E2E de F0 no necesitan backend.** Desde F2 las que sí lo necesitan irán en un job aparte con `docker compose`.
 
