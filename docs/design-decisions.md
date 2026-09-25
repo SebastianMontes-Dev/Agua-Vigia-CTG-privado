@@ -1017,7 +1017,7 @@ Hacer que `RegistrarPropuestaIngestaService` cree la propuesta ya aprobada e inv
 ## ADR-029 — Adoptar un shell operativo inspirado en Adminator sin convertir la experiencia en un dashboard genérico
 
 - **Fecha:** 2026-08-09
-- **Estado:** Aceptada por solicitud explícita del usuario
+- **Estado:** Reemplazada por ADR-067
 
 ### Contexto
 
@@ -2722,8 +2722,59 @@ involucrados (no hay endpoint HTTP nuevo).
 
 ---
 
+## ADR-067 — El frontend nuevo se hace con React 19, Vite y CSS propio, sobre un mapa base PMTiles local y sin el shell de ADR-029
+
+- **Fecha:** 2026-09-25
+- **Estado:** Aceptada
+- **Decide:** Dueño del proyecto
+
+### Contexto
+El frontend se retiró de `main` (`ADR-048`) para rehacerlo desde `docs/api/`. El anterior (React 19 con Tailwind,
+framer-motion, gsap, ogl, lucide, Recharts, Leaflet con tiles de OSM/Esri y el shell de `ADR-029`) funcionaba, pero se
+leía como una interfaz genérica: justo lo que `DESIGN.md` §9 prohíbe. El dueño aprobó el plan
+`docs/ingenieria/plan-frontend.md` el 2026-09-24 y decidió el framework y el mapa base; `ADR-048` decía que lo rehacía
+«otra persona», y ahora lo construye Claude en ramas propias, un PR por fase. Restricciones que pesan: todo corre en
+local sin internet para el mapa (`ADR-057`), la primera respuesta útil debe llegar en menos de 3 s en 3G (`RNF001`) y
+el proyecto no carga webfonts (`DESIGN.md` §4, `ADR-041`).
+
+### Alternativas consideradas
+| Opción | A favor | En contra |
+|---|---|---|
+| A. React 19 + Vite + TS estricto, CSS propio | Primitivas accesibles maduras (React Aria), tipos del contrato con openapi-typescript, el dueño lo conoce; el anterior sirve de referencia de lógica | Runtime más pesado que Svelte: exige *code-splitting* por ruta para cumplir `RNF001` |
+| B. SvelteKit | Runtime más liviano | Menos primitivas accesibles maduras; menos familiar para integrar y mantener |
+| C. Astro con islas | HTML estático casi gratis | El mapa en vivo y el panel serían islas enormes: se pierde la ventaja |
+| Mapa: PMTiles propio de Cartagena | Funciona sin internet, un solo archivo servido por nginx, estilo con la paleta del proyecto | Hay que extraerlo, versionarlo o generarlo y mantener un estilo propio; licencia ODbL que atribuir |
+| Mapa: tiles de OSM/Esri | Cero trabajo | Dependen de terceros y de internet (choca con `ADR-057`) y se ven genéricos |
+| Mapa: sin fondo, solo polígonos | Lo más liviano | Sin calles, el vecino no ubica su barrio |
+
+### Decisión
+Opción A con mapa PMTiles propio. Stack: React 19, Vite, TypeScript `strict`, TanStack Router y Query, openapi-fetch con
+tipos generados de `backend/openapi.yaml`, React Aria Components sin estilos, CSS propio (custom properties, `@layer`,
+CSS Modules) con los tokens de `DESIGN.md` §2–§3 como única fuente de color, MapLibre GL JS con el protocolo `pmtiles`,
+gráficos en SVG a mano, iconos SVG propios y movimiento solo con CSS. **Quedan fuera:** Tailwind, shadcn/ui, lucide o
+cualquier set de iconos genérico, framer-motion, gsap, WebGL decorativo, Recharts, tiles de terceros y webfonts. El
+mapa ocupa la pantalla, sin shell ni sidebar: **`ADR-029` queda reemplazado** y no se retoma nada del stack anterior.
+El detalle (estructura, pantallas, reglas de la API y fases F0–F6) vive en `docs/ingenieria/plan-frontend.md`.
+
+### Consecuencias
+- **Gana:** un cliente tipado contra el contrato (la deriva la detecta `api:check` en CI), identidad visual propia y un
+  mapa que no depende de internet ni de terceros.
+- **Pierde:** se reescribe la interfaz entera sin reutilizar componentes del anterior; los gráficos y los iconos son
+  trabajo a mano.
+- **Queda abierto, con ADR propio cuando se decida:** si el mapa lleva etiquetas de texto (glifos SDF locales de
+  Protomaps, como excepción acotada a la regla de no webfonts) o no lleva texto; si el `.pmtiles` se versiona o se
+  genera; y a qué URL apuntan los enlaces de los correos. Servir la SPA desde nginx (F6) cambia la condición de
+  `ADR-048` («el proxy sirve solo la API») y también se registra aparte.
+- **Obliga:** atribución visible «© OpenStreetMap» (ODbL) en el mapa.
+
+### Cómo se revierte
+Antes de F2 es barato: solo existe el andamiaje de `frontend/`. Después, cambiar de framework es reescribir las
+pantallas; los tokens, el cliente generado del contrato y las pruebas E2E contra el backend real se conservan.
+
+---
+
 <!--
-Siguiente número disponible: ADR-067
+Siguiente número disponible: ADR-068
 Para agregar: usa la skill `registrar-decision`.
 Recuerda: append-only. Las entradas viejas solo cambian de estado, no de contenido.
 -->

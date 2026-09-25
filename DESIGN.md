@@ -35,9 +35,9 @@ Los cuatro son más oscuros en el tema claro que la paleta viva de la que salier
 `#ff453a`, `#ff9f0a`, `#98989d`): esa versión daba entre 2.0:1 y 3.3:1 sobre superficie clara y no
 pasaba el AA que exige §7. Medido y decidido en `ADR-042`.
 
-**Una sola fuente por token.** Estos valores viven aquí, en esta tabla. El frontend se retiró de
-este repositorio (`ADR-048`) y lo rehará otra persona: deberá definir cada color una sola vez y
-reutilizarlo en el mapa y en la leyenda. **Si divergen, el mismo estado sale de un color en el mapa
+**Una sola fuente por token.** Estos valores viven aquí, en esta tabla. El frontend nuevo (`ADR-067`)
+los copia una sola vez en `frontend/src/estilos/tokens.css` (una prueba falla si divergen) y los
+reutiliza en el mapa y en la leyenda. **Si divergen, el mismo estado sale de un color en el mapa
 y de otro en la leyenda, y el color deja de significar algo.** El backend usa estos mismos valores
 en las plantillas de correo y en `EstadoServicio`; cambiarlos es cambiar todos a la vez.
 

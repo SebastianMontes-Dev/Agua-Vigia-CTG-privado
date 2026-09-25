@@ -49,3 +49,14 @@ con invalidación al confirmar consenso, y reglas de rate limiting para `/api/ve
 `EventoBitacoraRepository` sin caso de uso (ADR-015). 178/178 pruebas en verde. Fusionado a
 `develop` en el PR #120 — **M8 completo**.
 **Sigue:** —
+
+<!-- Rotada el 2026-09-25, al abrir la sección «Frontend nuevo» de la bitácora. -->
+
+### 2026-08-09 · `feature/moderacion-reportes`
+**Qué:** `ModerarReporteService` (RF018, M5) — el veedor aprueba o descarta reportes ciudadanos.
+`ADR-023`: nadie había definido qué hace "dudoso" a un reporte, así que se interpreta como "todo
+reporte sin moderar" (nace `PENDIENTE`) en vez de inventar una heurística de fraude no pedida.
+`ReporteCiudadano` gana `EstadoModeracion`; `ModeracionReporteController` en `/api/veedor/reportes`.
+209/209 pruebas en verde.
+**Sigue:** Alcance acotado a propósito: descartar no recalcula consenso ni
+el conteo de RF006 (ver el propio ADR).

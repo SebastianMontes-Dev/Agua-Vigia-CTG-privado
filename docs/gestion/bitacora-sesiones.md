@@ -23,6 +23,12 @@ Referencias cruzadas: `ADR-NNN` · `BUG-NNN` · `RF0NN` · `archivo:línea`.
 
 ---
 
+## Frontend nuevo (sin sprint asignado)
+
+### 2026-09-25 · `claude/youthful-lovelace-de7ult`
+**Qué:** Plan del frontend (`docs/ingenieria/plan-frontend.md`) y `ADR-067` (React 19 + Vite + CSS propio, PMTiles local; `ADR-029` reemplazado). F0 construido en `frontend/`: tokens verificados contra `DESIGN.md`, cliente tipado con `api:check`, RFC 7807 por `type`, CI propio; 22 unitarias y 6 E2E en verde.
+**Sigue:** Ver pasar `frontend-ci.yml` en el PR y probar el proxy contra el backend real (aquí no había Docker); el dueño decide Sprint 7 y la rama definitiva; luego F1 (prototipos).
+
 ## Preparación del backend
 
 ### 2026-09-24 · `feat/mensajeria-telegram`
@@ -171,15 +177,6 @@ el umbral de confianza.
 ni `GestionarCorteOficialService` lo llaman. M4 queda en 75%, no 100%, por esto.
 **Sigue:** M9 (etapa IA) descartada (`ADR-025`). RF014 es el hueco funcional real más concreto
 que queda en lo ya construido.
-
-### 2026-08-09 · `feature/moderacion-reportes`
-**Qué:** `ModerarReporteService` (RF018, M5) — el veedor aprueba o descarta reportes ciudadanos.
-`ADR-023`: nadie había definido qué hace "dudoso" a un reporte, así que se interpreta como "todo
-reporte sin moderar" (nace `PENDIENTE`) en vez de inventar una heurística de fraude no pedida.
-`ReporteCiudadano` gana `EstadoModeracion`; `ModeracionReporteController` en `/api/veedor/reportes`.
-209/209 pruebas en verde.
-**Sigue:** Alcance acotado a propósito: descartar no recalcula consenso ni
-el conteo de RF006 (ver el propio ADR).
 
 ## Sprints 0 y 1
 

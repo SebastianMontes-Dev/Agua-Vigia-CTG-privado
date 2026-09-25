@@ -1,0 +1,88 @@
+/* Copia de DESIGN.md §2–§3 (tokens.test.ts falla si divergen). El bloque oscuro va dos veces para que el interruptor gane en las dos direcciones. */
+@layer tokens {
+  :root,
+  :root[data-theme='light'] {
+    color-scheme: light;
+
+    --estado-con-servicio: #1c7f55;
+    --estado-sin-servicio: #ae3428;
+    --estado-presion-baja: #94640c;
+    --estado-corte-programado: #2a628f;
+
+    --acento: #087f8c;
+    --acento-vivo: #0796a5;
+    --acento-suave: #dcefee;
+    --tinta: #102f39;
+    --tinta-secundaria: #526a70;
+    --tinta-terciaria: #789095;
+    --linea: #d8e5e3;
+    --superficie: #fbfdfc;
+    --fondo: #f2f7f6;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) {
+      color-scheme: dark;
+
+      --estado-con-servicio: #4fbf89;
+      --estado-sin-servicio: #e2695b;
+      --estado-presion-baja: #d9a63c;
+      --estado-corte-programado: #6ba8da;
+
+      --acento: #54c6ca;
+      --acento-vivo: #78d9db;
+      --acento-suave: #153f44;
+      --tinta: #eef8f7;
+      --tinta-secundaria: #aac0c0;
+      --tinta-terciaria: #789296;
+      --linea: #24454b;
+      --superficie: #0c2830;
+      --fondo: #061c23;
+    }
+  }
+
+  :root[data-theme='dark'] {
+    color-scheme: dark;
+
+    --estado-con-servicio: #4fbf89;
+    --estado-sin-servicio: #e2695b;
+    --estado-presion-baja: #d9a63c;
+    --estado-corte-programado: #6ba8da;
+
+    --acento: #54c6ca;
+    --acento-vivo: #78d9db;
+    --acento-suave: #153f44;
+    --tinta: #eef8f7;
+    --tinta-secundaria: #aac0c0;
+    --tinta-terciaria: #789296;
+    --linea: #24454b;
+    --superficie: #0c2830;
+    --fondo: #061c23;
+  }
+
+  :root {
+    --fuente-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif;
+    --fuente-cuerpo: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
+    --fuente-utilidad: ui-monospace, 'SF Mono', Menlo, Monaco, Consolas, monospace;
+
+    --texto-xs: 0.8125rem;
+    --texto-s: 0.9375rem;
+    --texto-m: 1.0625rem;
+    --texto-l: 1.375rem;
+    --texto-xl: 1.875rem;
+    --texto-xxl: 2.5rem;
+
+    --espacio-1: 0.25rem;
+    --espacio-2: 0.5rem;
+    --espacio-3: 0.75rem;
+    --espacio-4: 1rem;
+    --espacio-5: 1.5rem;
+    --espacio-6: 2rem;
+    --espacio-7: 3rem;
+
+    --medida-lectura: 65ch;
+    --objetivo-tactil: 44px;
+    --radio: 6px;
+    --grosor-foco: 2px;
+  }
+}

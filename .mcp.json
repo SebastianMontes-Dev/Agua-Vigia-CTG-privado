@@ -20,6 +20,18 @@
       ]
     },
 
+    "playwright": {
+      "$comment": "Maneja el frontend real: capturas en 360 y 1280 px en los dos temas, flujos y recorridos solo con teclado (docs/ingenieria/plan-frontend.md §9).",
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@latest"]
+    },
+
+    "chrome-devtools": {
+      "$comment": "Trazas de rendimiento, Lighthouse con 3G simulado y revision de la red y del SSE del frontend.",
+      "command": "npx",
+      "args": ["-y", "chrome-devtools-mcp@latest"]
+    },
+
     "$comment_git": [
       "NO hay servidor MCP de git aqui a proposito. El paquete npm",
       "@modelcontextprotocol/server-git NO existe (verificado 2026-08-07: npm devuelve E404);",
