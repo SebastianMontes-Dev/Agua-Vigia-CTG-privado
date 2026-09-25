@@ -6,10 +6,10 @@
 >
 > **Estado (2026-09-25):** F0 fusionado (PR #54) y Sprint 7 abierto (`sprint-7.md`). F1 en curso: prototipos
 > publicados, glifos SVG, contraste medido, glifos del mapa decididos (`ADR-068`) y guía integral aprobada
-> (`ADR-069`). **Falta:** adaptar y aprobar visualmente los prototipos y obtener el extracto PMTiles, que la red de
-> la sesión en la nube no deja descargar.
-> **Diseño (2026-09-25):** guía integral aprobada como especificación documental (`ADR-069`); acento claro ya
-> aplicado (guía §7, paso 1) y ajuste de prototipos pendiente. Esto no cierra F1 ni inicia F2.
+> (`ADR-069`). **Falta:** la aprobación visual del dueño sobre los prototipos adaptados y el extracto PMTiles, que
+> la red de la sesión en la nube no deja descargar.
+> **Diseño (2026-09-25):** guía integral aprobada como especificación documental (`ADR-069`); acento claro aplicado
+> (guía §7, paso 1) y prototipos adaptados a la guía (paso 2), a la espera de revisión. Esto no cierra F1 ni inicia F2.
 >
 > **Fuente de verdad.** Este plan **no reemplaza** a `DESIGN.md` (diseño), a `docs/api/` (cómo consumir la API) ni a
 > `backend/openapi.yaml` (el contrato). Resume lo que hace falta tener a mano y apunta a esos documentos. Si algo de
@@ -350,7 +350,11 @@ cuando su entregable se demuestra funcionando**, no por calendario.
 - [x] Tabla de contraste AA medida: `frontend/src/estilos/contraste.test.ts` y las restricciones de §5.3. De ahí salió
       `REC-019` (el acento claro no pasa como texto sobre `--fondo`); validada en `ADR-069` y aplicada el 2026-09-25 (`DESIGN.md`, `tokens.css` y pruebas).
 - [x] Guía integral documentada (`ADR-069`): composiciones, colores, pantallas y criterios de aceptación.
-- [ ] Adaptar y revisar los prototipos con la guía; su aprobación visual sigue pendiente.
+- [x] Prototipos adaptados a la guía el 2026-09-25 (mismo Artifact, versión 2): cabecera y menú de §4, ficha en el
+      orden barrio → estado → horario → registro, hoja en tres posiciones, estado nulo con trama, casos de §6.2,
+      reporte con sus 8 respuestas, cumplimiento sin cifras que el agregado no trae, bitácora sin filtro por origen,
+      avisos, cuentas y panel. 62 capturas en 360/768/1280 px y ambos temas: sin errores de script ni scroll horizontal.
+- [ ] **Aprobación visual del dueño** sobre esa versión.
 - **Hecho cuando:** el dueño aprueba los prototipos. **Sin esa aprobación no empieza F2.**
 
 ### F2 — Núcleo ciudadano (M1, M2)
@@ -458,5 +462,5 @@ a veces falla por el margen de 1 s del filtro JWT (`plan-de-pruebas.md` §8).
 
 1. ~~¿Esto abre un **Sprint 7**?~~ Sí: `sprint-7.md`, abierto el 2026-09-25.
 2. En F1: ~~¿glifos locales o mapa sin texto?~~ Glifos locales (`ADR-068`). ¿El PMTiles se versiona o se genera?
-   (se decide al medirlo). ¿Se aprueban los prototipos adaptados a la guía? `REC-019` aceptada en `ADR-069` y aplicada.
+   (se decide al medirlo). ¿Se aprueban los prototipos adaptados a la guía (versión 2 del Artifact)? `REC-019` aceptada en `ADR-069` y aplicada.
 3. En F4/F5: ¿URL de los correos con una propiedad nueva (`url-frontend`) o reutilizando `url-publica`?

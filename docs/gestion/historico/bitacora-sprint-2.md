@@ -2,6 +2,12 @@
 
 Entradas rotadas desde `docs/gestion/bitacora-sesiones.md` el 2026-09-24 (la bitácora superó las 30 entradas al cerrar el Sprint 6). Son las 5 más antiguas del bloque «Preparación del backend»: el Sprint 2 y trabajo que se adelantó de los Sprints 3 y 4.
 
+> La entrada siguiente se rotó el 2026-09-25, en la sesión de adaptación de prototipos del Sprint 7.
+
+### 2026-09-19 · `main`
+**Qué:** El proyecto pasó a ser individual (`ADR-045`): se retiraron los roles D1–D5, las compuertas, el registro de bloqueos y Pages; registros y Javadoc quedaron sin actores y la Sala de control se genera solo en local desde `docs/`. `verify` del backend sin fallos (660 casos).
+**Sigue:** Contrastar `sprint-2.md` contra el código (M10–M15 ya están entregados) y subir el commit a `origin`.
+
 > Las dos entradas siguientes se rotaron el 2026-09-25, en la sesión de fundamentos visuales del Sprint 7, al volver a superar la bitácora las 30 entradas.
 
 ### 2026-09-08 · `main`

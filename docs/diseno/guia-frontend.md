@@ -2,7 +2,7 @@
 
 **Fecha:** 2026-09-25, Cartagena · **Decisión:** [ADR-069](../design-decisions.md).
 
-**Aprobado:** el dueño encargó implementar este plan documental para todo el frontend. **Pendiente de aplicación:** las composiciones descritas aquí. **Aplicado:** el acento claro de §2.1 (paso 1 de §7, 2026-09-25). **Implementado antes de esta guía:** F0 y los avances de F1 registrados en el [plan de construcción](../ingenieria/plan-frontend.md). Esta entrega no aprueba el prototipo existente, no cierra F1 y no inicia F2.
+**Aprobado:** el dueño encargó implementar este plan documental para todo el frontend. **Pendiente de aplicación:** las composiciones descritas aquí. **Aplicado:** el acento claro de §2.1 (paso 1 de §7) y la adaptación de los prototipos (paso 2, a la espera de la revisión visual del dueño), ambos el 2026-09-25. **Implementado antes de esta guía:** F0 y los avances de F1 registrados en el [plan de construcción](../ingenieria/plan-frontend.md). Esta entrega no aprueba el prototipo existente, no cierra F1 y no inicia F2.
 
 ## Índice
 
@@ -296,7 +296,7 @@ Esta es una entrega documental sobre `d366ad9`. Los cambios de F1 que ya estaban
 | Orden | Trabajo posterior | Evidencia de salida |
 |---|---|---|
 | 1. Fundamentos ✅ 2026-09-25 | Migrar el acento claro de §2.1 en DESIGN.md y tokens.css juntos; ampliar pares de contraste; reemplazar la propuesta numérica por enlace canónico. Mantener los estados y contratos | Hecho: pruebas de tokens y contraste, tema manual en ambas direcciones, muestrario con las combinaciones del acento en 360/1280 px y ambos temas. REC-019 resuelta |
-| 2. F1 | Adaptar los cuatro prototipos a esta guía; añadir ejemplos de cuentas/panel y condiciones sin datos. Medir y preparar PMTiles; conservar glifos locales | Capturas de §8 y revisión visual del dueño. La aprobación del documento no sustituye esa revisión |
+| 2. F1 🟡 2026-09-25 | Adaptar los cuatro prototipos a esta guía; añadir ejemplos de cuentas/panel y condiciones sin datos. Medir y preparar PMTiles; conservar glifos locales | Prototipos adaptados (Artifact, versión 2) y 62 capturas en 360/768/1280 px y ambos temas. Falta el PMTiles y la revisión visual del dueño; la aprobación del documento no la sustituye |
 | 3. Mapa y reportes | Aplicar ficha, navegación, lista, búsqueda, tiempo y flujo de reporte; estados de error contra API real | RF001–RF008, RF037–RF038 y casos de §8 |
 | 4. Historia pública | Cumplimiento, estadísticas, bitácora y sustento sin datos inventados | Correspondencia entre cada cifra y respuesta; CSV y paginación coherentes |
 | 5. Avisos y cuentas | Formularios, enlaces y TOTP; aplicar decisión técnica pendiente sobre URLs de correo en su fase correspondiente | Recorridos de enlace válido, vencido, usado, doble pulsación y segundo factor |
