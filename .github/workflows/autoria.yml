@@ -1,0 +1,23 @@
+name: Autoría
+
+# BUG-104: un commit firmado por la IA en la rama del PR hace que el squash llegue a main con un
+# Co-authored-by, contra la regla de autoría de CLAUDE.md.
+
+permissions:
+  contents: read
+
+on:
+  pull_request:
+
+jobs:
+  autoria:
+    name: Commits sin firma de la IA
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Verificar autores y trailers
+        run: scripts/verificar-autoria.sh "${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}"
