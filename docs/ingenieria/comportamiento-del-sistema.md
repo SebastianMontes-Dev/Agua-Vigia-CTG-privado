@@ -130,6 +130,20 @@ sabe.
 - **Cuando** la última actualización de un sector supera el umbral de frescura
 - **Entonces** la interfaz lo marca como degradado en vez de presentar el dato como vigente
 
+#### Escenario: Estado sostenido sin cambiar
+
+- **Cuando** el consenso de vecinos, un corte del veedor o un boletín aprobado sostienen el estado que ya
+  regía en un sector
+- **Entonces** el sector renueva `verificadoEn` sin cambiar `actualizadoEn`, sin anexar un evento a la
+  bitácora y sin avisar a los suscriptores (`ADR-073`)
+- **Y** el consenso lo renueva como mucho una vez cada 5 minutos por sector, y nunca por un empate ni por
+  reportes repetidos de un mismo dispositivo
+
+#### Escenario: Sin verificación reciente
+
+- **Cuando** `verificadoEn` de un sector tiene más de 24 horas
+- **Entonces** la interfaz añade «Sin verificación reciente» junto al estado, sin cambiar el estado publicado
+
 ### Requisito: Alternativa textual accesible al mapa
 
 El sistema debe ofrecer una lista textual de sectores con su estado como alternativa equivalente

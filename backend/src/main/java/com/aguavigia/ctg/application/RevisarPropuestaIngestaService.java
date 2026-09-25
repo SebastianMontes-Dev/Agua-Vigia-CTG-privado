@@ -79,6 +79,9 @@ public class RevisarPropuestaIngestaService implements RevisarPropuestaIngestaUs
                             propuesta.momentoParaLaBitacora(reloj.ahora())));
                     return null;
                 });
+            } else if (estadoVigente != null) {
+                // Un boletín aprobado que confirma el estado vigente lo verifica, sin evento nuevo (ADR-073).
+                sectores.confirmarEstado(propuesta.sectorId(), estadoVigente);
             }
         }
 

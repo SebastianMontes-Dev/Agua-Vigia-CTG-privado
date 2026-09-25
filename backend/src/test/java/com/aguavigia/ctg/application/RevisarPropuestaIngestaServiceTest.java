@@ -202,6 +202,28 @@ class RevisarPropuestaIngestaServiceTest {
         verify(registrarEvento, never()).registrar(any());
     }
 
+    /** ADR-073: el boletín aprobado sostiene el estado vigente aunque no lo cambie. */
+    @Test
+    void aprobarUnaPropuestaCuyoEstadoYaRigeDebeVerificarElEstado() {
+        sectorEsta(EstadoServicio.SIN_SERVICIO);
+
+        servicio.aprobar(ID);
+
+        verify(sectores).confirmarEstado(MANGA, EstadoServicio.SIN_SERVICIO);
+    }
+
+    @Test
+    void unBoletinSinVentanaNoDebeVerificarElEstado() {
+        sectorEsta(EstadoServicio.SIN_SERVICIO);
+        given(propuestas.buscarPorId(ID)).willReturn(Optional.of(
+                new PropuestaIngesta(ID, MANGA, EstadoServicio.SIN_SERVICIO, "acuacar",
+                        "https://acuacar.com/x", "cita", 0.6, AHORA)));
+
+        servicio.aprobar(ID);
+
+        verify(sectores, never()).confirmarEstado(any(), any());
+    }
+
     @Test
     void debeGuardarElSectorYRegistrarElEventoEnUnaSolaTransaccion() {
         sectorEsta(EstadoServicio.CON_SERVICIO);

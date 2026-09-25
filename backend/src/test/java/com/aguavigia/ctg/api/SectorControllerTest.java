@@ -139,6 +139,30 @@ class SectorControllerTest {
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("\"poblacion\":null")));
     }
 
+    /** ADR-073: el cliente distingue «cambió hace 3 días» de «se verificó hace 1 hora». */
+    @Test
+    void debePublicarPorSeparadoElUltimoCambioYLaUltimaVerificacion() throws Exception {
+        given(reloj.ahora()).willReturn(INSTANTE_FIJO);
+        given(sectores.listarTodos()).willReturn(List.of(new Sector(new SectorId("manga"), "MANGA", 5000,
+                EstadoServicio.CON_SERVICIO, INSTANTE_FIJO.minusSeconds(3 * 86_400), INSTANTE_FIJO.minusSeconds(3_600))));
+
+        mockMvc.perform(get("/api/sectores"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.sectores[0].actualizadoEn").value("2026-08-05T15:30:00Z"))
+                .andExpect(jsonPath("$.sectores[0].verificadoEn").value("2026-08-08T14:30:00Z"));
+    }
+
+    @Test
+    void unSectorSinEstadoDebePublicarLaVerificacionEnNulo() throws Exception {
+        given(reloj.ahora()).willReturn(INSTANTE_FIJO);
+        given(sectores.listarTodos()).willReturn(List.of(
+                new Sector(new SectorId("isla-fuerte"), "ISLA FUERTE", null, null)));
+
+        mockMvc.perform(get("/api/sectores"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("\"verificadoEn\":null")));
+    }
+
     @Test
     void debeDevolverUnSectorPorSuIdentificador() throws Exception {
         given(sectores.buscarPorId(any(SectorId.class))).willReturn(Optional.of(

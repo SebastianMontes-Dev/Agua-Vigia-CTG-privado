@@ -33,5 +33,13 @@ public record SectorRespuesta(
 
         @Schema(description = "Cuando se registro ese estado. Nulo si el sector no tiene estado.",
                 nullable = true)
-        Instant actualizadoEn) {
+        Instant actualizadoEn,
+
+        @Schema(description = """
+                Última vez que una fuente con autoridad (consenso de vecinos, corte del veedor o boletín
+                aprobado) sostuvo ese estado, haya cambiado o no (ADR-073). Nunca anterior a
+                `actualizadoEn`. Nulo si el sector no tiene estado. Confirmar sin cambiar no emite
+                evento SSE: el valor se renueva al volver a pedir la lista.""",
+                nullable = true)
+        Instant verificadoEn) {
 }

@@ -1223,6 +1223,7 @@ Sector de Cartagena con el estado conocido de su servicio de agua
 | `poblacion` | integer (int32) |  | sí | Habitantes según el censo. **Nulo cuando el barrio no tiene dato censal** (27 de los 211): no es 0, y no debe mostrarse como «0 habitantes». |
 | `estado` | enum(CON_SERVICIO, SIN_SERVICIO, PRESION_BAJA, CORTE_PROGRAMADO) |  | sí | Estado conocido del servicio. **Nulo cuando no hay dato verificado**: no se asume CON_SERVICIO por omision, porque publicar servicio normal sin verificarlo es el falso positivo que el proyecto evita (ADR-014). Presentarlo como "sin datos". |
 | `actualizadoEn` | string (date-time) |  | sí | Cuando se registro ese estado. Nulo si el sector no tiene estado. |
+| `verificadoEn` | string (date-time) |  | sí | Última vez que una fuente con autoridad (consenso de vecinos, corte del veedor o boletín aprobado) sostuvo ese estado, haya cambiado o no (ADR-073). Nunca anterior a `actualizadoEn`. Nulo si el sector no tiene estado. Confirmar sin cambiar… |
 
 <a id="esquema-sesionveedor"></a>
 

@@ -259,6 +259,68 @@ class SectorMongoAdapterTest {
         assertThat(ganadores.get()).isEqualTo(1);
     }
 
+    private static final Instant AYER = INSTANTE_FIJO.minusSeconds(86_400);
+
+    /** Sector con un estado registrado ayer, escrito directo en Mongo para no depender del reloj fijo. */
+    private void sembrarConEstadoDeAyer(String slug, EstadoServicio estado) {
+        sembrar(slug, slug.toUpperCase(), 5000);
+        mongoTemplate.getDb().getCollection("sectores").updateOne(new org.bson.Document("slug", slug),
+                new org.bson.Document("$set", new org.bson.Document("estadoActual", estado.name())
+                        .append("estadoActualizadoEn", java.util.Date.from(AYER))));
+    }
+
+    @Test
+    void cambiarElEstadoDebeContarTambienComoVerificacion() {
+        sembrar("manga", "MANGA", 5000);
+
+        adaptador.guardar(adaptador.buscarPorId(new SectorId("manga")).orElseThrow()
+                .conEstado(EstadoServicio.SIN_SERVICIO));
+
+        assertThat(adaptador.buscarPorId(new SectorId("manga")).orElseThrow().estadoVerificadoEn())
+                .isEqualTo(INSTANTE_FIJO);
+    }
+
+    /** Documentos escritos antes de ADR-073: sin el campo, la verificación conocida es el cambio. */
+    @Test
+    void unDocumentoSinVerificacionDebeLeerseConLaFechaDelCambio() {
+        sembrarConEstadoDeAyer("manga", EstadoServicio.CON_SERVICIO);
+
+        Sector sector = adaptador.buscarPorId(new SectorId("manga")).orElseThrow();
+
+        assertThat(sector.estadoVerificadoEn()).isEqualTo(AYER);
+    }
+
+    @Test
+    void confirmarElEstadoVigenteDebeRenovarLaVerificacionSinTocarElCambio() {
+        sembrarConEstadoDeAyer("manga", EstadoServicio.CON_SERVICIO);
+
+        boolean marcado = adaptador.confirmarEstado(new SectorId("manga"), EstadoServicio.CON_SERVICIO);
+
+        assertThat(marcado).isTrue();
+        Sector sector = adaptador.buscarPorId(new SectorId("manga")).orElseThrow();
+        assertThat(sector.estadoActualizadoEn()).isEqualTo(AYER);
+        assertThat(sector.estadoVerificadoEn()).isEqualTo(INSTANTE_FIJO);
+    }
+
+    /** Otro proceso cambió el estado entre la lectura y la confirmación: no se verifica un estado que ya no rige. */
+    @Test
+    void confirmarUnEstadoQueYaNoRigeNoDebeMarcarNada() {
+        sembrarConEstadoDeAyer("manga", EstadoServicio.SIN_SERVICIO);
+
+        boolean marcado = adaptador.confirmarEstado(new SectorId("manga"), EstadoServicio.CON_SERVICIO);
+
+        assertThat(marcado).isFalse();
+        assertThat(adaptador.buscarPorId(new SectorId("manga")).orElseThrow().estadoVerificadoEn()).isEqualTo(AYER);
+    }
+
+    @Test
+    void confirmarEnUnSectorSinEstadoNoDebeMarcarNada() {
+        sembrar("manga", "MANGA", 5000);
+
+        assertThat(adaptador.confirmarEstado(new SectorId("manga"), EstadoServicio.CON_SERVICIO)).isFalse();
+        assertThat(adaptador.buscarPorId(new SectorId("manga")).orElseThrow().estadoVerificadoEn()).isNull();
+    }
+
     @Test
     void buscarPorCoordenadaDebeDevolverElSectorCuyoPoligonoLaContiene() {
         sembrar("manga", "MANGA", 5000);

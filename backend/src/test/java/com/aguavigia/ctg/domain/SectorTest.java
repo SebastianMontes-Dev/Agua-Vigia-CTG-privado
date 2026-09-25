@@ -35,4 +35,44 @@ class SectorTest {
         assertThat(original.estadoActual()).isEqualTo(EstadoServicio.CON_SERVICIO);
         assertThat(actualizado.estadoActual()).isEqualTo(EstadoServicio.SIN_SERVICIO);
     }
+
+    private static final java.time.Instant CAMBIO = java.time.Instant.parse("2026-09-20T14:00:00Z");
+
+    /** Un cambio de estado es también su primera verificación. */
+    @Test
+    void sinVerificacionAparteDebeContarElCambioComoVerificacion() {
+        Sector sector = new Sector(new SectorId("manga"), "MANGA", 5000, EstadoServicio.CON_SERVICIO, CAMBIO);
+
+        assertThat(sector.estadoVerificadoEn()).isEqualTo(CAMBIO);
+    }
+
+    @Test
+    void debeAceptarUnaVerificacionPosteriorAlCambio() {
+        Sector sector = new Sector(new SectorId("manga"), "MANGA", 5000, EstadoServicio.CON_SERVICIO,
+                CAMBIO, CAMBIO.plusSeconds(86_400));
+
+        assertThat(sector.estadoVerificadoEn()).isAfter(sector.estadoActualizadoEn());
+    }
+
+    @Test
+    void debeRechazarUnaVerificacionAnteriorAlCambioDeEstado() {
+        assertThatThrownBy(() -> new Sector(new SectorId("manga"), "MANGA", 5000, EstadoServicio.CON_SERVICIO,
+                CAMBIO, CAMBIO.minusSeconds(1)))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void debeSaberSiSuVerificacionEsAnteriorAUnInstante() {
+        Sector sector = new Sector(new SectorId("manga"), "MANGA", 5000, EstadoServicio.CON_SERVICIO, CAMBIO);
+
+        assertThat(sector.verificadoAntesDe(CAMBIO.plusSeconds(1))).isTrue();
+        assertThat(sector.verificadoAntesDe(CAMBIO)).isFalse();
+    }
+
+    @Test
+    void unSectorSinVerificarDebeContarComoVerificadoAntesDeCualquierInstante() {
+        Sector sector = new Sector(new SectorId("manga"), "MANGA", 5000, null);
+
+        assertThat(sector.verificadoAntesDe(CAMBIO)).isTrue();
+    }
 }

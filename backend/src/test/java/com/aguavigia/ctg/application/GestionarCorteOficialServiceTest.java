@@ -156,6 +156,8 @@ class GestionarCorteOficialServiceTest {
         // Guardar igual publicaria SectorActualizadoEvent y mandaria un correo por un cambio
         // que no ocurrio.
         verify(sectores, never()).guardar(any());
+        // Pero el veedor sí sostuvo ese estado: queda verificado (ADR-073).
+        verify(sectores).confirmarEstado(new SectorId("manga"), EstadoServicio.SIN_SERVICIO);
     }
 
     @Test

@@ -51,4 +51,10 @@ public class SectorDocumento {
 
     /** Cuando se registro `estadoActual`. Nulo si el sector no tiene estado todavia. */
     private Instant estadoActualizadoEn;
+
+    /**
+     * Última vez que una fuente con autoridad sostuvo `estadoActual` (ADR-073). Ausente en los
+     * documentos anteriores al campo: se lee entonces como `estadoActualizadoEn`.
+     */
+    private Instant estadoVerificadoEn;
 }

@@ -218,9 +218,11 @@ class EvaluarConsensoServiceTest {
         verify(registrarEvento, never()).registrar(any());
     }
 
+    /** Avería masiva: cada POST llega con el sector al umbral. Verificado hace un minuto, no hay nada que hacer. */
     @Test
     void noDebeCargarLosReportesDeLaVentanaSiElEstadoNoCambiaria() {
-        Sector sector = new Sector(SECTOR_ID, "BOCAGRANDE", 12000, EstadoServicio.SIN_SERVICIO);
+        Sector sector = new Sector(SECTOR_ID, "BOCAGRANDE", 12000, EstadoServicio.SIN_SERVICIO,
+                AHORA.minusSeconds(3_600), AHORA.minusSeconds(60));
         given(sectores.buscarPorId(SECTOR_ID)).willReturn(Optional.of(sector));
         given(contadorReportes.contarRecientes(any(), any())).willReturn(5000L);
         given(estrategia.seAlcanzaConsenso(5000L, sector)).willReturn(true);
@@ -230,6 +232,88 @@ class EvaluarConsensoServiceTest {
 
         assertThat(resultado.alcanzado()).isFalse();
         verify(reportes, never()).listarRecientesPorSector(any(), any());
+    }
+
+    private Sector verificadoHaceUnDia(EstadoServicio estado) {
+        return new Sector(SECTOR_ID, "BOCAGRANDE", 12000, estado, AHORA.minusSeconds(86_400));
+    }
+
+    @Test
+    void vecinosQueSostienenElEstadoActualDebenRenovarSuVerificacionSinCambiarlo() {
+        Sector sector = verificadoHaceUnDia(EstadoServicio.CON_SERVICIO);
+        given(sectores.buscarPorId(SECTOR_ID)).willReturn(Optional.of(sector));
+        given(contadorReportes.contarRecientes(any(), any())).willReturn(3L);
+        given(estrategia.seAlcanzaConsenso(3L, sector)).willReturn(true);
+        conVotos(Map.of(TipoReporte.SERVICIO_RESTABLECIDO, 3L));
+        given(reportes.listarRecientesPorSector(any(), any())).willReturn(List.of(
+                reporte("r1", TipoReporte.SERVICIO_RESTABLECIDO), reporte("r2", TipoReporte.SERVICIO_RESTABLECIDO),
+                reporte("r3", TipoReporte.SERVICIO_RESTABLECIDO)));
+
+        ResultadoConsenso resultado = servicio.evaluar(SECTOR_ID);
+
+        assertThat(resultado.alcanzado()).isFalse();
+        verify(sectores).confirmarEstado(SECTOR_ID, EstadoServicio.CON_SERVICIO);
+        verify(sectores, never()).cambiarEstadoSiEs(any(), any(), any());
+        verify(registrarEvento, never()).registrar(any());
+    }
+
+    @Test
+    void noDebeVerificarDeNuevoSiSeVerificoHacePocosMinutos() {
+        Sector sector = new Sector(SECTOR_ID, "BOCAGRANDE", 12000, EstadoServicio.CON_SERVICIO,
+                AHORA.minusSeconds(86_400), AHORA.minusSeconds(120));
+        given(sectores.buscarPorId(SECTOR_ID)).willReturn(Optional.of(sector));
+        given(contadorReportes.contarRecientes(any(), any())).willReturn(3L);
+        given(estrategia.seAlcanzaConsenso(3L, sector)).willReturn(true);
+        conVotos(Map.of(TipoReporte.SERVICIO_RESTABLECIDO, 3L));
+
+        servicio.evaluar(SECTOR_ID);
+
+        verify(sectores, never()).confirmarEstado(any(), any());
+        verify(reportes, never()).listarRecientesPorSector(any(), any());
+    }
+
+    @Test
+    void unEmpateNoDebeContarComoVerificacionDelEstadoActual() {
+        Sector sector = verificadoHaceUnDia(EstadoServicio.CON_SERVICIO);
+        given(sectores.buscarPorId(SECTOR_ID)).willReturn(Optional.of(sector));
+        given(contadorReportes.contarRecientes(any(), any())).willReturn(2L);
+        given(estrategia.seAlcanzaConsenso(2L, sector)).willReturn(true);
+        conVotos(Map.of(TipoReporte.SIN_AGUA, 1L, TipoReporte.SERVICIO_RESTABLECIDO, 1L));
+
+        servicio.evaluar(SECTOR_ID);
+
+        verify(sectores, never()).confirmarEstado(any(), any());
+    }
+
+    @Test
+    void unSoloDispositivoRepetidoNoDebeVerificarElEstado() {
+        Sector sector = verificadoHaceUnDia(EstadoServicio.SIN_SERVICIO);
+        given(sectores.buscarPorId(SECTOR_ID)).willReturn(Optional.of(sector));
+        given(contadorReportes.contarRecientes(any(), any())).willReturn(3L);
+        given(estrategia.seAlcanzaConsenso(3L, sector)).willReturn(true);
+        given(estrategia.seAlcanzaConsenso(1L, sector)).willReturn(false);
+        conVotos(Map.of(TipoReporte.SIN_AGUA, 3L));
+        given(reportes.listarRecientesPorSector(any(), any())).willReturn(List.of(
+                reporte("r1", "misma-huella", TipoReporte.SIN_AGUA, AHORA.minusSeconds(20)),
+                reporte("r2", "misma-huella", TipoReporte.SIN_AGUA, AHORA.minusSeconds(10)),
+                reporte("r3", "misma-huella", TipoReporte.SIN_AGUA, AHORA)));
+
+        servicio.evaluar(SECTOR_ID);
+
+        verify(sectores, never()).confirmarEstado(any(), any());
+    }
+
+    @Test
+    void unSectorSinEstadoNoDebeVerificarseSoloPorQueLosVotosEmpatan() {
+        Sector sector = new Sector(SECTOR_ID, "BOCAGRANDE", 12000, null);
+        given(sectores.buscarPorId(SECTOR_ID)).willReturn(Optional.of(sector));
+        given(contadorReportes.contarRecientes(any(), any())).willReturn(2L);
+        given(estrategia.seAlcanzaConsenso(2L, sector)).willReturn(true);
+        conVotos(Map.of(TipoReporte.SIN_AGUA, 1L, TipoReporte.SERVICIO_RESTABLECIDO, 1L));
+
+        servicio.evaluar(SECTOR_ID);
+
+        verify(sectores, never()).confirmarEstado(any(), any());
     }
 
     @Test
