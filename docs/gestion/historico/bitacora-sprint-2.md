@@ -92,3 +92,9 @@ reporte sin moderar" (nace `PENDIENTE`) en vez de inventar una heurística de fr
 209/209 pruebas en verde.
 **Sigue:** Alcance acotado a propósito: descartar no recalcula consenso ni
 el conteo de RF006 (ver el propio ADR).
+
+> La entrada siguiente se rotó el 2026-09-25, en la sesión del plan «identidad propia y respuestas claras».
+
+### 2026-09-19 · `main`
+**Qué:** Se investigó el E2E en rojo del frontend: la bitácora pública no recibía los boletines (`BUG-071`) y no se cargaba el CSS de escritorio (`BUG-072`), ambos corregidos; quedan abiertos el rotulado del mapa (`BUG-073`) y los props sin cablear que rompen `npm run build` (`BUG-074`). Netty subió a 4.1.137 por CVE-2026-75595 y el CI del backend volvió a verde.
+**Sigue:** Decidir el cálculo de «% operativa» y si se construye el rotulado de barrios; hasta entonces el Frontend CI seguirá en rojo.

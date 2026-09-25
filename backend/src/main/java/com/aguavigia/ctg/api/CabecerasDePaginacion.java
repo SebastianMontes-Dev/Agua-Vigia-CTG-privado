@@ -4,7 +4,10 @@ import com.aguavigia.ctg.domain.Pagina;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Publica los metadatos de paginación en **cabeceras**, no en el cuerpo.
@@ -22,6 +25,15 @@ final class CabecerasDePaginacion {
     }
 
     static <T> ResponseEntity<List<T>> respuesta(Pagina<?> pagina, List<T> contenido, String rutaBase) {
+        return respuesta(pagina, contenido, rutaBase, Map.of());
+    }
+
+    /**
+     * Los filtros viajan en el enlace a la siguiente página: sin ellos, un cliente que siga `Link`
+     * pasaría de «eventos de Manga» a la página 2 de toda la ciudad. Los nulos se omiten.
+     */
+    static <T> ResponseEntity<List<T>> respuesta(Pagina<?> pagina, List<T> contenido, String rutaBase,
+                                                 Map<String, ?> filtros) {
         HttpHeaders cabeceras = new HttpHeaders();
         cabeceras.add("X-Total-Count", String.valueOf(pagina.totalElementos()));
         cabeceras.add("X-Total-Pages", String.valueOf(pagina.totalPaginas()));
@@ -29,8 +41,15 @@ final class CabecerasDePaginacion {
         cabeceras.add("X-Page-Size", String.valueOf(pagina.tamano()));
 
         if (pagina.hayMas()) {
-            cabeceras.add(HttpHeaders.LINK, "<%s?pagina=%d&tamano=%d>; rel=\"next\""
-                    .formatted(rutaBase, pagina.pagina() + 1, pagina.tamano()));
+            StringBuilder consulta = new StringBuilder();
+            filtros.forEach((nombre, valor) -> {
+                if (valor != null) {
+                    consulta.append('&').append(nombre).append('=')
+                            .append(URLEncoder.encode(valor.toString(), StandardCharsets.UTF_8));
+                }
+            });
+            cabeceras.add(HttpHeaders.LINK, "<%s?pagina=%d&tamano=%d%s>; rel=\"next\""
+                    .formatted(rutaBase, pagina.pagina() + 1, pagina.tamano(), consulta));
         }
 
         // Sin esto, un navegador no deja que el JavaScript del frontend lea las cabeceras: son

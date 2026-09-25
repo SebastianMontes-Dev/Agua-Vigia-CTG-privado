@@ -23,6 +23,7 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import com.aguavigia.ctg.infrastructure.eventos.SectorActualizadoEvent;
+import java.time.Instant;
 import java.util.ArrayList;
 
 import java.util.List;
@@ -143,8 +144,10 @@ public class SectorMongoAdapter implements SectorRepository {
         boolean cambioElEstado = sector.estadoActual() != null
                 && !sector.estadoActual().name().equals(documento.getEstadoActual());
         if (cambioElEstado) {
+            Instant ahora = reloj.ahora();
             documento.setEstadoActual(sector.estadoActual().name());
-            documento.setEstadoActualizadoEn(reloj.ahora());
+            documento.setEstadoActualizadoEn(ahora);
+            documento.setEstadoVerificadoEn(ahora);
         }
 
         Sector guardado = aDominio(repositorio.save(documento));
@@ -164,9 +167,11 @@ public class SectorMongoAdapter implements SectorRepository {
     public boolean cambiarEstadoSiEs(SectorId id, EstadoServicio esperado, EstadoServicio nuevo) {
         Query condicion = Query.query(Criteria.where("slug").is(id.valor())
                 .and("estadoActual").is(esperado == null ? null : esperado.name()));
+        Instant ahora = reloj.ahora();
         Update cambio = new Update()
                 .set("estadoActual", nuevo.name())
-                .set("estadoActualizadoEn", reloj.ahora());
+                .set("estadoActualizadoEn", ahora)
+                .set("estadoVerificadoEn", ahora);
 
         SectorDocumento actualizado = mongoTemplate.findAndModify(
                 condicion, cambio, FindAndModifyOptions.options().returnNew(true), SectorDocumento.class);
@@ -178,18 +183,45 @@ public class SectorMongoAdapter implements SectorRepository {
         return true;
     }
 
+    /**
+     * Mismo filtro atómico que {@link #cambiarEstadoSiEs}: si otro proceso cambió el estado entre la
+     * lectura y esta escritura, no se marca como verificado un estado que ya no rige. Invalida la caché
+     * para que el mapa vea la nueva marca, pero no publica `SectorActualizadoEvent`: nada cambió y ese
+     * evento manda correos y alertas a los suscriptores.
+     */
+    @Override
+    public boolean confirmarEstado(SectorId id, EstadoServicio estado) {
+        Query condicion = Query.query(Criteria.where("slug").is(id.valor()).and("estadoActual").is(estado.name()));
+        boolean marcado = mongoTemplate.updateFirst(
+                condicion, new Update().set("estadoVerificadoEn", reloj.ahora()), SectorDocumento.class)
+                .getMatchedCount() > 0;
+        if (marcado) {
+            trasConfirmar(this::invalidarCache);
+        }
+        return marcado;
+    }
+
     private static Sector aDominio(SectorDocumento documento) {
         EstadoServicio estado = aEstadoServicio(documento.getEstadoActual());
+        // RF003: sin estado no hay fecha de estado. Un documento con estadoActualizadoEn pero con
+        // estadoActual fuera del enum (ver aEstadoServicio) caeria aqui con estado nulo, y una fecha
+        // suelta diria "actualizado hace 5 min" sobre un dato que no sabemos leer.
+        Instant actualizadoEn = estado != null ? documento.getEstadoActualizadoEn() : null;
         return new Sector(
                 new SectorId(documento.getSlug()),
                 documento.getNombre(),
                 documento.getPoblacion(),
                 estado,
-                // RF003: sin estado no hay fecha de estado. Un documento con
-                // estadoActualizadoEn pero con estadoActual fuera del enum (ver aEstadoServicio)
-                // caeria aqui con estado nulo, y una fecha suelta diria "actualizado hace 5 min"
-                // sobre un dato que no sabemos leer.
-                estado != null ? documento.getEstadoActualizadoEn() : null);
+                actualizadoEn,
+                verificadoEn(actualizadoEn, estado != null ? documento.getEstadoVerificadoEn() : null));
+    }
+
+    /** El más reciente de los dos: un documento anterior al campo, o escrito a mano, no rompe la lectura. */
+    private static Instant verificadoEn(Instant actualizadoEn, Instant verificadoGuardado) {
+        if (verificadoGuardado == null || actualizadoEn == null) {
+            return verificadoGuardado != null ? verificadoGuardado : actualizadoEn;
+        }
+        return verificadoGuardado.isAfter(actualizadoEn) ? verificadoGuardado : actualizadoEn;
     }
 
     /**

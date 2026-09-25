@@ -130,6 +130,9 @@ public class GestionarCorteOficialService implements GestionarCorteOficialUseCas
                 Sector sector = sectoresPorId.get(sectorId);
                 if (sector != null && sector.estadoActual() != estadoReal) {
                     sectores.guardar(sector.conEstado(estadoReal));
+                } else if (sector != null) {
+                    // El veedor sostuvo el estado que ya regía: sin cambio, pero verificado (ADR-073).
+                    sectores.confirmarEstado(sectorId, estadoReal);
                 }
             }
             return null;

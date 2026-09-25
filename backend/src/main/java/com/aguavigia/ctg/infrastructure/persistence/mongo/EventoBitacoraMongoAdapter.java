@@ -4,14 +4,17 @@ import com.aguavigia.ctg.domain.CorteId;
 import com.aguavigia.ctg.domain.EstadoServicio;
 import com.aguavigia.ctg.domain.EventoBitacora;
 import com.aguavigia.ctg.domain.EventoId;
+import com.aguavigia.ctg.domain.FiltroBitacora;
 import com.aguavigia.ctg.domain.Pagina;
 import com.aguavigia.ctg.domain.ReporteId;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.TipoEvento;
 import com.aguavigia.ctg.domain.port.out.EventoBitacoraRepository;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -22,9 +25,11 @@ import java.util.UUID;
 public class EventoBitacoraMongoAdapter implements EventoBitacoraRepository {
 
     private final EventoBitacoraMongoRepository repositorio;
+    private final MongoTemplate mongoTemplate;
 
-    public EventoBitacoraMongoAdapter(EventoBitacoraMongoRepository repositorio) {
+    public EventoBitacoraMongoAdapter(EventoBitacoraMongoRepository repositorio, MongoTemplate mongoTemplate) {
         this.repositorio = repositorio;
+        this.mongoTemplate = mongoTemplate;
     }
 
     @Override
@@ -45,17 +50,45 @@ public class EventoBitacoraMongoAdapter implements EventoBitacoraRepository {
         return evento;
     }
 
-    /** Más recientes primero: el índice descendente sobre `timestamp` de IndicesMongo cubre el orden. */
+    /**
+     * Más recientes primero. Los índices `timestamp` y `sectorId`+`timestamp` de IndicesMongo cubren el
+     * orden con y sin barrio; el tipo es de cuatro valores y se filtra sobre lo que el índice ya acotó.
+     */
     @Override
-    public Pagina<EventoBitacora> listar(int pagina, int tamano) {
-        Page<EventoBitacoraDocumento> resultado = repositorio.findAll(
-                PageRequest.of(pagina, tamano, Sort.by(Sort.Direction.DESC, "timestamp")));
+    public Pagina<EventoBitacora> listar(FiltroBitacora filtro, int pagina, int tamano) {
+        Query consulta = consultaDe(filtro);
+        long total = mongoTemplate.count(consulta, EventoBitacoraDocumento.class);
+
+        List<EventoBitacoraDocumento> documentos = mongoTemplate.find(
+                consulta.with(PageRequest.of(pagina, tamano, Sort.by(Sort.Direction.DESC, "timestamp"))),
+                EventoBitacoraDocumento.class);
 
         return new Pagina<>(
-                resultado.getContent().stream().map(EventoBitacoraMongoAdapter::aDominio).toList(),
+                documentos.stream().map(EventoBitacoraMongoAdapter::aDominio).toList(),
                 pagina,
                 tamano,
-                resultado.getTotalElements());
+                total);
+    }
+
+    private static Query consultaDe(FiltroBitacora filtro) {
+        Query consulta = new Query();
+        if (filtro.sectorId() != null) {
+            consulta.addCriteria(Criteria.where("sectorId").is(filtro.sectorId().valor()));
+        }
+        if (filtro.tipo() != null) {
+            consulta.addCriteria(Criteria.where("tipo").is(filtro.tipo().name()));
+        }
+        if (filtro.desde() != null || filtro.hasta() != null) {
+            Criteria rango = Criteria.where("timestamp");
+            if (filtro.desde() != null) {
+                rango.gte(filtro.desde());
+            }
+            if (filtro.hasta() != null) {
+                rango.lt(filtro.hasta());
+            }
+            consulta.addCriteria(rango);
+        }
+        return consulta;
     }
 
     @Override

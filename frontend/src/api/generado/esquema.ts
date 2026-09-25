@@ -1212,6 +1212,12 @@ export interface paths {
          *     `X-Total-Count`, `X-Total-Pages`, `X-Page`, `X-Page-Size` y `Link` — el cuerpo
          *     sigue siendo un arreglo JSON, así que un cliente que las ignore no se rompe.
          *     Por defecto 50 eventos; el máximo por página es 200.
+         *
+         *     Filtros opcionales, que se combinan y buscan en todo el historial: `sectorId`,
+         *     `tipo`, `desde` (inclusivo) y `hasta` (exclusivo), ambos instantes ISO 8601 en
+         *     UTC. El enlace `Link` a la siguiente página conserva los filtros. Sin
+         *     coincidencias, la respuesta es una página vacía, no un error; un `tipo` que no
+         *     existe o un `hasta` que no es posterior a `desde` son un 400.
          */
         get: operations["listar_2"];
         put?: never;
@@ -1679,6 +1685,14 @@ export interface components {
              * @description Cuando se registro ese estado. Nulo si el sector no tiene estado.
              */
             actualizadoEn?: string | null;
+            /**
+             * Format: date-time
+             * @description Última vez que una fuente con autoridad (consenso de vecinos, corte del veedor o boletín
+             *     aprobado) sostuvo ese estado, haya cambiado o no (ADR-073). Nunca anterior a
+             *     `actualizadoEn`. Nulo si el sector no tiene estado. Confirmar sin cambiar no emite
+             *     evento SSE: el valor se renueva al volver a pedir la lista.
+             */
+            verificadoEn?: string | null;
         };
         /** @description Sector con su cantidad de cortes registrados */
         EstadisticaSectorRespuesta: {
@@ -4118,6 +4132,10 @@ export interface operations {
             query?: {
                 pagina?: number;
                 tamano?: number;
+                sectorId?: string;
+                tipo?: "CORTE_ANUNCIADO" | "CORTE_CONFIRMADO_POR_CIUDADANOS" | "CORTE_RESTABLECIDO" | "CORTE_DETECTADO_POR_INGESTA";
+                desde?: string;
+                hasta?: string;
             };
             header?: never;
             path?: never;
@@ -4132,6 +4150,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EventoBitacoraRespuesta"][];
+                };
+            };
+            /** @description Tipo de evento desconocido, fecha mal formada o rango invertido */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
                 };
             };
         };

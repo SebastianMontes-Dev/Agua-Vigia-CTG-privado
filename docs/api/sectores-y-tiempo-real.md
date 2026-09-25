@@ -19,15 +19,23 @@ Esquemas exactos en [`referencia-de-rutas.md`](referencia-de-rutas.md).
 ```json
 {
   "sectores": [
-    { "id": "bocagrande", "nombre": "BOCAGRANDE", "estado": "SIN_SERVICIO", "actualizadoEn": "2026-08-08T15:30:00Z" },
-    { "id": "manga", "nombre": "MANGA", "estado": null, "actualizadoEn": null }
+    { "id": "bocagrande", "nombre": "BOCAGRANDE", "estado": "SIN_SERVICIO",
+      "actualizadoEn": "2026-08-08T15:30:00Z", "verificadoEn": "2026-08-08T18:05:00Z" },
+    { "id": "manga", "nombre": "MANGA", "estado": null, "actualizadoEn": null, "verificadoEn": null }
   ],
   "generadoEn": "2026-08-08T15:31:02Z"
 }
 ```
 
 - **`estado: null` es «sin datos»**, no «con servicio». Mientras nadie verifique nada de un sector, su
-  estado es nulo, y con él `actualizadoEn`. Pintarlo como normal sería afirmar algo que no sabemos.
+  estado es nulo, y con él `actualizadoEn` y `verificadoEn`. Pintarlo como normal sería afirmar algo que no sabemos.
+- **`actualizadoEn` y `verificadoEn` son dos fechas distintas** (`ADR-073`). La primera es cuándo *cambió* el
+  estado; la segunda, la última vez que el consenso de vecinos, un corte del veedor o un boletín aprobado lo
+  *sostuvo*, aunque no cambiara. Nunca es anterior a `actualizadoEn`. Un barrio con servicio estable puede
+  llevar días sin cambiar y estar verificado hace una hora: muestra las dos y calcula la advertencia de
+  «Sin verificación reciente» (24 horas) sobre `verificadoEn`, **sin cambiar el estado publicado**.
+- Verificar sin cambiar **no emite evento SSE** (no hay nada que avisar): `verificadoEn` se renueva cuando
+  vuelves a pedir la lista, por un evento o al volver a la pestaña.
 - Va ordenado por nombre.
 - **`poblacion`** son los habitantes según el censo. **Es `null` cuando el barrio no tiene dato censal** (27 de los 211): no es 0; no lo muestres como «0 habitantes».
 - **No trae la geometría.** Sale de `/geometria`.

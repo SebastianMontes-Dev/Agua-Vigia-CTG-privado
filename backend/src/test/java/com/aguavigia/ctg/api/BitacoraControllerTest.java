@@ -4,6 +4,7 @@ import com.aguavigia.ctg.api.mapper.EventoBitacoraApiMapperImpl;
 import com.aguavigia.ctg.domain.CorteId;
 import com.aguavigia.ctg.domain.EventoBitacora;
 import com.aguavigia.ctg.domain.EventoId;
+import com.aguavigia.ctg.domain.FiltroBitacora;
 import com.aguavigia.ctg.domain.Pagina;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.TipoEvento;
@@ -23,6 +24,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.time.Instant;
 import java.util.List;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -71,7 +73,7 @@ class BitacoraControllerTest {
         List<EventoBitacora> contenido = List.of(
                 new EventoBitacora(new EventoId("evento-1"), TipoEvento.CORTE_ANUNCIADO,
                         new SectorId("manga"), new CorteId("corte-1"), TIMESTAMP, "Corte anunciado"));
-        given(eventos.listar(0, 2)).willReturn(new Pagina<>(contenido, 0, 2, 7));
+        given(eventos.listar(FiltroBitacora.sinFiltro(), 0, 2)).willReturn(new Pagina<>(contenido, 0, 2, 7));
 
         mockMvc.perform(get("/api/bitacora").param("pagina", "0").param("tamano", "2"))
                 .andExpect(status().isOk())
@@ -86,7 +88,7 @@ class BitacoraControllerTest {
 
     @Test
     void noDebeAnunciarSiguientePaginaEnLaUltima() throws Exception {
-        given(eventos.listar(3, 2)).willReturn(new Pagina<>(List.of(), 3, 2, 7));
+        given(eventos.listar(FiltroBitacora.sinFiltro(), 3, 2)).willReturn(new Pagina<>(List.of(), 3, 2, 7));
 
         mockMvc.perform(get("/api/bitacora").param("pagina", "3").param("tamano", "2"))
                 .andExpect(status().isOk())
@@ -96,7 +98,7 @@ class BitacoraControllerTest {
     /** Un tamaño absurdo no es un 400: el cliente pidió una lista y se le da acotada. */
     @Test
     void debeAcotarUnTamanoDePaginaDesmedido() throws Exception {
-        given(eventos.listar(0, Pagina.TAMANO_MAXIMO)).willReturn(new Pagina<>(List.of(), 0, Pagina.TAMANO_MAXIMO, 0));
+        given(eventos.listar(FiltroBitacora.sinFiltro(), 0, Pagina.TAMANO_MAXIMO)).willReturn(new Pagina<>(List.of(), 0, Pagina.TAMANO_MAXIMO, 0));
 
         mockMvc.perform(get("/api/bitacora").param("tamano", "99999"))
                 .andExpect(status().isOk())
@@ -105,7 +107,7 @@ class BitacoraControllerTest {
 
     @Test
     void debeUsarValoresPorDefectoSinParametros() throws Exception {
-        given(eventos.listar(0, Pagina.TAMANO_POR_DEFECTO))
+        given(eventos.listar(FiltroBitacora.sinFiltro(), 0, Pagina.TAMANO_POR_DEFECTO))
                 .willReturn(new Pagina<>(List.of(), 0, Pagina.TAMANO_POR_DEFECTO, 0));
 
         mockMvc.perform(get("/api/bitacora"))
@@ -115,7 +117,7 @@ class BitacoraControllerTest {
 
     @Test
     void unaPaginaNegativaDebeTratarseComoLaPrimera() throws Exception {
-        given(eventos.listar(0, Pagina.TAMANO_POR_DEFECTO))
+        given(eventos.listar(FiltroBitacora.sinFiltro(), 0, Pagina.TAMANO_POR_DEFECTO))
                 .willReturn(new Pagina<>(List.of(), 0, Pagina.TAMANO_POR_DEFECTO, 0));
 
         mockMvc.perform(get("/api/bitacora").param("pagina", "-5"))
@@ -125,7 +127,7 @@ class BitacoraControllerTest {
 
     @Test
     void laListaSoloDebePublicarCuantosReportesSustentanElEventoNoSusIds() throws Exception {
-        given(eventos.listar(anyInt(), anyInt())).willReturn(pagina(List.of(
+        given(eventos.listar(any(), anyInt(), anyInt())).willReturn(pagina(List.of(
                 new EventoBitacora(new EventoId("evento-2"), TipoEvento.CORTE_CONFIRMADO_POR_CIUDADANOS,
                         new SectorId("manga"), null, TIMESTAMP, "3 reportes confirmaron SIN_SERVICIO",
                         com.aguavigia.ctg.domain.EstadoServicio.SIN_SERVICIO, null, null,
@@ -181,7 +183,7 @@ class BitacoraControllerTest {
 
     @Test
     void debeListarLosEventosSinAutenticacion() throws Exception {
-        given(eventos.listar(anyInt(), anyInt())).willReturn(pagina(List.of(
+        given(eventos.listar(any(), anyInt(), anyInt())).willReturn(pagina(List.of(
                 new EventoBitacora(new EventoId("evento-1"), TipoEvento.CORTE_ANUNCIADO,
                         new SectorId("manga"), new CorteId("corte-1"), TIMESTAMP,
                         "Corte oficial anunciado en 'manga': Mantenimiento"))));
@@ -196,7 +198,7 @@ class BitacoraControllerTest {
 
     @Test
     void debeExponerSectorIdYCorteIdNulosCuandoElEventoNoLosTiene() throws Exception {
-        given(eventos.listar(anyInt(), anyInt())).willReturn(pagina(List.of(
+        given(eventos.listar(any(), anyInt(), anyInt())).willReturn(pagina(List.of(
                 new EventoBitacora(new EventoId("evento-2"), TipoEvento.CORTE_CONFIRMADO_POR_CIUDADANOS,
                         new SectorId("bocagrande"), null, TIMESTAMP,
                         "3 reportes ciudadanos confirmaron SIN_SERVICIO"))));
@@ -207,8 +209,66 @@ class BitacoraControllerTest {
     }
 
     @Test
+    void debePasarLosFiltrosAlPuertoParaBuscarEnTodoElHistorial() throws Exception {
+        FiltroBitacora esperado = new FiltroBitacora(new SectorId("manga"), TipoEvento.CORTE_RESTABLECIDO,
+                Instant.parse("2026-09-01T05:00:00Z"), Instant.parse("2026-09-02T05:00:00Z"));
+        given(eventos.listar(esperado, 0, Pagina.TAMANO_POR_DEFECTO))
+                .willReturn(new Pagina<>(List.of(), 0, Pagina.TAMANO_POR_DEFECTO, 0));
+
+        mockMvc.perform(get("/api/bitacora").param("sectorId", "manga").param("tipo", "CORTE_RESTABLECIDO")
+                        .param("desde", "2026-09-01T05:00:00Z").param("hasta", "2026-09-02T05:00:00Z"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isEmpty())
+                .andExpect(header().string("X-Total-Count", "0"));
+    }
+
+    @Test
+    void elEnlaceALaSiguientePaginaDebeConservarLosFiltros() throws Exception {
+        given(eventos.listar(any(), anyInt(), anyInt())).willReturn(new Pagina<>(List.of(), 0, 2, 7));
+
+        mockMvc.perform(get("/api/bitacora").param("tamano", "2").param("sectorId", "manga")
+                        .param("tipo", "CORTE_ANUNCIADO").param("desde", "2026-09-01T05:00:00Z"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Link",
+                        "</api/bitacora?pagina=1&tamano=2&sectorId=manga&tipo=CORTE_ANUNCIADO"
+                                + "&desde=2026-09-01T05%3A00%3A00Z>; rel=\"next\""));
+    }
+
+    @Test
+    void unSectorIdVacioDebeTratarseComoSinFiltro() throws Exception {
+        given(eventos.listar(FiltroBitacora.sinFiltro(), 0, Pagina.TAMANO_POR_DEFECTO))
+                .willReturn(new Pagina<>(List.of(), 0, Pagina.TAMANO_POR_DEFECTO, 0));
+
+        mockMvc.perform(get("/api/bitacora").param("sectorId", " ").param("tipo", ""))
+                .andExpect(status().isOk())
+                .andExpect(header().string("X-Page-Size", String.valueOf(Pagina.TAMANO_POR_DEFECTO)));
+    }
+
+    @Test
+    void unTipoDesconocidoDebeResponder400ConLosValoresPermitidos() throws Exception {
+        mockMvc.perform(get("/api/bitacora").param("tipo", "CORTE_INVENTADO"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("CORTE_ANUNCIADO")));
+    }
+
+    @Test
+    void unRangoInvertidoDebeResponder400() throws Exception {
+        mockMvc.perform(get("/api/bitacora")
+                        .param("desde", "2026-09-02T05:00:00Z").param("hasta", "2026-09-01T05:00:00Z"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400));
+    }
+
+    @Test
+    void unaFechaMalFormadaDebeResponder400() throws Exception {
+        mockMvc.perform(get("/api/bitacora").param("desde", "ayer"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("desde")));
+    }
+
+    @Test
     void debeDevolverListaVaciaSinEventosAunTodavia() throws Exception {
-        given(eventos.listar(anyInt(), anyInt())).willReturn(pagina(List.of()));
+        given(eventos.listar(any(), anyInt(), anyInt())).willReturn(pagina(List.of()));
 
         mockMvc.perform(get("/api/bitacora"))
                 .andExpect(status().isOk())

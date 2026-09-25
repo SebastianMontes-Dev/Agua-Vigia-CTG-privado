@@ -142,4 +142,23 @@ class SectorMongoAdapterCacheTest {
         assertThat(adaptador.listarTodos()).extracting(Sector::estadoActual)
                 .containsExactly(EstadoServicio.SIN_SERVICIO);
     }
+
+    /** Sin invalidar, el mapa seguiría diciendo «sin verificación reciente» hasta que venza la entrada. */
+    @Test
+    void confirmarElEstadoDebeInvalidarElCacheYConservarLaVerificacion() {
+        sembrar("manga", "MANGA");
+        mongoTemplate.getDb().getCollection("sectores").updateOne(new org.bson.Document("slug", "manga"),
+                new org.bson.Document("$set", new org.bson.Document("estadoActual", "CON_SERVICIO")
+                        .append("estadoActualizadoEn", java.util.Date.from(Instant.parse("2026-08-08T15:30:00Z")))));
+        adaptador.listarTodos();
+
+        adaptador.confirmarEstado(new SectorId("manga"), EstadoServicio.CON_SERVICIO);
+
+        adaptador.listarTodos();                       // relee de Mongo y llena el cache
+        mongoTemplate.getDb().getCollection("sectores").drop();
+        Sector cacheado = adaptador.listarTodos().getFirst();
+
+        assertThat(cacheado.estadoVerificadoEn()).isEqualTo(Instant.parse("2026-08-09T15:30:00Z"));
+        assertThat(cacheado.estadoActualizadoEn()).isEqualTo(Instant.parse("2026-08-08T15:30:00Z"));
+    }
 }

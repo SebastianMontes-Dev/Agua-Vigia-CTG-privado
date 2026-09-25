@@ -14,34 +14,22 @@ const BLOQUES: Record<Tema, string> = {
 function colores(tema: Tema): Map<string, string> {
   const inicio = tokens.indexOf(BLOQUES[tema])
   const bloque = tokens.slice(inicio, tokens.indexOf('}', inicio))
-  return new Map([...bloque.matchAll(/--([a-z-]+):\s*(#[0-9a-f]{6});/g)].map((m) => [m[1] ?? '', m[2] ?? '']))
+  return new Map([...bloque.matchAll(/--([a-z0-9-]+):\s*(#[0-9a-f]{6});/g)].map((m) => [m[1] ?? '', m[2] ?? '']))
 }
 
 const ESTADOS = ['estado-con-servicio', 'estado-sin-servicio', 'estado-presion-baja', 'estado-corte-programado']
+const FONDOS = ['papel', 'superficie', 'elevada']
 
-// Los pares que la interfaz puede usar. Lo que no está aquí no se usa como texto: por ejemplo --tinta-terciaria
-// no llega a 4,5:1 en claro ni --acento-vivo se usa como texto (guia-frontend.md §2.2).
-const TEXTO: ReadonlyArray<[string, string]> = [
-  ...['tinta', 'tinta-secundaria', 'acento'].flatMap((t): Array<[string, string]> =>
-    ['superficie', 'fondo', 'acento-suave'].map((f) => [t, f]),
-  ),
-  ...ESTADOS.flatMap((e): Array<[string, string]> => [
-    [e, 'superficie'],
-    [e, 'fondo'],
-  ]),
-]
+// Los pares que la interfaz puede usar como texto (identidad.md §2). --tinta-3 nunca es texto, y el texto de un
+// estado va en --tinta junto a su glifo: el color del estado no se usa como texto.
+const TEXTO: ReadonlyArray<[string, string]> = ['tinta', 'tinta-2', 'cardenillo', 'laton'].flatMap(
+  (t): Array<[string, string]> => [...FONDOS, 'cardenillo-suave'].map((f) => [t, f]),
+)
 
-// Texto sobre un relleno de estado o de acento (etiqueta de la tarjeta, botón principal): el color del texto
-// cambia de tema, porque --tinta no llega a 3:1 sobre ninguno de los cinco rellenos.
-const TEXTO_SOBRE_RELLENO: Record<Tema, string> = { claro: 'superficie', oscuro: 'fondo' }
-
-// WCAG 1.4.11: bordes de controles, foco y glifos de estado necesitan 3:1 contra lo que tienen al lado.
-const NO_TEXTO: ReadonlyArray<[string, string]> = [
-  ...['acento', 'acento-vivo', 'tinta-terciaria', ...ESTADOS].flatMap((c): Array<[string, string]> => [
-    [c, 'superficie'],
-    [c, 'fondo'],
-  ]),
-]
+// WCAG 1.4.11: bordes funcionales, foco en latón y glifos de estado necesitan 3:1 contra el fondo.
+const NO_TEXTO: ReadonlyArray<[string, string]> = ['tinta-3', 'cardenillo', 'laton', ...ESTADOS].flatMap(
+  (c): Array<[string, string]> => FONDOS.map((f) => [c, f]),
+)
 
 describe.each<Tema>(['claro', 'oscuro'])('contraste en el tema %s', (tema) => {
   const paleta = colores(tema)
@@ -56,8 +44,8 @@ describe.each<Tema>(['claro', 'oscuro'])('contraste en el tema %s', (tema) => {
     expect(medir(texto, fondo)).toBeGreaterThanOrEqual(4.5)
   })
 
-  it.each(['acento', ...ESTADOS])('debeLlegarAlAAElTextoSobreElRellenoDe --%s', (relleno) => {
-    expect(medir(TEXTO_SOBRE_RELLENO[tema], relleno)).toBeGreaterThanOrEqual(4.5)
+  it('debeLlegarAlAAElTextoDelBotonPrincipal', () => {
+    expect(medir('sobre-cardenillo', 'cardenillo')).toBeGreaterThanOrEqual(4.5)
   })
 
   it.each(NO_TEXTO)('debeLlegarATresAUnoFueraDelTexto: --%s sobre --%s', (color, fondo) => {
@@ -65,25 +53,35 @@ describe.each<Tema>(['claro', 'oscuro'])('contraste en el tema %s', (tema) => {
   })
 })
 
-// Cifras de guia-frontend.md §2.3: si cambian, cambió el acento o un fondo y hay que volver a medir y documentar.
-const ACENTO_MEDIDO: Record<Tema, ReadonlyArray<[string, number]>> = {
+// Cifras de identidad.md §2 (sobre papel): si cambian, cambió un token y hay que volver a medir y documentar.
+const MEDIDO: Record<Tema, ReadonlyArray<[string, string, number]>> = {
   claro: [
-    ['fondo', 5.09],
-    ['superficie', 5.39],
-    ['acento-suave', 4.62],
+    ['tinta', 'papel', 16.19],
+    ['tinta-2', 'papel', 7.38],
+    ['tinta-3', 'papel', 3.52],
+    ['cardenillo', 'papel', 6.64],
+    ['sobre-cardenillo', 'cardenillo', 7.25],
+    ['laton', 'papel', 5.02],
+    ['estado-con-servicio', 'papel', 4.56],
+    ['estado-sin-servicio', 'papel', 5.79],
+    ['estado-presion-baja', 'papel', 4.7],
+    ['estado-corte-programado', 'papel', 5.93],
   ],
   oscuro: [
-    ['fondo', 8.6],
-    ['superficie', 7.57],
-    ['acento-suave', 5.64],
+    ['tinta', 'papel', 16.1],
+    ['tinta-2', 'papel', 8.55],
+    ['tinta-3', 'papel', 4.05],
+    ['cardenillo', 'papel', 9.39],
+    ['sobre-cardenillo', 'cardenillo', 9.39],
+    ['laton', 'papel', 8.11],
   ],
 }
 
-describe.each<Tema>(['claro', 'oscuro'])('acento en el tema %s', (tema) => {
+describe.each<Tema>(['claro', 'oscuro'])('cifras documentadas en el tema %s', (tema) => {
   const paleta = colores(tema)
 
-  it.each(ACENTO_MEDIDO[tema])('debeDarElContrasteDocumentado: --acento sobre --%s = %s:1', (fondo, esperado) => {
-    expect(contraste(paleta.get('acento') ?? '', paleta.get(fondo) ?? '')).toBeCloseTo(esperado, 2)
+  it.each(MEDIDO[tema])('debeDarElContrasteDocumentado: --%s sobre --%s = %s:1', (color, fondo, esperado) => {
+    expect(contraste(paleta.get(color) ?? '', paleta.get(fondo) ?? '')).toBeCloseTo(esperado, 2)
   })
 })
 
@@ -91,5 +89,10 @@ describe('contraste', () => {
   it('debeDarLosExtremosDeLaEscalaWcag', () => {
     expect(contraste('#000000', '#ffffff')).toBeCloseTo(21, 5)
     expect(contraste('#777777', '#777777')).toBe(1)
+  })
+
+  it('debeAceptarElHexadecimalCortoQueDevuelveElNavegador', () => {
+    expect(contraste('#fff', '#2f5f57')).toBeCloseTo(contraste('#ffffff', '#2f5f57'), 10)
+    expect(Number.isNaN(contraste('#fff', '#000'))).toBe(false)
   })
 })

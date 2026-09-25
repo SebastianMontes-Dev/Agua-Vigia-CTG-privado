@@ -31,6 +31,6 @@ describe('iconos SVG', () => {
 
     const css = readFileSync(resolve(carpeta, '../app/Muestrario.module.css'), 'utf8')
     const trama = css.slice(css.indexOf('.trama {'), css.indexOf('}', css.indexOf('.trama {')))
-    expect(trama).toMatch(/45deg,\s*var\(--tinta-secundaria\) 0 1px,\s*var\(--superficie\) 1px 5\.657px/)
+    expect(trama).toMatch(/45deg,\s*var\(--tinta-2\) 0 1px,\s*var\(--papel\) 1px 5\.657px/)
   })
 })

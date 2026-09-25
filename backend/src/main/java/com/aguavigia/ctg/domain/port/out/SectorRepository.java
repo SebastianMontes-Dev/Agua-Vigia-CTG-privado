@@ -26,4 +26,11 @@ public interface SectorRepository {
      * `esperado` puede ser nulo (sector sin estado verificado todavía).
      */
     boolean cambiarEstadoSiEs(SectorId id, EstadoServicio esperado, EstadoServicio nuevo);
+
+    /**
+     * Marca que una fuente con autoridad sostuvo el estado sin cambiarlo (ADR-073), solo si el sector
+     * sigue en {@code estado}; devuelve si lo marcó. No es un cambio: no avisa a los suscriptores ni
+     * anexa nada a la bitácora.
+     */
+    boolean confirmarEstado(SectorId id, EstadoServicio estado);
 }

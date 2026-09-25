@@ -4,14 +4,22 @@ import com.aguavigia.ctg.api.dto.EventoBitacoraRespuesta;
 import com.aguavigia.ctg.api.mapper.EventoBitacoraApiMapper;
 import com.aguavigia.ctg.domain.EventoBitacora;
 import com.aguavigia.ctg.domain.EventoId;
+import com.aguavigia.ctg.domain.FiltroBitacora;
 import com.aguavigia.ctg.domain.ReporteId;
 import com.aguavigia.ctg.domain.Pagina;
+import com.aguavigia.ctg.domain.SectorId;
+import com.aguavigia.ctg.domain.TipoEvento;
 import com.aguavigia.ctg.domain.port.in.ConsultarSustentoDeEventoUseCase;
 import com.aguavigia.ctg.domain.port.out.EventoBitacoraRepository;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.MediaType;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -19,7 +27,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.Instant;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * M8 — RF026-RF028: bitácora pública, de solo lectura y sin autenticación (RF027). Va directo al
@@ -52,18 +65,53 @@ public class BitacoraController {
                     El total, la página y el enlace a la siguiente viajan en las cabeceras
                     `X-Total-Count`, `X-Total-Pages`, `X-Page`, `X-Page-Size` y `Link` — el cuerpo
                     sigue siendo un arreglo JSON, así que un cliente que las ignore no se rompe.
-                    Por defecto 50 eventos; el máximo por página es 200.""")
+                    Por defecto 50 eventos; el máximo por página es 200.
+
+                    Filtros opcionales, que se combinan y buscan en todo el historial: `sectorId`,
+                    `tipo`, `desde` (inclusivo) y `hasta` (exclusivo), ambos instantes ISO 8601 en
+                    UTC. El enlace `Link` a la siguiente página conserva los filtros. Sin
+                    coincidencias, la respuesta es una página vacía, no un error; un `tipo` que no
+                    existe o un `hasta` que no es posterior a `desde` son un 400.""")
     @ApiResponse(responseCode = "200", description = "Listado generado")
+    @ApiResponse(responseCode = "400", description = "Tipo de evento desconocido, fecha mal formada o rango invertido",
+            content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class)))
     @GetMapping
     public ResponseEntity<List<EventoBitacoraRespuesta>> listar(
             @RequestParam(required = false) Integer pagina,
-            @RequestParam(required = false) Integer tamano) {
+            @RequestParam(required = false) Integer tamano,
+            @RequestParam(required = false) String sectorId,
+            @Parameter(schema = @Schema(allowableValues = {"CORTE_ANUNCIADO", "CORTE_CONFIRMADO_POR_CIUDADANOS",
+                    "CORTE_RESTABLECIDO", "CORTE_DETECTADO_POR_INGESTA"}))
+            @RequestParam(required = false) String tipo,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant desde,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant hasta) {
+
+        String barrio = sectorId == null || sectorId.isBlank() ? null : sectorId;
+        TipoEvento tipoEvento = tipo == null || tipo.isBlank() ? null : tipoDe(tipo);
+        FiltroBitacora filtro = new FiltroBitacora(
+                barrio == null ? null : new SectorId(barrio), tipoEvento, desde, hasta);
 
         Pagina<EventoBitacora> resultado = eventos.listar(
-                Pagina.paginaValida(pagina), Pagina.tamanoValido(tamano));
+                filtro, Pagina.paginaValida(pagina), Pagina.tamanoValido(tamano));
 
+        Map<String, Object> filtros = new LinkedHashMap<>();
+        filtros.put("sectorId", barrio);
+        filtros.put("tipo", tipoEvento);
+        filtros.put("desde", desde);
+        filtros.put("hasta", hasta);
         return CabecerasDePaginacion.respuesta(
-                resultado, mapper.aRespuestas(resultado.contenido()), "/api/bitacora");
+                resultado, mapper.aRespuestas(resultado.contenido()), "/api/bitacora", filtros);
+    }
+
+    /** Traduce el texto del cliente al enum sin exponer el mensaje de `valueOf`, que nombra la clase del dominio. */
+    private static TipoEvento tipoDe(String texto) {
+        try {
+            return TipoEvento.valueOf(texto);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Tipo de evento inválido '" + texto + "'. Valores permitidos: "
+                    + Arrays.stream(TipoEvento.values()).map(Enum::name).collect(Collectors.joining(", ")));
+        }
     }
 
     @Operation(summary = "Los reportes que sustentan un evento de consenso (RF011)",

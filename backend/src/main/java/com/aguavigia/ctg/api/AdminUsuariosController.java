@@ -33,8 +33,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 /**
  * El panel de cuentas. Todo aquí exige `GESTIONAR_USUARIOS` salvo la auditoría, que se separa en
@@ -73,13 +75,17 @@ public class AdminUsuariosController {
             @RequestParam(required = false) Integer pagina,
             @RequestParam(required = false) Integer tamano) {
 
+        EstadoCuenta filtroEstado = aEstado(estado);
         Pagina<Usuario> resultado = cuentas.listar(
-                aEstado(estado), Pagina.paginaValida(pagina), Pagina.tamanoValido(tamano));
+                filtroEstado, Pagina.paginaValida(pagina), Pagina.tamanoValido(tamano));
 
+        Map<String, Object> filtros = new HashMap<>();
+        filtros.put("estado", filtroEstado);
         return CabecerasDePaginacion.respuesta(
                 resultado,
                 resultado.contenido().stream().map(UsuarioRespuesta::de).toList(),
-                "/api/veedor/usuarios");
+                "/api/veedor/usuarios",
+                filtros);
     }
 
     @Operation(summary = "Invitar a una persona con un rol ya decidido",

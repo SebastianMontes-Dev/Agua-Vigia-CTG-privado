@@ -41,6 +41,7 @@ import java.util.stream.Collectors;
 public class EvaluarConsensoService implements EvaluarConsensoUseCase {
 
     private static final Logger log = LoggerFactory.getLogger(EvaluarConsensoService.class);
+    private static final Duration INTERVALO_ENTRE_VERIFICACIONES = Duration.ofMinutes(5);
 
     private final SectorRepository sectores;
     private final ReporteCiudadanoRepository reportes;
@@ -109,19 +110,17 @@ public class EvaluarConsensoService implements EvaluarConsensoUseCase {
         // en cada uno agotaba el pool de conexiones.
         Map<TipoReporte, Long> votos = reportes.contarVotosRecientes(sectorId, ventanaConsenso);
         long vecinos = votos.values().stream().mapToLong(Long::longValue).sum();
-        if (!estrategia.seAlcanzaConsenso(vecinos, sector)
-                || estadoPorMayoria(votos, sector.estadoActual()) == sector.estadoActual()) {
+        if (!estrategia.seAlcanzaConsenso(vecinos, sector)) {
+            return new ResultadoConsenso(sectorId, false, null, List.of());
+        }
+        if (estadoPorMayoria(votos, sector.estadoActual()) == sector.estadoActual()) {
+            if (confirmaElEstadoActual(votos, sector) && tocaVerificar(sector)) {
+                confirmarSiLosVecinosLoSostienen(sector, sustentoSinRepetir(sectorId));
+            }
             return new ResultadoConsenso(sectorId, false, null, List.of());
         }
 
-        List<ReporteCiudadano> sustento = reportes.listarRecientesPorSector(sectorId, ventanaConsenso).stream()
-                .collect(Collectors.toMap(
-                        reporte -> reporte.huella().hash(),
-                        Function.identity(),
-                        (primero, segundo) -> primero.timestamp().isAfter(segundo.timestamp()) ? primero : segundo,
-                        LinkedHashMap::new))
-                .values().stream()
-                .toList();
+        List<ReporteCiudadano> sustento = sustentoSinRepetir(sectorId);
 
         // Redis es un prefiltro rapido, pero Mongo contiene la evidencia moderada y duradera. Esta
         // segunda comprobacion evita que reportes repetidos o ya descartados sostengan un cambio.
@@ -133,6 +132,9 @@ public class EvaluarConsensoService implements EvaluarConsensoUseCase {
         // Sin cambio real de estado no hay evento nuevo que anexar a la bitácora (RF028: no editar,
         // pero tampoco duplicar un evento idéntico cada vez que alguien vuelve a evaluar el mismo sector).
         if (nuevoEstado == sector.estadoActual()) {
+            if (tocaVerificar(sector)) {
+                confirmarSiLosVecinosLoSostienen(sector, sustento);
+            }
             return new ResultadoConsenso(sectorId, false, null, List.of());
         }
 
@@ -155,6 +157,39 @@ public class EvaluarConsensoService implements EvaluarConsensoUseCase {
         return new ResultadoConsenso(sectorId, true, nuevoEstado, ids);
     }
 
+    /** Un reporte por dispositivo, el más reciente: un vecino que reporta tres veces sigue siendo un vecino. */
+    private List<ReporteCiudadano> sustentoSinRepetir(SectorId sectorId) {
+        return reportes.listarRecientesPorSector(sectorId, ventanaConsenso).stream()
+                .collect(Collectors.toMap(
+                        reporte -> reporte.huella().hash(),
+                        Function.identity(),
+                        (primero, segundo) -> primero.timestamp().isAfter(segundo.timestamp()) ? primero : segundo,
+                        LinkedHashMap::new))
+                .values().stream()
+                .toList();
+    }
+
+    /**
+     * En una avería masiva cada reporte llega con el sector ya al umbral: verificar en cada uno cargaría
+     * los reportes de la ventana y escribiría en Mongo por cada POST. Una vez cada pocos minutos basta
+     * para una advertencia que salta a las 24 horas (ADR-073).
+     */
+    private boolean tocaVerificar(Sector sector) {
+        return sector.verificadoAntesDe(reloj.ahora().minus(INTERVALO_ENTRE_VERIFICACIONES));
+    }
+
+    /** Un empate no confirma nada: es evidencia ambigua, igual que para cambiar el estado. */
+    private static boolean confirmaElEstadoActual(Map<TipoReporte, Long> votos, Sector sector) {
+        return sector.estadoActual() != null && mayoriaClara(votos) == sector.estadoActual();
+    }
+
+    private void confirmarSiLosVecinosLoSostienen(Sector sector, List<ReporteCiudadano> sustento) {
+        if (estrategia.seAlcanzaConsenso(sustento.size(), sector)
+                && confirmaElEstadoActual(votosDe(sustento), sector)) {
+            sectores.confirmarEstado(sector.id(), sector.estadoActual());
+        }
+    }
+
     private static Map<TipoReporte, Long> votosDe(List<ReporteCiudadano> sustento) {
         return sustento.stream().collect(Collectors.groupingBy(ReporteCiudadano::tipo, Collectors.counting()));
     }
@@ -164,6 +199,12 @@ public class EvaluarConsensoService implements EvaluarConsensoUseCase {
     // un HashMap sobre una enum no está garantizado por el JLS, así que resolver el empate por el
     // primer máximo encontrado no era determinista — quedaba a merced del hashing de la JVM.
     private static EstadoServicio estadoPorMayoria(Map<TipoReporte, Long> conteoPorTipo, EstadoServicio estadoActual) {
+        EstadoServicio mayoria = mayoriaClara(conteoPorTipo);
+        return mayoria != null ? mayoria : estadoActual;
+    }
+
+    /** El estado que sostiene la mayoría, o nulo si hay empate entre tipos. */
+    private static EstadoServicio mayoriaClara(Map<TipoReporte, Long> conteoPorTipo) {
         long maximo = conteoPorTipo.values().stream()
                 .mapToLong(Long::longValue)
                 .max()
@@ -173,7 +214,7 @@ public class EvaluarConsensoService implements EvaluarConsensoUseCase {
                 .map(Map.Entry::getKey)
                 .toList();
         if (mayoritarios.size() > 1) {
-            return estadoActual;
+            return null;
         }
         return switch (mayoritarios.get(0)) {
             case SIN_AGUA -> EstadoServicio.SIN_SERVICIO;

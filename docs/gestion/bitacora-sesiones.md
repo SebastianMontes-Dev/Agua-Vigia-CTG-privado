@@ -25,6 +25,10 @@ Referencias cruzadas: `ADR-NNN` · `BUG-NNN` · `RF0NN` · `archivo:línea`.
 
 ## Sprint 7 — Frontend nuevo
 
+### 2026-09-25 · `claude/intelligent-curie-dhs2jr`
+**Qué:** Registrada la fusión del PR #56. Aplicado el plan «identidad propia y respuestas claras» del dueño: `ADR-071` (Newsreader solo en marca y titulares), `ADR-072` (PMTiles con Git LFS), `ADR-073` (filtros de la bitácora y `verificadoEn`, backend con pruebas; `BUG-102`), tokens y fuente migrados con el muestrario (`BUG-103`). Frontend 127 unitarias y 16 E2E; backend sin fallos salvo las 24 suites que exigen Docker, sin correr aquí. Sin PR.
+**Sigue:** Abrir el PR para que el CI corra las pruebas con Mongo y Redis reales; después, prototipos de F1 a 360/375 y 1280 px para revisarlos en un teléfono real.
+
 ### 2026-09-25 · `claude/tender-gauss-ntutsm`
 **Qué:** Prototipos adaptados a la guía y PR #55 abierto; revisión atendida (trama a 1 px con prueba, `ADR-069`, `sprint-7.md`). El dueño rechazó la interfaz por genérica: identidad formal nueva (`ADR-070`, `docs/diseno/identidad.md`), prototipo en Artifact y skills `disenar-frontend` y `revisar-diseno`. PMTiles sigue bloqueado (403).
 **Sigue:** Aprobación visual del rumbo formal y migración de `identidad.md` §8. La rama local reescribió la autoría al dueño y no se pudo subir (force-push bloqueado): el dueño decide si autoriza el push o cierra el PR #55.
@@ -163,10 +167,6 @@ en `settings.json`). `docker-compose.prod.yml` sigue sin *replica set*, a propó
 ### 2026-09-20 · `main`
 **Qué:** Se cerró el `BUG-074` (`resumirServicio`, `ADR-046`), se registró el CVE de Netty (`BUG-075`) y `openspec/` recogió el resumen del servicio, el reporte desde el llamado a veedores y la vista pública de Acuacar. Las reglas globales quedaron en un solo `CLAUDE.md` y se retiró Notion.
 **Sigue:** Aprobar el diseño del rotulado de barrios (`BUG-073`: principales por área, N = 12, zoom 14) y luego confirmar con el commit de todo lo pendiente.
-
-### 2026-09-19 · `main`
-**Qué:** Se investigó el E2E en rojo del frontend: la bitácora pública no recibía los boletines (`BUG-071`) y no se cargaba el CSS de escritorio (`BUG-072`), ambos corregidos; quedan abiertos el rotulado del mapa (`BUG-073`) y los props sin cablear que rompen `npm run build` (`BUG-074`). Netty subió a 4.1.137 por CVE-2026-75595 y el CI del backend volvió a verde.
-**Sigue:** Decidir el cálculo de «% operativa» y si se construye el rotulado de barrios; hasta entonces el Frontend CI seguirá en rojo.
 
 ## Sprints 0 y 1
 

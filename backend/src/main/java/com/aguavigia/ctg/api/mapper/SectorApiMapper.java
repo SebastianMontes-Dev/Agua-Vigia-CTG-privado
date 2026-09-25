@@ -22,6 +22,7 @@ public interface SectorApiMapper {
     @Mapping(target = "id", source = "id.valor")
     @Mapping(target = "estado", source = "estadoActual")
     @Mapping(target = "actualizadoEn", source = "estadoActualizadoEn")
+    @Mapping(target = "verificadoEn", source = "estadoVerificadoEn")
     SectorRespuesta aRespuesta(Sector sector);
 
     List<SectorRespuesta> aRespuestas(List<Sector> sectores);
