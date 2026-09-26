@@ -14,8 +14,8 @@
 > **Plan «identidad propia y respuestas claras» (2026-09-25):** el dueño fijó el alcance del producto completo. La
 > identidad editorial queda contenida en la marca y los titulares (`ADR-071`), el PMTiles se versiona con Git LFS
 > (`ADR-072`) y la API suma los filtros de la bitácora y `verificadoEn` (`ADR-073`, construidos en la rama
-> `claude/intelligent-curie-dhs2jr`), y los tokens y la fuente ya están migrados. Siguen: los prototipos de F1 a
-> 360/375 y 1280 px y la revisión en un teléfono real. Esto no cierra F1 ni inicia F2.
+> `claude/intelligent-curie-dhs2jr`), y los tokens y la fuente ya están migrados. Los prototipos de F1 con esa identidad
+> se publicaron el 2026-09-25; siguen la revisión en un teléfono real y el extracto PMTiles. Esto no cierra F1 ni inicia F2.
 >
 > **Fuente de verdad.** Este plan **no reemplaza** a `DESIGN.md` (diseño), a `docs/api/` (cómo consumir la API) ni a
 > `backend/openapi.yaml` (el contrato). Resume lo que hace falta tener a mano y apunta a esos documentos. Si algo de
@@ -386,8 +386,12 @@ cuando su entregable se demuestra funcionando**, no por calendario.
       (`ADR-072`) y ampliación de la API (`ADR-073`, filtros de la bitácora y `verificadoEn`, con pruebas).
 - [x] Migración de `DESIGN.md` §3–§4, `tokens.css`, sus pruebas y Newsreader local (`ADR-071`, 58 KB); muestrario
       rehecho. 127 unitarias y 16 E2E en verde; capturas en 1440, 1024, 768 y 390 px en ambos temas, sin desbordes.
-- [ ] Prototipos a **360/375 y 1280 px, en claro y oscuro**, de: mapa, ficha, reporte en dos toques, Cumplimiento,
-      Bitácora, Estadísticas, Avisos y una tarea representativa del panel. Contraste medido.
+- [x] Prototipos a **360/375 y 1280 px, en claro y oscuro**, de: mapa, ficha, reporte en dos toques, Cumplimiento,
+      Bitácora, Estadísticas, Avisos y una tarea representativa del panel (revisión de la ingesta). Contraste medido.
+      **Publicados el 2026-09-25** con la identidad contenida (<https://claude.ai/artifact/5KsNum4TqTiZuGp9jJDRGa>):
+      navegación de `ADR-071` (barra de tres destinos en celular), `verificadoEn` con «Sin verificación reciente», filtros
+      de la bitácora, simulación de fallos y contraste medido en vivo, que coincide con `identidad.md` §2 en los dos
+      temas. Capturas en 390, 768, 1024 y 1440 px, ambos temas, con movimiento reducido: sin errores de script ni desbordes.
 - [ ] **Revisión en un teléfono real** por el dueño antes de F2.
 - **Hecho cuando:** el dueño aprueba los prototipos después de verlos en un teléfono real. **Sin eso no empieza F2.**
 

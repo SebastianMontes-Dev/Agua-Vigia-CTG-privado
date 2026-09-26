@@ -102,8 +102,9 @@ Las fechas del proyecto se escriben en **hora local de Cartagena (UTC-5)**, no U
 
 **El agente nunca figura como colaborador del repositorio**: ni un trailer `Co-Authored-By`, ni una
 firma *"Generated with Claude Code"*, ni como autor o revisor de un PR, issue o comentario. Refuerzo
-mecánico: `includeCoAuthoredBy: false` en `.claude/settings.json`; si aun así ves un trailer de
-coautoría en un mensaje que vas a escribir, quítalo.
+mecánico: `includeCoAuthoredBy: false` en `.claude/settings.json` y el workflow `autoria.yml`, que falla si un
+commit del PR lo firma la IA (`BUG-104`); si aun así ves un trailer de coautoría en un mensaje que vas a
+escribir, quítalo.
 
 **Por qué:** la autoría del proyecto es mía. La IA es una herramienta, y que firme los commits
 enturbiaría el registro de lo que realmente escribí yo. Esto **no** oculta el uso de IA: está

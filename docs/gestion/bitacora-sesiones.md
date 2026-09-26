@@ -25,6 +25,10 @@ Referencias cruzadas: `ADR-NNN` · `BUG-NNN` · `RF0NN` · `archivo:línea`.
 
 ## Sprint 7 — Frontend nuevo
 
+### 2026-09-25 · `claude/charming-shannon-9xqogb`
+**Qué:** Registrada la fusión del PR #57 y cerrado `BUG-104` (coautoría de Claude en el squash; `autoria.yml` lo impide). Prototipos de F1 con la identidad contenida publicados en un Artifact: ocho pantallas a 390–1440 px, ambos temas, contraste AA medido en vivo (`plan-frontend.md` §10). F1 sigue abierto.
+**Sigue:** Ver el CI del PR #59 (primera corrida de `autoria.yml`), fusionarlo y registrarlo; el dueño revisa los prototipos en un teléfono real y corre `scripts/preparar-mapa-base.sh pmtiles` en local. Sin eso no empieza F2.
+
 ### 2026-09-25 · `claude/intelligent-curie-dhs2jr`
 **Qué:** Registrada la fusión del PR #56. Aplicado el plan «identidad propia y respuestas claras» del dueño: `ADR-071` (Newsreader solo en marca y titulares), `ADR-072` (PMTiles con Git LFS), `ADR-073` (filtros de la bitácora y `verificadoEn`, backend con pruebas; `BUG-102`), tokens y fuente migrados con el muestrario (`BUG-103`). Frontend 127 unitarias y 16 E2E; backend sin fallos salvo las 24 suites que exigen Docker, sin correr aquí. Sin PR.
 **Sigue:** Abrir el PR para que el CI corra las pruebas con Mongo y Redis reales; después, prototipos de F1 a 360/375 y 1280 px para revisarlos en un teléfono real.
@@ -163,10 +167,6 @@ en `settings.json`). `docker-compose.prod.yml` sigue sin *replica set*, a propó
 ### 2026-09-20 · `main`
 **Qué:** Se retiró OpenSpec (`ADR-047`): las 13 capacidades pasaron a `docs/ingenieria/comportamiento-del-sistema.md` (54 requisitos, 93 escenarios) y se borraron `openspec/`, las 12 copias de skills y los comandos `opsx`.
 **Sigue:** Aprobar el diseño del rotulado de barrios (`BUG-073`) y hacer el commit de todo lo pendiente.
-
-### 2026-09-20 · `main`
-**Qué:** Se cerró el `BUG-074` (`resumirServicio`, `ADR-046`), se registró el CVE de Netty (`BUG-075`) y `openspec/` recogió el resumen del servicio, el reporte desde el llamado a veedores y la vista pública de Acuacar. Las reglas globales quedaron en un solo `CLAUDE.md` y se retiró Notion.
-**Sigue:** Aprobar el diseño del rotulado de barrios (`BUG-073`: principales por área, N = 12, zoom 14) y luego confirmar con el commit de todo lo pendiente.
 
 ## Sprints 0 y 1
 
