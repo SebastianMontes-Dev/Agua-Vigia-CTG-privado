@@ -1250,3 +1250,6 @@ ni por el mensaje ni por el tiempo de respuesta (RNF024).
 
 - **Cuando** se intenta iniciar sesión con un correo sin cuenta
 - **Entonces** el error es el mismo que el de una clave equivocada, y tarda lo mismo
+
+## Canal del frontend (F2, ADR-074)
+Cuando llega un aviso sectores, el cliente programa la lectura con jitter de 0–3 s y nunca inicia dos GET del listado en menos de 5 s. Ante 429 del canal respeta Retry-After y sondea cada 30 s. Al ocultarse la pestaña cancela las consultas y temporizadores inmediatamente; cierra la conexión a los 15 s. Al regresar refresca por el mismo limitador. Sin red conserva fecha y estado publicados; reconectar tras el cierre normal no es un error del vecino.

@@ -396,8 +396,8 @@ cuando su entregable se demuestra funcionando**, no por calendario.
 
 ### F2 — Núcleo ciudadano (M1, M2)
 - [ ] Geometría en IndexedDB, estado unido por `id`, `MultiPolygon`, trama para `null`.
-- [ ] `canal-en-vivo.ts` con todas las reglas de §6.3 y pruebas unitarias del jitter, el backoff, el `429` y la
-      visibilidad.
+- [x] `canal-en-vivo.ts` con todas las reglas de §6.3 y pruebas unitarias del jitter, el backoff, el `429` y la
+      visibilidad. `ADR-074`: fetch con parser incremental. Prueba real el 2026-09-25: 211 sectores y consenso en San Bernardo recibido por SSE + GET; generadoEn 2026-09-26T03:14:29.505337283Z.
 - [ ] Mapa local (PMTiles y glifos), búsqueda visible, lista textual y ficha. En celular, ficha inferior; en
       escritorio, panel contextual compacto. El mapa, el buscador y la lista abren **la misma ficha**.
 - [ ] Estados de frescura de §5.2: dos horas separadas, «En vivo» solo con SSE conectado, «Sin verificación
