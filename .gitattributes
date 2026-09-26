@@ -7,6 +7,9 @@ backend/mvnw text eol=lf
 # Forzar LF en código y configuración para evitar diferencias CRLF entre SO y contenedores
 *.js text eol=lf
 *.mjs text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.css text eol=lf
 *.json text eol=lf
 *.yaml text eol=lf
 *.yml text eol=lf
