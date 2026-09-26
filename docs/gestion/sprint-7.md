@@ -22,7 +22,7 @@ su panel.**
 |---|---|---|
 | — | ✅ F0 — Decisión y andamiaje: `ADR-067`, `frontend/`, cliente tipado con `api:check`, `frontend-ci.yml` en verde (PR #54, fusionado el 2026-09-25) | Plan aprobado por el dueño |
 | — | 🟡 F1 — Prototipos y lenguaje visual, sin código de producción. Hecho el 2026-09-25: prototipos de 4 pantallas, glifos de estado en SVG, contraste AA medido (`REC-019`), glifos locales (`ADR-068`) y guía integral aprobada como especificación documental (`ADR-069`) y su paso 1, fundamentos visuales: acento claro `#06747f` aplicado y verificado en ambos temas (`REC-019` resuelta); paso 2, prototipos adaptados a la guía, rechazados por genéricos; rediseño total con identidad formal (`ADR-070`, `docs/diseno/identidad.md`, skills `disenar-frontend` y `revisar-diseno`); plan «identidad propia y respuestas claras» del dueño: identidad contenida (`ADR-071`), PMTiles con Git LFS (`ADR-072`) y API ampliada con filtros de la bitácora y `verificadoEn` (`ADR-073`, con pruebas, fusionado en PR #57). tokens y Newsreader migrados (`DESIGN.md`, `tokens.css`, pruebas y muestrario). prototipos de las ocho pantallas con la identidad contenida, a 390–1440 px y en ambos temas, publicados en un Artifact (`plan-frontend.md` §10). Extracto local listo, 5 132 380 bytes, SHA-256 registrado, estilo neutro y LFS. Falta: la revisión visual del dueño en un teléfono real | Red del entorno con acceso a `build.protomaps.com` para el extracto |
-| RF001–RF008, RF037, RF038 | 🟡 F2 — Núcleo ciudadano: mapa, tarjeta, ficha, lista, buscador, SSE y reporte en 2 toques. Canal construido y probado contra backend real (ADR-074). El dueño autorizó empezar F2 antes de revisar en teléfono; aprobación visual en el PR del núcleo ciudadano, antes de fusionarlo | F1 visual pendiente; decisión explícita del dueño |
+| RF001–RF008, RF037, RF038 | 🟡 F2 — Núcleo ciudadano: mapa, tarjeta, ficha, lista, buscador, SSE y reporte en 2 toques. Canal, mapa local y núcleo construido; geometría en IndexedDB, ficha, reportes, foto posterior y confirmación (ADR-074–076), E2E contra Docker, axe y capturas en ambos temas. Evidencia en docs/qa/f2/README.md. El dueño autorizó empezar F2 antes de revisar en teléfono; aprobación visual en el PR del núcleo ciudadano, antes de fusionarlo | F1 visual pendiente; decisión explícita del dueño |
 | RF011, RF020–RF028 | F3 — Historia pública: bitácora, cumplimiento y estadísticas | F2 |
 | RF012–RF015, RF041 | F4 — Avisos, con los enlaces de los correos apuntando a la SPA | F2 · URL de los correos decidida (`plan-frontend.md` §13.3) |
 | RF016–RF019, RF042–RF046 | F5 — Cuentas y panel del veedor | F2 |
@@ -31,6 +31,8 @@ su panel.**
 ---
 
 ## 3. Obstáculos del sprint — resumen
+
+F2 está en el PR #65, abierto para aprobación visual. Queda sin demostrar la degradación de fuentes: la salud del colector reside en memoria y su endpoint es del panel autenticado; no se puede forzar modificando sectores en Mongo (detalle: docs/qa/f2/README.md).
 
 | Qué detuvo el avance | De qué dependía | Días | Cómo se resolvió |
 |---|---|---|---|

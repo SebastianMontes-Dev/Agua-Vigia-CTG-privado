@@ -55,7 +55,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Pruebas E2E (Playwright, sin backend)
-        run: npm run test:e2e
+        run: npx playwright test
 
       - name: Publicar el reporte de Playwright
         if: failure()
@@ -64,3 +64,53 @@ jobs:
           name: playwright-report
           path: frontend/test-results/
           retention-days: 14
+
+  integracion:
+    name: Núcleo ciudadano contra backend real
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          lfs: true
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: |
+            frontend/package-lock.json
+            scripts/package-lock.json
+      - run: node scripts/preparar-env-ci.mjs
+      - name: Reservar la ingesta externa durante la prueba de F2
+        run: |
+          docker compose up -d --wait mongo redis
+          docker compose exec -T redis redis-cli SET tarea-unica:ingesta pruebas-f2 EX 3600
+      - run: docker compose up -d --build --wait
+      - run: npm ci
+        working-directory: scripts
+      - name: Sembrar demo y casos de borde
+        run: |
+          node scripts/sembrar-sectores.mjs
+          node scripts/sembrar-demo.mjs
+          node scripts/sembrar-historico-cortes.mjs
+          node scripts/preparar-pruebas-frontend.mjs
+          docker compose exec -T redis redis-cli EVAL "redis.call('FLUSHDB'); redis.call('SET', 'tarea-unica:ingesta', 'pruebas-f2', 'EX', 3600); return 1" 0
+      - run: npm ci
+        working-directory: frontend
+      - run: npm run build
+        working-directory: frontend
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - run: npm run test:e2e:real
+        working-directory: frontend
+      - name: Conservar trazas y revisión visual
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: f2-backend-real
+          path: |
+            frontend/test-results/
+            docs/qa/f2/capturas/
+          retention-days: 14
+      - name: Detener entorno efímero
+        if: always()
+        run: docker compose down -v

@@ -4,6 +4,7 @@ const puerto = 4173
 
 export default defineConfig({
   testDir: 'e2e',
+  testIgnore: '**/real/**',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: 0,
@@ -11,6 +12,7 @@ export default defineConfig({
   use: {
     baseURL: `http://localhost:${puerto}`,
     trace: 'retain-on-failure',
+    launchOptions: { args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] },
   },
   projects: [
     { name: 'movil', use: { ...devices['Pixel 7'], viewport: { width: 360, height: 780 } } },

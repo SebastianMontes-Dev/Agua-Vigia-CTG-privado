@@ -1,3 +1,4 @@
+import '../estilos/editorial.css'
 import { useState, useSyncExternalStore } from 'react'
 import { ORDEN_ESTADOS, presentarEstado } from '../dominio/estados'
 import { contraste } from '../estilos/contraste'
@@ -108,7 +109,7 @@ export function Muestrario() {
         </fieldset>
       </header>
 
-      <main className={estilos.contenido}>
+      <main id="contenido" tabIndex={-1} className={estilos.contenido}>
         <div className={estilos.encabezado}>
           <p className={estilos.rotulo}>Muestrario provisional · F1</p>
           <h1>Identidad del frontend</h1>

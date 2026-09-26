@@ -147,3 +147,4 @@ que no cede desde este entorno. Pendiente: otra red, u contacto sugerido por la 
   un backend de mentira ocultó `BUG-085`). Detalle: `docs/ingenieria/escalabilidad.md`.
 - **Entorno local con la imagen al día**: tras traer cambios de `main`, `docker compose up -d --build backend`; con la imagen vieja fallaban CORS, la foto y el cierre de sesión (2026-09-24).
   Sin `.env` junto al compose el backend arranca sin ADMIN (`--env-file` no alimenta el `env_file` del servicio). «Cerrar sesión» falla a veces por diseño: margen de 1 s del filtro JWT (`plan-de-pruebas.md` §8).
+Proxy de preview: probar POST desde navegador, no solo consola (BUG-110). Mapa progresivo y caché local: ADR-075/076.

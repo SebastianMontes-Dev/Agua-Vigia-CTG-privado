@@ -3063,8 +3063,60 @@ Sustituir la fábrica/parser por EventSource exige resolver primero cómo observ
 
 ---
 
+## ADR-075 — Mostrar polígonos antes de cargar el mapa interactivo
+
+- **Fecha:** 2026-09-25
+- **Estado:** Aceptada
+- **Decide:** Dueño del proyecto (delegó la implementación de F2)
+
+### Contexto
+La medición real de 3G fría (1,6 Mbps, latencia 150 ms) dio 4996 ms esperando MapLibre. El listado llegó en 1553 ms. La geometría y los estados ya están disponibles antes del motor interactivo; DESIGN §8 exige que la base y la fuente no bloqueen la respuesta.
+
+### Alternativas consideradas
+| Opción | A favor | En contra |
+|---|---|---|
+| Esperar MapLibre y su worker | Una representación | Incumplió 3 s en la medición |
+| Render inicial SVG con la geometría real | Pequeño, preserva anillos y MultiPolygon, sin dependencia | Dos representaciones durante la transición; la primera no navega |
+| Motor canvas adicional | Dibujo rápido | Más lógica propia para formas y selección |
+
+### Decisión
+Representar primero todos los polígonos en SVG con los estados publicados unidos por id; cargar MapLibre en paralelo a la lectura del vecino. El motor se revela al cargar la fuente de barrios. Buscar, seleccionar y reportar funcionan desde la lista mientras tanto. Formulario y muestrario se cargan bajo demanda; Newsreader se solicita después del frame inicial. Sin cálculo ni estado optimista. Medición final: 2560,2 ms con marca performance en el navegador; escenario y traza en docs/qa/f2/README.md.
+
+### Consecuencias
+Se cumple la respuesta inicial en el escenario medido, con margen estrecho. No se afirma que tiles, glifos o interacción completa lleguen en 3 s, ni que un teléfono físico tenga ese rendimiento. El fallback SVG no sustituye la lista accesible y el fallo del motor queda aislado.
+
+### Cómo se revierte
+Retirar RespuestaMapa cuando una medición de MapLibre solo cumpla el requisito sin retrasar la lista.
+
+## ADR-076 — Guardar la geometría en IndexedDB nativo y aislar el canal del caché de consultas
+
+- **Fecha:** 2026-09-25
+- **Estado:** Aceptada
+- **Decide:** Dueño del proyecto (delegó la implementación de F2)
+
+### Contexto
+F2 pide geometría una vez en IndexedDB y todos los GET del listado bajo el límite común del canal. Query ya está aprobado en ADR-067, pero no debe introducir un segundo refresco del listado.
+
+### Alternativas consideradas
+| Opción | A favor | En contra |
+|---|---|---|
+| IndexedDB nativo y promesa compartida | Sin dependencia, geometría grande fuera de localStorage | Callbacks y versión propios |
+| Biblioteca idb o persistencia de Query | Simplifica persistencia | Dependencia adicional no necesaria |
+| localStorage para geometría | API simple | Síncrono, capacidad limitada, contradice el encargo |
+
+### Decisión
+IndexedDB v1 para la geometría, una promesa compartida en memoria y fallback a memoria si el almacenamiento falla. Query para ficha, cortes y eventos solo al abrirla; sin refetch por foco/reconexión, cancelación al ocultarse. El listado lo mantiene exclusivamente el canal ADR-074. La huella se persiste antes del POST; si no puede guardarse, no se inventa otra para eludir el cupo.
+
+### Consecuencias
+Una recarga recupera geometría sin GET (E2E real). Una futura revisión de límites geográficos exigirá subir la versión. Se pierde persistencia cuando el navegador bloquea IndexedDB. No hay cola ni reintentos de POST.
+
+### Cómo se revierte
+Cambiar solo el adaptador de almacenamiento; conservar el límite único del canal y la prohibición de cola.
+
+---
+
 <!--
-Siguiente número disponible: ADR-075
+Siguiente número disponible: ADR-077
 Para agregar: usa la skill `registrar-decision`.
 Recuerda: append-only. Las entradas viejas solo cambian de estado, no de contenido.
 -->
