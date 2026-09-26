@@ -8,6 +8,8 @@ Desde frontend: lint y typecheck sin errores; api:check coincide con OpenAPI; Vi
 
 Los escenarios reales verifican 211 barrios y recursos del mismo origen, reporte en dos acciones, cuarto reporte 429, tres huellas y consenso por SSE, confirmación sin actuar al abrir el enlace, 404, foto solo después del 201, límite de 10 MiB y ubicación fuera de Cartagena con elección manual. Los POST no se reintentan automáticamente.
 
+El job reserva `tarea-unica:ingesta` en Redis antes del arranque de Spring, durante una hora: evita que fuentes externas confirmen el fixture de 48 horas mientras se revisa F2 (BUG-120). API, Mongo, Redis, consenso y SSE siguen reales. La ingesta externa no forma parte de esta demostración; la reserva y sus datos se eliminan al cerrar el entorno efímero.
+
 Recorrido adicional: pulsar el polígono central abre `/sectores/las-gaviotas` con la misma ficha. Desde la búsqueda se recorrió Bocagrande, apertura, elección, envío y cierre usando únicamente Tab, texto, Enter y Escape; foco del agradecimiento y retorno al botón verificados después de corregir BUG-119.
 
 ## DESIGN.md §10, punto por punto

@@ -80,6 +80,10 @@ jobs:
             frontend/package-lock.json
             scripts/package-lock.json
       - run: node scripts/preparar-env-ci.mjs
+      - name: Reservar la ingesta externa durante la prueba de F2
+        run: |
+          docker compose up -d --wait mongo redis
+          docker compose exec -T redis redis-cli SET tarea-unica:ingesta pruebas-f2 EX 3600
       - run: docker compose up -d --build --wait
       - run: npm ci
         working-directory: scripts
@@ -89,7 +93,7 @@ jobs:
           node scripts/sembrar-demo.mjs
           node scripts/sembrar-historico-cortes.mjs
           node scripts/preparar-pruebas-frontend.mjs
-          docker compose exec -T redis redis-cli FLUSHDB
+          docker compose exec -T redis redis-cli EVAL "redis.call('FLUSHDB'); redis.call('SET', 'tarea-unica:ingesta', 'pruebas-f2', 'EX', 3600); return 1" 0
       - run: npm ci
         working-directory: frontend
       - run: npm run build
