@@ -3036,8 +3036,35 @@ escribir; los documentos lo leen entonces como `actualizadoEn`, que es el compor
 
 ---
 
+## ADR-074 — El canal SSE usa fetch y un parser incremental con dependencias inyectadas
+
+- **Fecha:** 2026-09-25
+- **Estado:** Aceptada
+- **Decide:** Dueño del proyecto (delegó la elección en el encargo F2)
+
+### Contexto
+EventSource no expone el código de apertura, necesario para distinguir 429 y Retry-After. El servidor emite avisos, no listados (ADR-049). La comprobación real recibió el consenso mediante aviso y GET limitado a cinco segundos.
+
+### Alternativas consideradas
+| Opción | A favor | En contra |
+|---|---|---|
+| EventSource nativo | Parser nativo | Oculta 429 y cabeceras |
+| Sonda HTTP previa y EventSource | Detecta algunos rechazos | Dos conexiones; carrera entre sonda y apertura |
+| **fetch con ReadableStream y parser propio** | Expone estado/cabeceras; abort y pruebas deterministas; sin dependencia nueva | Debe probar frames partidos, CRLF, comentarios y retry |
+
+### Decisión
+fetch con parser incremental en frontend/src/api/canal-en-vivo.ts: es transporte HTTP, pertenece a api y no al dominio. Todos los GET del listado comparten limitador de cinco segundos, incluidos avisos, reintentos y regreso de visibilidad. Se inyectan reloj, temporizadores, azar, visibilidad, almacenamiento y fábrica HTTP. Se pausan peticiones inmediatamente al ocultarse; el SSE se cierra a los 15 s (CIERRE_PESTANA_OCULTA_MS), para conservar una conexión durante cambios breves sin mantenerla indefinidamente. Sin red se conserva el último listado y su generadoEn.
+
+### Consecuencias
+Se puede distinguir 429 sin duplicar conexiones; hay un parser que mantener. retry del servidor es una espera mínima; el backoff calculado se acota después del jitter a 60 s. El sondeo de 30 s solo existe mientras el servidor limita el SSE; no hay POST ni cola offline.
+
+### Cómo se revierte
+Sustituir la fábrica/parser por EventSource exige resolver primero cómo observar 429; la API de suscripción del canal permite conservar consumidores.
+
+---
+
 <!--
-Siguiente número disponible: ADR-074
+Siguiente número disponible: ADR-075
 Para agregar: usa la skill `registrar-decision`.
 Recuerda: append-only. Las entradas viejas solo cambian de estado, no de contenido.
 -->
