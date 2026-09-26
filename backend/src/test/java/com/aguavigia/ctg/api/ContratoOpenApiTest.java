@@ -119,6 +119,26 @@ class ContratoOpenApiTest {
                 .isEqualTo(rutasVersionadas);
     }
 
+    @Test
+    void losErroresPublicosDeReporteEHistorialDebenDeclararProblemDetail() throws Exception {
+        var contrato = Json.mapper().readTree(mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+        var rutas = java.util.Map.of(
+                "/api/reportes/{id}/foto", "post",
+                "/api/reportes/{id}/confirmar", "post",
+                "/api/sectores/{sectorId}/cortes", "get",
+                "/api/bitacora/{id}/sustento", "get");
+        for (var ruta : rutas.entrySet()) {
+            var respuestas = contrato.path("paths").path(ruta.getKey()).path(ruta.getValue()).path("responses");
+            for (String codigo : ruta.getValue().equals("post") ? java.util.List.of("400", "404") : java.util.List.of("404")) {
+                var contenido = respuestas.path(codigo).path("content");
+                assertThat(contenido.has("application/json")).as(ruta.getKey() + " " + codigo).isFalse();
+                assertThat(contenido.path("application/problem+json").path("schema").path("$ref").asText())
+                        .as(ruta.getKey() + " " + codigo).isEqualTo("#/components/schemas/ProblemDetail");
+            }
+        }
+    }
+
     /**
      * La prueba de arriba solo compara qué rutas existen. Un endpoint que sigue ahí pero cambió de
      * método, perdió un parámetro requerido, dejó de exigir el cuerpo, cambió sus códigos de

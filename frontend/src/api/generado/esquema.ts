@@ -2504,7 +2504,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ReporteRespuesta"];
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
                 };
             };
             /** @description Reporte no encontrado */
@@ -2513,7 +2513,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ReporteRespuesta"];
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
                 };
             };
         };
@@ -2548,7 +2548,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ReporteRespuesta"];
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
                 };
             };
             /** @description Reporte no encontrado */
@@ -2557,7 +2557,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ReporteRespuesta"];
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
                 };
             };
         };
@@ -3863,7 +3863,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CorteRespuesta"][];
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
                 };
             };
         };
@@ -4192,7 +4192,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": string[];
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
                 };
             };
         };

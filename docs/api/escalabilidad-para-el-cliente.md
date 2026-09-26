@@ -39,7 +39,7 @@ function conectar() {
   fuente.onopen = () => { intentos = 0; };
   fuente.onerror = () => {
     fuente.close();                       // EventSource reintentaría solo, pero sin tu jitter
-    const espera = Math.min(60_000, 2 ** intentos++ * 1000) * (0.5 + Math.random());
+    const espera = Math.min(60_000, 2 ** intentos++ * 1000 * (0.5 + Math.random()));
     setTimeout(conectar, espera);
   };
 }
@@ -71,8 +71,8 @@ El servicio tiene que ser útil justo cuando falla la red o el agua. Recomendaci
 ## Reportar sin hacer daño
 
 - **Desactiva el botón al enviar** hasta recibir respuesta (evita el doble toque).
-- **Guarda un reporte pendiente** si no hay red y envíalo al volver la conexión — pero **con la misma
-  huella** y una sola vez.
+- **Sin red se falla de forma explícita** y se ofrece reintentar a mano al recuperar la conexión.
+  No se guarda ni envía automáticamente ningún reporte pendiente ([ADR-044](../design-decisions.md#adr-044--el-reporte-ciudadano-no-se-encola-offline-por-ahora-falla-explícito-y-pide-reintentar)).
 - Recuerda el cupo: 3 reportes por sector cada 30 min por dispositivo. Tras el tercero, muestra un mensaje
   amable en lugar del `429` en crudo, y no vuelvas a intentar.
 

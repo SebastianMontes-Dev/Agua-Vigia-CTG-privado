@@ -656,15 +656,15 @@ paths:
         "400":
           description: Error en la solicitud
           content:
-            application/json:
+            application/problem+json:
               schema:
-                $ref: "#/components/schemas/ReporteRespuesta"
+                $ref: "#/components/schemas/ProblemDetail"
         "404":
           description: Reporte no encontrado
           content:
-            application/json:
+            application/problem+json:
               schema:
-                $ref: "#/components/schemas/ReporteRespuesta"
+                $ref: "#/components/schemas/ProblemDetail"
   /api/reportes/{id}/confirmar:
     post:
       tags:
@@ -694,15 +694,15 @@ paths:
         "400":
           description: Error en la solicitud
           content:
-            application/json:
+            application/problem+json:
               schema:
-                $ref: "#/components/schemas/ReporteRespuesta"
+                $ref: "#/components/schemas/ProblemDetail"
         "404":
           description: Reporte no encontrado
           content:
-            application/json:
+            application/problem+json:
               schema:
-                $ref: "#/components/schemas/ReporteRespuesta"
+                $ref: "#/components/schemas/ProblemDetail"
   /api/iot/presion:
     post:
       tags:
@@ -1845,11 +1845,9 @@ paths:
         "404":
           description: No existe el sector
           content:
-            application/json:
+            application/problem+json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/CorteRespuesta"
+                $ref: "#/components/schemas/ProblemDetail"
   /api/sectores/{id}:
     get:
       tags:
@@ -2198,11 +2196,9 @@ paths:
         "404":
           description: No existe el evento
           content:
-            application/json:
+            application/problem+json:
               schema:
-                type: array
-                items:
-                  type: string
+                $ref: "#/components/schemas/ProblemDetail"
 components:
   schemas:
     SolicitudInvitacion:
