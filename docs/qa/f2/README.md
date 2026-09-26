@@ -8,6 +8,8 @@ Desde frontend: lint y typecheck sin errores; api:check coincide con OpenAPI; Vi
 
 Los escenarios reales verifican 211 barrios y recursos del mismo origen, reporte en dos acciones, cuarto reporte 429, tres huellas y consenso por SSE, confirmación sin actuar al abrir el enlace, 404, foto solo después del 201, límite de 10 MiB y ubicación fuera de Cartagena con elección manual. Los POST no se reintentan automáticamente.
 
+Recorrido adicional: pulsar el polígono central abre `/sectores/las-gaviotas` con la misma ficha. Desde la búsqueda se recorrió Bocagrande, apertura, elección, envío y cierre usando únicamente Tab, texto, Enter y Escape; foco del agradecimiento y retorno al botón verificados después de corregir BUG-119.
+
 ## DESIGN.md §10, punto por punto
 
 | Pregunta | Resultado y evidencia |
@@ -53,6 +55,7 @@ Se inspeccionaron las cuatro composiciones en los siete anchos y ambos temas, ju
 | Corrige | Mapa/3G | Motor bloqueaba estados cerca de 5 s | SVG inicial, motor y fuente diferidos; BUG-114, ADR-075. |
 | Corrige | Confirmación/todos | Salto al contenido sin destino | Main enfocable y salto dentro de header; BUG-116. |
 | Corrige | Reporte/offline | Primer módulo no podía descargarse | Fallo explícito antes de abrir; BUG-117. |
+| Corrige | Reporte/teclado | Escape fallaba tras enviar porque desaparecía el botón enfocado | Foco en encabezado de agradecimiento y restauración explícita del disparador; BUG-119. Recorrido de búsqueda, ficha, envío y cierre solo con teclado aprobado. |
 | Pendiente del dueño | Teléfono físico | Composición y tacto reales | Aprobar o indicar cambios en el PR antes de fusionar. |
 
 No se observaron otros bloqueos visuales en las capturas. Newsreader solo marca/titular/barrio; CSS nuevo sin hexadecimales, sin sombras en superficies no flotantes y con movimiento reducido. La lista y los registros preservan null, 24 h y fechas separadas.

@@ -26,7 +26,7 @@ Referencias cruzadas: `ADR-NNN` · `BUG-NNN` · `RF0NN` · `archivo:línea`.
 ## Sprint 7 — Frontend nuevo
 
 ### 2026-09-25 · `feat/f2-nucleo-ciudadano`
-**Qué:** Un agente de IA cerró F0 y fusionó #61–64 con CI y autoría del dueño verificados; construyó F2 para revisión (ADR-074–076, BUG-105–118), con pruebas reales y evidencia en `docs/qa/f2/README.md`.
+**Qué:** Un agente de IA cerró F0 y fusionó #61–64 con CI y autoría del dueño verificados; construyó F2 en #65 para revisión (ADR-074–076, BUG-105–119), con pruebas reales y evidencia en `docs/qa/f2/README.md`.
 **Sigue:** El dueño aprueba F2 en teléfono antes de fusionar su PR; queda sin demostrar la degradación de colectores, que no se puede forzar en Mongo.
 
 ### 2026-09-25 · `claude/charming-shannon-9xqogb`

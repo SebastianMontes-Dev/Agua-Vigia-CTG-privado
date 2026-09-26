@@ -1,5 +1,5 @@
 import '../estilos/editorial.css'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Button, Dialog, Heading, Modal, ModalOverlay } from 'react-aria-components'
 import type { components } from '../api/generado/esquema'
 import { enviarReporte, pedir, mensajeFallo, type Reporte as DatoReporte } from '../api/ciudadano'
@@ -13,6 +13,8 @@ export function HojaReporte({ abierto, cerrar, sector, sectores }: { abierto: bo
   const [reporte, setReporte] = useState<DatoReporte | null>(null)
   const [foto, setFoto] = useState(false)
   const ocupado = useRef(false)
+  const encabezado = useRef<HTMLHeadingElement>(null)
+  useEffect(() => { if (reporte) encabezado.current?.focus() }, [reporte])
   async function enviar(tipo: string) {
     if (ocupado.current) return
     if (!navigator.onLine) { setError('Estás sin conexión. Tu reporte no se guardó. Vuelve a intentarlo a mano cuando tengas red.'); return }
@@ -43,7 +45,7 @@ export function HojaReporte({ abierto, cerrar, sector, sectores }: { abierto: bo
   return <ModalOverlay isOpen={abierto} onOpenChange={(valor) => { if (!valor && !enviando) cerrar() }} isDismissable={!enviando} className="velo">
     <Modal className="modal-reporte"><Dialog aria-label="Reportar cómo está el agua">
       <div className="fila"><span className="rotulo">Reporte ciudadano</span><Button className="secundario" onPress={cerrar} isDisabled={enviando}>Cerrar</Button></div>
-      <Heading slot="title">{reporte ? 'Tu reporte cuenta' : sector?.nombre ?? '¿Cómo está el agua?'}</Heading>
+      <Heading slot="title" ref={encabezado} tabIndex={-1}>{reporte ? 'Tu reporte cuenta' : sector?.nombre ?? '¿Cómo está el agua?'}</Heading>
       {reporte ? <><output>Gracias. Tu reporte cuenta junto con el de tus vecinos</output><p>El mapa cambia cuando hay evidencia suficiente.</p>
         <label className="foto">{foto ? 'Foto adjunta' : 'Añadir una foto (opcional)'}<input type="file" accept="image/jpeg,image/png,image/webp" disabled={enviando || foto} onChange={(evento) => { void adjuntar(evento.target.files?.[0]) }} /></label>
         <p className="pequeno">JPEG, PNG o WebP. Menos de 10 MB. No necesitas una foto para reportar.</p><Button className="primario" isDisabled={enviando} onPress={cerrar}>Volver al mapa</Button></>

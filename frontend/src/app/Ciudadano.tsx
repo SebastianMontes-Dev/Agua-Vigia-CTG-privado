@@ -40,8 +40,11 @@ export function Ciudadano() {
   const id = ruta.startsWith('/sectores/') ? decodeURIComponent(ruta.slice('/sectores/'.length)) : undefined
   const [buscar, setBuscar] = useState(''), [reporte, setReporte] = useState<{ sector?: Sector } | null>(null)
   const [errorReporte, setErrorReporte] = useState('')
+  const focoReporte = useRef<HTMLElement | null>(null)
+  const cerrarReporte = () => { setReporte(null); requestAnimationFrame(() => focoReporte.current?.focus()) }
   const abrirReporte = (sector?: Sector) => {
     if (!navigator.onLine) { setErrorReporte('Estás sin conexión. Tu reporte no se guardó. Vuelve a intentarlo a mano cuando tengas red.'); return }
+    focoReporte.current = document.activeElement as HTMLElement
     setErrorReporte(''); setReporte({ sector })
   }
   const geometria = useQuery({ queryKey: ['geometria'], queryFn: cargarGeometria, staleTime: Infinity, enabled: visible })
@@ -59,5 +62,5 @@ export function Ciudadano() {
     <p className="generado">Listado generado: {fechaCartagena(lectura.listado?.generadoEn)} · Hora de Cartagena</p></aside>
     <section className="territorio" aria-label="Estado del agua en Cartagena"><div className="barra-mapa"><span className="rotulo">Estado conocido del servicio</span><output>{lectura.estado === 'en-vivo' ? 'En vivo' : lectura.estado === 'sin-red' ? 'Sin conexión' : 'Actualizando conexión'}</output></div><div className="lienzo">{geometria.data && visible ? <><MapaSeguro><Suspense fallback={<p className="mapa-aviso">Preparando el mapa. Los estados ya están en la lista.</p>}><Mapa geometria={geometria.data} sectores={sectores} elegido={id} abrir={abrir} /></Suspense></MapaSeguro><RespuestaMapa geometria={geometria.data} sectores={sectores} /></> : <p className="mapa-aviso">{geometria.isError ? 'No pudimos cargar la geometría. Puedes consultar y reportar desde la lista.' : 'Preparando los barrios. El estado se consulta primero en la lista.'}{geometria.isError && <button onClick={() => { void geometria.refetch() }}>Reintentar mapa</button>}</p>}</div>
     <div className="leyenda" aria-label="Leyenda del mapa">{(['CON_SERVICIO', 'SIN_SERVICIO', 'PRESION_BAJA', 'CORTE_PROGRAMADO', null] as const).map((estado) => <Estado key={estado ?? 'null'} estado={estado} />)}</div></section>
-    {id && <Ficha key={id} id={id} actual={sectores.find((sector) => sector.id === id)} cerrar={cerrar} reportar={abrirReporte} />}</main>{errorReporte && <p role="alert" className="aviso-reporte">{errorReporte}</p>}{reporte && <Suspense fallback={<output className="aviso">Preparando el reporte…</output>}><HojaReporte abierto cerrar={() => setReporte(null)} sector={reporte.sector} sectores={sectores} /></Suspense>}</>
+    {id && <Ficha key={id} id={id} actual={sectores.find((sector) => sector.id === id)} cerrar={cerrar} reportar={abrirReporte} />}</main>{errorReporte && <p role="alert" className="aviso-reporte">{errorReporte}</p>}{reporte && <Suspense fallback={<output className="aviso">Preparando el reporte…</output>}><HojaReporte abierto cerrar={cerrarReporte} sector={reporte.sector} sectores={sectores} /></Suspense>}</>
 }

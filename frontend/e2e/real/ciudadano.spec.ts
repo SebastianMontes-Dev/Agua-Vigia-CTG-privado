@@ -18,12 +18,14 @@ test('reporta en dos toques y el cuarto recibe el límite por dispositivo', asyn
   await page.goto('/sectores/bocagrande')
   await expect(page.locator('.ficha h1')).toContainText('BOCAGRANDE')
   for (let intento = 0; intento < 4; intento++) {
-    await page.getByRole('button', { name: 'Reportar en este barrio' }).click()
+    await page.getByRole('button', { name: 'Reportar en este barrio' }).focus()
+    await page.keyboard.press('Enter')
     await page.getByRole('button', { name: 'No hay agua', exact: true }).click()
     const dialogo = page.getByRole('dialog')
     if (intento < 3) {
       await expect(dialogo).toContainText('Gracias. Tu reporte cuenta junto con el de tus vecinos')
-      await page.getByRole('button', { name: 'Volver al mapa' }).click()
+      await page.keyboard.press('Escape')
+      await expect(page.getByRole('button', { name: 'Reportar en este barrio' })).toBeFocused()
     } else await expect(dialogo.getByRole('alert')).toContainText('Ya recibimos tres reportes tuyos')
   }
 })
