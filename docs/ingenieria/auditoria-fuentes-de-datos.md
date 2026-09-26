@@ -193,3 +193,6 @@ si la capa pasa a ser mixta y cómo se le declara eso al usuario.
 5. Redactar el ADR "Por qué respetamos los bloqueos de `robots.txt` a agentes de IA incluso cuando
    técnicamente podríamos evadirlos" — es defendible y coherente con la tesis del
    proyecto sobre transparencia y buen gobierno de la información.
+
+### 2026-09-25 — Comprobación de portada para F0
+Robots de www.acuacar.com: 200, sin bloqueo de agentes de IA; prohíbe wp-admin y wpo-plugins-tables-list.json. API WordPress posts con featuredmedia: 200 JSON; boletín 8062, portada AH-00071-300x200.jpg. Copia de prueba explícita en Mongo local para verificar la imagen, sin inferir estados: por ambos proxies, 200 image/jpeg.

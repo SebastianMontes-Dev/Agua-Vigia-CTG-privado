@@ -358,8 +358,7 @@ cuando su entregable se demuestra funcionando**, no por calendario.
   detecta un cambio forzado en el contrato.
 - **Verificado (2026-09-25):** 22 pruebas unitarias y 6 E2E en verde; `api:check` falla con un valor agregado al
   enum de estado en `openapi.yaml` y vuelve a verde al quitarlo; el proxy probado contra un servidor falso en `:8081`.
-  **Actualización:** F0 fusionado con CI en verde (PR #54). **Falta:** probar el proxy contra el backend real (el contenedor de esta
-  sesión no tenía Docker). La página del muestrario es provisional: la reemplaza el mapa en F2.
+  **Actualización:** F0 fusionado con CI en verde (PR #54). **Verificado contra backend real (2026-09-25):** `frontend/scripts/verificar-proxy-real.mjs` pasó en `:5173` y `:4173`: 211 sectores con `generadoEn`, geometría sin Accept JSON, aviso de consenso SSE sin búfer (1856/1327 ms), POST 201, foto POST/GET 200 y portada real 200 image/jpeg. `curl -N` recibió el frame inicial inmediatamente; timeout intencional a 3 s. Correcciones: BUG-107 y BUG-108. La página del muestrario es provisional: la reemplaza el mapa en F2.
 - **Las E2E de F0 no necesitan backend.** Desde F2 las que sí lo necesitan irán en un job aparte con `docker compose`.
 
 ### F1 — Prototipos aprobables (sin código de producción)
