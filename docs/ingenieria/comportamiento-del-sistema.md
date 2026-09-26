@@ -1253,3 +1253,7 @@ ni por el mensaje ni por el tiempo de respuesta (RNF024).
 
 ## Canal del frontend (F2, ADR-074)
 Cuando llega un aviso sectores, el cliente programa la lectura con jitter de 0–3 s y nunca inicia dos GET del listado en menos de 5 s. Ante 429 del canal respeta Retry-After y sondea cada 30 s. Al ocultarse la pestaña cancela las consultas y temporizadores inmediatamente; cierra la conexión a los 15 s. Al regresar refresca por el mismo limitador. Sin red conserva fecha y estado publicados; reconectar tras el cierre normal no es un error del vecino.
+
+## Núcleo ciudadano del frontend (F2, ADR-075/076)
+La lista responde primero; los polígonos iniciales usan la geometría real sin esperar al motor MapLibre ni a Newsreader. Geometría persistida en IndexedDB, estados unidos por id y nulos con trama. La ficha comparte selección desde búsqueda, lista y mapa; consulta detalle, cortes paginados y presencia de eventos solo al abrirse. Conserva el estado publicado cuando la verificación supera 24 h; separa registro, verificación y generadoEn. Salud de colectores no se infiere de estas fechas.
+Reportar con barrio abierto requiere abrir y elegir tipo; el segundo toque envía. Huella persistida una vez, sin cuenta ni POST automático. La falta de red produce un fallo explícito sin guardar una cola. La foto se ofrece tras 201 y su error no deshace el reporte. Confirmar exige una acción explícita; abrir el enlace no cambia nada. El proxy de preview traduce solo el Origin de la propia SPA para mantener CORS de orígenes ajenos.

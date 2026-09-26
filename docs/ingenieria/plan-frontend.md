@@ -6,8 +6,7 @@
 >
 > **Estado (2026-09-25):** F0 fusionado (PR #54) y Sprint 7 abierto (`sprint-7.md`). F1 en curso: prototipos
 > publicados, glifos SVG, contraste medido, glifos del mapa decididos (`ADR-068`) y guía integral aprobada
-> (`ADR-069`). **Falta:** la aprobación visual del dueño sobre los prototipos adaptados y el extracto PMTiles, que
-> la red de la sesión en la nube no deja descargar.
+> (`ADR-069`). **Falta:** la aprobación visual del dueño en el PR F2. Extracto PMTiles descargado y fusionado (#64); F0 demostrado contra backend real (#61).
 > **Diseño (2026-09-25):** el dueño rechazó los prototipos adaptados a la guía por genéricos y pidió un rediseño total.
 > Nueva identidad formal en `docs/diseno/identidad.md` (`ADR-070`), con prototipo propio y las skills `disenar-frontend`
 > y `revisar-diseno`.
@@ -15,7 +14,7 @@
 > identidad editorial queda contenida en la marca y los titulares (`ADR-071`), el PMTiles se versiona con Git LFS
 > (`ADR-072`) y la API suma los filtros de la bitácora y `verificadoEn` (`ADR-073`, construidos en la rama
 > `claude/intelligent-curie-dhs2jr`), y los tokens y la fuente ya están migrados. Los prototipos de F1 con esa identidad
-> se publicaron el 2026-09-25; siguen la revisión en un teléfono real y el extracto PMTiles. Esto no cierra F1 ni inicia F2.
+> se publicaron el 2026-09-25. El dueño autorizó iniciar F2 antes de revisar en teléfono; aprobación visual antes del merge de F2. F1 sigue pendiente de esa revisión.
 >
 > **Fuente de verdad.** Este plan **no reemplaza** a `DESIGN.md` (diseño), a `docs/api/` (cómo consumir la API) ni a
 > `backend/openapi.yaml` (el contrato). Resume lo que hace falta tener a mano y apunta a esos documentos. Si algo de
@@ -57,7 +56,7 @@ como marcadores, las tarjetas redondeadas con barrita de color al costado y los 
 | Diseño de todas las pantallas | [Guía del frontend](../diseno/guia-frontend.md), `ADR-069` | Especificación documental aprobada; implementación pendiente |
 | Identidad visual | Paleta cardenillo y latón (`ADR-070`); Newsreader local solo en marca y titulares, sistema en lo demás (`ADR-071`) | Decidido por el dueño (2026-09-25) |
 | Navegación | Escritorio: Mapa, Cumplimiento, Bitácora, Estadísticas, Avisos. Celular: Mapa, Historial, Avisos. Panel con navegación propia (`ADR-071`) | Decidido por el dueño (2026-09-25) |
-| Mapa base | PMTiles de fuente y versión fijadas, versionado con Git LFS (`ADR-072`) | Decidido; falta extraerlo y medirlo |
+| Mapa base | PMTiles de fuente y versión fijadas, versionado con Git LFS (`ADR-072`) | Extraído y medido; frontend/public/mapa/README.md |
 | API | Filtros de la bitácora y `verificadoEn` por sector (`ADR-073`) | Construido; pendiente de PR |
 
 Las alternativas descartadas (SvelteKit, Astro con islas, mapa sin fondo, tiles de OSM/Esri) y su motivo están en
@@ -389,23 +388,25 @@ cuando su entregable se demuestra funcionando**, no por calendario.
       navegación de `ADR-071` (barra de tres destinos en celular), `verificadoEn` con «Sin verificación reciente», filtros
       de la bitácora, simulación de fallos y contraste medido en vivo, que coincide con `identidad.md` §2 en los dos
       temas. Capturas en 390, 768, 1024 y 1440 px, ambos temas, con movimiento reducido: sin errores de script ni desbordes.
-- [ ] **Revisión en un teléfono real** por el dueño antes de F2.
-- **Hecho cuando:** el dueño aprueba los prototipos después de verlos en un teléfono real. **Sin eso no empieza F2.**
+- [ ] **Revisión en un teléfono real** por el dueño antes de fusionar F2 (inicio anticipado autorizado).
+- **Hecho cuando:** el dueño aprueba los prototipos después de verlos en un teléfono real. **F2 comenzó por autorización explícita del dueño; su PR no se fusiona antes de la aprobación visual.**
 
 ### F2 — Núcleo ciudadano (M1, M2)
-- [ ] Geometría en IndexedDB, estado unido por `id`, `MultiPolygon`, trama para `null`.
+- [x] Geometría en IndexedDB, estado unido por `id`, `MultiPolygon`, trama para `null`.
 - [x] `canal-en-vivo.ts` con todas las reglas de §6.3 y pruebas unitarias del jitter, el backoff, el `429` y la
       visibilidad. `ADR-074`: fetch con parser incremental. Prueba real el 2026-09-25: 211 sectores y consenso en San Bernardo recibido por SSE + GET; generadoEn 2026-09-26T03:14:29.505337283Z.
-- [ ] Mapa local (PMTiles y glifos), búsqueda visible, lista textual y ficha. En celular, ficha inferior; en
+- [x] Mapa local (PMTiles y glifos), búsqueda visible, lista textual y ficha. En celular, ficha inferior; en
       escritorio, panel contextual compacto. El mapa, el buscador y la lista abren **la misma ficha**.
-- [ ] Estados de frescura de §5.2: dos horas separadas, «En vivo» solo con SSE conectado, «Sin verificación
+- [x] Estados de frescura de §5.2: dos horas separadas, «En vivo» solo con SSE conectado, «Sin verificación
       reciente» a las 24 horas, último listado guardado sin conexión.
-- [ ] Reporte sin cuenta en 2 toques con huella, ubicación opcional, foto **después** del reporte, mensajes fieles al
+- [x] Reporte sin cuenta en 2 toques con huella, ubicación opcional, foto **después** del reporte, mensajes fieles al
       resultado y todos los errores de §6.4. `/confirmar/:id`. Se conservan las reglas de SSE, caché, reconexión y
       la prohibición de reintentar solo un `POST`.
-- [ ] E2E: abrir el mapa, reportar, llegar al cuarto reporte y recibir el `429` con su mensaje, cambio de estado por
+- [x] E2E: abrir el mapa, reportar, llegar al cuarto reporte y recibir el `429` con su mensaje, cambio de estado por
       consenso (3 huellas) que llega por SSE, y confirmar un reporte.
 - **Hecho cuando:** pasa el checklist de `DESIGN.md` §10 y el mapa muestra todos los estados en menos de 3 s en 3G.
+
+**Entrega dividida en tres PR por decisión del dueño:** canal #62, mapa base #64 y núcleo ciudadano (PR abierto). El fix de contrato #63 se fusionó antes del núcleo. Evidencia completa en docs/qa/f2/README.md. La revisión visual en teléfono real y la comprobación de colectores degradados quedan pendientes; no se infiere salud de fuentes desde fechas antiguas.
 
 ### F3 — Historia pública (M6, M7, M8)
 - [ ] Bitácora paginada y filtrable por barrio, tipo y fecha contra la API (`ADR-073`), con fuente, portada por

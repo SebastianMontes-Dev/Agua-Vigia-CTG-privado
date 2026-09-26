@@ -14,18 +14,23 @@
     "typecheck": "tsc -b",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test",
+    "test:e2e": "playwright test && playwright test --config playwright.real.config.ts",
     "api:sync": "node scripts/contrato-api.mjs --escribir",
-    "api:check": "node scripts/contrato-api.mjs --comprobar"
+    "api:check": "node scripts/contrato-api.mjs --comprobar",
+    "test:e2e:real": "playwright test --config playwright.real.config.ts"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.103.3",
+    "@tanstack/react-router": "^1.170.39",
     "maplibre-gl": "^6.11.2",
     "openapi-fetch": "^0.17.0",
     "pmtiles": "^4.5.0",
     "react": "^19.3.0",
+    "react-aria-components": "^1.21.1",
     "react-dom": "^19.3.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@playwright/test": "~1.56.1",
     "@protomaps/basemaps": "^5.7.2",
     "@testing-library/dom": "^10.4.2",

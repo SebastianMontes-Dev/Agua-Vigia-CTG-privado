@@ -10,7 +10,7 @@ const PAPEL_OSCURO = 'rgb(15, 18, 20)'
 
 test('debeAplicarLosTokensEnElTemaClaroYEnElOscuro', async ({ page }) => {
   await page.emulateMedia({ colorScheme: 'light' })
-  await page.goto('/')
+  await page.goto('/muestrario')
   await expect(page.getByRole('heading', { level: 1, name: 'Identidad del frontend' })).toBeVisible()
   await esperarFondo(page, PAPEL_CLARO)
 
@@ -23,7 +23,7 @@ test('debeAplicarLosTokensEnElTemaClaroYEnElOscuro', async ({ page }) => {
 
 test('debeSeguirAlSistemaYDejarQueElInterruptorLoContradiga', async ({ page }) => {
   await page.emulateMedia({ colorScheme: 'dark' })
-  await page.goto('/')
+  await page.goto('/muestrario')
   await esperarFondo(page, PAPEL_OSCURO)
 
   await page.getByRole('radio', { name: 'Claro' }).check()
@@ -51,7 +51,7 @@ const REGION_ACCION = 'Acción y combinaciones permitidas'
 for (const [esquema, esperado] of Object.entries(ACCION)) {
   test(`debeMostrarLaAccionYSusCombinacionesEnElTema ${esquema}`, async ({ page }) => {
     await page.emulateMedia({ colorScheme: esquema as 'light' | 'dark' })
-    await page.goto('/')
+    await page.goto('/muestrario')
     const seccion = page.getByRole('region', { name: REGION_ACCION })
     const filas = seccion.getByRole('listitem')
 
@@ -71,7 +71,7 @@ for (const [esquema, esperado] of Object.entries(ACCION)) {
 
 test('debeMedirLaAccionDelTemaElegidoAMano', async ({ page }) => {
   await page.emulateMedia({ colorScheme: 'light' })
-  await page.goto('/')
+  await page.goto('/muestrario')
   const fila = page.getByRole('region', { name: REGION_ACCION }).getByRole('listitem').first()
 
   await page.getByRole('radio', { name: 'Oscuro' }).check()
@@ -86,7 +86,7 @@ test('debeMedirLaAccionDelTemaElegidoAMano', async ({ page }) => {
 
 test('debeVolverAMedirLaAccionCuandoCambiaElSistemaSinPreferenciaManual', async ({ page }) => {
   await page.emulateMedia({ colorScheme: 'light' })
-  await page.goto('/')
+  await page.goto('/muestrario')
   const fila = page.getByRole('region', { name: REGION_ACCION }).getByRole('listitem').first()
   await expect(fila).toContainText('6,64:1')
 
@@ -98,7 +98,7 @@ test('debeVolverAMedirLaAccionCuandoCambiaElSistemaSinPreferenciaManual', async 
 test('debeServirNewsreaderDesdeElProyectoYSoloEnMarcaYTitular', async ({ page }) => {
   const pedidas: string[] = []
   page.on('request', (peticion) => pedidas.push(peticion.url()))
-  await page.goto('/')
+  await page.goto('/muestrario')
   await expect(page.getByRole('heading', { level: 1 })).toHaveCSS('font-family', /^Newsreader/)
   await expect(page.getByRole('radio', { name: 'Claro' })).not.toHaveCSS('font-family', /Newsreader/)
   await page.evaluate(() => document.fonts.ready)
@@ -109,7 +109,7 @@ test('debeServirNewsreaderDesdeElProyectoYSoloEnMarcaYTitular', async ({ page })
 })
 
 test('noDebeHacerScrollHorizontalEnElCuerpo', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/muestrario')
   const desborda = await page.evaluate(
     () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
   )
