@@ -72,5 +72,4 @@ dist-dashboard/
 # ─── Respaldos sueltos ───
 *.bak
 
-# ─── Mapa base: el extracto PMTiles se genera con scripts/preparar-mapa-base.sh (versionarlo lo decide el dueño) ───
-frontend/public/mapa/*.pmtiles
+# El mapa base se versiona con Git LFS (ADR-072).
