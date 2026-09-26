@@ -32,6 +32,8 @@ su panel.**
 
 ## 3. Obstáculos del sprint — resumen
 
+F2 está en el PR #65, abierto para aprobación visual. Queda sin demostrar la degradación de fuentes: la salud del colector reside en memoria y su endpoint es del panel autenticado; no se puede forzar modificando sectores en Mongo (detalle: docs/qa/f2/README.md).
+
 | Qué detuvo el avance | De qué dependía | Días | Cómo se resolvió |
 |---|---|---|---|
 | El extracto PMTiles no se puede descargar desde la sesión en la nube: la política de red deniega `build.protomaps.com` | Ampliar la red del entorno o correr `scripts/preparar-mapa-base.sh pmtiles` en la máquina del dueño | — | Resuelto en local el 2026-09-25; fuente oficial accesible |
