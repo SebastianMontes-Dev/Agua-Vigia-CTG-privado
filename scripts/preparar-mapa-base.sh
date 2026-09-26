@@ -5,7 +5,7 @@
 #   scripts/preparar-mapa-base.sh pmtiles    Extracto de Cartagena de un build diario de Protomaps
 #
 # El extracto necesita el CLI de go-pmtiles (go install github.com/protomaps/go-pmtiles@latest) y acceso a
-# build.protomaps.com. Variables: PMTILES_BUILD (AAAAMMDD, por defecto el de ayer), PMTILES_BBOX, PMTILES_MAXZOOM.
+# build.protomaps.com. Variables: PMTILES_BUILD (AAAAMMDD, por defecto 20260924), PMTILES_BBOX, PMTILES_MAXZOOM.
 set -euo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -39,7 +39,7 @@ pmtiles_extracto() {
   local cli
   cli="$(command -v pmtiles || command -v go-pmtiles)" \
     || { echo "Falta el CLI pmtiles: go install github.com/protomaps/go-pmtiles@latest" >&2; exit 1; }
-  local build="${PMTILES_BUILD:-$(date -u -d yesterday +%Y%m%d 2>/dev/null || date -u -v-1d +%Y%m%d)}"
+  local build="${PMTILES_BUILD:-20260924}"
   mkdir -p "$DESTINO"
   "$cli" extract "https://build.protomaps.com/$build.pmtiles" "$DESTINO/cartagena.pmtiles" \
     --bbox="$BBOX" --maxzoom="$MAXZOOM"

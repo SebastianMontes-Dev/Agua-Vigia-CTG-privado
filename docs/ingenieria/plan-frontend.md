@@ -368,9 +368,7 @@ cuando su entregable se demuestra funcionando**, no por calendario.
       dibujados desde `data/geoespacial/barrios-cartagena.geojson`. Sin mapa base: el extracto sigue pendiente.
 - [x] Glifos de estado y trama de «sin datos» en SVG: `frontend/src/iconos/`, con `currentColor` (`iconos.test.ts`
       impide colores fijos).
-- [ ] Extracto PMTiles y estilo MapLibre claro/oscuro (§8). **Bloqueado:** la política de red de la sesión en la nube
-      deniega `build.protomaps.com`; `scripts/preparar-mapa-base.sh pmtiles` está listo para correrlo en local.
-      Glifos de texto decididos en `ADR-068` y ya en `frontend/public/mapa/glifos/`.
+- [x] Extracto PMTiles y estilo MapLibre claro/oscuro (§8), obtenido en local el 2026-09-25. Git LFS; fuente fijada, tamaño y SHA-256 en `frontend/public/mapa/README.md` (ADR-072). Glifos locales, sin sprites externos; colores neutros comprobados en ambos temas.
 - [x] Tabla de contraste AA medida: `frontend/src/estilos/contraste.test.ts` y las restricciones de §5.3. De ahí salió
       `REC-019` (el acento claro no pasa como texto sobre `--fondo`); validada en `ADR-069` y aplicada el 2026-09-25 (`DESIGN.md`, `tokens.css` y pruebas).
 - [x] Guía integral documentada (`ADR-069`): composiciones, colores, pantallas y criterios de aceptación.
