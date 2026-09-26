@@ -7,9 +7,12 @@ import com.aguavigia.ctg.domain.Pagina;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.port.in.ConsultarHistorialDeCortesUseCase;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.MediaType;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -43,7 +46,8 @@ public class HistorialDeCortesController {
                     cabeceras que la bitácora (`X-Total-Count`, `X-Total-Pages`, `X-Page`, `X-Page-Size`, `Link`);
                     por defecto 50, máximo 200. Un sector sin cortes devuelve una lista vacía, no un 404.""")
     @ApiResponse(responseCode = "200", description = "Cortes de la página pedida")
-    @ApiResponse(responseCode = "404", description = "No existe el sector")
+    @ApiResponse(responseCode = "404", description = "No existe el sector",
+            content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
     @GetMapping
     public ResponseEntity<List<CorteRespuesta>> listar(
             @PathVariable String sectorId,

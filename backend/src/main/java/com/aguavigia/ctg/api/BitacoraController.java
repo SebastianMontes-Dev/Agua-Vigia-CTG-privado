@@ -121,7 +121,8 @@ public class BitacoraController {
                     mismas cabeceras que el listado; por defecto 50 ids por página, máximo 200. Vacío en los
                     eventos que no son de consenso.""")
     @ApiResponse(responseCode = "200", description = "Ids de la página pedida (vacía si se pasa del final)")
-    @ApiResponse(responseCode = "404", description = "No existe el evento")
+    @ApiResponse(responseCode = "404", description = "No existe el evento",
+            content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
     @GetMapping("/{id}/sustento")
     public ResponseEntity<List<String>> sustento(
             @PathVariable String id,

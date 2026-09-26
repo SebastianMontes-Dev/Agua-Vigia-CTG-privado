@@ -93,8 +93,10 @@ public class ReporteController {
             description = "Permite subir una foto y asociarla a un reporte existente (M10).")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Evidencia agregada"),
-            @ApiResponse(responseCode = "400", description = "Error en la solicitud"),
-            @ApiResponse(responseCode = "404", description = "Reporte no encontrado")
+            @ApiResponse(responseCode = "400", description = "Error en la solicitud",
+                    content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "404", description = "Reporte no encontrado",
+                    content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
     })
     @PostMapping(value = "/{id}/foto", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ReporteRespuesta> agregarEvidencia(
@@ -108,8 +110,10 @@ public class ReporteController {
             description = "Permite a otro vecino confirmar un reporte ciudadano (M11).")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Reporte confirmado"),
-            @ApiResponse(responseCode = "400", description = "Error en la solicitud"),
-            @ApiResponse(responseCode = "404", description = "Reporte no encontrado")
+            @ApiResponse(responseCode = "400", description = "Error en la solicitud",
+                    content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "404", description = "Reporte no encontrado",
+                    content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
     })
     @PostMapping(value = "/{id}/confirmar")
     public ResponseEntity<ReporteRespuesta> confirmar(

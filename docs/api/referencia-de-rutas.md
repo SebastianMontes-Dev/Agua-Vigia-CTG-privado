@@ -61,7 +61,7 @@ Ids de los reportes ciudadanos que sostuvieron el cambio de estado, para contras
 | **Acceso** | Público |
 | **Parámetros** | `id` (path, obligatorio)<br>`pagina` (query)<br>`tamano` (query) |
 | **Cuerpo** | — |
-| **Respuestas** | `200` Ids de la página pedida (vacía si se pasa del final) → lista de string<br>`404` No existe el evento → lista de string |
+| **Respuestas** | `200` Ids de la página pedida (vacía si se pasa del final) → lista de string<br>`404` No existe el evento → [ProblemDetail](#esquema-problemdetail) |
 
 ## controlador-de-prueba-rate-limit
 
@@ -409,7 +409,7 @@ Permite a otro vecino confirmar un reporte ciudadano (M11).
 | **Acceso** | Público |
 | **Parámetros** | `id` (path, obligatorio) |
 | **Cuerpo** | [SolicitudConfirmar](#esquema-solicitudconfirmar) (`application/json`) |
-| **Respuestas** | `200` Reporte confirmado → [ReporteRespuesta](#esquema-reporterespuesta)<br>`400` Error en la solicitud → [ReporteRespuesta](#esquema-reporterespuesta)<br>`404` Reporte no encontrado → [ReporteRespuesta](#esquema-reporterespuesta) |
+| **Respuestas** | `200` Reporte confirmado → [ReporteRespuesta](#esquema-reporterespuesta)<br>`400` Error en la solicitud → [ProblemDetail](#esquema-problemdetail)<br>`404` Reporte no encontrado → [ProblemDetail](#esquema-problemdetail) |
 
 ### `POST /api/reportes/{id}/foto`
 
@@ -422,7 +422,7 @@ Permite subir una foto y asociarla a un reporte existente (M10).
 | **Acceso** | Público |
 | **Parámetros** | `id` (path, obligatorio) |
 | **Cuerpo** | object (`multipart/form-data`) |
-| **Respuestas** | `200` Evidencia agregada → [ReporteRespuesta](#esquema-reporterespuesta)<br>`400` Error en la solicitud → [ReporteRespuesta](#esquema-reporterespuesta)<br>`404` Reporte no encontrado → [ReporteRespuesta](#esquema-reporterespuesta) |
+| **Respuestas** | `200` Evidencia agregada → [ReporteRespuesta](#esquema-reporterespuesta)<br>`400` Error en la solicitud → [ProblemDetail](#esquema-problemdetail)<br>`404` Reporte no encontrado → [ProblemDetail](#esquema-problemdetail) |
 
 ## Sectores
 
@@ -463,7 +463,7 @@ Cortes oficiales que afectaron al sector, abiertos y cerrados. Paginado con las 
 | **Acceso** | Público |
 | **Parámetros** | `sectorId` (path, obligatorio)<br>`pagina` (query)<br>`tamano` (query) |
 | **Cuerpo** | — |
-| **Respuestas** | `200` Cortes de la página pedida → lista de [CorteRespuesta](#esquema-corterespuesta)<br>`404` No existe el sector → lista de [CorteRespuesta](#esquema-corterespuesta) |
+| **Respuestas** | `200` Cortes de la página pedida → lista de [CorteRespuesta](#esquema-corterespuesta)<br>`404` No existe el sector → [ProblemDetail](#esquema-problemdetail) |
 
 ### `GET /api/sectores/geometria`
 
