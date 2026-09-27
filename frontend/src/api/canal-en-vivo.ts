@@ -169,7 +169,7 @@ export function crearCanal(entorno: EntornoCanal) {
 export function entornoNavegador(): EntornoCanal {
   return {
     fetch: window.fetch.bind(window), conectar: window.fetch.bind(window), ahora: Date.now, aleatorio: Math.random,
-    programar: (accion, ms) => setTimeout(accion, ms), cancelar: clearTimeout,
+    programar: (accion, ms) => setTimeout(accion, ms), cancelar: (id) => clearTimeout(id),
     visible: () => document.visibilityState === 'visible', enLinea: () => navigator.onLine,
     observar: (accion) => {
       document.addEventListener('visibilitychange', accion); window.addEventListener('online', accion); window.addEventListener('offline', accion)

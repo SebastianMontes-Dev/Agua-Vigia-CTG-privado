@@ -97,6 +97,8 @@
     --espacio-7: 4rem;
 
     --medida-lectura: 65ch;
+    --margen-pagina: clamp(16px, 3vw, 40px);
+    --alto-cabecera: 56px;
     --objetivo-tactil: 44px;
     --radio-flotante: 10px;
     --radio-pastilla: 999px;
@@ -104,5 +106,12 @@
 
     --suave: cubic-bezier(0.2, 0.8, 0.2, 1);
     --lento: cubic-bezier(0.65, 0, 0.35, 1);
+  }
+
+  /* identidad.md §4: cabecera de 68 px en escritorio. */
+  @media (min-width: 1100px) {
+    :root {
+      --alto-cabecera: 68px;
+    }
   }
 }

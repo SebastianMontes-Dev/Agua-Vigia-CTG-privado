@@ -1,0 +1,90 @@
+@layer componentes {
+  /* Celular: búsqueda arriba, mapa y ficha debajo (identidad.md §4). La página hace el scroll. */
+  .pantalla {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: 'buscador' 'mapa' 'panel';
+  }
+
+  .buscador {
+    grid-area: buscador;
+    padding: var(--espacio-3) var(--margen-pagina) var(--espacio-4);
+  }
+
+  .mapa {
+    grid-area: mapa;
+    height: max(240px, 36svh);
+    border-block: 1px solid var(--linea);
+  }
+
+  .panel {
+    grid-area: panel;
+    padding: var(--espacio-5) var(--margen-pagina) 0;
+  }
+
+  /* Tableta: el mapa arriba (44 vh) y el panel debajo. */
+  @media (min-width: 600px) {
+    .mapa {
+      height: 44vh;
+    }
+
+    .panel {
+      width: 100%;
+      max-width: 720px;
+    }
+  }
+
+  /* Escritorio: panel contextual de 440 px a la izquierda y mapa a la derecha; el panel se desplaza por dentro. */
+  @media (min-width: 1100px) {
+    .pantalla {
+      grid-template-columns: 440px minmax(0, 1fr);
+      grid-template-rows: auto minmax(0, 1fr);
+      grid-template-areas: 'buscador mapa' 'panel mapa';
+      height: calc(100dvh - var(--alto-cabecera));
+    }
+
+    .buscador {
+      padding: var(--espacio-5) var(--espacio-6) var(--espacio-4);
+      border-right: 1px solid var(--linea);
+    }
+
+    .mapa {
+      height: auto;
+      border: 0;
+    }
+
+    .panel {
+      max-width: none;
+      overflow-y: auto;
+      padding: var(--espacio-4) var(--espacio-6) 0;
+      border-right: 1px solid var(--linea);
+      overscroll-behavior: contain;
+    }
+  }
+
+  .cargando {
+    height: 100%;
+    background: var(--superficie);
+  }
+
+  .aviso {
+    display: grid;
+    place-content: center;
+    justify-items: start;
+    gap: var(--espacio-3);
+    height: 100%;
+    padding: var(--espacio-5);
+    background: var(--superficie);
+    color: var(--tinta);
+  }
+
+  .reintentar {
+    min-height: var(--objetivo-tactil);
+    padding: 0 var(--espacio-4);
+    border: 1px solid var(--tinta-2);
+    border-radius: var(--radio-pastilla);
+    background: transparent;
+    font-weight: 600;
+    cursor: pointer;
+  }
+}

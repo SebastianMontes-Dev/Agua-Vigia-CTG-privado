@@ -1,0 +1,119 @@
+@layer componentes {
+  .claves {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--espacio-1) var(--espacio-4);
+    font-size: var(--texto-xs);
+    color: var(--tinta-2);
+  }
+
+  .claves > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .muestra {
+    display: inline-block;
+    width: 18px;
+    height: 8px;
+  }
+
+  .muestraPrometido {
+    box-shadow: inset 0 0 0 1.5px var(--tinta-2);
+  }
+
+  .muestraReal {
+    background: var(--cardenillo);
+  }
+
+  .muestraExceso,
+  .exceso {
+    background: repeating-linear-gradient(45deg, var(--cardenillo) 0 1.5px, transparent 1.5px 4.5px);
+    box-shadow: inset 0 0 0 1px var(--cardenillo);
+  }
+
+  .lista {
+    list-style: none;
+    padding: 0;
+  }
+
+  .fila {
+    display: grid;
+    gap: var(--espacio-2);
+    padding: var(--espacio-4) 0;
+    border-bottom: 1px solid var(--linea-suave);
+  }
+
+  .cabeza {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--espacio-1) var(--espacio-3);
+    font-size: var(--texto-s);
+    color: var(--tinta-2);
+  }
+
+  .cabeza strong {
+    font-weight: 600;
+    color: var(--tinta);
+  }
+
+  .barras {
+    position: relative;
+    height: 12px;
+  }
+
+  .prometido,
+  .real,
+  .exceso {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    transform-origin: left center;
+  }
+
+  .prometido {
+    box-shadow: inset 0 0 0 1.5px var(--tinta-2);
+  }
+
+  .real {
+    top: 3px;
+    bottom: 3px;
+    background: var(--cardenillo);
+  }
+
+  .exceso {
+    top: 3px;
+    bottom: 3px;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .prometido,
+    .real {
+      animation: crecerBarra 0.9s var(--suave) both;
+    }
+
+    .exceso {
+      animation: aparecer 0.4s var(--suave) 0.7s both;
+    }
+  }
+
+  @keyframes crecerBarra {
+    from {
+      transform: scaleX(0);
+    }
+  }
+
+  @keyframes aparecer {
+    from {
+      opacity: 0;
+    }
+  }
+
+  .detalle {
+    font-size: var(--texto-s);
+    color: var(--tinta-2);
+  }
+}

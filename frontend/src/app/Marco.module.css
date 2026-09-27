@@ -1,0 +1,242 @@
+@layer componentes {
+  .marco {
+    min-height: 100dvh;
+  }
+
+  .saltar {
+    position: absolute;
+    left: var(--espacio-3);
+    top: -100px;
+    z-index: 30;
+    padding: var(--espacio-2) var(--espacio-4);
+    background: var(--elevada);
+    color: var(--tinta);
+    box-shadow: var(--sombra);
+  }
+
+  .saltar:focus {
+    top: var(--espacio-2);
+  }
+
+  .cabecera {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: var(--espacio-5);
+    min-height: var(--alto-cabecera);
+    padding: 0 var(--margen-pagina);
+    background: var(--papel);
+    border-bottom: 1px solid var(--linea);
+  }
+
+  .marca {
+    display: inline-flex;
+    align-items: baseline;
+    gap: var(--espacio-2);
+    font-family: var(--fuente-marca);
+    font-size: 1.5rem;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    color: var(--tinta);
+    text-decoration: none;
+  }
+
+  .ciudad {
+    font-family: var(--fuente-cuerpo);
+    font-size: var(--texto-xs);
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--tinta-2);
+  }
+
+  .navegacion {
+    display: none;
+    flex: 1;
+    justify-content: center;
+    gap: var(--espacio-5);
+  }
+
+  /* Subrayado de latón que crece desde la izquierda (identidad.md §5). */
+  .destino {
+    position: relative;
+    padding: var(--espacio-3) 0;
+    color: var(--tinta-2);
+    text-decoration: none;
+  }
+
+  .destino::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 6px;
+    height: 1.5px;
+    background: var(--laton);
+    transform: scaleX(0);
+    transform-origin: left center;
+  }
+
+  .destino:hover,
+  .destino[aria-current='page'] {
+    color: var(--tinta);
+  }
+
+  .destino:hover::after,
+  .destino[aria-current='page']::after {
+    transform: scaleX(1);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .destino::after {
+      transition: transform 320ms var(--suave);
+    }
+  }
+
+  .temaEscritorio {
+    display: none;
+  }
+
+  .tema {
+    display: inline-flex;
+    padding: 3px;
+    border: 1px solid var(--linea);
+    border-radius: var(--radio-pastilla);
+  }
+
+  .opcionTema {
+    padding: 6px 12px;
+    border-radius: var(--radio-pastilla);
+    font-size: 0.875rem;
+    color: var(--tinta-2);
+    cursor: pointer;
+  }
+
+  .opcionTema[data-selected] {
+    background: var(--tinta);
+    color: var(--papel);
+  }
+
+  .opcionTema[data-focus-visible] {
+    outline: var(--grosor-foco) solid var(--laton);
+    outline-offset: 2px;
+  }
+
+  .menu {
+    margin-left: auto;
+    min-height: var(--objetivo-tactil);
+    padding: 0 var(--espacio-4);
+    border: 1px solid var(--tinta-2);
+    border-radius: var(--radio-pastilla);
+    background: transparent;
+    color: var(--tinta);
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .menu[data-focus-visible] {
+    outline: var(--grosor-foco) solid var(--laton);
+    outline-offset: 3px;
+  }
+
+  .menuPopover {
+    min-width: 240px;
+    background: var(--elevada);
+    border-radius: var(--radio-flotante);
+    box-shadow: var(--sombra);
+  }
+
+  .menuDialogo {
+    display: grid;
+    gap: var(--espacio-4);
+    padding: var(--espacio-4);
+    outline: none;
+  }
+
+  .menuEnlaces {
+    display: grid;
+  }
+
+  .menuDestino {
+    display: flex;
+    align-items: center;
+    min-height: var(--objetivo-tactil);
+    border-bottom: 1px solid var(--linea-suave);
+    color: var(--tinta);
+    text-decoration: none;
+  }
+
+  .menuDestino[aria-current='page'] {
+    font-weight: 600;
+    text-decoration: underline;
+    text-decoration-color: var(--laton);
+    text-underline-offset: 0.3em;
+  }
+
+  .principal {
+    outline: none;
+  }
+
+  .barraInferior {
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    padding-bottom: env(safe-area-inset-bottom);
+    background: var(--papel);
+    border-top: 1px solid var(--linea);
+  }
+
+  .destinoInferior {
+    position: relative;
+    display: grid;
+    place-items: center;
+    min-height: 56px;
+    font-weight: 600;
+    color: var(--tinta-2);
+    text-decoration: none;
+  }
+
+  .destinoInferior[aria-current='page'] {
+    color: var(--tinta);
+  }
+
+  .destinoInferior[aria-current='page']::before {
+    content: '';
+    position: absolute;
+    top: -1px;
+    left: 25%;
+    right: 25%;
+    height: 2px;
+    background: var(--laton);
+  }
+
+  @media (min-width: 600px) {
+    .barraInferior {
+      display: none;
+    }
+  }
+
+  @media (min-width: 1100px) {
+    .navegacion,
+    .temaEscritorio {
+      display: flex;
+    }
+
+    .menu {
+      display: none;
+    }
+  }
+
+  .oculto {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}

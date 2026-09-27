@@ -1,0 +1,66 @@
+@layer componentes {
+  .linea {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--espacio-1) var(--espacio-3);
+    font-size: var(--texto-s);
+    color: var(--tinta-2);
+  }
+
+  .enVivo {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+    color: var(--tinta);
+  }
+
+  /* El punto «en vivo» es de la interfaz, no un estado del agua: va en cardenillo, no en el verde de servicio. */
+  .punto {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--cardenillo);
+    box-shadow: 0 0 0 3px var(--cardenillo-suave);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .punto {
+      animation: respirar 2.8s var(--lento) infinite;
+    }
+  }
+
+  @keyframes respirar {
+    50% {
+      opacity: 0.45;
+    }
+  }
+
+  .aviso {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--espacio-2) var(--espacio-4);
+    padding: var(--espacio-3) 0;
+    border-top: 1px solid var(--tinta);
+    border-bottom: 1px solid var(--linea);
+    font-size: var(--texto-s);
+    color: var(--tinta);
+  }
+
+  .reintentar {
+    min-height: var(--objetivo-tactil);
+    padding: 0 var(--espacio-4);
+    border: 1px solid var(--tinta-2);
+    border-radius: var(--radio-pastilla);
+    background: transparent;
+    font-weight: 600;
+    color: var(--tinta);
+    cursor: pointer;
+  }
+
+  .reintentar:hover {
+    border-color: var(--laton);
+  }
+}

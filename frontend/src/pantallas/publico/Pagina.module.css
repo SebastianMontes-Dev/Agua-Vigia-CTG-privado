@@ -1,0 +1,58 @@
+@layer componentes {
+  .pagina {
+    display: grid;
+    gap: var(--espacio-5);
+    width: 100%;
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: var(--espacio-7) var(--margen-pagina);
+  }
+
+  .titular {
+    font-size: var(--texto-titular);
+    font-weight: 300;
+  }
+
+  .entrada {
+    font-size: var(--texto-l);
+    color: var(--tinta-2);
+  }
+
+  .enlace {
+    justify-self: start;
+    color: var(--tinta);
+    text-decoration-color: var(--tinta-3);
+  }
+
+  .enlace:hover {
+    text-decoration-color: var(--laton);
+  }
+
+  .destinos {
+    list-style: none;
+    padding: 0;
+    border-top: 1px solid var(--tinta);
+  }
+
+  .destino {
+    display: grid;
+    gap: var(--espacio-1);
+    padding: var(--espacio-4) 0;
+    border-bottom: 1px solid var(--linea);
+    font-size: var(--texto-l);
+    font-weight: 600;
+    color: var(--tinta);
+    text-decoration: none;
+  }
+
+  .destino span {
+    font-size: var(--texto-s);
+    font-weight: 400;
+    color: var(--tinta-2);
+  }
+
+  .destino:hover {
+    text-decoration: underline;
+    text-decoration-color: var(--laton);
+  }
+}

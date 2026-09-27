@@ -1,0 +1,12 @@
+@layer componentes {
+  .glifo {
+    display: inline-block;
+    flex: none;
+    line-height: 0;
+  }
+
+  .glifo svg {
+    width: 100%;
+    height: 100%;
+  }
+}

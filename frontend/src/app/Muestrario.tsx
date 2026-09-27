@@ -1,7 +1,7 @@
 import { useState, useSyncExternalStore } from 'react'
 import { ORDEN_ESTADOS, presentarEstado } from '../dominio/estados'
 import { contraste } from '../estilos/contraste'
-import { aplicarTema, leerPreferenciaTema, type PreferenciaTema } from './tema'
+import { aplicarTema, leerEsquema, leerPreferenciaTema, suscribirEsquema, type PreferenciaTema } from './tema'
 import estilos from './Muestrario.module.css'
 
 const OPCIONES_TEMA: { valor: PreferenciaTema; texto: string }[] = [
@@ -39,24 +39,8 @@ interface LecturaTokens {
   color: (variable: string) => string
 }
 
-// El tema lo decide el atributo data-theme o, sin él, la preferencia del sistema: se escuchan los dos.
-function suscribirTema(avisar: () => void): () => void {
-  const consulta = window.matchMedia?.('(prefers-color-scheme: dark)')
-  consulta?.addEventListener('change', avisar)
-  const observador = new MutationObserver(avisar)
-  observador.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
-  return () => {
-    consulta?.removeEventListener('change', avisar)
-    observador.disconnect()
-  }
-}
-
-function leerEsquema(): string {
-  return getComputedStyle(document.documentElement).colorScheme
-}
-
 function useLecturaTokens(): LecturaTokens | null {
-  const esquema = useSyncExternalStore(suscribirTema, leerEsquema)
+  const esquema = useSyncExternalStore(suscribirEsquema, leerEsquema)
   if (esquema !== 'light' && esquema !== 'dark') return null
   const estilo = getComputedStyle(document.documentElement)
   return {

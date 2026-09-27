@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { crearCanal, parserSse, CIERRE_PESTANA_OCULTA_MS, type EntornoCanal } from './canal-en-vivo'
+import { crearCanal, entornoNavegador, parserSse, CIERRE_PESTANA_OCULTA_MS, type EntornoCanal } from './canal-en-vivo'
 
 function preparar() {
   let visible = true, enLinea = true, observar = () => {}, emitir = (_texto: string) => {}, cerrar = () => {}
@@ -83,5 +83,20 @@ describe('parser SSE', () => {
     procesar(':latido\r'); procesar('\nretry: 9000\r\nevent: sect'); procesar('ores\r\ndata: uno\r\ndata: dos\r\n\r'); procesar('\n')
     expect(aviso).toHaveBeenCalledTimes(1); expect(retry).toHaveBeenCalledWith(9000)
     procesar('retry: -3\nevent: otro\ndata: {}\n\n'); expect(aviso).toHaveBeenCalledTimes(1); expect(retry).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('entornoNavegador', () => {
+  afterEach(() => vi.unstubAllGlobals())
+
+  // BUG-112: en el navegador, clearTimeout invocado como método de otro objeto lanza «Illegal invocation».
+  it('debeCancelarTemporizadoresSinDependerDeQuienLlama', () => {
+    const cancelar = vi.fn<(this: unknown) => void>(function (this: unknown) {
+      if (this !== undefined && this !== globalThis) throw new TypeError('Illegal invocation')
+    })
+    vi.stubGlobal('clearTimeout', cancelar)
+    const entorno = entornoNavegador()
+    expect(() => entorno.cancelar(entorno.programar(() => {}, 1000))).not.toThrow()
+    expect(cancelar).toHaveBeenCalledOnce()
   })
 })
