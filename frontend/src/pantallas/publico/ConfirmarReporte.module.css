@@ -1,0 +1,43 @@
+@layer componentes {
+  /* Guía §4.2: formulario de una columna de 480 px, sin nada que compita con la tarea. */
+  .columna {
+    max-width: calc(480px + 2 * var(--margen-pagina));
+    align-content: start;
+  }
+
+  .bloque,
+  .confirmado {
+    display: grid;
+    gap: var(--espacio-4);
+    justify-items: start;
+  }
+
+  .bloque {
+    padding-top: var(--espacio-5);
+    border-top: 1px solid var(--linea);
+  }
+
+  .titulo {
+    font-size: var(--texto-l);
+  }
+
+  .resumen strong {
+    font-weight: 600;
+  }
+
+  .nota {
+    font-size: var(--texto-s);
+    color: var(--tinta-2);
+  }
+
+  .alerta {
+    padding-top: var(--espacio-3);
+    border-top: 1px solid var(--tinta);
+  }
+
+  @media (max-width: 599px) {
+    .bloque > :first-child {
+      justify-self: stretch;
+    }
+  }
+}

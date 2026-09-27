@@ -1,0 +1,34 @@
+@layer componentes {
+  .marca {
+    width: 48px;
+    height: 48px;
+    fill: none;
+    stroke: var(--cardenillo);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  /* identidad.md §5: la marca de recibido se dibuja. */
+  @media (prefers-reduced-motion: no-preference) {
+    .marca circle {
+      stroke-dasharray: 132;
+      animation: dibujar 480ms var(--suave) both;
+    }
+
+    .marca path {
+      stroke-dasharray: 30;
+      animation: dibujar 320ms var(--suave) 360ms both;
+    }
+  }
+
+  @keyframes dibujar {
+    from {
+      stroke-dashoffset: var(--largo, 132);
+    }
+  }
+
+  .marca path {
+    --largo: 30;
+  }
+}

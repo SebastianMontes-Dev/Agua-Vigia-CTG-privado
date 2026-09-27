@@ -3092,8 +3092,44 @@ Quitar `setWorkerUrl` si una versión futura de MapLibre vuelve a incrustar el w
 
 ---
 
+## ADR-076 — «Usar mi ubicación» localiza el barrio en el dispositivo y la coordenada solo viaja con un reporte de ese barrio
+
+- **Fecha:** 2026-09-27
+- **Estado:** Aceptada
+- **Decide:** Claude, dentro del encargo de F2 del dueño («sigue con el 1 y el 2»); revisable en el PR
+- **Relacionada:** `ADR-050` (inferencia geoespacial en el servidor), `ADR-005`/`ADR-006` (ética de datos)
+
+### Contexto
+La guía (§4.1) pide «Usar mi ubicación» en el resumen de la ciudad, sin abrir el permiso sola y sin bloquear nada si
+falla. RF007 pide registrar la coordenada del reporte cuando el vecino la autorice. La API no tiene un «¿en qué barrio
+está este punto?»: solo infiere el sector dentro de `POST /api/reportes`. Pero el vecino necesita ver su barrio
+**antes** de reportar: la pregunta es «¿tengo agua?». La geometría de los 211 barrios ya está en IndexedDB.
+
+### Alternativas consideradas
+| Opción | A favor | En contra |
+|---|---|---|
+| Endpoint nuevo `GET /api/sectores/en?lat&lon` | Una sola implementación geoespacial (Mongo) | Cambio de backend y contrato; la coordenada viaja solo para consultar |
+| Mandar solo la coordenada en el reporte | Ya existe (`ADR-050`) | El vecino no ve el estado de su barrio antes de reportar; responde otra pregunta |
+| **Punto en polígono en el cliente con la geometría descargada** | Sin red ni backend nuevos; la coordenada no sale del teléfono para consultar | Una segunda implementación (≈ 30 líneas, con pruebas de huecos y `MultiPolygon`) |
+
+### Decisión
+`sectorEnCoordenada` (`frontend/src/dominio/ubicacion.ts`) recorre la geometría y abre la ficha del barrio. La
+coordenada se guarda solo en memoria, para esa visita, y acompaña el reporte si y solo si es del mismo barrio: con otro
+barrio abierto, el reporte va sin ella para no mandar datos contradictorios. El cajón lo dice («con la ubicación que
+compartiste»). Con un margen mayor de 1 000 m (`PRECISION_MAXIMA_M`) no se adivina el barrio: se explica y se ofrece
+buscar por nombre.
+
+### Consecuencias
+El cliente y Mongo pueden discrepar en un punto exacto sobre un borde; manda el `sectorId` declarado, como ya hacía la
+API con ambos campos. El umbral de 1 000 m es un criterio, no una medición: se revisa con el teléfono real.
+
+### Cómo se revierte
+Quitar `UsarUbicacion` del resumen y el tercer argumento de `enviarReporte`; nada del backend cambia.
+
+---
+
 <!--
-Siguiente número disponible: ADR-076
+Siguiente número disponible: ADR-077
 Para agregar: usa la skill `registrar-decision`.
 Recuerda: append-only. Las entradas viejas solo cambian de estado, no de contenido.
 -->

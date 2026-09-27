@@ -1,0 +1,35 @@
+@layer componentes {
+  .ubicacion {
+    display: grid;
+    gap: var(--espacio-3);
+    justify-items: start;
+    padding-top: var(--espacio-2);
+  }
+
+  .fallo {
+    display: grid;
+    gap: var(--espacio-1);
+    padding-top: var(--espacio-3);
+    border-top: 1px solid var(--tinta);
+    font-size: var(--texto-s);
+  }
+
+  .enlace {
+    justify-self: start;
+    min-height: var(--objetivo-tactil);
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--tinta);
+    font-size: var(--texto-s);
+    text-decoration: underline;
+    text-decoration-color: var(--tinta-3);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.25em;
+    cursor: pointer;
+  }
+
+  .enlace:hover {
+    text-decoration-color: var(--laton);
+  }
+}

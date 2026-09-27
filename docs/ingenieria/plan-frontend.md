@@ -401,14 +401,17 @@ cuando su entregable se demuestra funcionando**, no por calendario.
       `ADR-075`: mapa diferido y worker de MapLibre 6 empaquetado por Vite).
 - [x] Estados de frescura de §5.2: dos horas separadas, «En vivo» solo con SSE conectado, «Sin verificación
       reciente» a las 24 horas, último listado guardado sin conexión (2026-09-26).
-- [ ] Reporte sin cuenta en 2 toques con huella, ubicación opcional, foto **después** del reporte, mensajes fieles al
+- [x] Reporte sin cuenta en 2 toques con huella, ubicación opcional, foto **después** del reporte, mensajes fieles al
       resultado y todos los errores de §6.4. `/confirmar/:id`. Se conservan las reglas de SSE, caché, reconexión y
       la prohibición de reintentar solo un `POST`. **Hecho el 2026-09-26:** dos toques desde la ficha, huella,
-      foto después del 201 y los mensajes de §6.4, con un POST real aceptado. **Falta:** «Usar mi ubicación» y
-      `/confirmar/:id`.
+      foto después del 201 y los mensajes de §6.4, con un POST real aceptado. **Hecho el 2026-09-27:** «Usar mi
+      ubicación» (`ADR-076`) y `/confirmar/:id`, con el enlace para pedir la confirmación desde «Reporte recibido»;
+      E2E con la API simulada. Titular «Confirmar reporte» (guía §5.1), no «¿Tú también estás sin agua?» de §7: sin
+      GET público, la pantalla no sabe el tipo del reporte.
 - [ ] E2E: abrir el mapa, reportar, llegar al cuarto reporte y recibir el `429` con su mensaje, cambio de estado por
       consenso (3 huellas) que llega por SSE, y confirmar un reporte. **Hecho el 2026-09-26 con la API simulada**
-      (`e2e/mapa.spec.ts`, 8 casos × 2 tamaños, corren en CI sin backend). **Falta:** el job con `docker compose`
+      (`e2e/mapa.spec.ts`, 8 casos × 2 tamaños, corren en CI sin backend); ubicación y confirmación el 2026-09-27
+      (`e2e/ubicacion-y-confirmacion.spec.ts`, 7 casos × 2 tamaños). **Falta:** el job con `docker compose`
       contra el backend real (consenso por SSE y confirmación).
 - **Hecho cuando:** pasa el checklist de `DESIGN.md` §10 y el mapa muestra todos los estados en menos de 3 s en 3G.
 

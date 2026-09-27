@@ -43,9 +43,16 @@ export function problema(estado: number, tipo: string, detalle: string) {
   return { status: estado, contentType: 'application/problem+json', body: JSON.stringify({ type: `${TIPO}${tipo}`, title: tipo, status: estado, detail: detalle }) }
 }
 
-/** Simula la API pública para las E2E que corren sin backend (CI). Devuelve los cuerpos de los reportes enviados. */
-export async function simularApi(page: Page, opciones: { sectores?: (route: Route) => Promise<void>; reporte?: (route: Route) => Promise<void> } = {}) {
+interface Opciones {
+  sectores?: (route: Route) => Promise<void>
+  reporte?: (route: Route) => Promise<void>
+  confirmacion?: (route: Route) => Promise<void>
+}
+
+/** Simula la API pública para las E2E que corren sin backend (CI). Devuelve los cuerpos de los reportes y confirmaciones. */
+export async function simularApi(page: Page, opciones: Opciones = {}) {
   const reportes: unknown[] = []
+  const confirmaciones: { id: string; cuerpo: unknown }[] = []
   await page.route('**/api/sectores/stream', (route) =>
     route.fulfill({ status: 200, contentType: 'text/event-stream', body: 'retry:60000\nevent:sectores\ndata:{}\n\n' }))
   await page.route('**/api/sectores/geometria', (route) =>
@@ -65,7 +72,20 @@ export async function simularApi(page: Page, opciones: { sectores?: (route: Rout
     if (opciones.reporte) return opciones.reporte(route)
     return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 'r1', sectorId: 'armenia', tipo: 'SIN_AGUA', confirmaciones: 0 }) })
   })
+  await page.route(/\/api\/sectores\/(?!stream$|geometria$)[^/]+$/, (route) => {
+    const id = new URL(route.request().url()).pathname.split('/')[3] ?? ''
+    const sector = listado().sectores.find((s) => s.id === id)
+    return sector
+      ? route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(sector) })
+      : route.fulfill(problema(404, 'recurso-no-encontrado', `No existe el sector '${id}'`))
+  })
+  await page.route(/\/api\/reportes\/[^/]+\/confirmar$/, async (route) => {
+    const id = new URL(route.request().url()).pathname.split('/')[3] ?? ''
+    confirmaciones.push({ id, cuerpo: route.request().postDataJSON() })
+    if (opciones.confirmacion) return opciones.confirmacion(route)
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id, sectorId: 'armenia', tipo: 'SIN_AGUA', confirmaciones: 2 }) })
+  })
   // El extracto PMTiles viaja por Git LFS y en CI puede faltar: el mapa base no es parte de estas pruebas.
   await page.route('**/mapa/cartagena.pmtiles', (route) => route.abort())
-  return { reportes }
+  return { reportes, confirmaciones }
 }

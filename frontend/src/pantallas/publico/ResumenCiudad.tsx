@@ -5,6 +5,7 @@ import { useListado } from '../../app/datos'
 import { BarraCiudad } from '../../componentes/BarraCiudad'
 import { EstadoListado } from '../../componentes/EstadoListado'
 import { GlifoEstado } from '../../componentes/GlifoEstado'
+import { UsarUbicacion } from '../../componentes/UsarUbicacion'
 import { presentarEstado } from '../../dominio/estados'
 import { ORDEN_CONTEO, barriosConNovedades, contarPorEstado, nombreLegible, type Sector } from '../../dominio/sectores'
 import { haceCuanto } from '../../dominio/tiempo'
@@ -47,6 +48,7 @@ export function ResumenCiudad() {
       <header className={estilos.entrada}>
         <h1 className={estilos.titular}>Cartagena ahora</h1>
         <p className={estilos.bajada}>Busca tu barrio o tócalo en el mapa para saber si hay agua y hasta cuándo.</p>
+        <UsarUbicacion />
       </header>
 
       {!hayListado ? (

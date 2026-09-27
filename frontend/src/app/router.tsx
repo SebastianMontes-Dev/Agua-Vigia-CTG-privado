@@ -1,5 +1,6 @@
 import { createRootRoute, createRoute, createRouter, lazyRouteComponent, Outlet } from '@tanstack/react-router'
 import { Marco } from './Marco'
+import { ConfirmarReporte } from '../pantallas/publico/ConfirmarReporte'
 import { FichaSector } from '../pantallas/publico/FichaSector'
 import { Historial, NoEncontrada, Pendiente } from '../pantallas/publico/Pendiente'
 import { PantallaMapa } from '../pantallas/publico/PantallaMapa'
@@ -13,6 +14,8 @@ const publico = createRoute({ getParentRoute: () => raiz, id: 'publico', compone
 const mapa = createRoute({ getParentRoute: () => publico, id: 'mapa', component: PantallaMapa })
 const inicio = createRoute({ getParentRoute: () => mapa, path: '/', component: ResumenCiudad })
 const sector = createRoute({ getParentRoute: () => mapa, path: 'sectores/$id', component: FichaSector })
+
+const confirmar = createRoute({ getParentRoute: () => publico, path: 'confirmar/$id', component: ConfirmarReporte })
 
 const historial = createRoute({ getParentRoute: () => publico, path: 'historial', component: Historial })
 const cumplimiento = createRoute({
@@ -40,7 +43,7 @@ const muestrario = createRoute({
 const arbol = raiz.addChildren([
   publico.addChildren([
     mapa.addChildren([inicio, sector]),
-    historial, cumplimiento, bitacora, estadisticas, avisos,
+    confirmar, historial, cumplimiento, bitacora, estadisticas, avisos,
   ]),
   muestrario,
 ])

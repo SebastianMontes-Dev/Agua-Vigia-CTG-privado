@@ -279,6 +279,13 @@ abierto.
 - **Cuando** el usuario deniega la ubicación
 - **Entonces** el reporte usa el sector que el usuario tenía abierto y el flujo continúa sin error
 
+#### Escenario: «Usar mi ubicación» en el frontend
+
+- **Cuando** el vecino toca «Usar mi ubicación» y su coordenada cae dentro de un barrio de la geometría descargada
+- **Entonces** se abre la ficha de ese barrio, sin enviar la coordenada a ningún servicio (`ADR-076`)
+- **Y** la coordenada acompaña el reporte solo si es de ese mismo barrio; con otro barrio abierto, el reporte va sin coordenada
+- **Y** con un margen de error mayor de 1 000 m, o fuera de todos los barrios, se explica y se ofrece buscar por nombre
+
 #### Escenario: Solo coordenada, sin sector declarado
 
 - **Cuando** el reporte llega con `coordenada` y sin `sectorId`
@@ -334,8 +341,14 @@ estás sin agua?»— sin registro (RF038).
 #### Escenario: Vecino confirma un reporte abierto
 
 - **Cuando** otro dispositivo llama a `POST /api/reportes/{id}/confirmar`
-- **Entonces** la confirmación se suma al reporte y cuenta para el consenso
-- **Y** el mismo dispositivo no puede confirmar dos veces el mismo reporte
+- **Entonces** la confirmación se suma al conteo `confirmaciones` del reporte, sin reevaluar el consenso
+- **Y** el mismo dispositivo, o el que envió el reporte, no suma dos veces: la respuesta es `200` sin cambios
+
+#### Escenario: Abrir el enlace compartido no confirma
+
+- **Cuando** un vecino abre `/confirmar/{id}` en el frontend
+- **Entonces** no se envía nada hasta que toca «Confirmar este reporte»
+- **Y** un `404` (reporte inexistente o descartado por moderación) se presenta como «Este reporte no está disponible»
 
 ---
 

@@ -1,0 +1,72 @@
+@layer componentes {
+  /* identidad.md §4: pastilla cardenillo de 50 px con flecha; el secundario es la misma pastilla en hueco. */
+  .principal {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--espacio-3);
+    min-height: 50px;
+    padding: 0 var(--espacio-5);
+    border: 0;
+    border-radius: var(--radio-pastilla);
+    background: var(--cardenillo);
+    color: var(--sobre-cardenillo);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .principal[data-hovered] {
+    box-shadow: inset 0 0 0 2px var(--sobre-cardenillo);
+  }
+
+  .principal[data-disabled] {
+    cursor: progress;
+  }
+
+  .principal[data-focus-visible],
+  .secundario[data-focus-visible] {
+    outline: var(--grosor-foco) solid var(--laton);
+    outline-offset: 3px;
+  }
+
+  .flecha {
+    display: inline-block;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .flecha {
+      transition: transform 320ms var(--suave);
+    }
+
+    .principal[data-hovered] .flecha {
+      transform: translateX(4px);
+    }
+  }
+
+  .secundario {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    justify-self: start;
+    min-height: var(--objetivo-tactil);
+    padding: 0 var(--espacio-5);
+    border: 1px solid var(--tinta-2);
+    border-radius: var(--radio-pastilla);
+    background: transparent;
+    color: var(--tinta);
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .secundario:hover,
+  .secundario[data-hovered] {
+    border-color: var(--laton);
+  }
+
+  .secundario[data-disabled] {
+    color: var(--tinta-2);
+    cursor: progress;
+  }
+}
