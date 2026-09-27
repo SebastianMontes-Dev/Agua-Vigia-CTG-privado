@@ -26,7 +26,7 @@ Referencias cruzadas: `ADR-NNN` · `BUG-NNN` · `RF0NN` · `archivo:línea`.
 ## Sprint 7 — Frontend nuevo
 
 ### 2026-09-26 · `claude/tender-shannon-lp71uu`
-**Qué:** F2 avanzó: mapa con PMTiles local, buscador, lista accesible, ficha (horario, regla de tiempo, cortes cerrados, frescura) y reporte en dos toques con huella y foto, contra el backend real (`ADR-075`). Cerrado `BUG-110` (canal en vivo rompía en el navegador). 170 unitarias y 32 E2E con API simulada en verde; revisión de diseño en 4 tamaños y 2 temas.
+**Qué:** F2 avanzó: mapa con PMTiles local, buscador, lista accesible, ficha (horario, regla de tiempo, cortes cerrados, frescura) y reporte en dos toques con huella y foto, contra el backend real (`ADR-075`). Cerrado `BUG-112` (canal en vivo rompía en el navegador). 170 unitarias y 32 E2E con API simulada en verde; revisión de diseño en 4 tamaños y 2 temas.
 **Sigue:** «Usar mi ubicación», `/confirmar/:id` y el job de E2E contra el backend real; el dueño revisa la interfaz en un teléfono antes de fusionar el PR de F2.
 
 ### 2026-09-25 · `claude/charming-shannon-9xqogb`

@@ -89,7 +89,7 @@ describe('parser SSE', () => {
 describe('entornoNavegador', () => {
   afterEach(() => vi.unstubAllGlobals())
 
-  // BUG-110: en el navegador, clearTimeout invocado como método de otro objeto lanza «Illegal invocation».
+  // BUG-112: en el navegador, clearTimeout invocado como método de otro objeto lanza «Illegal invocation».
   it('debeCancelarTemporizadoresSinDependerDeQuienLlama', () => {
     const cancelar = vi.fn<(this: unknown) => void>(function (this: unknown) {
       if (this !== undefined && this !== globalThis) throw new TypeError('Illegal invocation')

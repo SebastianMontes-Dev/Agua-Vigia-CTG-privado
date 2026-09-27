@@ -7,7 +7,8 @@ AguaVigía cruza los avisos oficiales con reportes ciudadanos georreferenciados 
 > Cartagena de Indias · 2026
 
 **Estado actual:** backend, bases de datos e infraestructura completos. RF041 (alertas por Telegram) está construido y
-armado, y se activa con `TELEGRAM_BOT_TOKEN`; falta conectarlo al bot real. **929 pruebas** de backend en verde, con la
+armado, y se activa con `TELEGRAM_BOT_TOKEN`; falta conectarlo al bot real. Pruebas de backend en verde (cifra y fecha en
+[`estado-del-backend.md`](docs/ingenieria/estado-del-backend.md) §2), con la
 cobertura de `domain/` y `application/` por encima del 85% que exige la build (`./mvnw verify` con Docker
 abierto). El detalle requisito por requisito, con el nombre de la prueba que sostiene cada uno, está en la
 [matriz de trazabilidad](docs/ingenieria/matriz-trazabilidad.md).
@@ -103,7 +104,8 @@ origen en `application-dev.yml` o servirlo detrás del mismo proxy. Detalle en
 
 ## 🧪 Pruebas y Aseguramiento de Calidad (QA)
 
-El backend de AguaVigía cuenta con **929 pruebas unitarias y de integración**, y la build falla si la
+El backend de AguaVigía tiene pruebas unitarias y de integración (cifra al día en
+[`estado-del-backend.md`](docs/ingenieria/estado-del-backend.md) §2), y la build falla si la
 cobertura de `domain/` o `application/` baja del 85% (RNF017) o si se viola una capa de la
 arquitectura (RNF018, ArchUnit).
 
