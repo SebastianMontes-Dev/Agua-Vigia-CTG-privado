@@ -32,6 +32,11 @@ describe('sectorEnCoordenada', () => {
     expect(sectorEnCoordenada(GEOMETRIA, { latitud: 10.305, longitud: -75.585 })).toBeNull()
   })
 
+  it('debeSaltarUnBarrioSinGeometria', () => {
+    const conNulo = { ...GEOMETRIA, features: [{ type: 'Feature', id: 'vacio', properties: {}, geometry: null }, ...GEOMETRIA.features] }
+    expect(sectorEnCoordenada(conNulo as unknown as GeometriaSectores, { latitud: 10.402, longitud: -75.538 })).toBe('manga')
+  })
+
   it('debeDevolverNuloFueraDeTodosLosBarrios', () => {
     expect(sectorEnCoordenada(GEOMETRIA, { latitud: 4.6, longitud: -74.08 })).toBeNull()
   })

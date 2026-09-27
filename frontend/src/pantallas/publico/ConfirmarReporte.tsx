@@ -2,7 +2,8 @@ import { Link, useParams } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Button } from 'react-aria-components'
-import { api } from '../../api/cliente'
+import { api, normalizarError } from '../../api/cliente'
+import { esPropio, recordarConfirmado, yaConfirmado } from '../../api/memoria-reportes'
 import { confirmarReporte, type Reporte, type ResultadoConfirmacion, type TipoReporte } from '../../api/reportes'
 import { MarcaRecibido } from '../../componentes/MarcaRecibido'
 import { nombreLegible } from '../../dominio/sectores'
@@ -32,20 +33,25 @@ function mensaje(resultado: Exclude<ResultadoConfirmacion, { tipo: 'confirmado' 
   }
 }
 
-/** El nombre del barrio sale del sector que devolvió la confirmación; sin él, se dice sin barrio. */
+/**
+ * El nombre del barrio sale del sector que devolvió la confirmación; sin él, se dice sin barrio. Un GET puntual y no
+ * `useListado()`: el listado abriría el canal en vivo en una página que no muestra el mapa.
+ */
 function useNombreSector(sectorId: string | undefined) {
   return useQuery({
-    queryKey: ['sector', sectorId],
+    queryKey: ['nombre-sector', sectorId],
     enabled: Boolean(sectorId),
     queryFn: async () => {
-      const { data } = await api.GET('/api/sectores/{id}', { params: { path: { id: sectorId ?? '' } } })
-      return data?.nombre ? nombreLegible(data.nombre) : null
+      const { data, error, response } = await api.GET('/api/sectores/{id}', { params: { path: { id: sectorId ?? '' } } })
+        .catch(() => ({ data: undefined, error: undefined, response: null }))
+      if (!response?.ok || !data) throw normalizarError(response ?? null, error)
+      return data.nombre ? nombreLegible(data.nombre) : null
     },
     staleTime: Infinity,
   })
 }
 
-function Confirmado({ reporte }: { reporte: Reporte }) {
+function Confirmado({ reporte, repetida }: { reporte: Reporte; repetida: boolean }) {
   const { data: barrio } = useNombreSector(reporte.sectorId)
   const dice = LO_QUE_DICE[reporte.tipo as TipoReporte] as string | undefined
   const otros = reporte.confirmaciones ?? 0
@@ -53,7 +59,7 @@ function Confirmado({ reporte }: { reporte: Reporte }) {
   return (
     <div className={estilos.confirmado}>
       <MarcaRecibido />
-      <h2 className={estilos.titulo}>Confirmación recibida</h2>
+      <h2 className={estilos.titulo}>{repetida ? 'Ya habías confirmado este reporte' : 'Confirmación recibida'}</h2>
       <output className={estilos.resumen}>
         {dice && <>El reporte dice que {barrio ? <>en <strong>{barrio}</strong> </> : ''}{dice}. </>}
         {otros > 0 && (vecinos.select(otros) === 'one'
@@ -77,20 +83,40 @@ export function ConfirmarReporte() {
   const { id } = useParams({ from: '/publico/confirmar/$id' })
   const [enviando, setEnviando] = useState(false)
   const [resultado, setResultado] = useState<ResultadoConfirmacion | null>(null)
+  const [repetida, setRepetida] = useState(false)
 
   async function confirmar() {
     if (enviando) return
     setEnviando(true)
     setResultado(null)
-    setResultado(await confirmarReporte(id))
+    const respuesta = await confirmarReporte(id)
+    if (respuesta.tipo === 'confirmado') {
+      setRepetida(yaConfirmado(id))
+      recordarConfirmado(id)
+    }
+    setResultado(respuesta)
     setEnviando(false)
+  }
+
+  // Quien envió el reporte no se cuenta a sí mismo: el servidor respondería 200 sin sumar nada.
+  if (esPropio(id)) {
+    return (
+      <div className={`${pagina.pagina} ${estilos.columna}`}>
+        <h1 className={pagina.titular}>Confirmar reporte</h1>
+        <p className={pagina.entrada}>
+          Este reporte lo enviaste tú desde este dispositivo, así que no puedes confirmarlo. Comparte el enlace con un
+          vecino para que lo confirme.
+        </p>
+        <Link to="/" className={pagina.enlace}>Ir al mapa</Link>
+      </div>
+    )
   }
 
   return (
     <div className={`${pagina.pagina} ${estilos.columna}`}>
       <h1 className={pagina.titular}>Confirmar reporte</h1>
       {resultado?.tipo === 'confirmado' ? (
-        <Confirmado reporte={resultado.reporte} />
+        <Confirmado reporte={resultado.reporte} repetida={repetida} />
       ) : resultado?.tipo === 'no-disponible' ? (
         <div className={estilos.confirmado}>
           <p role="alert">{mensaje(resultado)}</p>

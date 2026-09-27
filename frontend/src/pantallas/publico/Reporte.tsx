@@ -1,5 +1,6 @@
 import { useId, useRef, useState } from 'react'
 import { Button, Dialog, DialogTrigger, Heading, Modal, ModalOverlay } from 'react-aria-components'
+import { recordarPropio } from '../../api/memoria-reportes'
 import { enviarFoto, enviarReporte, TIPOS_FOTO, type ResultadoEnvio, type ResultadoFoto, type TipoReporte } from '../../api/reportes'
 import { ubicacionPara } from '../../app/ubicacion'
 import { MarcaRecibido } from '../../componentes/MarcaRecibido'
@@ -121,6 +122,7 @@ function Compartir({ reporteId, texto }: { reporteId: string; texto: string }) {
 export function Reporte({ sector }: { sector: Sector }) {
   const [enviando, setEnviando] = useState<TipoReporte | null>(null)
   const [resultado, setResultado] = useState<ResultadoEnvio | null>(null)
+  const [enviado, setEnviado] = useState<TipoReporte>('SIN_AGUA')
   const nombre = nombreLegible(sector.nombre)
   const coordenada = ubicacionPara(sector.id ?? '')
 
@@ -128,7 +130,10 @@ export function Reporte({ sector }: { sector: Sector }) {
     if (enviando) return
     setEnviando(tipo)
     setResultado(null)
-    setResultado(await enviarReporte(sector.id ?? '', tipo, coordenada))
+    const respuesta = await enviarReporte(sector.id ?? '', tipo, coordenada)
+    if (respuesta.tipo === 'recibido' && respuesta.reporte.id) recordarPropio(respuesta.reporte.id)
+    setEnviado(tipo)
+    setResultado(respuesta)
     setEnviando(null)
   }
 
@@ -147,7 +152,7 @@ export function Reporte({ sector }: { sector: Sector }) {
                 <output>Tu reporte cuenta junto con los de tus vecinos. El mapa cambia cuando varios coinciden.</output>
                 <Compartir
                   reporteId={resultado.reporte.id ?? ''}
-                  texto={PARA_COMPARTIR[(resultado.reporte.tipo as TipoReporte | undefined) ?? 'SIN_AGUA'](nombre)}
+                  texto={PARA_COMPARTIR[enviado](nombre)}
                 />
                 <Foto reporteId={resultado.reporte.id ?? ''} />
                 <Button className={botones.secundario} onPress={close}>Volver a {nombre}</Button>

@@ -2,6 +2,7 @@ import { Outlet, useNavigate, useParams } from '@tanstack/react-router'
 import { lazy, Suspense, useCallback } from 'react'
 import { useGeometria, useListado } from '../../app/datos'
 import { Buscador } from '../../componentes/Buscador'
+import { ID_BUSCADOR } from '../../componentes/UsarUbicacion'
 import estilos from './PantallaMapa.module.css'
 
 // MapLibre pesa más que todo lo demás junto: se carga aparte para que la respuesta del panel no lo espere (DESIGN.md §8).
@@ -40,7 +41,7 @@ export function PantallaMapa() {
 
   return (
     <div className={estilos.pantalla}>
-      <search className={estilos.buscador}>
+      <search id={ID_BUSCADOR} className={estilos.buscador}>
         <Buscador sectores={sectores} cargando={!lectura.listado} alElegir={elegir} />
       </search>
       <div className={estilos.mapa}>

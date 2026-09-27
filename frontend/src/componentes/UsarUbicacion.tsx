@@ -1,13 +1,16 @@
 import { useNavigate } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Button } from 'react-aria-components'
 import { useGeometria } from '../app/datos'
-import { hayGeolocalizacion, pedirUbicacion, recordarUbicacion, type ResultadoUbicacion } from '../app/ubicacion'
-import { sectorEnCoordenada } from '../dominio/ubicacion'
+import { hayGeolocalizacion, olvidarUbicacion, pedirUbicacion, recordarUbicacion, type ResultadoUbicacion } from '../app/ubicacion'
+import { sectorEnCoordenada, type Coordenada } from '../dominio/ubicacion'
 import botones from './Botones.module.css'
 import estilos from './UsarUbicacion.module.css'
 
 type Fallo = Exclude<ResultadoUbicacion, { tipo: 'ubicada' }> | { tipo: 'fuera' } | { tipo: 'sin-geometria' }
+
+/** El `<search>` del mapa lo lleva: así «Buscar mi barrio por su nombre» encuentra el campo sin conocer su estructura. */
+export const ID_BUSCADOR = 'buscador-barrio'
 
 const metros = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 })
 
@@ -23,7 +26,7 @@ function mensaje(fallo: Fallo): string {
 }
 
 function irAlBuscador() {
-  document.querySelector<HTMLInputElement>('search input')?.focus()
+  document.getElementById(ID_BUSCADOR)?.querySelector('input')?.focus()
 }
 
 /** Guía §4.1: el permiso se pide solo al tocar; si falla, la búsqueda sigue ahí y nada queda bloqueado. */
@@ -32,27 +35,43 @@ export function UsarUbicacion() {
   const navegar = useNavigate()
   const [buscando, setBuscando] = useState(false)
   const [fallo, setFallo] = useState<Fallo | null>(null)
+  // El GPS puede tardar 15 s: si mientras tanto la persona abrió otro barrio, la respuesta tardía no la mueve de ahí.
+  const vigente = useRef(true)
+  useEffect(() => {
+    vigente.current = true
+    return () => { vigente.current = false }
+  }, [])
 
   if (!hayGeolocalizacion()) return null
 
+  async function localizar(): Promise<Fallo | { sectorId: string; coordenada: Coordenada }> {
+    const resultado = await pedirUbicacion()
+    if (resultado.tipo !== 'ubicada') return resultado
+    const dibujo = geometria.data ?? (await geometria.refetch()).data
+    if (!dibujo) return { tipo: 'sin-geometria' }
+    const sectorId = sectorEnCoordenada(dibujo, resultado.coordenada)
+    return sectorId ? { sectorId, coordenada: resultado.coordenada } : { tipo: 'fuera' }
+  }
+
   async function ubicar() {
+    // Un intento nuevo invalida el anterior: si este falla, no queda una coordenada vieja para el próximo reporte.
+    olvidarUbicacion()
     setBuscando(true)
     setFallo(null)
-    const resultado = await pedirUbicacion()
-    if (resultado.tipo !== 'ubicada') {
-      setBuscando(false)
-      setFallo(resultado)
-      return
+    try {
+      const resultado = await localizar()
+      if (!vigente.current) return
+      if ('tipo' in resultado) {
+        setFallo(resultado)
+        return
+      }
+      recordarUbicacion(resultado.sectorId, resultado.coordenada)
+      void navegar({ to: '/sectores/$id', params: { id: resultado.sectorId } })
+    } catch {
+      if (vigente.current) setFallo({ tipo: 'no-disponible' })
+    } finally {
+      if (vigente.current) setBuscando(false)
     }
-    const dibujo = geometria.data ?? (await geometria.refetch()).data
-    const sectorId = dibujo ? sectorEnCoordenada(dibujo, resultado.coordenada) : null
-    setBuscando(false)
-    if (!dibujo || !sectorId) {
-      setFallo({ tipo: dibujo ? 'fuera' : 'sin-geometria' })
-      return
-    }
-    recordarUbicacion(sectorId, resultado.coordenada)
-    void navegar({ to: '/sectores/$id', params: { id: sectorId } })
   }
 
   return (

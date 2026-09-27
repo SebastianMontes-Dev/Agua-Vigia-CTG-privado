@@ -349,6 +349,8 @@ estás sin agua?»— sin registro (RF038).
 - **Cuando** un vecino abre `/confirmar/{id}` en el frontend
 - **Entonces** no se envía nada hasta que toca «Confirmar este reporte»
 - **Y** un `404` (reporte inexistente o descartado por moderación) se presenta como «Este reporte no está disponible»
+- **Y** si ese dispositivo envió el reporte, se dice y no se ofrece confirmar; si ya lo había confirmado, la respuesta
+  lo aclara («Ya habías confirmado este reporte»), porque el `200` del servidor no distingue esos casos
 
 ---
 

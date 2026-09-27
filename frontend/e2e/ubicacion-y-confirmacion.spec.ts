@@ -104,3 +104,27 @@ test('debeOfrecerElEnlaceDeConfirmacionDespuesDeReportar', async ({ page, contex
   const copiado = await page.evaluate(() => navigator.clipboard.readText())
   expect(copiado).toMatch(/^En Armenia no llega agua a mi casa\..* http:\/\/localhost:\d+\/confirmar\/r1$/)
 })
+
+test('noDebeOfrecerConfirmarElReportePropio', async ({ page }) => {
+  const { confirmaciones } = await simularApi(page)
+  await page.goto('/sectores/armenia')
+  await page.getByRole('button', { name: 'Reportar lo que pasa en mi casa' }).click()
+  await page.getByRole('button', { name: 'No tengo agua' }).click()
+  await expect(page.getByRole('heading', { name: 'Reporte recibido' })).toBeVisible()
+
+  await page.goto('/confirmar/r1')
+  await expect(page.getByText('Este reporte lo enviaste tú')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Confirmar este reporte' })).toHaveCount(0)
+  expect(confirmaciones).toHaveLength(0)
+})
+
+test('debeDecirQueUnaSegundaConfirmacionNoSeCuentaDosVeces', async ({ page }) => {
+  await simularApi(page)
+  await page.goto('/confirmar/r9')
+  await page.getByRole('button', { name: 'Confirmar este reporte' }).click()
+  await expect(page.getByRole('heading', { name: 'Confirmación recibida' })).toBeVisible()
+
+  await page.reload()
+  await page.getByRole('button', { name: 'Confirmar este reporte' }).click()
+  await expect(page.getByRole('heading', { name: 'Ya habías confirmado este reporte' })).toBeVisible()
+})
