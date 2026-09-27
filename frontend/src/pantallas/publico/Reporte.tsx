@@ -1,7 +1,11 @@
-import { useRef, useState } from 'react'
+import { useId, useRef, useState } from 'react'
 import { Button, Dialog, DialogTrigger, Heading, Modal, ModalOverlay } from 'react-aria-components'
+import { recordarPropio } from '../../api/memoria-reportes'
 import { enviarFoto, enviarReporte, TIPOS_FOTO, type ResultadoEnvio, type ResultadoFoto, type TipoReporte } from '../../api/reportes'
+import { ubicacionPara } from '../../app/ubicacion'
+import { MarcaRecibido } from '../../componentes/MarcaRecibido'
 import { nombreLegible, type Sector } from '../../dominio/sectores'
+import botones from '../../componentes/Botones.module.css'
 import estilos from './Reporte.module.css'
 
 const OPCIONES: { tipo: TipoReporte; texto: string }[] = [
@@ -10,13 +14,10 @@ const OPCIONES: { tipo: TipoReporte; texto: string }[] = [
   { tipo: 'SERVICIO_RESTABLECIDO', texto: 'Ya volvió el agua' },
 ]
 
-function MarcaRecibido() {
-  return (
-    <svg className={estilos.marca} viewBox="0 0 48 48" aria-hidden="true">
-      <circle cx="24" cy="24" r="21" />
-      <path d="M14.5 24.5l6.5 6.5 13-14" />
-    </svg>
-  )
+const PARA_COMPARTIR: Record<TipoReporte, (barrio: string) => string> = {
+  SIN_AGUA: (barrio) => `En ${barrio} no llega agua a mi casa. Si a la tuya tampoco, confirma mi reporte en AguaVigía:`,
+  PRESION_BAJA: (barrio) => `En ${barrio} llega poca agua a mi casa. Si a la tuya también, confirma mi reporte en AguaVigía:`,
+  SERVICIO_RESTABLECIDO: (barrio) => `En ${barrio} ya volvió el agua a mi casa. Si a la tuya también, confirma mi reporte en AguaVigía:`,
 }
 
 function mensajeEnvio(resultado: Exclude<ResultadoEnvio, { tipo: 'recibido' }>): string {
@@ -57,7 +58,7 @@ function Foto({ reporteId }: { reporteId: string }) {
   if (resultado?.tipo === 'recibida') return <output className={estilos.estado}>{mensajeFoto(resultado)}</output>
 
   return (
-    <div className={estilos.foto}>
+    <div className={estilos.anexo}>
       <input
         ref={entrada}
         id={`foto-${reporteId}`}
@@ -67,11 +68,49 @@ function Foto({ reporteId }: { reporteId: string }) {
         disabled={enviando}
         onChange={(evento) => void elegir(evento.target.files?.[0])}
       />
-      <label htmlFor={`foto-${reporteId}`} className={estilos.secundario} aria-disabled={enviando}>
+      <label htmlFor={`foto-${reporteId}`} className={botones.secundario} aria-disabled={enviando}>
         {enviando ? 'Enviando foto…' : 'Añadir una foto'}
       </label>
       <p className={estilos.ayuda}>Opcional. JPEG, PNG o WebP de hasta 10 MB; se le quita la ubicación antes de guardarla.</p>
       {resultado && <p className={estilos.error} role="alert">{mensajeFoto(resultado)}</p>}
+    </div>
+  )
+}
+
+/** RF038: no hay listado público de reportes; el único que un vecino puede confirmar es el que le comparten. */
+function Compartir({ reporteId, texto }: { reporteId: string; texto: string }) {
+  const [copia, setCopia] = useState<'copiado' | 'manual' | null>(null)
+  const idEnlace = useId()
+  const enlace = `${window.location.origin}/confirmar/${encodeURIComponent(reporteId)}`
+
+  async function compartir() {
+    if (typeof navigator.share === 'function') {
+      try {
+        await navigator.share({ title: 'Confirma mi reporte', text: texto, url: enlace })
+        return
+      } catch (error) {
+        if ((error as DOMException).name === 'AbortError') return
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(`${texto} ${enlace}`)
+      setCopia('copiado')
+    } catch {
+      setCopia('manual')
+    }
+  }
+
+  return (
+    <div className={estilos.anexo}>
+      <Button className={botones.secundario} onPress={() => void compartir()}>Pedir a un vecino que lo confirme</Button>
+      <p className={estilos.ayuda}>Quien reciba el enlace puede confirmar tu reporte con un toque, sin cuenta.</p>
+      {copia === 'copiado' && <output className={estilos.estado}>Enlace copiado. Pégalo en el mensaje para tu vecino.</output>}
+      {copia === 'manual' && (
+        <div className={estilos.enlaceManual}>
+          <label htmlFor={idEnlace} className={estilos.ayuda}>Copia este enlace y envíaselo:</label>
+          <input id={idEnlace} className={estilos.enlace} readOnly value={enlace} onFocus={(evento) => evento.target.select()} />
+        </div>
+      )}
     </div>
   )
 }
@@ -83,20 +122,25 @@ function Foto({ reporteId }: { reporteId: string }) {
 export function Reporte({ sector }: { sector: Sector }) {
   const [enviando, setEnviando] = useState<TipoReporte | null>(null)
   const [resultado, setResultado] = useState<ResultadoEnvio | null>(null)
+  const [enviado, setEnviado] = useState<TipoReporte>('SIN_AGUA')
   const nombre = nombreLegible(sector.nombre)
+  const coordenada = ubicacionPara(sector.id ?? '')
 
   async function enviar(tipo: TipoReporte) {
     if (enviando) return
     setEnviando(tipo)
     setResultado(null)
-    setResultado(await enviarReporte(sector.id ?? '', tipo))
+    const respuesta = await enviarReporte(sector.id ?? '', tipo, coordenada)
+    if (respuesta.tipo === 'recibido' && respuesta.reporte.id) recordarPropio(respuesta.reporte.id)
+    setEnviado(tipo)
+    setResultado(respuesta)
     setEnviando(null)
   }
 
   return (
     <DialogTrigger onOpenChange={(abierto) => { if (!abierto) setResultado(null) }}>
-      <Button className={estilos.principal}>
-        Reportar lo que pasa en mi casa <span className={estilos.flecha} aria-hidden="true">→</span>
+      <Button className={botones.principal}>
+        Reportar lo que pasa en mi casa <span className={botones.flecha} aria-hidden="true">→</span>
       </Button>
       <ModalOverlay className={estilos.fondo} isDismissable>
         <Modal className={estilos.cajon}>
@@ -106,13 +150,19 @@ export function Reporte({ sector }: { sector: Sector }) {
                 <MarcaRecibido />
                 <Heading slot="title" className={estilos.titulo}>Reporte recibido</Heading>
                 <output>Tu reporte cuenta junto con los de tus vecinos. El mapa cambia cuando varios coinciden.</output>
+                <Compartir
+                  reporteId={resultado.reporte.id ?? ''}
+                  texto={PARA_COMPARTIR[enviado](nombre)}
+                />
                 <Foto reporteId={resultado.reporte.id ?? ''} />
-                <Button className={estilos.secundario} onPress={close}>Volver a {nombre}</Button>
+                <Button className={botones.secundario} onPress={close}>Volver a {nombre}</Button>
               </div>
             ) : (
               <>
                 <Heading slot="title" className={estilos.titulo}>¿Qué pasa con el agua en tu casa?</Heading>
-                <p className={estilos.contexto}>Reportas en <strong>{nombre}</strong>. No hace falta cuenta.</p>
+                <p className={estilos.contexto}>
+                  Reportas en <strong>{nombre}</strong>{coordenada && ', con la ubicación que compartiste'}. No hace falta cuenta.
+                </p>
                 <div className={estilos.opciones} aria-busy={enviando !== null}>
                   {OPCIONES.map((opcion) => (
                     <Button

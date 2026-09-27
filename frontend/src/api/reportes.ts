@@ -1,4 +1,5 @@
 import type { components } from './generado/esquema'
+import type { Coordenada } from '../dominio/ubicacion'
 import { api, normalizarError } from './cliente'
 import { obtenerHuella } from './huella'
 
@@ -10,6 +11,15 @@ export type ResultadoEnvio =
   | { tipo: 'sin-red' }
   | { tipo: 'incierto' }
   | { tipo: 'cupo-agotado' }
+  | { tipo: 'esperar'; segundos: number | null }
+  | { tipo: 'rechazado'; mensaje: string }
+  | { tipo: 'fallo' }
+
+export type ResultadoConfirmacion =
+  | { tipo: 'confirmado'; reporte: Reporte }
+  | { tipo: 'no-disponible' }
+  | { tipo: 'sin-red' }
+  | { tipo: 'incierto' }
   | { tipo: 'esperar'; segundos: number | null }
   | { tipo: 'rechazado'; mensaje: string }
   | { tipo: 'fallo' }
@@ -36,15 +46,46 @@ export function interpretarEnvio(respuesta: Response | null, cuerpo: unknown): R
 export async function enviarReporte(
   sectorId: string,
   tipo: TipoReporte,
+  coordenada: Coordenada | null = null,
   enLinea: () => boolean = () => navigator.onLine,
 ): Promise<ResultadoEnvio> {
   if (!enLinea()) return { tipo: 'sin-red' }
   const huella = await obtenerHuella()
+  const cuerpo = coordenada ? { tipo, huella, sectorId, coordenada } : { tipo, huella, sectorId }
   try {
-    const { data, error, response } = await api.POST('/api/reportes', { body: { tipo, huella, sectorId } })
+    const { data, error, response } = await api.POST('/api/reportes', { body: cuerpo })
     return interpretarEnvio(response, data ?? error)
   } catch {
     return interpretarEnvio(null, null)
+  }
+}
+
+/** Un `404` es igual si el reporte no existe o si moderación lo descartó: para quien confirma, ya no cuenta. */
+export function interpretarConfirmacion(respuesta: Response | null, cuerpo: unknown): ResultadoConfirmacion {
+  if (respuesta === null) return { tipo: 'incierto' }
+  if (respuesta.status === 200) return { tipo: 'confirmado', reporte: cuerpo as Reporte }
+  if (respuesta.status === 404) return { tipo: 'no-disponible' }
+  const error = normalizarError(respuesta, cuerpo)
+  if (respuesta.status === 429) return { tipo: 'esperar', segundos: error.segundosParaReintentar }
+  if (respuesta.status === 400) return { tipo: 'rechazado', mensaje: error.mensaje }
+  return { tipo: 'fallo' }
+}
+
+/** Se envía solo cuando la persona lo pide: abrir el enlace no confirma nada (guía §5.1). */
+export async function confirmarReporte(
+  reporteId: string,
+  enLinea: () => boolean = () => navigator.onLine,
+): Promise<ResultadoConfirmacion> {
+  if (!enLinea()) return { tipo: 'sin-red' }
+  const huella = await obtenerHuella()
+  try {
+    const { data, error, response } = await api.POST('/api/reportes/{id}/confirmar', {
+      params: { path: { id: reporteId } },
+      body: { huella },
+    })
+    return interpretarConfirmacion(response, data ?? error)
+  } catch {
+    return interpretarConfirmacion(null, null)
   }
 }
 

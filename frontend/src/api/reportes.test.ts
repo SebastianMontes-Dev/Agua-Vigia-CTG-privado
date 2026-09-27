@@ -1,4 +1,4 @@
-import { enviarReporte, interpretarEnvio, interpretarFoto } from './reportes'
+import { confirmarReporte, enviarReporte, interpretarConfirmacion, interpretarEnvio, interpretarFoto } from './reportes'
 
 const TIPO = 'https://aguavigia.example/errores/'
 
@@ -31,7 +31,37 @@ describe('interpretarEnvio', () => {
 describe('enviarReporte', () => {
   it('noDebeIntentarElEnvioSinConexion', async () => {
     const pedir = vi.spyOn(globalThis, 'fetch')
-    expect(await enviarReporte('manga', 'SIN_AGUA', () => false)).toEqual({ tipo: 'sin-red' })
+    expect(await enviarReporte('manga', 'SIN_AGUA', null, () => false)).toEqual({ tipo: 'sin-red' })
+    expect(pedir).not.toHaveBeenCalled()
+  })
+})
+
+describe('interpretarConfirmacion', () => {
+  it('debeDevolverElReporteConSusConfirmaciones', () => {
+    expect(interpretarConfirmacion(respuesta(200), { id: 'r1', sectorId: 'manga', confirmaciones: 3 }))
+      .toEqual({ tipo: 'confirmado', reporte: { id: 'r1', sectorId: 'manga', confirmaciones: 3 } })
+  })
+
+  it('debeTratarElReporteInexistenteYElDescartadoComoNoDisponible', () => {
+    expect(interpretarConfirmacion(respuesta(404), { type: `${TIPO}recurso-no-encontrado`, detail: "No existe el reporte 'x'" }))
+      .toEqual({ tipo: 'no-disponible' })
+  })
+
+  it('noDebeDarPorConfirmadoUnEnvioSinRespuesta', () => {
+    expect(interpretarConfirmacion(null, null)).toEqual({ tipo: 'incierto' })
+  })
+
+  it('debeEsperarElRetryAfterDelLimitePorIp', () => {
+    expect(interpretarConfirmacion(respuesta(429, { 'Retry-After': '12' }), { type: `${TIPO}limite-de-peticiones-excedido` }))
+      .toEqual({ tipo: 'esperar', segundos: 12 })
+    expect(interpretarConfirmacion(respuesta(503), { type: `${TIPO}servicio-no-disponible` })).toEqual({ tipo: 'fallo' })
+  })
+})
+
+describe('confirmarReporte', () => {
+  it('noDebeIntentarLaConfirmacionSinConexion', async () => {
+    const pedir = vi.spyOn(globalThis, 'fetch')
+    expect(await confirmarReporte('r1', () => false)).toEqual({ tipo: 'sin-red' })
     expect(pedir).not.toHaveBeenCalled()
   })
 })

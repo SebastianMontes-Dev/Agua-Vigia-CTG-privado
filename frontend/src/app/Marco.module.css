@@ -1,5 +1,8 @@
 @layer componentes {
+  /* La columna reparte el alto: en una página corta, la barra inferior queda al pie y no detrás del contenido. */
   .marco {
+    display: flex;
+    flex-direction: column;
     min-height: 100dvh;
   }
 
@@ -176,6 +179,7 @@
   }
 
   .principal {
+    flex: 1 0 auto;
     outline: none;
   }
 
