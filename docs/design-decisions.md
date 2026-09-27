@@ -3063,8 +3063,37 @@ Sustituir la fábrica/parser por EventSource exige resolver primero cómo observ
 
 ---
 
+## ADR-075 — El núcleo ciudadano carga el mapa aparte y empaqueta el worker de MapLibre 6 con Vite
+
+- **Fecha:** 2026-09-26
+- **Estado:** Aceptada
+- **Decide:** Claude, dentro del encargo de F2 del dueño («continuemos con el frontend»); revisable en el PR del núcleo ciudadano
+
+### Contexto
+F2 trae MapLibre 6, `pmtiles`, TanStack Router y Query y React Aria (plan §3). Tres hechos medidos al integrarlos: MapLibre 6 busca su worker con `new URL('./maplibre-gl-worker.mjs', import.meta.url)` y, reempaquetado por Vite, el worker no se encuentra («Worker failed to load»); el bloque principal pesaba 185 KB gzip y el del mapa 292 KB; y `maplibre-gl.css`, fuera de `@layer`, gana a los estilos del proyecto, que viven en capas (dejó el lienzo en 0 px).
+
+### Alternativas consideradas
+| Opción | A favor | En contra |
+|---|---|---|
+| Excluir `maplibre-gl` de `optimizeDeps` | Sin configuración del worker | Solo arregla desarrollo; en el build la URL del worker es dinámica y tampoco se reescribe |
+| **`?worker&url` + `setWorkerUrl` y `worker.format: 'es'`** | Vite empaqueta el worker con su módulo compartido; mismo camino en dev y build; del mismo origen (CSP de §8) | Un archivo más (510 KB sin comprimir, se descarga con el mapa) |
+| Todo en el bloque principal | Menos trozos | El vecino espera ~300 KB de mapa antes de ver la respuesta del panel (DESIGN.md §8) |
+| **Mapa, reporte y muestrario en trozos diferidos** | La respuesta textual no espera a MapLibre | El mapa aparece un instante después que el panel |
+| `@react-aria/optimize-locales-plugin` con `es-ES` | Quita los textos de ~30 idiomas | Ahorro de 12 KB sin comprimir; probado y descartado: con el navegador en otro idioma React Aria busca `en-US`, ya borrado, y la app se cae |
+
+### Decisión
+El mapa se carga con `lazy()` y solo cuando ya existen geometría y listado; el cajón del reporte y el muestrario, también diferidos. El worker se indica con `setWorkerUrl` desde `maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url`. React Aria conserva todos sus idiomas y la app fija `I18nProvider` en `es-CO`, para que sus anuncios al lector de pantalla salgan en español con cualquier navegador. El lienzo del mapa se dimensiona por alto y ancho, nunca por `position`, porque la hoja de MapLibre no está en capas.
+
+### Consecuencias
+Bloque principal: 181 KB gzip (React, router, Query y React Aria); mapa: 292 KB gzip; reporte: 4 KB. El presupuesto de 3G de `RNF001` se mide en F6 con Lighthouse; si no alcanza, el candidato es React Aria en el buscador. Un cambio de versión de MapLibre obliga a revisar la ruta del worker.
+
+### Cómo se revierte
+Quitar `setWorkerUrl` si una versión futura de MapLibre vuelve a incrustar el worker.
+
+---
+
 <!--
-Siguiente número disponible: ADR-075
+Siguiente número disponible: ADR-076
 Para agregar: usa la skill `registrar-decision`.
 Recuerda: append-only. Las entradas viejas solo cambian de estado, no de contenido.
 -->

@@ -26,6 +26,7 @@ export default defineConfig({
   server: { port: 5173, strictPort: true, proxy },
   preview: { port: 4173, strictPort: true, proxy },
   build: { target: 'es2022', sourcemap: true },
+  worker: { format: 'es' },
   test: {
     environment: 'jsdom',
     globals: true,

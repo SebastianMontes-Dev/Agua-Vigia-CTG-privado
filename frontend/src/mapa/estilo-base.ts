@@ -10,8 +10,12 @@ export function leerNeutros(): NeutrosMapa {
     lineaSuave: token('--linea-suave'), tinta2: token('--tinta-2') }
 }
 
+// Los nombres de barrio los pone la capa de sectores; los de OSM y los puntos de interés competirían con ellos.
+const CAPAS_OMITIDAS = new Set(['pois', 'places_subplace', 'places_locality', 'places_region', 'places_country', 'address_label',
+  'roads_shields', 'roads_oneway', 'roads_labels_minor'])
+
 export function crearEstiloBase(neutros: NeutrosMapa, origen: string, conBase = true): StyleSpecification {
-  const capas: LayerSpecification[] = layers('cartagena', LIGHT, { lang: 'es' }).map((original) => {
+  const capas: LayerSpecification[] = layers('cartagena', LIGHT, { lang: 'es' }).filter((capa) => !CAPAS_OMITIDAS.has(capa.id)).map((original) => {
     const capa = structuredClone(original) as LayerSpecification
     if (capa.paint) {
       for (const clave of Object.keys(capa.paint)) {

@@ -1253,3 +1253,6 @@ ni por el mensaje ni por el tiempo de respuesta (RNF024).
 
 ## Canal del frontend (F2, ADR-074)
 Cuando llega un aviso sectores, el cliente programa la lectura con jitter de 0–3 s y nunca inicia dos GET del listado en menos de 5 s. Ante 429 del canal respeta Retry-After y sondea cada 30 s. Al ocultarse la pestaña cancela las consultas y temporizadores inmediatamente; cierra la conexión a los 15 s. Al regresar refresca por el mismo limitador. Sin red conserva fecha y estado publicados; reconectar tras el cierre normal no es un error del vecino.
+
+## Mapa, ficha y reporte del frontend (F2, ADR-075)
+Los barrios se dibujan solo cuando ya llegó el listado: antes no se pinta ningún estado. `estado: null` se presenta como «Sin datos verificados» con trama, nunca como servicio. Con `verificadoEn` de más de 24 horas la ficha añade «Sin verificación reciente» sin cambiar el estado publicado. La geometría se guarda un día en IndexedDB y, sin red, se usa la copia vencida. El histórico de cortes se pide al abrir la ficha, nunca en segundo plano. El reporte se envía al elegir el tipo (dos toques), con la huella fija del dispositivo; nunca se reintenta solo, un envío sin respuesta se presenta como incierto y el mapa no cambia por reportar.

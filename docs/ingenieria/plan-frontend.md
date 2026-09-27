@@ -393,18 +393,23 @@ cuando su entregable se demuestra funcionando**, no por calendario.
 - **Hecho cuando:** el dueño aprueba los prototipos después de verlos en un teléfono real. **Sin eso no empieza F2.**
 
 ### F2 — Núcleo ciudadano (M1, M2)
-- [ ] Geometría en IndexedDB, estado unido por `id`, `MultiPolygon`, trama para `null`.
+- [x] Geometría en IndexedDB, estado unido por `id`, `MultiPolygon`, trama para `null` (2026-09-26, `geometria.ts`, `capas-sectores.ts`).
 - [x] `canal-en-vivo.ts` con todas las reglas de §6.3 y pruebas unitarias del jitter, el backoff, el `429` y la
       visibilidad. `ADR-074`: fetch con parser incremental. Prueba real el 2026-09-25: 211 sectores y consenso en San Bernardo recibido por SSE + GET; generadoEn 2026-09-26T03:14:29.505337283Z.
-- [ ] Mapa local (PMTiles y glifos), búsqueda visible, lista textual y ficha. En celular, ficha inferior; en
-      escritorio, panel contextual compacto. El mapa, el buscador y la lista abren **la misma ficha**.
-- [ ] Estados de frescura de §5.2: dos horas separadas, «En vivo» solo con SSE conectado, «Sin verificación
-      reciente» a las 24 horas, último listado guardado sin conexión.
+- [x] Mapa local (PMTiles y glifos), búsqueda visible, lista textual y ficha. En celular, ficha inferior; en
+      escritorio, panel contextual compacto. El mapa, el buscador y la lista abren **la misma ficha** (2026-09-26,
+      `ADR-075`: mapa diferido y worker de MapLibre 6 empaquetado por Vite).
+- [x] Estados de frescura de §5.2: dos horas separadas, «En vivo» solo con SSE conectado, «Sin verificación
+      reciente» a las 24 horas, último listado guardado sin conexión (2026-09-26).
 - [ ] Reporte sin cuenta en 2 toques con huella, ubicación opcional, foto **después** del reporte, mensajes fieles al
       resultado y todos los errores de §6.4. `/confirmar/:id`. Se conservan las reglas de SSE, caché, reconexión y
-      la prohibición de reintentar solo un `POST`.
+      la prohibición de reintentar solo un `POST`. **Hecho el 2026-09-26:** dos toques desde la ficha, huella,
+      foto después del 201 y los mensajes de §6.4, con un POST real aceptado. **Falta:** «Usar mi ubicación» y
+      `/confirmar/:id`.
 - [ ] E2E: abrir el mapa, reportar, llegar al cuarto reporte y recibir el `429` con su mensaje, cambio de estado por
-      consenso (3 huellas) que llega por SSE, y confirmar un reporte.
+      consenso (3 huellas) que llega por SSE, y confirmar un reporte. **Hecho el 2026-09-26 con la API simulada**
+      (`e2e/mapa.spec.ts`, 8 casos × 2 tamaños, corren en CI sin backend). **Falta:** el job con `docker compose`
+      contra el backend real (consenso por SSE y confirmación).
 - **Hecho cuando:** pasa el checklist de `DESIGN.md` §10 y el mapa muestra todos los estados en menos de 3 s en 3G.
 
 ### F3 — Historia pública (M6, M7, M8)

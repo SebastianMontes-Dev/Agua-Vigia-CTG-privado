@@ -1,0 +1,131 @@
+@layer componentes {
+  .corte {
+    display: grid;
+    gap: var(--espacio-4);
+  }
+
+  .corte + .corte {
+    padding-top: var(--espacio-5);
+    border-top: 1px solid var(--linea-suave);
+  }
+
+  .horas {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--espacio-4);
+  }
+
+  .hora dd {
+    display: grid;
+    gap: 2px;
+  }
+
+  .rotulo {
+    margin-bottom: var(--espacio-1);
+    font-size: var(--texto-xs);
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--tinta-2);
+  }
+
+  .cifra {
+    font-size: 2rem;
+    font-weight: 600;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .periodo {
+    font-size: var(--texto-s);
+    font-weight: 400;
+    color: var(--tinta-2);
+  }
+
+  .dia,
+  .sinDato {
+    font-size: var(--texto-s);
+    color: var(--tinta-2);
+  }
+
+  .regla {
+    position: relative;
+    height: 28px;
+    margin: 18px 6px 0;
+  }
+
+  .eje,
+  .recorrido {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 8px;
+    height: 1px;
+    background: var(--tinta-3);
+  }
+
+  .recorrido {
+    height: 2px;
+    bottom: 7.5px;
+    background: var(--tinta);
+    transform-origin: left center;
+  }
+
+  .extremo {
+    position: absolute;
+    bottom: 4px;
+    width: 9px;
+    height: 9px;
+    margin-left: -4.5px;
+    border: 1.5px solid var(--tinta);
+    border-radius: 50%;
+    background: var(--papel);
+  }
+
+  .inicio {
+    left: 0;
+  }
+
+  .fin {
+    left: 100%;
+  }
+
+  .ahora {
+    position: absolute;
+    bottom: 0;
+    width: 2px;
+    height: 18px;
+    margin-left: -1px;
+    background: var(--laton);
+  }
+
+  .ahoraRotulo {
+    position: absolute;
+    bottom: 22px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--tinta-2);
+    white-space: nowrap;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .recorrido {
+      animation: crecerRegla 1s var(--suave) both;
+    }
+  }
+
+  @keyframes crecerRegla {
+    from {
+      transform: scaleX(0);
+    }
+  }
+
+  .origen {
+    font-size: var(--texto-s);
+    color: var(--tinta-2);
+  }
+}
