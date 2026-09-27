@@ -25,7 +25,7 @@ vacío de información que multiplica el daño. Toda decisión de alcance se juz
 (`ADR-057`): sin hosting, dominio ni CDN. Requisito de escalabilidad: **50 000 usuarios simultáneos** (`ADR-049`,
 `docs/ingenieria/escalabilidad.md`), que en local solo puede medirse a escala reducida.
 `RF041` (alertas por Telegram) está construido y armado (`ADR-066`), apagado hasta tener `TELEGRAM_BOT_TOKEN`; sin probar contra Telegram real.
-**929 pruebas de backend** (`./mvnw verify` del 2026-09-24: 0 fallos, 1 omitida; las de integración exigen Docker y no corren sin él).
+Cifra de pruebas de backend y su última corrida: `docs/ingenieria/estado-del-backend.md` §2 (las de integración exigen Docker y no corren sin él).
 
 ⚠️ **`sprint-3.md` a `sprint-5.md` se reconstruyeron retroactivamente el 2026-09-22** (`REC-017`): el código ya
 entregaba lo que prometían, sin que nadie lo hubiera escrito. `sprint-6.md` se abrió y cerró el 2026-09-24: la demo es local

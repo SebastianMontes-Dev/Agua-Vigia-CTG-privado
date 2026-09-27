@@ -26,7 +26,7 @@
 ## 1. Por qué y para qué
 
 - El frontend anterior se retiró de `main` (`ADR-048`). Su código sigue en la etiqueta `pre-retiro-frontend`.
-- El backend está terminado: M1–M15, 58 rutas, 929 pruebas. El contrato vive en `backend/openapi.yaml` y la guía para
+- El backend está terminado: M1–M15 (cifras vigentes en `estado-del-backend.md` §2). El contrato vive en `backend/openapi.yaml` y la guía para
   el cliente en `docs/api/`.
 - El objetivo es una interfaz **sólida y con identidad propia, que no parezca generada por IA** (`DESIGN.md` §9).
 - La prueba que manda es esta: **una persona responde «¿tengo agua o no, y hasta cuándo?» en menos de 5 segundos,
@@ -487,6 +487,7 @@ cd frontend
 npm install
 npm run api:sync && npm run dev              # http://localhost:5173
 npm run lint && npm test && npm run build
+npx playwright install chromium              # solo la primera vez y tras subir @playwright/test
 npm run test:e2e                             # contra el backend real
 ```
 
