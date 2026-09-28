@@ -46,7 +46,7 @@ function Serie({ puntos }: { puntos: readonly PuntoSerie[] }) {
             <span>{mesEnPalabras(punto.periodo)}</span>
             <div className={estilos.barraEje}><span style={{ width: `${Math.max(0, Math.min(100, punto.porcentajeCumplimiento ?? 0))}%` }} /></div>
             <strong>{punto.porcentajeCumplimiento === undefined ? 'Sin dato' : formatearPorcentaje(punto.porcentajeCumplimiento)}</strong>
-            <small>{punto.cantidadCortes === undefined ? 'Sin dato de cortes' : `sobre ${formatearNumero(punto.cantidadCortes)} cortes`}</small>
+            <small>{punto.cantidadCortes === undefined ? 'Sin dato de cortes' : `sobre ${formatearNumero(punto.cantidadCortes)} ${punto.cantidadCortes === 1 ? 'corte' : 'cortes'}`}</small>
           </li>)}
         </ol>
       </figure>

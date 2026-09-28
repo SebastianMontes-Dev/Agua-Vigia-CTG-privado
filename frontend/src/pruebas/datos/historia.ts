@@ -83,6 +83,14 @@ export const cumplimientoDeEjemplo = {
   porcentajeCumplimiento: 80,
 } satisfies components['schemas']['IndiceCumplimientoRespuesta']
 
+export const cumplimientoDecimalDeEjemplo = {
+  sectorId: undefined,
+  duracionPrometidaSegundos: 28_800,
+  duracionRealSegundos: 43_200,
+  desviacionSegundos: 14_400,
+  porcentajeCumplimiento: 66.67,
+} satisfies components['schemas']['IndiceCumplimientoRespuesta']
+
 export const serieDeEjemplo = [
   {
     periodo: '2026-04',

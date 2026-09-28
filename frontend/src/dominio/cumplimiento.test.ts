@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { cumplimientoDeEjemplo, serieDeEjemplo } from '../pruebas/datos/historia'
+import { cumplimientoDeEjemplo, cumplimientoDecimalDeEjemplo, serieDeEjemplo } from '../pruebas/datos/historia'
 import { conclusionCumplimiento, limiteSerieCartagena, ordenarSerie, rangoSerieValido } from './cumplimiento'
 
 describe('cumplimiento', () => {
   it('expresa la diferencia y el índice en palabras', () => {
     expect(conclusionCumplimiento(cumplimientoDeEjemplo)).toBe('Prometieron 10 horas. Fueron 12 horas y media. Los cortes duraron 2 horas y media más de lo prometido: 80% de cumplimiento')
     expect(conclusionCumplimiento({ ...cumplimientoDeEjemplo, desviacionSegundos: -3600 })).toContain('terminaron 1 hora antes')
+    expect(conclusionCumplimiento(cumplimientoDecimalDeEjemplo)).toContain('66,7% de cumplimiento')
   })
 
   it('ordena la serie sin inventar meses vacíos', () => {

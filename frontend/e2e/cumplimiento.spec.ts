@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { problema, simularApi } from './api-simulada'
+import { cumplimientoDecimalDeEjemplo } from '../src/pruebas/datos/historia'
 
 test('presenta la conclusión y la serie sin rellenar meses ausentes', async ({ page }) => {
   await simularApi(page)
@@ -16,6 +17,15 @@ test('muestra ausencia ante 400 sin inventar porcentaje', async ({ page }) => {
   await page.goto('/cumplimiento')
   await expect(page.getByText(/Aún no hay cortes cerrados para medir/)).toBeVisible()
   await expect(page.getByText('0%', { exact: true })).toHaveCount(0)
+})
+
+test('presenta un índice decimal con coma colombiana', async ({ page }) => {
+  await simularApi(page, { cumplimiento: (route) => route.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify(cumplimientoDecimalDeEjemplo),
+  }) })
+  await page.goto('/cumplimiento')
+  await expect(page.getByText(/66,7% de cumplimiento/)).toBeVisible()
+  await expect(page.getByText(/66\.7% de cumplimiento/)).toHaveCount(0)
 })
 
 test('aplica barrio a agregado y serie, y fechas solo a serie y CSV', async ({ page }) => {

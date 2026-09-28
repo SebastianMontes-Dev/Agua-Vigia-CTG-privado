@@ -14,9 +14,9 @@
   .graficoComparacion p { font-size: var(--texto-s); }
   .eje { position: relative; height: 14px; border-left: 1px solid var(--tinta-2); }
   .eje span { position: absolute; top: 0; bottom: 0; left: 0; transform-origin: left center; }
-  .prometido { box-shadow: inset 0 0 0 1.5px var(--tinta-2); }
+  .prometido { border: 1.5px solid var(--tinta-2); }
   .eje .real { top: 3px; bottom: 3px; background: var(--cardenillo); }
-  .eje .exceso { top: 3px; bottom: 3px; background: repeating-linear-gradient(45deg, var(--cardenillo) 0 1.5px, transparent 1.5px 4.5px); box-shadow: inset 0 0 0 1px var(--cardenillo); }
+  .eje .exceso { top: 3px; bottom: 3px; background: repeating-linear-gradient(45deg, var(--cardenillo) 0 1.5px, transparent 1.5px 4.5px); border: 1px solid var(--cardenillo); }
   .regla { font-size: var(--texto-s); color: var(--tinta-2); }
   .seccionSerie { display: grid; gap: var(--espacio-5); border-top: 1px solid var(--tinta); padding-top: var(--espacio-5); }
   .cabeceraSerie { display: flex; justify-content: space-between; align-items: start; gap: var(--espacio-4); }
@@ -43,6 +43,9 @@
   .vacio { border-top: 1px solid var(--tinta); padding: var(--espacio-5) 0; }
   .esqueleto { display: grid; gap: var(--espacio-3); color: var(--tinta-2); }
   .esqueleto span { display: block; height: 50px; border-bottom: 1px solid var(--linea); }
+  @media (min-width: 1100px) {
+    .cabecera { grid-template-columns: 2.3fr 1fr; align-items: end; }
+  }
   @media (prefers-reduced-motion: no-preference) {
     .prometido, .real, .barraEje span { animation: crecer .9s var(--suave) both; }
     .exceso { animation: aparecer .4s var(--suave) .7s both; }
