@@ -2,11 +2,10 @@ import { expect, test } from '@playwright/test'
 import { cumplimientoDecimalDeEjemplo, serieDeEjemplo } from '../src/pruebas/datos/historia'
 import { problema, simularApi } from './api-simulada'
 
-const serieLarga = [
-  { ...serieDeEjemplo[0]!, periodo: '2026-02' },
-  { ...serieDeEjemplo[0]!, periodo: '2026-03' },
-  ...serieDeEjemplo,
-]
+const serieLarga = Array.from({ length: 12 }, (_, indice) => ({
+  ...serieDeEjemplo[indice % serieDeEjemplo.length]!,
+  periodo: `2026-${String(indice + 1).padStart(2, '0')}`,
+}))
 
 function simularSerieLarga(page: Parameters<typeof simularApi>[0]) {
   return simularApi(page, { serie: (route) => route.fulfill({
@@ -77,7 +76,7 @@ test('debeDistinguirBarrioDesconocidoDeAusenciaDeCortes', async ({ page }) => {
 
 test('debeMostrarElIndiceEnLaPrimeraPantallaDelCelular', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
-  await simularApi(page)
+  await simularSerieLarga(page)
   await page.goto('/cumplimiento')
   const indice = page.getByText('Índice de cumplimiento').locator('..').locator('strong')
   await expect(indice).toBeVisible()
@@ -85,6 +84,8 @@ test('debeMostrarElIndiceEnLaPrimeraPantallaDelCelular', async ({ page }) => {
   expect(caja).not.toBeNull()
   expect(caja!.y + caja!.height).toBeLessThan(844 - 56)
   expect(await page.evaluate(() => scrollY)).toBe(0)
+  await expect(page.locator('section[aria-labelledby="titulo-serie"] ol li')).toHaveCount(6)
+  expect(await page.evaluate(() => document.documentElement.scrollHeight <= 2 * innerHeight)).toBe(true)
 })
 
 test('debeLimitarLaListaMovilASeisMesesHastaPulsarVerTodos', async ({ page }) => {
@@ -94,10 +95,10 @@ test('debeLimitarLaListaMovilASeisMesesHastaPulsarVerTodos', async ({ page }) =>
   await expect(page.getByRole('table', { name: 'Datos de la serie mensual de cumplimiento' })).toBeHidden()
   const filas = page.locator('section[aria-labelledby="titulo-serie"] ol li')
   await expect(filas).toHaveCount(6)
-  await expect(filas.first()).toContainText('abril de 2026')
-  await page.getByRole('button', { name: 'Ver todos los meses (8)' }).click()
-  await expect(filas).toHaveCount(8)
-  await expect(filas.first()).toContainText('febrero de 2026')
+  await expect(filas.first()).toContainText('julio de 2026')
+  await page.getByRole('button', { name: 'Ver todos los meses (12)' }).click()
+  await expect(filas).toHaveCount(12)
+  await expect(filas.first()).toContainText('enero de 2026')
 })
 
 test('debeMostrarLaTablaCompletaSinListaEnEscritorio', async ({ page }) => {
@@ -106,7 +107,7 @@ test('debeMostrarLaTablaCompletaSinListaEnEscritorio', async ({ page }) => {
   await page.goto('/cumplimiento')
   const tabla = page.getByRole('table', { name: 'Datos de la serie mensual de cumplimiento' })
   await expect(tabla).toBeVisible()
-  await expect(tabla.getByRole('rowheader')).toHaveCount(8)
+  await expect(tabla.getByRole('rowheader')).toHaveCount(12)
   await expect(page.locator('section[aria-labelledby="titulo-serie"] ol')).toBeHidden()
   await expect(page.getByLabel('Desde (día de Cartagena)')).toBeVisible()
 })
