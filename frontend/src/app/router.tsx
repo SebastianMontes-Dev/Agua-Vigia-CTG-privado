@@ -5,6 +5,7 @@ import { FichaSector } from '../pantallas/publico/FichaSector'
 import { Historial, NoEncontrada, Pendiente } from '../pantallas/publico/Pendiente'
 import { PantallaMapa } from '../pantallas/publico/PantallaMapa'
 import { ResumenCiudad } from '../pantallas/publico/ResumenCiudad'
+import { Cumplimiento } from '../pantallas/publico/Cumplimiento'
 
 const raiz = createRootRoute({ component: Outlet, notFoundComponent: NoEncontrada })
 
@@ -19,7 +20,13 @@ const confirmar = createRoute({ getParentRoute: () => publico, path: 'confirmar/
 
 const historial = createRoute({ getParentRoute: () => publico, path: 'historial', component: Historial })
 const cumplimiento = createRoute({
-  getParentRoute: () => publico, path: 'cumplimiento', component: () => <Pendiente titular="Lo prometido y lo que duró" fase="fase F3" />,
+  getParentRoute: () => publico, path: 'cumplimiento',
+  validateSearch: (busqueda: Record<string, unknown>): { sector?: string; desde?: string; hasta?: string } => ({
+    ...(typeof busqueda.sector === 'string' ? { sector: busqueda.sector } : {}),
+    ...(typeof busqueda.desde === 'string' ? { desde: busqueda.desde } : {}),
+    ...(typeof busqueda.hasta === 'string' ? { hasta: busqueda.hasta } : {}),
+  }),
+  component: Cumplimiento,
 })
 const bitacora = createRoute({
   getParentRoute: () => publico, path: 'bitacora', component: () => <Pendiente titular="Bitácora" fase="fase F3" />,

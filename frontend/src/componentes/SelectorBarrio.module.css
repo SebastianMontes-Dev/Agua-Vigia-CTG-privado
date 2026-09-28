@@ -1,0 +1,12 @@
+@layer componentes {
+  .conjunto { min-width: 0; }
+  .selector { display: grid; gap: var(--espacio-1); }
+  .etiqueta { font-size: var(--texto-s); font-weight: 600; }
+  .entrada { width: 100%; min-height: var(--objetivo-tactil); padding: var(--espacio-2) 0; border: 0; border-bottom: 1px solid var(--tinta-3); border-radius: 0; background: transparent; }
+  .menu { width: var(--trigger-width); max-height: 300px; overflow: auto; background: var(--elevada); box-shadow: var(--sombra); border-radius: var(--radio-flotante); }
+  .lista { outline: none; }
+  .opcion { padding: var(--espacio-2) var(--espacio-3); min-height: var(--objetivo-tactil); cursor: pointer; }
+  .opcion[data-focused], .opcion[data-selected] { background: var(--cardenillo-suave); }
+  .vacio { padding: var(--espacio-3); color: var(--tinta-2); }
+  .limpiar { border: 0; padding: var(--espacio-2) 0; min-height: var(--objetivo-tactil); background: transparent; color: var(--cardenillo); text-decoration: underline; cursor: pointer; }
+}
