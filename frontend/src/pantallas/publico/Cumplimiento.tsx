@@ -6,8 +6,6 @@ import { formatearNumero, formatearPorcentaje } from '../../dominio/formato'
 import estilosPagina from './Pagina.module.css'
 import estilos from './Cumplimiento.module.css'
 
-function horas(segundos: number): string { return duracionAcumulada(segundos) }
-
 function Comparacion({ indice }: { indice: Indice }) {
   if (!indiceCompleto(indice)) return <p role="alert">No pudimos leer la comparación de los cortes. Reintenta la consulta.</p>
   const escala = Math.max(indice.duracionPrometidaSegundos, indice.duracionRealSegundos, 1)
@@ -19,9 +17,9 @@ function Comparacion({ indice }: { indice: Indice }) {
     <section className={estilos.comparacion} aria-label="Comparación entre lo prometido y lo real">
       <p className={estilos.conclusion}>{conclusionCumplimiento(indice)}</p>
       <div className={estilos.cifras}>
-        <p><span>Prometido</span><strong>{horas(indice.duracionPrometidaSegundos)}</strong></p>
-        <p><span>Real</span><strong>{horas(indice.duracionRealSegundos)}</strong></p>
-        <p><span>Diferencia</span><strong>{indice.desviacionSegundos === 0 ? 'Sin diferencia' : `${horas(Math.abs(indice.desviacionSegundos))} ${indice.desviacionSegundos > 0 ? 'más' : 'menos'}`}</strong></p>
+        <p><span>Prometido</span><strong>{duracionAcumulada(indice.duracionPrometidaSegundos)}</strong></p>
+        <p><span>Real</span><strong>{duracionAcumulada(indice.duracionRealSegundos)}</strong></p>
+        <p><span>Diferencia</span><strong>{indice.desviacionSegundos === 0 ? 'Sin diferencia' : `${duracionAcumulada(Math.abs(indice.desviacionSegundos))} ${indice.desviacionSegundos > 0 ? 'más' : 'menos'}`}</strong></p>
         <p><span>Índice</span><strong>{formatearPorcentaje(indice.porcentajeCumplimiento)}</strong></p>
       </div>
       <div className={estilos.graficoComparacion} aria-hidden="true">
@@ -50,7 +48,8 @@ function Serie({ puntos }: { puntos: readonly PuntoSerie[] }) {
           </li>)}
         </ol>
       </figure>
-      <div className={estilos.tablaContenedor}>
+      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex, jsx-a11y/prefer-tag-over-role -- La tabla ancha necesita foco para desplazarse con teclado. */}
+      <div className={estilos.tablaContenedor} tabIndex={0} role="region" aria-label="Datos de la serie mensual (se desplaza hacia el lado)">
         <table>
           <caption>Datos de la serie mensual de cumplimiento</caption>
           <thead><tr><th scope="col">Mes</th><th scope="col">Índice</th><th scope="col">Cortes</th><th scope="col">Prometido</th><th scope="col">Real</th></tr></thead>
@@ -58,8 +57,8 @@ function Serie({ puntos }: { puntos: readonly PuntoSerie[] }) {
             <th scope="row">{mesEnPalabras(punto.periodo)}</th>
             <td>{punto.porcentajeCumplimiento === undefined ? 'Sin dato' : formatearPorcentaje(punto.porcentajeCumplimiento)}</td>
             <td>{punto.cantidadCortes === undefined ? 'Sin dato' : formatearNumero(punto.cantidadCortes)}</td>
-            <td>{punto.duracionPrometidaSegundos === undefined ? 'Sin dato' : horas(punto.duracionPrometidaSegundos)}</td>
-            <td>{punto.duracionRealSegundos === undefined ? 'Sin dato' : horas(punto.duracionRealSegundos)}</td>
+            <td>{punto.duracionPrometidaSegundos === undefined ? 'Sin dato' : duracionAcumulada(punto.duracionPrometidaSegundos)}</td>
+            <td>{punto.duracionRealSegundos === undefined ? 'Sin dato' : duracionAcumulada(punto.duracionRealSegundos)}</td>
           </tr>)}</tbody>
         </table>
       </div>
@@ -71,6 +70,7 @@ export function Cumplimiento() {
   const buscar = useSearch({ from: '/publico/cumplimiento' })
   const navegar = useNavigate()
   const { sectores, lectura, reintentar: reintentarListado } = useListado()
+  const barrioNoEncontrado = !!buscar.sector && !!lectura.listado && !sectores.some((sector) => sector.id === buscar.sector)
   const rangoValido = rangoSerieValido(buscar.desde, buscar.hasta)
   const filtros = {
     sectorId: buscar.sector,
@@ -78,7 +78,7 @@ export function Cumplimiento() {
     hasta: buscar.hasta ? limiteSerieCartagena(buscar.hasta, true) ?? undefined : undefined,
   }
   const indice = useIndiceCumplimiento(buscar.sector)
-  const serie = useSerieCumplimiento(filtros, rangoValido)
+  const serie = useSerieCumplimiento(filtros, rangoValido && !barrioNoEncontrado)
   const errorIndice = indice.error as { estado?: number } | null
   const actualizar = (cambio: Partial<typeof buscar>) => navegar({ to: '/cumplimiento', search: { ...buscar, ...cambio }, replace: true })
   const parametros = new URLSearchParams()
@@ -88,7 +88,7 @@ export function Cumplimiento() {
   const csv = `/api/cumplimiento/serie.csv${parametros.size ? `?${parametros.toString()}` : ''}`
 
   return (
-    <main className={`${estilosPagina.pagina} ${estilos.pagina}`}>
+    <div className={`${estilosPagina.pagina} ${estilos.pagina}`}>
       <header className={estilos.cabecera}>
         <h1 className={estilosPagina.titular}>Lo prometido y lo que duró</h1>
         <p className={estilosPagina.entrada}>Comparamos las horas anunciadas para los cortes de agua con las horas que duraron.</p>
@@ -96,11 +96,12 @@ export function Cumplimiento() {
       <div className={estilos.selector}><SelectorBarrio sectores={sectores} valor={buscar.sector} alCambiar={(sector) => actualizar({ sector })} />
         {lectura.error && !sectores.length && <p role="alert">No pudimos cargar los barrios. <button type="button" onClick={reintentarListado}>Reintentar</button></p>}
       </div>
-      {indice.isPending && <output className={estilos.esqueleto}>Consultando el cumplimiento…<span /><span /><span /></output>}
-      {indice.isError && errorIndice?.estado === 400 && <p className={estilos.vacio}>Aún no hay cortes cerrados para medir. Un corte abierto todavía no se puede medir.</p>}
-      {indice.isError && errorIndice?.estado !== 400 && <p role="alert">No pudimos consultar el cumplimiento. Revisa tu conexión e inténtalo otra vez. <button type="button" onClick={() => indice.refetch()}>Reintentar</button></p>}
-      {indice.data && <Comparacion indice={indice.data} />}
-      <section className={estilos.seccionSerie} aria-labelledby="titulo-serie">
+      {barrioNoEncontrado && <p className={estilos.vacio}>No encontramos este barrio.</p>}
+      {!barrioNoEncontrado && indice.isPending && <output className={estilos.esqueleto}>Consultando el cumplimiento…<span /><span /><span /></output>}
+      {!barrioNoEncontrado && indice.isError && errorIndice?.estado === 400 && <p className={estilos.vacio}>Aún no hay cortes cerrados para medir. Un corte abierto todavía no se puede medir.</p>}
+      {!barrioNoEncontrado && indice.isError && errorIndice?.estado !== 400 && <p role="alert">No pudimos consultar el cumplimiento. Revisa tu conexión e inténtalo otra vez. <button type="button" onClick={() => indice.refetch()}>Reintentar</button></p>}
+      {!barrioNoEncontrado && indice.data && <Comparacion indice={indice.data} />}
+      {!barrioNoEncontrado && <section className={estilos.seccionSerie} aria-labelledby="titulo-serie">
         <header className={estilos.cabeceraSerie}><div><h2 id="titulo-serie">Mes a mes</h2>
           <p>Las fechas de abajo filtran solo la serie y el CSV; la comparación de arriba siempre muestra todos los cortes cerrados.</p></div>
           <a href={csv} download>Descargar serie en CSV</a></header>
@@ -112,7 +113,7 @@ export function Cumplimiento() {
         {rangoValido && serie.isPending && <output className={estilos.esqueleto}>Consultando la serie mensual…<span /><span /></output>}
         {serie.isError && <p role="alert">No pudimos consultar la serie mensual. <button type="button" onClick={() => serie.refetch()}>Reintentar</button></p>}
         {serie.data && <Serie puntos={serie.data} />}
-      </section>
-    </main>
+      </section>}
+    </div>
   )
 }

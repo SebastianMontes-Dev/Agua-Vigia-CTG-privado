@@ -4,14 +4,14 @@ import { cumplimientoDeEjemplo, serieDeEjemplo } from '../../pruebas/datos/histo
 import { sectoresDeEjemplo } from '../../pruebas/datos/sectores'
 import { Cumplimiento } from './Cumplimiento'
 
-const estado = vi.hoisted(() => ({ sinCortes: false }))
+const estado = vi.hoisted(() => ({ sinCortes: false, barrioDesconocido: false }))
 
 vi.mock('@tanstack/react-router', () => ({
-  useSearch: () => ({}),
+  useSearch: () => estado.barrioDesconocido ? { sector: 'desconocido' } : {},
   useNavigate: () => vi.fn<() => void>(),
 }))
 vi.mock('../../app/datos', () => ({
-  useListado: () => ({ sectores: sectoresDeEjemplo.sectores, lectura: { error: false }, reintentar: vi.fn<() => void>() }),
+  useListado: () => ({ sectores: sectoresDeEjemplo.sectores, lectura: { error: false, listado: sectoresDeEjemplo }, reintentar: vi.fn<() => void>() }),
   useIndiceCumplimiento: () => estado.sinCortes
     ? { isPending: false, isError: true, error: { estado: 400 }, data: undefined }
     : { isPending: false, isError: false, error: null, data: cumplimientoDeEjemplo },
@@ -19,20 +19,30 @@ vi.mock('../../app/datos', () => ({
 }))
 
 describe('Cumplimiento', () => {
-  afterEach(() => { estado.sinCortes = false })
+  afterEach(() => { estado.sinCortes = false; estado.barrioDesconocido = false })
 
-  it('explica duraciones e índice antes de la serie y no rellena huecos', () => {
+  it('debeExplicarDuracionesEIndiceAntesDeLaSerieSinRellenarHuecos', () => {
     render(<Cumplimiento />)
-    expect(screen.getByText(/Prometieron 10 horas. Fueron 12 horas y media/)).toBeInTheDocument()
+    expect(screen.getByText(/En total, los cortes cerrados tenían anunciados 10 horas y duraron 12 horas y media/)).toBeInTheDocument()
     expect(screen.getByText('sobre 4 cortes')).toBeInTheDocument()
     expect(screen.queryByText('marzo de 2026')).not.toBeInTheDocument()
     expect(screen.getByRole('table', { name: 'Datos de la serie mensual de cumplimiento' })).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Datos de la serie mensual (se desplaza hacia el lado)' })).toHaveAttribute('tabindex', '0')
   })
 
-  it('explica un 400 como ausencia de cortes cerrados', () => {
+  it('debeExplicarUn400ComoAusenciaDeCortesCerrados', () => {
     estado.sinCortes = true
     render(<Cumplimiento />)
     expect(screen.getByText(/Aún no hay cortes cerrados para medir/)).toBeInTheDocument()
     expect(screen.queryByRole('region', { name: 'Comparación entre lo prometido y lo real' })).not.toBeInTheDocument()
+  })
+
+  it('debeDistinguirUnBarrioDesconocidoDeLaAusenciaDeCortes', () => {
+    estado.sinCortes = true
+    estado.barrioDesconocido = true
+    render(<Cumplimiento />)
+    expect(screen.getByText('No encontramos este barrio.')).toBeInTheDocument()
+    expect(screen.queryByText(/Aún no hay cortes cerrados para medir/)).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Mes a mes' })).not.toBeInTheDocument()
   })
 })

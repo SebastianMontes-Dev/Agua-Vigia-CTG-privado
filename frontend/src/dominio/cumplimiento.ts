@@ -23,7 +23,7 @@ export function conclusionCumplimiento(indice: Indice): string | null {
     : diferencia < 0
       ? `Los cortes terminaron ${duracionAcumulada(-diferencia)} antes de lo prometido`
       : 'Los cortes duraron lo prometido'
-  return `Prometieron ${duracionAcumulada(indice.duracionPrometidaSegundos)}. Fueron ${duracionAcumulada(indice.duracionRealSegundos)}. ${resultado}: ${formatearPorcentaje(indice.porcentajeCumplimiento)} de cumplimiento`
+  return `En total, los cortes cerrados tenían anunciados ${duracionAcumulada(indice.duracionPrometidaSegundos)} y duraron ${duracionAcumulada(indice.duracionRealSegundos)}. ${resultado}: ${formatearPorcentaje(indice.porcentajeCumplimiento)} de cumplimiento`
 }
 
 /** Los agregados pueden durar meses: no redondear a días enteros y ocultar la diferencia. */
