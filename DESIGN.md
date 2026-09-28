@@ -187,6 +187,7 @@ Restricciones deliberadas, para que el agente no las proponga:
 
 - [ ] ¿Se responde "¿tengo agua?" en menos de 5 segundos?
 - [ ] ¿Funciona en 360px de ancho?
+- [ ] ¿A 390 × 844 la respuesta se ve sin scroll y la página no pasa de dos pantallas? (`ADR-077`)
 - [ ] ¿Los dos temas están diseñados, no solo invertidos?
 - [ ] ¿El color va acompañado de forma o texto?
 - [ ] ¿Contraste AA verificado en ambos temas?
