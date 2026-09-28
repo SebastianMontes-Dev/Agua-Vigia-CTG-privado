@@ -1,5 +1,5 @@
 import type { components } from '../api/generado/esquema'
-import { formatearNumero, formatearPorcentaje } from './formato'
+import { formatearNumero } from './formato'
 
 export type Indice = components['schemas']['IndiceCumplimientoRespuesta']
 export type PuntoSerie = components['schemas']['PuntoSerieRespuesta']
@@ -18,27 +18,32 @@ export function indiceCompleto(indice: Indice | undefined): indice is Indice & {
 export function conclusionCumplimiento(indice: Indice): string | null {
   if (!indiceCompleto(indice)) return null
   const diferencia = indice.desviacionSegundos
-  const resultado = diferencia > 0
-    ? `Los cortes duraron ${duracionAcumulada(diferencia)} más de lo prometido`
-    : diferencia < 0
-      ? `Los cortes terminaron ${duracionAcumulada(-diferencia)} antes de lo prometido`
-      : 'Los cortes duraron lo prometido'
-  return `En total, los cortes cerrados tenían anunciados ${duracionAcumulada(indice.duracionPrometidaSegundos)} y duraron ${duracionAcumulada(indice.duracionRealSegundos)}. ${resultado}: ${formatearPorcentaje(indice.porcentajeCumplimiento)} de cumplimiento`
+  if (diferencia === 0) return 'En total, los cortes cerrados duraron lo anunciado.'
+  return `En total, los cortes cerrados duraron ${duracionAcumulada(Math.abs(diferencia))} ${diferencia > 0 ? 'más' : 'menos'} de lo anunciado.`
 }
 
-/** Los agregados pueden durar meses: no redondear a días enteros y ocultar la diferencia. */
+/** Las duraciones de un día o más omiten minutos; las menores conservan horas y minutos. */
 export function duracionAcumulada(segundos: number): string {
   const minutos = Math.round(Math.abs(segundos) / 60)
   const dias = Math.floor(minutos / 1440)
   const horas = Math.floor((minutos % 1440) / 60)
-  const resto = minutos % 60
-  if (!dias && horas && resto === 30) return `${formatearNumero(horas)} ${horas === 1 ? 'hora' : 'horas'} y media`
+  const resto = dias ? 0 : minutos % 60
   const partes = [
     dias ? `${formatearNumero(dias)} ${dias === 1 ? 'día' : 'días'}` : '',
     horas ? `${formatearNumero(horas)} ${horas === 1 ? 'hora' : 'horas'}` : '',
     resto ? `${formatearNumero(resto)} ${resto === 1 ? 'minuto' : 'minutos'}` : '',
   ].filter(Boolean)
   return partes.length ? partes.join(' y ') : '0 minutos'
+}
+
+export function diferenciaBreve(segundos: number | undefined): string {
+  if (segundos === undefined) return 'Sin dato'
+  if (segundos === 0) return 'Lo anunciado'
+  const minutos = Math.round(Math.abs(segundos) / 60)
+  const horas = Math.floor(minutos / 60)
+  const resto = minutos % 60
+  const partes = [horas ? `${formatearNumero(horas)} h` : '', resto ? `${formatearNumero(resto)} min` : ''].filter(Boolean)
+  return `${partes.length ? partes.join(' ') : '0 min'} ${segundos > 0 ? 'más' : 'menos'}`
 }
 
 export function ordenarSerie(serie: readonly PuntoSerie[]): PuntoSerie[] {

@@ -23,11 +23,11 @@ describe('Cumplimiento', () => {
 
   it('debeExplicarDuracionesEIndiceAntesDeLaSerieSinRellenarHuecos', () => {
     render(<Cumplimiento />)
-    expect(screen.getByText(/En total, los cortes cerrados tenían anunciados 10 horas y duraron 12 horas y media/)).toBeInTheDocument()
-    expect(screen.getByText('sobre 4 cortes')).toBeInTheDocument()
+    expect(screen.getByText('En total, los cortes cerrados duraron 2 horas y 30 minutos más de lo anunciado.')).toBeInTheDocument()
+    expect(screen.getByText('Índice de cumplimiento').nextElementSibling).toHaveTextContent('80%')
+    expect(screen.getByText(/sobre 4 cortes/)).toBeInTheDocument()
     expect(screen.queryByText('marzo de 2026')).not.toBeInTheDocument()
     expect(screen.getByRole('table', { name: 'Datos de la serie mensual de cumplimiento' })).toBeInTheDocument()
-    expect(screen.getByRole('region', { name: 'Datos de la serie mensual (se desplaza hacia el lado)' })).toHaveAttribute('tabindex', '0')
   })
 
   it('debeExplicarUn400ComoAusenciaDeCortesCerrados', () => {
