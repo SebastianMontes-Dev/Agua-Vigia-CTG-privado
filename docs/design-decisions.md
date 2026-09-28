@@ -3128,8 +3128,50 @@ Quitar `UsarUbicacion` del resumen y el tercer argumento de `enviarReporte`; nad
 
 ---
 
+## ADR-077 — En el celular, cada pantalla responde en la primera vista y no pasa de dos de alto
+
+- **Fecha:** 2026-09-28
+- **Estado:** Aceptada
+- **Decide:** el dueño («no quiero nada de scroll excesivo para la vista móvil»); la cifra del tope la propuso Claude
+- **Relacionada:** `ADR-069` (guía), `ADR-070`/`ADR-071` (identidad), guía §4.2 y §5.2
+
+### Contexto
+La primera pantalla de F3 (`/cumplimiento`, PR #81) cumplía la guía y la identidad, pero a 390 × 844 medía 2 134 px:
+unas 2,5 pantallas, con los mismos números en una frase, cuatro cifras, barras de 0 a 100 y una tabla que se cortaba
+a la derecha. La guía decía qué datos mostrar y en qué orden, pero no cuánto podía medir la pantalla, así que cada una
+podía crecer sin límite, y la serie mensual crece un mes a la vez.
+
+### Alternativas consideradas
+| Opción | A favor | En contra |
+|---|---|---|
+| Sin tope; criterio en cada revisión | Nada que medir | Es lo que produjo la página de 2,5 pantallas; «excesivo» queda a juicio de cada uno |
+| Una sola pantalla, sin scroll | Máxima rapidez | Imposible para la bitácora, los formularios y el panel sin esconder datos que la guía exige |
+| **Respuesta en la primera vista y tope de dos pantallas, medido** | Verificable con una E2E; deja lugar al detalle sin que se apile | Obliga a elegir qué va detrás de una acción en cada pantalla |
+
+### Decisión
+A 390 × 844 (el tamaño de las capturas de revisión):
+1. **La respuesta principal de la pantalla se ve sin hacer scroll**, por encima de la barra de navegación inferior.
+2. **La altura inicial de la página no pasa de dos pantallas (1 688 px)** con datos realistas (la siembra del
+   backend, o datos simulados del mismo tamaño). El objetivo es una y media.
+3. **Una sola representación de cada dato por tamaño.** Si hace falta una alternativa accesible (una tabla para un
+   gráfico), en el celular va plegada (`<details>`) o reemplaza al gráfico, no se apila debajo.
+4. **Lo que crece** (meses, eventos, cortes, filas) **se muestra por lotes** con «Ver todos» o «Cargar más». El tope
+   se mide antes de que la persona pida más.
+5. Cada pantalla nueva lleva una E2E a 390 × 844 que comprueba 1 y 2, y su PR anota la altura medida.
+
+### Consecuencias
+Las pantallas de F3 a F5 se diseñan con el tope desde el principio. Las de F2 (resumen de la ciudad, ficha en la
+hoja inferior, confirmar) se miden contra esta regla en la próxima revisión; la hoja de la ficha se mide a su altura
+expandida. Si una pantalla no puede cumplir sin esconder un dato que la guía exige, se discute aquí antes de romper
+la regla. La cifra de dos pantallas se puede ajustar con otro ADR.
+
+### Cómo se revierte
+Quitar el punto de §4.2 de la guía y la línea del checklist de `DESIGN.md` §10, y las E2E de altura.
+
+---
+
 <!--
-Siguiente número disponible: ADR-077
+Siguiente número disponible: ADR-078
 Para agregar: usa la skill `registrar-decision`.
 Recuerda: append-only. Las entradas viejas solo cambian de estado, no de contenido.
 -->

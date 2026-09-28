@@ -191,6 +191,8 @@ Esquemas de disposición, no datos reales. La barra del sitio que aloja los Arti
 | Avisos / cuentas / ingreso | Formulario de una columna con margen 16 px | Formulario centrado de 480 px | Mismo ancho de 480 px; sin ilustración que compita con la tarea |
 | Panel | Selector de sección y filas apiladas; detalle en pantalla completa | Filas apiladas y detalle debajo de selección | Área máxima 1200 px; cola de 384 px + detalle flexible cuando proceda; tablas para cuentas/auditoría |
 
+**Altura en el celular (`ADR-077`).** A 390 × 844, la respuesta principal se ve sin scroll, por encima de la barra inferior, y la página inicial no pasa de dos pantallas (1 688 px; objetivo, una y media) con datos realistas. Una sola representación de cada dato por tamaño: la tabla alternativa de un gráfico va plegada o lo reemplaza, no se apila. Lo que crece se muestra por lotes («Ver todos», «Cargar más»). Cada pantalla lleva una E2E que lo comprueba.
+
 El panel tiene navegación propia con secciones permitidas y enlace «Volver al mapa». Nunca hereda los colores de servicio para estados de cuenta o decisiones de moderación. Atajos `j`/`k`, `a`/`d` solo actúan con la cola enfocada, nunca dentro de campos; aprobar/descartar abre confirmación, no ejecuta directamente. Siempre hay botones equivalentes.
 
 <a id="5-matriz-de-pantallas-y-datos"></a>
