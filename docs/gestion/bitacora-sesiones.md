@@ -25,6 +25,10 @@ Referencias cruzadas: `ADR-NNN` · `BUG-NNN` · `RF0NN` · `archivo:línea`.
 
 ## Sprint 7 — Frontend nuevo
 
+### 2026-09-27 · `docs/cerrar-f2-tecnico`
+**Qué:** Se delegaron a Codex las E2E de F2 contra el backend real (PR #79, 5 casos en CI; se amplió el filtro de rutas del workflow) y F3. Se fusionaron #76 (cifras `es-CO`, sin las fechas que repetían `tiempo.ts`), #77 y #79, se registraron #74/#76/#77/#79 y se cerraron #65, #75 y el issue #70. Una medición con 3G y caché vacía encontró que el mapa pinta a 7,5–11 s (`BUG-115`).
+**Sigue:** El dueño revisa F2 en un teléfono real y decide si `BUG-115` se corrige en F2 o en F6; Codex construye F3 en tres PR. `git-lfs` no está instalado en esta máquina: el `.pmtiles` local es solo el puntero.
+
 ### 2026-09-26 · `claude/tender-shannon-lp71uu`
 **Qué:** F2 avanzó: mapa con PMTiles local, buscador, lista accesible, ficha (horario, regla de tiempo, cortes cerrados, frescura) y reporte en dos toques con huella y foto, contra el backend real (`ADR-075`). Cerrado `BUG-112` (canal en vivo rompía en el navegador). 170 unitarias y 32 E2E con API simulada en verde; revisión de diseño en 4 tamaños y 2 temas.
 **Sigue:** «Usar mi ubicación», `/confirmar/:id` y el job de E2E contra el backend real; el dueño revisa la interfaz en un teléfono antes de fusionar el PR de F2.

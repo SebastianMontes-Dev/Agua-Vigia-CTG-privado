@@ -133,6 +133,7 @@ Tres razones concretas, no burocráticas:
 | BUG-112 | 2026-09-26 | S2 | M1 | El mapa se cae al salir de la pantalla con «Illegal invocation» | Cerrado — reproducción: abrir `/` en Chromium con la SPA de F2 y cambiar de ruta o desmontar el listado; causa: `entornoNavegador()` pasaba `clearTimeout` sin enlazar y el canal lo invocaba como `entorno.cancelar(id)`, lo que el navegador rechaza (en Node no falla, por eso las pruebas unitarias no lo vieron); corrección: `cancelar: (id) => clearTimeout(id)` en `frontend/src/api/canal-en-vivo.ts`; prueba: `debeCancelarTemporizadoresSinDependerDeQuienLlama` en `canal-en-vivo.test.ts` (falla sin la corrección) |
 | BUG-113 | 2026-09-27 | S3 | M1 | En el celular, la barra inferior de navegación sube detrás del contenido en las páginas cortas (`/historial`, `/avisos`, la página 404 y `/confirmar/:id`) en vez de quedar al pie | Cerrado — reproducción: abrir `/confirmar/r1` a 390 × 844 y ver la barra justo bajo el texto, con media pantalla vacía debajo; causa: `.marco` tenía `min-height: 100dvh` pero no repartía el alto, así que `main` medía lo que su contenido y la barra `sticky` quedaba a continuación; corrección: `.marco` en columna flexible y `main` con `flex: 1 0 auto` (`frontend/src/app/Marco.module.css`); comprobación: capturas a 390 y 768 px en claro y oscuro, con la barra al pie; las 46 E2E siguen en verde |
 | BUG-114 | 2026-09-27 | S3 | — (docs) | `comportamiento-del-sistema.md` dice que una confirmación de RF038 «se suma al reporte y cuenta para el consenso», y el backend no la cuenta | Cerrado — reproducción: leer el escenario «Vecino confirma un reporte abierto» y compararlo con el Javadoc de `ConfirmarReporteService`, que no llama a `ContadorReportesPort.registrar()` ni reevalúa el consenso; causa: el escenario se escribió con la intención de la propuesta de fase 2 y no se actualizó cuando la implementación decidió no contar; corrección: el escenario describe lo que hace el código (suma al conteo `confirmaciones`, una vez por huella, sin mover el consenso), y la interfaz no promete que confirmar cambie el mapa. Si se quiere que cuente, es un cambio del backend y un ADR |
+| BUG-115 | 2026-09-27 | S3 | M1 | Con 3G simulado y caché vacía, el mapa no pinta los estados de los barrios hasta 7,5–11 s, lejos de los 3 s que exige el criterio de terminado de F2 (`RNF001`, retirado hasta F6) | Abierto — medido, sin corregir; ver detalle |
 
 **Severidad:** `S1` bloquea el uso o publica dato falso · `S2` funcionalidad rota con rodeo posible ·
 `S3` molesto pero no impide · `S4` cosmético
@@ -146,6 +147,27 @@ Tres razones concretas, no burocráticas:
 > de detalle de sector se veía "incompleto" para muchos barrios al hacer clic en el mapa, y
 > auditando en vivo (contra `/acuacar-api` real, no datos de ejemplo) cuánta cobertura real de
 > boletines logra la extracción de nombres de barrio.
+
+### BUG-115 — Con 3G y caché vacía, el mapa tarda de 7,5 a 11 s en pintar los estados
+
+- **Fecha:** 2026-09-27 · **Severidad:** S3 · **Módulo:** M1
+- **Estado:** Abierto
+
+**Síntoma:** en una primera visita, la respuesta en texto llega a tiempo (titular «Cartagena ahora» a 2,4 s, conteos y
+«En vivo» a 3,2 s), pero el lienzo del mapa aparece a 7,5 s y las teselas del mapa base terminan a 11,5 s. En una
+segunda visita, con caché e IndexedDB, el texto sale a 1,3 s, el lienzo a 2,1 s y las teselas a 4,9 s.
+**Reproducción:** `npm run build` y `npm run preview` en `frontend/` (el `.pmtiles` real, no el puntero de LFS) contra
+el backend local con los 211 sectores; Chrome DevTools MCP en un contexto aislado, 360 × 780 móvil, «Fast 3G» y CPU
+×4; marcas con un `MutationObserver` y `performance.getEntriesByType('resource')`. Medido una vez por escenario: es
+un orden de magnitud, no una distribución.
+**Esperado:** `plan-frontend.md` §10, F2: «el mapa muestra todos los estados en menos de 3 s en 3G» (`RNF001`).
+**Causa raíz (a confirmar con una traza):** el camino crítico del mapa es serial y pesado: `Mapa-*.js` (282 KB
+comprimidos, MapLibre) termina a 7,3 s, después baja el worker de MapLibre (142 KB, 8,9 s) y solo entonces se piden
+el glifo y las teselas por rango. La geometría (`/api/sectores/geometria`, 256 KB) llega antes, a 4,9 s, así que no
+es el cuello de botella. Primera visita: 1 035 KB transferidos.
+**Corrección:** pendiente. Es decisión del dueño si se corrige en F2 o en F6, donde el plan pone Lighthouse CI con
+presupuesto de 3G. Candidatos, sin probar: precargar el worker y el `.pmtiles` con `modulepreload`/`preload`, adelantar
+la carga del chunk del mapa, que hoy es diferida (`ADR-075`), y medir con Lighthouse antes y después.
 
 ### BUG-095 — Reactivar una cuenta atribuye la acción al usuario reactivado
 
@@ -1889,5 +1911,5 @@ Plantilla de bug abierto — copiar a la sección "Bugs abiertos — detalle".
 **Causa raíz:** se llena al diagnosticar. Si el origen es un requisito ambiguo, corrige también el requisito.
 **Corrección:** qué se cambió + `archivo:línea` + prueba que lo cubre. Sin prueba, el bug vuelve.
 
-Siguiente número disponible: BUG-115
+Siguiente número disponible: BUG-116
 -->

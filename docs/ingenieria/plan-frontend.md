@@ -408,12 +408,17 @@ cuando su entregable se demuestra funcionando**, no por calendario.
       ubicación» (`ADR-076`) y `/confirmar/:id`, con el enlace para pedir la confirmación desde «Reporte recibido»;
       E2E con la API simulada. Titular «Confirmar reporte» (guía §5.1), no «¿Tú también estás sin agua?» de §7: sin
       GET público, la pantalla no sabe el tipo del reporte.
-- [ ] E2E: abrir el mapa, reportar, llegar al cuarto reporte y recibir el `429` con su mensaje, cambio de estado por
+- [x] E2E: abrir el mapa, reportar, llegar al cuarto reporte y recibir el `429` con su mensaje, cambio de estado por
       consenso (3 huellas) que llega por SSE, y confirmar un reporte. **Hecho el 2026-09-26 con la API simulada**
       (`e2e/mapa.spec.ts`, 8 casos × 2 tamaños, corren en CI sin backend); ubicación y confirmación el 2026-09-27
-      (`e2e/ubicacion-y-confirmacion.spec.ts`, 7 casos × 2 tamaños). **Falta:** el job con `docker compose`
-      contra el backend real (consenso por SSE y confirmación).
+      (`e2e/ubicacion-y-confirmacion.spec.ts`, 7 casos × 2 tamaños). **Contra el backend real el 2026-09-27**
+      (PR #79): `e2e/real/ciudadano.spec.ts`, 5 casos a 1280 px con un solo worker, en el job «Núcleo ciudadano
+      contra backend real» de `frontend-ci.yml` (`docker compose`, siembra y `scripts/preparar-pruebas-frontend.mjs`);
+      corre también con cambios de `backend/`, `scripts/`, el compose e `infra/`. Local: `npm run test:e2e:real`.
 - **Hecho cuando:** pasa el checklist de `DESIGN.md` §10 y el mapa muestra todos los estados en menos de 3 s en 3G.
+  **Medido el 2026-09-27 (`BUG-115`, abierto):** con «Fast 3G», CPU ×4 y caché vacía, el texto responde a 2,4–3,2 s,
+  pero el mapa pinta a 7,5–11 s; con caché, lienzo a 2,1 s y teselas a 4,9 s. **No se cumple todavía.** El checklist
+  de §10 espera la revisión del dueño en un teléfono real.
 
 ### F3 — Historia pública (M6, M7, M8)
 - [ ] Bitácora paginada y filtrable por barrio, tipo y fecha contra la API (`ADR-073`), con fuente, portada por
