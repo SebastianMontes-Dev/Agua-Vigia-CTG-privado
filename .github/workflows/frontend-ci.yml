@@ -5,13 +5,23 @@ on:
     branches: [main]
     paths:
       - "frontend/**"
-      - "backend/openapi.yaml"
+      - "backend/**"
+      - "scripts/**"
+      - "docker-compose.yml"
+      - ".env.example"
+      - "infra/**"
+      - "docs/ingenieria/entorno-local.md"
       - "DESIGN.md"
       - ".github/workflows/frontend-ci.yml"
   pull_request:
     paths:
       - "frontend/**"
-      - "backend/openapi.yaml"
+      - "backend/**"
+      - "scripts/**"
+      - "docker-compose.yml"
+      - ".env.example"
+      - "infra/**"
+      - "docs/ingenieria/entorno-local.md"
       - "DESIGN.md"
       - ".github/workflows/frontend-ci.yml"
 
@@ -65,9 +75,11 @@ jobs:
           path: frontend/test-results/
           retention-days: 14
 
+  # Por este job el filtro de rutas incluye backend, siembra, compose, infra y el hash de desarrollo de entorno-local.md.
   integracion:
     name: Núcleo ciudadano contra backend real
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
         with:
