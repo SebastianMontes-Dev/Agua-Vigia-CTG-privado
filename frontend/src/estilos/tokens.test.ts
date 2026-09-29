@@ -42,6 +42,9 @@ function valoresDeDiseno(): Map<string, { claro: string; oscuro: string }> {
   return valores
 }
 
+// DESIGN.md §3: colores que no cambian con el tema, escritos como `--token` `#valor`.
+const FIJOS = new Map([...textoDiseno.matchAll(/`(--qr-[a-z-]+)` `(#[0-9a-f]{6})`/g)].map((m) => [m[1] as string, m[2] as string]))
+
 function bloque(selector: string): string {
   const inicio = tokens.indexOf(selector)
   if (inicio < 0) throw new Error(`tokens.css no tiene el bloque ${selector}`)
@@ -73,6 +76,11 @@ describe('tokens.css', () => {
 
   it('noDebeDeclararColoresFueraDeLosTokens', () => {
     const declarados = new Set([...tokens.matchAll(/(--[a-z0-9-]+):\s*#/g)].map((m) => m[1]))
-    expect([...declarados].sort()).toEqual([...diseno.keys()].sort())
+    expect([...declarados].sort()).toEqual([...diseno.keys(), ...FIJOS.keys()].sort())
+  })
+
+  it('debeFijarElQrDelSegundoFactorConLosValoresDeDiseno', () => {
+    expect([...FIJOS.keys()].sort()).toEqual(['--qr-fondo', '--qr-modulo'])
+    for (const [variable, valor] of FIJOS) expect(valorEn(tokens, variable), variable).toBe(valor)
   })
 })

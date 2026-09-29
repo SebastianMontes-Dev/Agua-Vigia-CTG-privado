@@ -104,6 +104,10 @@
     --radio-pastilla: 999px;
     --grosor-foco: 2px;
 
+    /* DESIGN.md §3: el QR del TOTP no cambia con el tema; los lectores esperan módulos oscuros sobre claro. */
+    --qr-modulo: #15191c;
+    --qr-fondo: #ffffff;
+
     --suave: cubic-bezier(0.2, 0.8, 0.2, 1);
     --lento: cubic-bezier(0.65, 0, 0.35, 1);
   }
