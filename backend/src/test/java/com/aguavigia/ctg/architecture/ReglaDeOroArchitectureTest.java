@@ -5,14 +5,27 @@ import com.aguavigia.ctg.domain.EventoBitacora;
 import com.aguavigia.ctg.domain.EventoId;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.TipoEvento;
+import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaClasses;
+import com.tngtech.archunit.core.domain.JavaMethod;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
+import com.tngtech.archunit.lang.ArchCondition;
 import com.tngtech.archunit.lang.ArchRule;
+import com.tngtech.archunit.lang.ConditionEvents;
+import com.tngtech.archunit.lang.SimpleConditionEvent;
 import org.junit.jupiter.api.Test;
+import org.springframework.core.annotation.AnnotatedElementUtils;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
+import java.lang.reflect.Method;
 import java.time.Instant;
+import java.util.List;
+import java.util.Set;
 
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.methods;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
 /**
@@ -133,5 +146,75 @@ class ReglaDeOroArchitectureTest {
                         EventoId.class, TipoEvento.class, SectorId.class, CorteId.class, Instant.class, String.class);
 
         regla.check(CLASES_PRODUCCION);
+    }
+
+    /**
+     * Los controladores son un adaptador de entrada y solo conocen los puertos y los tipos del dominio: si importan una
+     * clase de infraestructura (un repositorio de Spring Data, un registro en memoria, el difusor SSE), la capa de API
+     * queda atada a la tecnología y no se puede probar ni cambiar sin arrastrar el resto. Lo que necesitan lo declara
+     * un puerto de salida en domain/port/out y lo implementa infraestructura (ADR-015).
+     */
+    @Test
+    void apiNoDebeDependerDeInfrastructure() {
+        ArchRule regla = noClasses()
+                .that().resideInAPackage("..api..")
+                .should().dependOnClassesThat().resideInAnyPackage("..infrastructure..");
+
+        regla.check(CLASES_PRODUCCION);
+    }
+
+    /** Rutas del panel que no llevan @PreAuthorize a propósito: el acceso, la salida y quién soy. */
+    private static final Set<String> RUTAS_DEL_PANEL_SIN_PERMISO = Set.of(
+            "/api/veedor/sesion",          // iniciar sesión: nadie la tiene todavía
+            "/api/veedor/sesion/cierre",   // cerrar la propia sesión
+            "/api/veedor/yo");             // quién soy, para cualquier sesión válida
+
+    /**
+     * RNF022 — toda ruta bajo /api/veedor/** exige un permiso concreto. SecurityConfig ya pide una sesión válida para
+     * todo el prefijo, pero eso solo dice quién eres; qué puedes hacer lo dice @PreAuthorize. Un endpoint nuevo del panel
+     * sin él quedaría abierto a cualquier cuenta con sesión, incluida una OBSERVADORA.
+     */
+    @Test
+    void todaRutaDelPanelDebeExigirUnPermiso() {
+        DescribedPredicate<JavaMethod> atiendeRutaDelPanel = new DescribedPredicate<>("atienden una ruta de /api/veedor/**") {
+            @Override
+            public boolean test(JavaMethod metodo) {
+                return rutasDe(metodo).stream().anyMatch(ruta -> ruta.startsWith("/api/veedor")
+                        && !RUTAS_DEL_PANEL_SIN_PERMISO.contains(ruta));
+            }
+        };
+        ArchCondition<JavaMethod> llevaPreAuthorize = new ArchCondition<>("llevar @PreAuthorize en el método o en su clase") {
+            @Override
+            public void check(JavaMethod metodo, ConditionEvents eventos) {
+                boolean lleva = metodo.isAnnotatedWith(PreAuthorize.class)
+                        || metodo.getOwner().isAnnotatedWith(PreAuthorize.class);
+                if (!lleva) {
+                    eventos.add(SimpleConditionEvent.violated(metodo, metodo.getFullName()
+                            + " atiende " + rutasDe(metodo) + " sin @PreAuthorize"));
+                }
+            }
+        };
+
+        ArchRule regla = methods()
+                .that().areDeclaredInClassesThat().areAnnotatedWith(RestController.class)
+                .and(atiendeRutaDelPanel)
+                .should(llevaPreAuthorize);
+
+        regla.check(CLASES_PRODUCCION);
+    }
+
+    /** Las rutas completas (la de la clase más la del método) que atiende un método de controlador. */
+    private static List<String> rutasDe(JavaMethod metodo) {
+        Method reflejado = metodo.reflect();
+        RequestMapping delMetodo = AnnotatedElementUtils.findMergedAnnotation(reflejado, RequestMapping.class);
+        if (delMetodo == null) {
+            return List.of();
+        }
+        RequestMapping delaClase = AnnotatedElementUtils.findMergedAnnotation(reflejado.getDeclaringClass(), RequestMapping.class);
+        List<String> bases = delaClase == null || delaClase.path().length == 0 ? List.of("") : List.of(delaClase.path());
+        List<String> propias = delMetodo.path().length == 0 ? List.of("") : List.of(delMetodo.path());
+        return bases.stream()
+                .flatMap(base -> propias.stream().map(propia -> (base + propia).replaceAll("/+$", "")))
+                .toList();
     }
 }

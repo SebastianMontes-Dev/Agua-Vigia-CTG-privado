@@ -1,6 +1,8 @@
 package com.aguavigia.ctg.infrastructure.ingest;
 
+import com.aguavigia.ctg.domain.SaludDeColector;
 import com.aguavigia.ctg.domain.port.out.RelojPort;
+import com.aguavigia.ctg.domain.port.out.SaludDeColectoresPort;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -16,7 +18,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * suya; el despliegue del proyecto es de instancia única (Anexo 5).
  */
 @Component
-public class EstadoColectorRegistry {
+public class EstadoColectorRegistry implements SaludDeColectoresPort {
 
     /**
      * Un colector que lleva esto o más ciclos seguidos fallando se reporta caído. Tres, y no uno,
@@ -51,6 +53,20 @@ public class EstadoColectorRegistry {
     }
 
     /** Un colector que nunca ha corrido no está caído: está sin estrenar. */
+    @Override
+    public List<SaludDeColector> salud() {
+        return estados().stream()
+                .map(estado -> new SaludDeColector(
+                        estado.nombre(),
+                        estado.ultimaEjecucionExitosa(),
+                        estado.ultimoFallo(),
+                        estado.motivoDelUltimoFallo(),
+                        estado.itemsProcesados(),
+                        estado.tasaDeError(),
+                        estado.fallosConsecutivos()))
+                .toList();
+    }
+
     public boolean hayAlgunColectorCaido() {
         return porNombre.values().stream()
                 .anyMatch(estado -> estado.fallosConsecutivos() >= FALLOS_PARA_REPORTARSE_CAIDO);

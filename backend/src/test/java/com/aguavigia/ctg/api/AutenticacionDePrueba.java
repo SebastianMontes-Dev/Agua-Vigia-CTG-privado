@@ -2,7 +2,7 @@ package com.aguavigia.ctg.api;
 
 import com.aguavigia.ctg.domain.AlcanceSesion;
 import com.aguavigia.ctg.domain.Permiso;
-import com.aguavigia.ctg.infrastructure.security.SesionAutenticada;
+import com.aguavigia.ctg.domain.SesionAutenticada;
 
 import java.time.Instant;
 import java.util.Set;

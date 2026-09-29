@@ -1,6 +1,7 @@
 package com.aguavigia.ctg.infrastructure.sse;
 
 import com.aguavigia.ctg.domain.LimiteDePeticionesExcedidoException;
+import com.aguavigia.ctg.domain.port.out.CanalEnVivoPort;
 import com.aguavigia.ctg.domain.port.out.RelojPort;
 import jakarta.annotation.PreDestroy;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,7 +45,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * - Latido: mantiene abiertas las conexiones a través de proxies con timeout de inactividad.
  */
 @Component
-public class SseSectoresBroadcaster implements MessageListener {
+public class SseSectoresBroadcaster implements MessageListener, CanalEnVivoPort<SseEmitter> {
 
     static final String CANAL = "aguavigia:sse:sectores";
 
@@ -76,6 +77,7 @@ public class SseSectoresBroadcaster implements MessageListener {
         this.maxConexiones = maxConexiones;
     }
 
+    @Override
     public SseEmitter registrar() {
         if (emisores.size() >= maxConexiones) {
             throw new LimiteDePeticionesExcedidoException(

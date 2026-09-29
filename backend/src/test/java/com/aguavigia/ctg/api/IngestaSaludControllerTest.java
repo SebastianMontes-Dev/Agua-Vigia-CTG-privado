@@ -2,6 +2,7 @@ package com.aguavigia.ctg.api;
 
 import com.aguavigia.ctg.api.error.ManejadorGlobalDeErrores;
 import com.aguavigia.ctg.infrastructure.config.SecurityConfig;
+import com.aguavigia.ctg.domain.port.out.SaludDeColectoresPort;
 import com.aguavigia.ctg.infrastructure.ingest.EstadoColectorRegistry;
 import com.aguavigia.ctg.domain.Permiso;
 import com.aguavigia.ctg.infrastructure.security.JwtProvider;
@@ -32,7 +33,7 @@ class IngestaSaludControllerTest {
     private MockMvc mockMvc;
 
     @MockitoBean
-    private EstadoColectorRegistry estadoColectores;
+    private SaludDeColectoresPort saludDeColectores;
 
     @MockitoBean
     private JwtProvider jwtProvider;
@@ -58,7 +59,7 @@ class IngestaSaludControllerTest {
                 () -> java.time.Instant.parse("2026-08-09T15:30:00Z"));
         real.registrarExito("acuacar", 7);
         real.registrarFallo("rss", "sin red");
-        given(estadoColectores.estados()).willReturn(real.estados());
+        given(saludDeColectores.salud()).willReturn(real.salud());
 
         mockMvc.perform(get("/api/veedor/ingesta/salud").header("Authorization", TOKEN))
                 .andExpect(status().isOk())
