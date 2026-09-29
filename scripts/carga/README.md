@@ -9,6 +9,7 @@ Scripts para medir cuánta carga aguanta el backend. Contexto y resultados en
 | `escritura-reportes.js` | `POST /api/reportes` repartido y un pico concentrado en un sector (avería masiva). | k6 |
 | `rnf002-registrar-reporte.js` | RNF002: confirmar un reporte en menos de 1 s. | k6 |
 | `sse-conexiones.mjs` | Conexiones SSE simultáneas, latencia al primer evento, latidos. | Node |
+| `escenario-integrado.sh` | Todo junto: N conexiones SSE + lectura + escritura, por nginx y varias réplicas, dentro de la red de Docker (variables en su cabecera). | Bash + Docker |
 | `verificar-cache-proxy.mjs` | Que la micro-caché de nginx funcione con el backend real (MISS→HIT, un solo `Cache-Control`, 404 sin cachear, `Authorization` con `BYPASS`). Ejecutarlo tras tocar `infra/nginx/` (`BUG-085`). | Node |
 
 ## Sin instalar k6
@@ -34,12 +35,25 @@ docker run --rm -i -e BASE_URL=http://host.docker.internal:8081 -e TASA=300 \
 
 ## Trampas del banco de pruebas local (Docker Desktop, Windows)
 
+- **Genera la carga DENTRO de la red de Docker**, con `--network <red del compose>` y apuntando por nombre
+  (`http://backend:8080`, `http://carga-proxy`), y ejecuta también el cliente SSE en un contenedor
+  (`node:22-alpine` montando esta carpeta). Contra el puerto publicado del host, el reenvío de puertos de Docker Desktop
+  falsea los resultados: los `dial: i/o timeout` y los «Connection was reset» con SSE abiertas eran de esa capa, no del
+  backend (medido el 2026-09-29: 0 errores en 172 750 peticiones desde dentro de la red, y con un cliente SSE en el host
+  las conexiones nuevas al puerto publicado se resetean mientras dentro del contenedor responden).
+- En Git Bash, Docker recibe rutas mal traducidas (`/tmp/x` se vuelve `C:/Program Files/Git/tmp/x`): antepón
+  `MSYS_NO_PATHCONV=1` a los `docker run`/`docker exec` que llevan rutas del contenedor. **Pero no lo exportes** en la misma
+  sesión desde la que llamas a `curl`: con él, `curl -o /dev/null` falla al escribir (código 23) aunque la respuesta sea 200.
+- Con **50 000 SSE por nginx** el proxy necesita `listen 80 reuseport;` (ya está en `infra/nginx/nginx.conf`); sin él un
+  solo worker se llena (`worker_connections are not enough`) y solo se abren ~35 000.
+- `docker stats --no-stream a b c` no imprime **nada** si alguno de esos contenedores aún no existe: lista solo los que ya corren.
 - **k6 en Docker contra `host.docker.internal` o contra un puerto publicado se satura en ~1 200 req/s**
   (reenvío de puertos de Docker Desktop): p95 de segundos y miles de iteraciones descartadas que **no son
   del sistema**. Para medir el proxy, ejecuta k6 **en la misma red Docker** que nginx
   (`--network <red> -e BASE_URL=http://<contenedor>`); así se midieron ~3 700 req/s por un nginx.
 - A tasas altas contra el **backend directo** aparecen ráfagas de `dial: i/o timeout` (~0,03 %) por esa
-  misma capa; la latencia de lo completado sigue siendo buena. No se aisló la causa.
+  misma capa; la latencia de lo completado sigue siendo buena. Aislado el 2026-09-29: con el generador dentro de la red
+  desaparecen (0 errores en 172 750 peticiones).
 - El `limit_req` de 30/s por IP de nginx hay que comentarlo en una **copia** de la configuración para la
   prueba (todo sale de una IP). Nunca en producción.
 

@@ -57,7 +57,11 @@ public class EventoBitacoraMongoAdapter implements EventoBitacoraRepository {
     @Override
     public Pagina<EventoBitacora> listar(FiltroBitacora filtro, int pagina, int tamano) {
         Query consulta = consultaDe(filtro);
-        long total = mongoTemplate.count(consulta, EventoBitacoraDocumento.class);
+        // Sin filtro, `count` recorre toda la coleccion (100 ms con 300 000 eventos y creciendo); el contador
+        // estimado sale de los metadatos y es exacto salvo tras una caida sin cierre limpio.
+        long total = consulta.getQueryObject().isEmpty()
+                ? mongoTemplate.estimatedCount(EventoBitacoraDocumento.class)
+                : mongoTemplate.count(consulta, EventoBitacoraDocumento.class);
 
         List<EventoBitacoraDocumento> documentos = mongoTemplate.find(
                 consulta.with(PageRequest.of(pagina, tamano, Sort.by(Sort.Direction.DESC, "timestamp"))),

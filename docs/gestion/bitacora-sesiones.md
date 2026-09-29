@@ -63,6 +63,10 @@ Referencias cruzadas: `ADR-NNN` · `BUG-NNN` · `RF0NN` · `archivo:línea`.
 
 ## Preparación del backend
 
+### 2026-09-29 · `fix/estabilidad-bajo-carga`
+**Qué:** Backend de `main` revisado con los cambios del compañero (`./mvnw verify`: 970 pruebas, 0 fallos) y `RNF027` medido de nuevo con la carga dentro de la red de Docker y 3 réplicas: 50 100 SSE sostenidas, lecturas a 6 000 req/s, escrituras a 900/s de pico, todo junto dentro de umbrales hasta 25 000 SSE (`escalabilidad.md`). Corregidos `BUG-117`, `BUG-118`, `BUG-119` y cerrado el hallazgo del puerto publicado (era Docker Desktop); `scripts/carga/escenario-integrado.sh` repite el escenario. Base de la demo restaurada de una copia tras las pruebas.
+**Sigue:** Revisar y fusionar el PR de esta rama y registrarlo en `registro-de-implementaciones.md`. Fusionar `fix/jackson-cve-2026-68497` (CVE alto en `main`; ocupa `BUG-116`, por eso el siguiente libre aquí es 120). Con 50 000 SSE y todo el tráfico la latencia se sale de umbrales: solo una prueba con varias máquinas dice de quién es el límite. Sin probar: estampida de lecturas tras un aviso SSE, cerrojos de tareas con réplicas. La bitácora pasa de 30 entradas y no se rotó.
+
 ### 2026-09-24 · `feat/mensajeria-telegram`
 **Qué:** `RF041` construido por Telegram y apagado hasta tener el token (`ADR-066`): sondeo sin webhook, `/suscribir`, `/baja`, `/estado`, `/mis`, baja que borra el chat; reemplaza el simulacro de M14. `./mvnw verify`: 929 pruebas, 0 fallos; probado de extremo a extremo con un Telegram falso, **no contra Telegram real**. Limpieza hecha con copia previa (base de la demo y etiquetas viejas en `Documentos/respaldos-aguavigia`); `verificar-flujos.mjs` espera 1,1 s antes del cierre de sesión.
 **Sigue:** Crear el bot con `@BotFather` y poner `TELEGRAM_BOT_TOKEN` (`docs/ingenieria/telegram.md`); fusionar el PR y registrarlo; fecha real de la presentación para la retrospectiva.

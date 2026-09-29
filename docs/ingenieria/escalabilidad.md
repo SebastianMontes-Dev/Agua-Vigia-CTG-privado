@@ -19,10 +19,14 @@ dominio, CDN ni presupuesto. Por eso:
 
 ## Estado, sin adornos
 
-**La meta NO está demostrada.** El diseño y el código están preparados para ella y se midió a escala
-reducida (una sola máquina, un solo backend), con resultados buenos y con dos defectos graves que **solo
-apareció al medir**. Lo que falta para poder afirmar «soporta 50 000» es un despliegue con réplicas y una prueba
-de carga distribuida: ver [Lo que no se probó](#lo-que-no-se-probó) y [Pendiente](#pendiente-antes-de-afirmar-50-000).
+**La meta NO está demostrada por completo, pero se demostró casi todo lo que un solo PC permite.** Con 3 réplicas y
+nginx en la misma máquina: 50 100 conexiones SSE sostenidas sin perder ninguna, lecturas a 6 000 req/s con p95 de 1,5 ms,
+escrituras a 900/s de pico con p95 de 24 ms, y las tres cargas a la vez dentro de los umbrales con 25 000 SSE
+(sección [«Medición completa del 2026-09-29»](#medición-completa-del-2026-09-29-la-más-reciente-y-la-que-manda)). Con 50 000 SSE
+y todo el tráfico a la vez el sistema sigue en pie pero la latencia se sale de los umbrales, y en un solo equipo no se puede
+separar el límite del producto del límite del PC. Las mediciones también encontraron defectos que ninguna prueba unitaria
+veía (`BUG-085`, `BUG-086`, `BUG-117`, `BUG-118`, `BUG-119`). Lo que falta para afirmar «soporta 50 000» es una prueba
+distribuida: ver [Lo que no se probó](#lo-que-no-se-probó) y [Pendiente](#pendiente-antes-de-afirmar-50-000).
 
 ## Qué significa «50 000 simultáneos» (supuestos)
 
@@ -74,7 +78,83 @@ personas ──► CDN (opcional, recomendable) ──► nginx ×2–3 (micro-c
 | Índices `estadoModeracion+timestamp` (reportes) y `sectorId+timestamp` (bitácora) | La cola de moderación examinaba todos los pendientes y ordenaba en memoria; la bitácora de un sector recorría todos los eventos. El índice de un solo campo `estadoModeracion` se retira (prefijo del compuesto) | `IndicesMongo` |
 | Producción: réplicas, `read_only`, límites, `noeviction` | — | `docker-compose.prod.yml` |
 
-## Lo que se midió
+## Medición completa del 2026-09-29 (la más reciente y la que manda)
+
+Repite y amplía todo lo de abajo, con una diferencia de método que cambia las conclusiones: **el generador de carga
+corre dentro de la red de Docker** (k6 y el cliente SSE en contenedores que hablan con `backend:8080` o con nginx por
+nombre). Así desaparece el reenvío de puertos de Docker Desktop, que era el que falseaba las mediciones anteriores.
+Banco: un solo PC (Ryzen 5 9600X, 12 hilos, 15 GB para Docker), con **3 réplicas del backend** (2 CPU y 4 GB cada una),
+nginx con la micro-caché, Mongo y Redis únicos, y los generadores de carga **en la misma máquina**. Se repite con
+[`scripts/carga/escenario-integrado.sh`](../../scripts/carga/escenario-integrado.sh).
+
+### Lo que se demostró
+
+| Prueba | Resultado |
+|---|---|
+| Lectura pública, backend directo, 1 000 req/s (172 750 peticiones) | 0 errores, p95 **4,5 ms**, p99 6,6 ms |
+| Lectura pública, backend directo, objetivo 3 000 req/s (media 2 251) | 0 errores, p95 9,2 ms, p99 23 ms; backend ≈ 3 núcleos, Mongo ≈ 2,5 |
+| Lectura pública **por nginx** (micro-caché), objetivo 8 000 req/s (media 6 006; 1 381 398 peticiones) | 0 errores, p95 **1,5 ms**, p99 4,4 ms; nginx ≈ 1,2 núcleos, **backend ≈ 10 % de uno** |
+| Escritura: 300 reportes/s repartidos + pico de 900/s sobre un sector (62 986 POST) | 0 errores, p95 **23,7 ms** (`RNF002` exige 1 s), máx. 252 ms |
+| Integridad tras esa escritura | 0 eventos duplicados en la bitácora, todos los de consenso con sus `reportesSustento` (RF011), ningún sector con `verificadoEn` anterior a `actualizadoEn` |
+| SSE, 10 000 conexiones, un backend, cliente en la red | 10 000 abiertas, 0 rechazadas, primer evento p50 112 / p95 213 ms; backend ≈ 2 GB |
+| SSE **entre réplicas**: escribir solo contra la réplica 1 | Los clientes de las réplicas 2 y 3 recibieron 17 avisos cada uno (la 1, 18): el canal por Redis reparte entre réplicas |
+| SSE, **50 100 conexiones** (3 clientes × 16 700) por nginx y 3 réplicas, con `reuseport` | **50 100 abiertas, 0 errores**, sostenidas 5 min; ≈ 2,1–2,4 GB por réplica; primer evento p50 ≈ 250 ms (la cola, p95 ≈ 10 s, es la rampa de 1 500 conexiones nuevas/s contra JVM limitadas a 2 núcleos) |
+
+### El escenario integrado: conexiones + lecturas + escrituras a la vez
+
+Mismos generadores durante toda la prueba: SSE abiertas, lectura a 3 000 req/s objetivo y escritura de 100/s con pico de
+300/s, todo por nginx y las 3 réplicas:
+
+| SSE abiertas | Lectura (req/s reales · p95 · errores) | Escritura (p95 · errores) | Umbrales de k6 (lectura p95 < 300 ms; escritura p95 < 1 s, `RNF002`) |
+|---|---|---|---|
+| **25 100** | 2 242 · **47 ms** · 0 | **435 ms** · 0 de 21 000 | cumple |
+| **50 100** | 2 112 · **685 ms** · 0 (32 507 iteraciones que k6 no pudo lanzar) | **3,4 s** · 1 de 20 168 | **no cumple** |
+| 50 100 (otra corrida, misma configuración: la variación entre corridas es grande) | 1 870 · 2,0 s · 0 (88 031 sin lanzar) | 12,6 s · 4 de 15 165 | no cumple |
+
+**Lectura honesta.** Las 50 100 conexiones se sostienen sin perder ninguna, y las lecturas y los reportes se
+sirven sin errores. Lo que se degrada con 50 100 SSE es la **latencia**, no la disponibilidad, y en este banco no se
+puede separar el límite del producto del límite del PC: durante la escritura, **nginx llegó a 4–5 núcleos** repartiendo
+los avisos a 50 100 clientes, los generadores de carga (3 procesos Node y k6) y las 3 JVM comparten los mismos 12 hilos, y
+la suma de todos los contenedores del banco (réplicas, nginx, Mongo, clientes SSE y k6) llegó a 8–9 núcleos. Por eso **no se afirma** que el sistema cumpla `RNF027` con las tres cargas a la
+vez a 50 000: sí cumple con 25 000 conexiones y todo el tráfico dentro de los umbrales; con 50 000 sigue en pie pero lento,
+y solo una prueba con varias máquinas dirá cuánto es del producto. No se midió el riesgo de **estampida**: cada aviso SSE
+hace que el cliente vuelva a pedir `/api/sectores` (caché de 5 s); 50 000 clientes avisados a la vez son 50 000 lecturas
+en un segundo.
+
+### Los tres defectos que esta medición encontró
+
+1. **nginx repartía las conexiones de forma desigual entre sus workers** (`BUG-118`). Sin `reuseport`, un solo worker
+   llegó a `16384 worker_connections are not enough` y cerró conexiones vivas mientras los demás estaban casi vacíos:
+   **34 679 de 50 100 SSE abiertas, 15 421 fallos**. Con `listen 80 reuseport;`: 50 100 abiertas, 0 fallos.
+2. **Cada cliente SSE que se desconectaba dejaba un `ERROR` con traza completa y un segundo error** (`BUG-117`): el
+   manejador genérico intentaba escribir un `ProblemDetail` sobre una respuesta `text/event-stream`. Con 2 000 clientes que
+   cortan de golpe mientras hay avisos: **2 000 `ERROR` antes, 0 después** (misma prueba, imagen anterior frente a la nueva).
+3. **La bitácora pública contaba toda la colección** (`BUG-119`): con 300 000 eventos, sin filtro o solo con `tipo` tardaba
+   95–115 ms (el `count` examinaba los 302 417 documentos) y crecería linealmente. Con un índice `tipo+timestamp` y el
+   contador estimado sin filtro: **sin filtro 14 ms, `tipo` raro 15 ms, `tipo` común 48 ms**, con el total exacto.
+
+### Cierre del hallazgo abierto de la medición del 2026-09-24
+
+«Con las SSE abiertas, la API por el puerto publicado rechaza conexiones desde el host» **no era del backend**. Reproducido
+y aislado: con el cliente SSE **en el host** (2 000 conexiones por `localhost:8081`), las conexiones nuevas al mismo
+puerto se resetean (20 de 20) mientras que dentro del contenedor responde 200. Con el cliente **dentro de la red** (5 000 SSE)
+el puerto publicado responde bien (30 de 30). Es el reenvío de puertos de Docker Desktop, y los
+`dial: i/o timeout` de las mediciones anteriores eran lo mismo: con el generador dentro de la red, **0 errores en
+172 750 peticiones** al mismo backend.
+
+### Lo que sigue sin probarse
+
+- **50 000 con todas las cargas y latencia dentro de los umbrales**: pide varias máquinas (ver arriba).
+- **Estampida de lecturas tras un aviso SSE**, y el tope `429` de 20 000 conexiones por instancia con carga real.
+- **Cerrojos de tareas programadas con réplicas**: no se observó ninguna duplicación, pero no se buscó a propósito.
+- **Resiliencia bajo carga** (matar una réplica, Mongo o Redis) y **Mongo/Redis de alta disponibilidad**: sin cambios.
+- **Arranque en frío**: una réplica recién levantada, golpeada a los pocos segundos con 180 POST/s, dio timeouts del pool
+  de Mongo (unos 100 `ERROR` de «Timed out … waiting for a connection»); con la JVM caliente, 300 + 900 POST/s dieron 0.
+  Un despliegue real debería calentar la réplica antes de meterla al balanceador.
+
+## Lo que se midió (2026-09-21 y 2026-09-24, histórico)
+
+> Las cifras de aquí abajo son las anteriores; la sección de arriba las repite sin el reenvío de puertos de Docker Desktop.
 
 **Banco de pruebas** (2026-09-21): un solo equipo (Ryzen 5 9600X, 12 hilos, 33 GB, Windows 11) donde corren **a la
 vez** el generador de carga (k6 en Docker), nginx en Docker, el backend (JAR nativo, JVM con valores por defecto),
@@ -185,17 +265,19 @@ Pendiente, con decisión del dueño:
 
 ## Lo que no se probó
 
-- **50 000 usuarios**, ni conexiones (se llegó a 10 000) ni tasa (se llegó a ~5 000 lecturas/s y ~1 200 escrituras/s
-  de pico, en una máquina compartida con el generador).
-- **Más de una réplica de backend**: cerrojos de tareas, reparto de SSE, `BACKEND_REPLICAS`. Hay pruebas
-  unitarias e integración de los cerrojos, pero no se ejecutó una prueba con réplicas reales.
-- **SSE a través de nginx** (con su `limit_conn`) ni el tope `429` con carga real (lo cubre `SseSectoresBroadcasterTest`).
+- **50 000 usuarios con todo el tráfico a la vez y latencia dentro de los umbrales** (2026-09-29: 50 100 conexiones sí, y
+  todas las cargas juntas solo hasta 25 000; ver arriba). No hay medición con varias máquinas generadoras.
+- **Cerrojos de tareas con réplicas** (2026-09-29: el reparto de SSE entre 3 réplicas sí se probó; los cerrojos, sin buscar
+  duplicados a propósito, solo con pruebas unitarias e integración).
+- **El `limit_conn` de 20 SSE por IP de nginx** (la prueba usa una copia sin límites) ni el tope `429` de 20 000 conexiones
+  por instancia con carga real (lo cubre `SseSectoresBroadcasterTest`).
 - **Resiliencia bajo carga**: matar una réplica, *failover* de Mongo o de Redis, reconexión masiva, Redis caído
   durante lecturas. El comportamiento con Redis caído está cubierto por pruebas, no por una prueba de carga.
 - **MongoDB y Redis no son de alta disponibilidad**: un Mongo único, un Redis único. La réplica de 3 nodos y el
   Sentinel están en la arquitectura objetivo, no en el compose.
-- **Fotos**: van a disco local; con varias réplicas una foto subida a una no la sirve otra (`404`). Falta el
-  adaptador S3/MinIO (el puerto `AlmacenamientoPort` ya existe).
+- **Fotos**: van a disco local. En un solo equipo las réplicas comparten el volumen `fotos-data`
+  (`docker-compose.prod.yml`), así que no hay problema; con réplicas en **máquinas distintas** una foto subida a una no la
+  sirve otra (`404`) y haría falta el adaptador S3/MinIO (el puerto `AlmacenamientoPort` ya existe). No se probó subir fotos con réplicas.
 - **Red real, TLS, CDN**: todo fue en `localhost`.
 - **Métricas** (Prometheus) ni trazas: hoy solo se puede observar con `docker stats` y los logs.
 
@@ -237,3 +319,8 @@ Con el despliegue de prueba y una carga de lectura + SSE en marcha, en este orde
 Guía y trampas del banco local en [`scripts/carga/README.md`](../../scripts/carga/README.md). Resumen: vaciar
 `aguavigia.rate-limit.reglas` en el backend de prueba; para medir nginx, una **copia** de `nginx.conf` sin `limit_req`
 y k6 en la misma red de Docker; comprobar antes con `node scripts/carga/verificar-cache-proxy.mjs`.
+
+**Todo junto, con 3 réplicas:** `scripts/carga/escenario-integrado.sh` arma el nginx de prueba, copia el backend, abre
+las conexiones SSE y lanza lectura y escritura (variables en su cabecera; `SSE_POR_CLIENTE=8350` ≈ 25 000 conexiones,
+`16700` ≈ 50 000). Necesita el límite por IP vaciado (`AGUAVIGIA_RATE_LIMIT_REGLAS=""`, en un `docker-compose.override`
+tuyo, nunca en producción) y una **copia previa de Mongo**: las escrituras dejan decenas de miles de reportes.

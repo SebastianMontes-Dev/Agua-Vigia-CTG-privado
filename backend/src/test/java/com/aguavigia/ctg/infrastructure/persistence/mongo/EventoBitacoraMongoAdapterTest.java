@@ -95,6 +95,18 @@ class EventoBitacoraMongoAdapterTest {
 
         assertThat(eventos).extracting(e -> e.id().valor()).containsExactly("e2", "e1");
     }
+    /** Sin filtro el total sale del contador estimado de Mongo (no recorre la coleccion): debe seguir siendo exacto. */
+    @Test
+    void sinFiltroElTotalDebeSerElDeTodosLosEventos() {
+        sembrarTresBarriosYDosTipos();
+
+        var pagina = adaptador.listar(FiltroBitacora.sinFiltro(), 0, 2);
+
+        assertThat(pagina.contenido()).hasSize(2);
+        assertThat(pagina.totalElementos()).isEqualTo(mongoTemplate.count(new org.springframework.data.mongodb.core.query.Query(), EventoBitacoraDocumento.class));
+        assertThat(pagina.totalElementos()).isGreaterThan(2);
+    }
+
     @Test
     void debeBuscarUnEventoPorIdConSusReportesDeSustento() {
         adaptador.guardar(new EventoBitacora(
