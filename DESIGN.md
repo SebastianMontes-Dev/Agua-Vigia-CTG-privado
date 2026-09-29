@@ -185,7 +185,7 @@ Restricciones deliberadas, para que el agente no las proponga:
 
 ## 10. Checklist antes de dar por terminada una pantalla
 
-- [ ] ¿Se responde "¿tengo agua?" en menos de 5 segundos?
+- [ ] ¿Se entiende la respuesta de la pantalla en 5 segundos, sin bajar, a 1440 × 900 y a 390 × 844? (`ADR-079`)
 - [ ] ¿Funciona en 360px de ancho?
 - [ ] ¿A 390 × 844 la respuesta se ve sin scroll y la página no pasa de dos pantallas? (`ADR-077`)
 - [ ] ¿Los dos temas están diseñados, no solo invertidos?
