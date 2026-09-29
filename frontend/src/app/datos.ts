@@ -7,6 +7,7 @@ import { leerPaginacion } from '../api/paginacion'
 import type { Corte } from '../dominio/cortes'
 import type { Sector } from '../dominio/sectores'
 import type { Indice, PuntoSerie } from '../dominio/cumplimiento'
+import type { TipoBitacora } from '../dominio/historia'
 import type { components } from '../api/generado/esquema'
 
 // Solo GET: TanStack Query no reintenta mutaciones por defecto y aquí no se cambia (plan §6.1).
@@ -127,5 +128,51 @@ export function useEstadisticas() {
       return data as components['schemas']['EstadisticasRespuesta']
     },
     staleTime: 5_000,
+  })
+}
+
+export interface FiltrosBitacora {
+  sector?: string
+  tipo?: TipoBitacora
+  desde?: string
+  hasta?: string
+}
+
+export function useBitacora(filtros: FiltrosBitacora) {
+  return useInfiniteQuery({
+    queryKey: ['bitacora', filtros.sector, filtros.tipo, filtros.desde, filtros.hasta],
+    initialPageParam: 0,
+    queryFn: async ({ pageParam, signal }) => {
+      const { data, error, response } = await api.GET('/api/bitacora', {
+        params: { query: { pagina: pageParam, tamano: 5, sectorId: filtros.sector, tipo: filtros.tipo,
+          desde: filtros.desde, hasta: filtros.hasta } },
+        signal,
+      }).catch(() => ({ data: undefined, error: undefined, response: null }))
+      if (!response || !response.ok || !data) throw normalizarError(response ?? null, error)
+      return {
+        eventos: data as components['schemas']['EventoBitacoraRespuesta'][],
+        paginacion: leerPaginacion(response.headers, pageParam),
+      }
+    },
+    getNextPageParam: (ultima) => ultima.paginacion.hayMas ? ultima.paginacion.pagina + 1 : undefined,
+    staleTime: 5_000,
+  })
+}
+
+export function useSustento(id: string, abierto: boolean) {
+  return useInfiniteQuery({
+    queryKey: ['sustento', id],
+    enabled: abierto,
+    initialPageParam: 0,
+    queryFn: async ({ pageParam, signal }) => {
+      const { data, error, response } = await api.GET('/api/bitacora/{id}/sustento', {
+        params: { path: { id }, query: { pagina: pageParam, tamano: 50 } },
+        signal,
+      }).catch(() => ({ data: undefined, error: undefined, response: null }))
+      if (!response || !response.ok || !data) throw normalizarError(response ?? null, error)
+      return { ids: data as string[], paginacion: leerPaginacion(response.headers, pageParam) }
+    },
+    getNextPageParam: (ultima) => ultima.paginacion.hayMas ? ultima.paginacion.pagina + 1 : undefined,
+    staleTime: 60_000,
   })
 }
