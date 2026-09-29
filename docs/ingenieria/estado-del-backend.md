@@ -28,9 +28,9 @@ juntarlo todo después. Lo que hay en `main` es **backend + datos + infraestruct
 
 | Qué | Valor | Cómo se comprobó |
 |---|---|---|
-| Pruebas de backend | **970** (1 solo corre a petición: regenerar el contrato) · 0 fallos | `./mvnw verify` con Docker en la máquina del dueño, 2026-09-29 (rama `fix/estabilidad-bajo-carga`) |
-| Cobertura | JaCoCo ≥ 85 % en `domain/` y `application/` | El propio `verify` lo exige |
-| Arquitectura | 5+ reglas ArchUnit en verde | `ReglaDeOroArchitectureTest` |
+| Pruebas de backend | **1 100** (1 solo corre a petición: regenerar el contrato) · 0 fallos | `./mvnw verify` con Docker en la máquina del dueño, 2026-09-29 (rama `test/cobertura-y-reglas-arquitectura`) |
+| Cobertura | JaCoCo ≥ 85 % en `domain/` y `application/`; real **91,1 %** en `domain/`, **97,7 %** en `application/` y **94,1 %** en todo el backend (instrucciones) | El propio `verify` lo exige; cifras de `target/site/jacoco/jacoco.csv`, 2026-09-29 |
+| Arquitectura | 10 reglas ArchUnit en verde, incluidas «`api` no depende de `infrastructure`» y «toda ruta de `/api/veedor/**` lleva `@PreAuthorize`» | `ReglaDeOroArchitectureTest` |
 | API | **66 operaciones** en 21 controladores, 37 esquemas | `backend/openapi.yaml` (generado) |
 | Persistencia | 10 colecciones Mongo, `2dsphere` en `sectores.geometry` | `IndicesMongo` |
 | Redis | consenso, cupo RF006, rate limit, revocación de sesión, caché, pub/sub SSE, bloqueo de jobs | — |
@@ -95,11 +95,14 @@ de bugs (`BUG-076` a `BUG-088`; el `BUG-089` es del CI y sigue abierto).
 - Las confirmaciones y el consenso **no deduplican por IP**, solo por huella.
 
 ### Calidad
-- **Cobertura baja en M15:** `UsuarioMongoAdapter`, `EventoAuditoriaMongoAdapter`, `RedisControlIntentosAdapter`,
-  `TokenCuentaMongoAdapter` y `RedisRevocacionSesionAdapter` casi no tienen pruebas de adaptador.
-- **Capas:** `ContextoHttp` e `IngestaSaludController` importan `infrastructure/` desde `api/`, y ArchUnit no lo vigila
-  (ver `ADR-015`: que un controlador lea de un puerto de salida **no** es una violación). Falta una regla ArchUnit
-  «todo `/api/veedor/**` lleva `@PreAuthorize`» (`RNF022`).
+- **Pruebas de adaptador (cerrado el 2026-09-29):** `UsuarioMongoAdapter`, `EventoAuditoriaMongoAdapter`, `TokenCuentaMongoAdapter`,
+  `RedisControlIntentosAdapter` y `RedisRevocacionSesionAdapter` (con Testcontainers), más las de `SembradorAdminInicial`,
+  `BCryptCifradorClaveAdapter`, `GeneradorSecretosSeguroAdapter`, `TelegramSondeoJob`, `TelegramDesactivadoAdapter`,
+  `LectorDeVentanaDeclarada`, `NormalizadorDeNombres`, `AliasDeBarrios` y los tres servicios de consulta pública.
+- **Capas (cerrado el 2026-09-29):** ningún controlador importa ya `infrastructure/`. `SesionAutenticada` pasó a `domain/`;
+  lo que faltaba lo declaran los puertos `DocumentosFallidosPort`, `SaludDeColectoresPort` y `CanalEnVivoPort<C>`. Dos reglas
+  ArchUnit lo vigilan: `apiNoDebeDependerDeInfrastructure` y `todaRutaDelPanelDebeExigirUnPermiso` (`RNF022`; excepciones
+  justificadas: `/api/veedor/sesion`, `/sesion/cierre` y `/yo`).
 - **Dependabot** (`ADR-059`): el 2026-09-21 se fusionaron #1, #4, #24 y #8 (GitHub Actions) y #5 (jjwt 0.13) y #9 (ArchUnit 1.5), todos con el CI verde sobre el `main` nuevo. Spring Boot 4 y springdoc 3 quedan ignorados a propósito. **Sigue abierto #2 (Testcontainers 2.0)**: rompía el `Backend CI` en su última ejecución y no se ha reverificado; es una migración pendiente, no un descuido.
 - **`gitleaks` en modo PR falla en todos los PR** con «Resource not accessible by integration» (403 al listar los commits del PR): a `.github/workflows/secret-scan.yml` le faltan `permissions: contents: read, pull-requests: read` (`BUG-089`). No es un hallazgo de secretos: el mismo escaneo por `push` pasa. Hasta que el dueño lo corrija, ese check rojo en un PR es esperado.
 

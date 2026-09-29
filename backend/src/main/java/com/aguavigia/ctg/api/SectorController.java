@@ -1,6 +1,6 @@
 package com.aguavigia.ctg.api;
 
-import com.aguavigia.ctg.infrastructure.sse.SseSectoresBroadcaster;
+import com.aguavigia.ctg.domain.port.out.CanalEnVivoPort;
 import com.aguavigia.ctg.api.dto.GeometriaSectoresRespuesta;
 import com.aguavigia.ctg.api.dto.RespuestaSectores;
 import com.aguavigia.ctg.api.dto.SectorRespuesta;
@@ -43,15 +43,15 @@ public class SectorController {
     private final GeometriaSectoresPort geometrias;
     private final SectorApiMapper mapper;
     private final RelojPort reloj;
-    private final SseSectoresBroadcaster sseBroadcaster;
+    private final CanalEnVivoPort<SseEmitter> canalEnVivo;
 
     public SectorController(SectorRepository sectores, GeometriaSectoresPort geometrias, SectorApiMapper mapper,
-                             RelojPort reloj, SseSectoresBroadcaster sseBroadcaster) {
+                             RelojPort reloj, CanalEnVivoPort<SseEmitter> canalEnVivo) {
         this.sectores = sectores;
         this.geometrias = geometrias;
         this.mapper = mapper;
         this.reloj = reloj;
-        this.sseBroadcaster = sseBroadcaster;
+        this.canalEnVivo = canalEnVivo;
     }
 
     @Operation(summary = "Avisos en vivo de cambios de estado (SSE)",
@@ -67,7 +67,7 @@ public class SectorController {
                     schema = @Schema(implementation = ProblemDetail.class)))
     @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter streamSectores() {
-        return sseBroadcaster.registrar();
+        return canalEnVivo.registrar();
     }
 
     @Operation(summary = "Listar los sectores con su estado conocido",

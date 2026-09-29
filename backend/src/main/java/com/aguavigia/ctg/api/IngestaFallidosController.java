@@ -1,8 +1,8 @@
 package com.aguavigia.ctg.api;
 
 import com.aguavigia.ctg.api.dto.DocumentoFallidoRespuesta;
-import com.aguavigia.ctg.infrastructure.persistence.mongo.DocumentoFallidoDocumento;
-import com.aguavigia.ctg.infrastructure.persistence.mongo.DocumentoFallidoMongoRepository;
+import com.aguavigia.ctg.domain.DocumentoFallido;
+import com.aguavigia.ctg.domain.port.out.DocumentosFallidosPort;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -27,9 +27,9 @@ import java.util.List;
 @RequestMapping(value = "/api/veedor/ingesta/fallidos", produces = MediaType.APPLICATION_JSON_VALUE)
 public class IngestaFallidosController {
 
-    private final DocumentoFallidoMongoRepository fallidos;
+    private final DocumentosFallidosPort fallidos;
 
-    public IngestaFallidosController(DocumentoFallidoMongoRepository fallidos) {
+    public IngestaFallidosController(DocumentosFallidosPort fallidos) {
         this.fallidos = fallidos;
     }
 
@@ -44,19 +44,19 @@ public class IngestaFallidosController {
     @PreAuthorize("hasAuthority('PERM_VER_PANEL')")
     @GetMapping
     public List<DocumentoFallidoRespuesta> fallidos() {
-        return fallidos.findTop200ByOrderByUltimoIntentoDesc().stream()
+        return fallidos.masRecientes().stream()
                 .map(IngestaFallidosController::aRespuesta)
                 .toList();
     }
 
-    private static DocumentoFallidoRespuesta aRespuesta(DocumentoFallidoDocumento documento) {
+    private static DocumentoFallidoRespuesta aRespuesta(DocumentoFallido documento) {
         return new DocumentoFallidoRespuesta(
-                documento.getFuente(),
-                documento.getUrlOriginal(),
-                documento.getTitulo(),
-                documento.getMotivo(),
-                documento.getPrimerIntento(),
-                documento.getUltimoIntento(),
-                documento.getReintentos());
+                documento.fuente(),
+                documento.urlOriginal(),
+                documento.titulo(),
+                documento.motivo(),
+                documento.primerIntento(),
+                documento.ultimoIntento(),
+                documento.reintentos());
     }
 }
