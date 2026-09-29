@@ -1,4 +1,4 @@
-**[Retirado por alcance — `ADR-048`; vuelve a aplicar al frontend nuevo]** **[Retirado por alcance — `ADR-048`; vuelve a aplicar al frontend nuevo]** **[Retirado por alcance — `ADR-048`; vuelve a aplicar al frontend nuevo]** **[Retirado por alcance — `ADR-048`; vuelve a aplicar al frontend nuevo]** **[Retirado por alcance — `ADR-048`; vuelve a aplicar al frontend nuevo]** **[Retirado por alcance — `ADR-048`; vuelve a aplicar al frontend nuevo]** # Requisitos de producto — AguaVigía CTG
+# Requisitos de producto — AguaVigía CTG
 
 > Especificación de requisitos (formato IEEE 830 adaptado).
 > Cada requisito tiene id, prioridad MoSCoW, módulo y origen. Sin origen, un requisito es una opinión.

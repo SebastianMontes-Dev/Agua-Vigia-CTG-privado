@@ -306,8 +306,8 @@ callado es peor que uno que se cae ruidosamente.
 ejecución exitosa, ítems procesados y tasa de error. Es una de las pantallas de la demo de sustentación.
 
 **Ciudadano educado de la web.** `User-Agent` que identifica el proyecto y da un correo de contacto,
-peticiones condicionales, límite de una cada 30 segundos, y respeto programático del `robots.txt` (se
-lee y se cumple, no se asume). Costo casi nulo y es la diferencia entre un proyecto serio y uno que
+peticiones condicionales, límite de una cada 30 segundos, y respeto del `robots.txt` (se
+verifica a mano al elegir cada fuente, con `verificar-fuente`; el colector no lo lee en ejecución). Costo casi nulo y es la diferencia entre un proyecto serio y uno que
 molesta al operador.
 
 ---

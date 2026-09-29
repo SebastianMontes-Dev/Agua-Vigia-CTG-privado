@@ -3,7 +3,7 @@
 > **Para qué sirve.** Es el punto de entrada para quien retome el backend: qué es, en qué estado está,
 > qué falta y las trampas del entorno que cuestan una hora si nadie las avisa.
 >
-> **Última actualización:** 2026-09-21 · **Rama:** `main` (la serie de PR #16–#23 ya está fusionada)
+> **Última actualización:** 2026-09-29 · **Rama:** `main` (cierre funcional del backend, PR #90–#101, ya fusionado)
 >
 > Si algo no cuadra con el código, gana el código. Lo que **garantiza la build** es el contrato
 > (`ContratoOpenApiTest`) y la [matriz de trazabilidad](matriz-trazabilidad.md); lo demás se actualiza a mano.
@@ -20,26 +20,27 @@ Plataforma ciudadana de monitoreo del acueducto de **Cartagena de Indias** (proy
 los avisos de Acuacar con reportes ciudadanos georreferenciados y publica un **Índice de Cumplimiento**.
 **No está afiliada a Aguas de Cartagena S.A. E.S.P.**
 
-**`main` ya no tiene frontend** (`ADR-048`): el código anterior queda en la etiqueta git
-`pre-retiro-frontend` y se rehace en otras ramas de este repositorio, a partir de [`docs/api/`](../api/README.md), para
-juntarlo todo después. Lo que hay en `main` es **backend + datos + infraestructura**.
+**`main` tiene backend, datos, infraestructura y el frontend nuevo.** El frontend anterior se retiró (`ADR-048`; su código
+sigue en la etiqueta git `pre-retiro-frontend`, ya también en `origin`) y se rehace en `frontend/` (React 19 + Vite,
+`ADR-067`) a partir de [`docs/api/`](../api/README.md): F0–F4 están fusionadas (mapa, historia pública y avisos); falta F5, el panel del
+veedor (plan: [`plan-frontend.md`](plan-frontend.md)). El proyecto corre solo en local (`ADR-057`, `ADR-080`).
 
 ## 2. Estado actual — verificado
 
 | Qué | Valor | Cómo se comprobó |
 |---|---|---|
-| Pruebas de backend | **1 100** (1 solo corre a petición: regenerar el contrato) · 0 fallos | `./mvnw verify` con Docker en la máquina del dueño, 2026-09-29 (rama `test/cobertura-y-reglas-arquitectura`) |
+| Pruebas de backend | **1 104** (1 solo corre a petición: regenerar el contrato) · 0 fallos | `./mvnw verify` con Docker en la máquina del dueño, 2026-09-29 (`main` con #101 y la rama `docs/cierre-final-backend`) |
 | Cobertura | JaCoCo ≥ 85 % en `domain/` y `application/`; real **91,1 %** en `domain/`, **97,7 %** en `application/` y **94,1 %** en todo el backend (instrucciones) | El propio `verify` lo exige; cifras de `target/site/jacoco/jacoco.csv`, 2026-09-29 |
 | Arquitectura | 10 reglas ArchUnit en verde, incluidas «`api` no depende de `infrastructure`» y «toda ruta de `/api/veedor/**` lleva `@PreAuthorize`» | `ReglaDeOroArchitectureTest` |
-| API | **66 operaciones** en 21 controladores, 37 esquemas | `backend/openapi.yaml` (generado) |
-| Persistencia | 10 colecciones Mongo, `2dsphere` en `sectores.geometry` | `IndicesMongo` |
+| API | **64 operaciones** en 21 controladores, 37 esquemas | `backend/openapi.yaml` (generado) |
+| Persistencia | 13 colecciones Mongo, `2dsphere` en `sectores.geometry` | anotaciones `@Document` de `infrastructure/persistence`, `IndicesMongo` |
 | Redis | consenso, cupo RF006, rate limit, revocación de sesión, caché, pub/sub SSE, bloqueo de jobs | — |
 | Jobs | ingesta cada 10 min, ventanas cada 60 s, limpieza de fotos y purga de evidencia (diarias) | `@Scheduled`, todos vía `EjecucionUnica` |
-| CI | `backend-ci`, `despliegue-ci`, `secret-scan` | `.github/workflows/` |
+| CI | `backend-ci`, `frontend-ci`, `contenedores-ci`, `escaneo-de-fugas` (gitleaks) y `autoria` | `.github/workflows/` |
 
-**Requisitos:** 46 RF → 40 cumplidos, 5 descartados por decisión (RF032–036, IA) y **1 armado sin conectar: RF041** (Telegram, `ADR-066`)
-(webhook real de WhatsApp/Telegram, depende de credenciales de terceros). Los requisitos de interfaz quedan
-**retirados por alcance** hasta que exista el frontend nuevo (`ADR-048`).
+**Requisitos:** 46 RF → 42 cumplidos y 1 armado sin conectar (**RF041**, Telegram: falta el bot real, `ADR-066`); RF032, RF034 y RF036 quedan
+parciales porque el proyecto no usa IA (`ADR-025`): hay un extractor heurístico con confianza, cita y cola de revisión
+(detalle en la [matriz](matriz-trazabilidad.md)). Los requisitos de interfaz siguen a `frontend/` (`ADR-067`).
 
 Las pruebas de integración exigen **Docker** (Testcontainers `mongo:7.0` y `redis:7-alpine`).
 
@@ -50,10 +51,24 @@ Arquitectura Limpia (puertos y adaptadores): `domain/` (Java puro) ← `applicat
 [`diagrama-de-componentes.md`](diagrama-de-componentes.md). Las consultas de solo lectura sin regla de negocio
 van del controlador al puerto de salida (`ADR-015`): **no es un defecto**.
 
-## 4. Qué cambió en la ronda de 2026-09-21
+## 4. Qué cambió en las últimas rondas
 
-Ronda de pulido para el frontend nuevo y para la meta de 50 000 usuarios. Detalle en los ADR y en el registro
-de bugs (`BUG-076` a `BUG-088`; el `BUG-089` es del CI y sigue abierto).
+### Cierre funcional del backend (2026-09-29, PR #90–#101)
+
+Decisión del dueño: proyecto solo local (`ADR-080`; lo de producción queda en la etiqueta `pre-solo-local`) y backend cerrado para presentarlo. Detalle en `docs/gestion/registro-de-implementaciones.md`.
+
+- **Solo local:** se retiran nginx, `docker-compose.prod.yml` y el perfil `prod`; un solo `docker-compose.yml` (`ADR-080`).
+- **Cuentas:** barrio opcional en la cuenta con filtro por barrio (`ADR-081`); `RNF024` cumplido y medido con tiempo constante mínimo de 100 ms en el registro y el restablecimiento de clave (`BUG-123`).
+- **Ingesta sin internet:** `INGESTA_MODO=local` lee 13 boletines reales de Acuacar guardados (`ADR-082`); una propuesta de ingesta ya resuelta responde `409` y no se resuelve dos veces.
+- **Datos de demo:** `scripts/sembrar-usuarios-demo.mjs` deja 30 000 cuentas completas (barrio, segundo factor, tokens, auditoría).
+- **Demo de carga** (`ADR-083`): `node scripts/carga/demo.mjs`; 30 000 reportes con 30 000 conexiones SSE, p95 de 130 a 164 ms medido en un PC de 12 hilos compartido con el generador. Los 50 000 de `RNF027` **no** se demuestran en un PC (detalle y límites en [`escalabilidad.md`](escalabilidad.md)).
+- **Contrato:** el `openapi.yaml` ya no expone rutas de prueba (`BUG-121`); son 64 operaciones.
+- **Calidad:** pruebas de adaptadores y dos reglas ArchUnit nuevas (`ADR-084`); cifras en la sección 2.
+
+### Ronda de 2026-09-21 (histórico)
+
+Ronda de pulido para el frontend nuevo y para la meta de 50 000 usuarios; **lo que menciona de nginx, réplicas y producción
+quedó sin efecto con `ADR-080`**. Detalle en los ADR y en el registro de bugs (`BUG-076` a `BUG-088`).
 
 - **Escalabilidad** (`ADR-049`, `ADR-053`): micro-caché de lecturas en nginx (que al medir resultó no cachear: `BUG-085`), consenso acotado a una evaluación por segundo y sector (`BUG-086`), SSE de aviso, jobs de una sola réplica,
   rate limit atómico, caché tolerante a Redis caído, hilos virtuales y pools acotados, réplicas en el compose de
@@ -79,7 +94,7 @@ de bugs (`BUG-076` a `BUG-088`; el `BUG-089` es del CI y sigue abierto).
 ### Para cumplir la meta de 50 000 usuarios (no está demostrada)
 > Es referencia para un despliegue futuro, no pendiente del proyecto: es académico y corre en local (`ADR-057`).
 
-- **No se ha probado a esa escala.** Solo hay una medición reducida (ver [`escalabilidad.md`](escalabilidad.md)).
+- **No se ha probado a esa escala, y en un PC no se puede.** El techo medido es 30 000 reportes con 30 000 conexiones en vivo a la vez (`ADR-083`); con la base ya cargada el p95 llegó a 788 ms y esa variabilidad no se aisló (ver [`escalabilidad.md`](escalabilidad.md)).
 - **Fotos en disco local:** con réplicas en el mismo host funcionan por el volumen compartido; en hosts
   distintos hacen falta almacenamiento de objetos (S3/MinIO). El puerto `AlmacenamientoPort` ya existe; falta el adaptador.
 - **`EstadoColectorRegistry` vive en memoria de cada instancia:** con réplicas, `/api/veedor/ingesta/salud`
@@ -88,10 +103,9 @@ de bugs (`BUG-076` a `BUG-088`; el `BUG-089` es del CI y sigue abierto).
 - **La observabilidad es mínima:** solo `health`; faltan métricas Prometheus (emisores SSE, pools, latencias).
 
 ### Brechas de contrato y funcionales conocidas
-- Sin ruta para: **listar reportes** públicamente (a propósito, por privacidad) y **cerrar cortes creados por la
-  ingesta** (no entran al Índice de Cumplimiento).
-- Aprobar una propuesta de prensa **sin ventana declarada** responde 200 pero no cambia el sector; no hay guarda
-  contra resolver dos veces una propuesta.
+- Sin ruta para **listar reportes** públicamente (a propósito, por privacidad).
+- Los cortes nacidos de la ingesta **sí se pueden cerrar** con `PATCH /api/veedor/cortes/{id}/cierre`: el servicio busca el corte por id sin mirar su origen (`GestionarCorteOficialServiceTest.debeCerrarTambienUnCorteNacidoDeLaIngesta`). Lo que sigue pendiente es que la interfaz del panel (F5) lo ofrezca.
+- Aprobar una propuesta de prensa **sin ventana declarada** responde 200 pero no cambia el sector. Resolver dos veces una propuesta ya responde `409` (#96).
 - Las confirmaciones y el consenso **no deduplican por IP**, solo por huella.
 
 ### Calidad
@@ -103,11 +117,9 @@ de bugs (`BUG-076` a `BUG-088`; el `BUG-089` es del CI y sigue abierto).
   lo que faltaba lo declaran los puertos `DocumentosFallidosPort`, `SaludDeColectoresPort` y `CanalEnVivoPort<C>`. Dos reglas
   ArchUnit lo vigilan: `apiNoDebeDependerDeInfrastructure` y `todaRutaDelPanelDebeExigirUnPermiso` (`RNF022`; excepciones
   justificadas: `/api/veedor/sesion`, `/sesion/cierre` y `/yo`).
-- **Dependabot** (`ADR-059`): el 2026-09-21 se fusionaron #1, #4, #24 y #8 (GitHub Actions) y #5 (jjwt 0.13) y #9 (ArchUnit 1.5), todos con el CI verde sobre el `main` nuevo. Spring Boot 4 y springdoc 3 quedan ignorados a propósito. **Sigue abierto #2 (Testcontainers 2.0)**: rompía el `Backend CI` en su última ejecución y no se ha reverificado; es una migración pendiente, no un descuido.
-- **`gitleaks` en modo PR falla en todos los PR** con «Resource not accessible by integration» (403 al listar los commits del PR): a `.github/workflows/secret-scan.yml` le faltan `permissions: contents: read, pull-requests: read` (`BUG-089`). No es un hallazgo de secretos: el mismo escaneo por `push` pasa. Hasta que el dueño lo corrija, ese check rojo en un PR es esperado.
-
-### Housekeeping pendiente del dueño
-- Añadir los `permissions` a `secret-scan.yml` (`BUG-089`); la regla `Read(**/*secret*)` de `.claude/settings.json` impide que el agente abra ese archivo (`REC-016`).
+- **Dependabot** (`ADR-059`): Spring Boot 4 y springdoc 3 quedan ignorados a propósito. Testcontainers sigue en 1.21.x: la migración a 2.0 (#2) se cerró sin fusionar y es una tarea pendiente, no un descuido.
+- **Google News RSS tiene `Disallow: /` en su `robots.txt`.** La auditoría de fuentes lo justifica como agregador legítimo (`auditoria-fuentes-de-datos.md`); falta que el dueño lo confirme (`RF036`).
+- **Un código de salida 127 esporádico de `demo.mjs`** al devolver el backend a su perfil (1 de ≥5 corridas) no se reprodujo ni se explicó.
 
 ## 6. Trampas del entorno (esto ahorra una hora)
 

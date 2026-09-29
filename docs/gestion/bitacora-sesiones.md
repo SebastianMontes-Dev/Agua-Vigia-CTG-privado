@@ -25,6 +25,10 @@ Referencias cruzadas: `ADR-NNN` · `BUG-NNN` · `RF0NN` · `archivo:línea`.
 
 ## Sprint 7 — Frontend nuevo
 
+### 2026-09-29 · `docs/cierre-final-backend`
+**Qué:** Cierre funcional del backend fusionado (#90–#101: barrio en la cuenta, ingesta local, RNF024, 30 000 cuentas, demo de carga `ADR-083`, pruebas de adaptadores y reglas de capas `ADR-084`); docs conciliadas con el código (anexos HU/CP recuperados, RF032–RF036 reclasificados, `estado-del-backend`); `verify` 1 104 pruebas en verde.
+**Sigue:** Del dueño: decidir si rota `JWT_SECRET` y quita las credenciales de desarrollo de `docs/ingenieria/entorno-local.md`, y confirmar Google News (`Disallow: /`); F5 (panel del veedor) sigue sin hacerse.
+
 ### 2026-09-28 · `feat/f4-avisos`
 **Qué:** PR #87 adaptado a la prueba de 5 segundos para las tres pantallas de avisos, con fichas de barrios, dos columnas y capturas completas en ambos temas; 248 unitarias y 102 E2E pasaron.
 **Sigue:** El dueño revisa el PR #87 y sus capturas antes de fusionarlo; incorporar ADR-079 cuando llegue a `main`.

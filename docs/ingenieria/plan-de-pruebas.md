@@ -6,8 +6,8 @@
 > memoria**: se construye desde `registro-de-bugs.md` y `registro-de-implementaciones.md` cuando
 > existan. Escribir esa parte ahora sería inventar datos.
 >
-> Este documento es la **estrategia**. El backend ya está construido (823 pruebas en verde, ver
-> [`estado-del-backend.md`](estado-del-backend.md)); los resultados por RNF viven en
+> Este documento es la **estrategia**. El backend ya está construido (más de mil pruebas en verde;
+> la cifra al día está en [`estado-del-backend.md`](estado-del-backend.md) §2); los resultados por RNF viven en
 > `registro-de-implementaciones.md` y `matriz-trazabilidad.md`, no aquí.
 
 ---
@@ -33,10 +33,10 @@ un `RNF` verificable con métrica y umbral — no hay pruebas "porque sí".
 | Caos — caída de fuente externa | RNF004, RNF005, RNF006 | Apagar el colector en `docker compose`, observar cortacircuitos y cola muerta | Sprint 4, repetible | 4 |
 | Salud de colectores | RNF007 | `GET /actuator/health` | Smoke test en CI | 4 |
 | Datos personales | RNF008, RNF009 | Revisión de código + prueba de baja de suscripción | Manual, checklist de PR | 1 (M4), 5 (auditoría) |
-| Secretos en el repo | RNF010 | `gitleaks` en CI (ya activo desde Sprint 0, `.github/workflows/secret-scan.yml`) | En cada push | 0 |
+| Secretos en el repo | RNF010 | `gitleaks` en CI (ya activo desde Sprint 0, `.github/workflows/escaneo-de-fugas.yml`) | En cada push | 0 |
 | Seguridad del panel admin | RNF011 (JWT ≤ 8 h) | Test de seguridad (expiración de token) | Sprint 3 | 3 |
 | Accesibilidad | RNF012–RNF016 (contraste, teclado, táctil, responsive, no-solo-color) | `axe-core` + Lighthouse + prueba manual con teclado | Por página, antes de cada release | 1 → 5 (auditoría formal) — ⛔ retirado por alcance hasta que exista el frontend nuevo (`ADR-048`) |
-| Precisión del clasificador IA | RNF019 (≥ 90% sobre conjunto dorado) | Prueba de regresión en CI contra conjunto dorado etiquetado | Cada cambio al prompt/pipeline M9 | 4 (etiquetado) → 5 (CI) |
+| Precisión del clasificador IA | RNF019 — ⛔ **descartado** (`ADR-025`: no hay clasificador de IA) | El extractor heurístico se prueba con `PrefiltroDeterministaTest`, `HeuristicaExtractorTest` e `IngestaLocalDeExtremoAExtremoTest` | En cada PR, CI | — |
 | Arranque en máquina limpia | RNF020 (`docker compose up`, un comando) | E2E de infraestructura | Antes de cada release | 0 (compose base) → 5 (documentado en manual técnico) |
 | Flujo completo de usuario | RF001–RF028 (flujos principales) | Playwright E2E | Antes de cada release | 5 — ⛔ retirado por alcance hasta que exista el frontend nuevo (`ADR-048`); mientras tanto, `scripts/carga/` y las pruebas de integración del backend |
 
@@ -58,9 +58,9 @@ corrige `product-requirements.md` primero (mismo criterio que usa `registrar-imp
 
 ## 4. Datos de prueba
 
-- **Conjunto dorado para M9 (ingesta con IA):** boletines reales de Acuacar etiquetados a mano
-  (`origen: OFICIAL_ACUACAR`, ver `docs/ingenieria/pipeline-ingesta-datos.md`). Etiquetado es tarea del Sprint 4. RNF019 se mide contra este conjunto, no
-  contra datos sintéticos.
+- **Boletines reales para M9:** 13 boletines de Acuacar guardados en `backend/src/main/resources/ingesta-local/` (`ADR-082`, ver
+  `docs/ingenieria/pipeline-ingesta-datos.md`) alimentan la prueba de extremo a extremo y el modo `INGESTA_MODO=local`. El conjunto
+  dorado para medir `RNF019` no se etiquetó: el requisito se descartó con `ADR-025`.
 - **Dataset histórico para la demo final:** boletines y reportes de mayo–julio 2026, tarea del
   Sprint 6.
 - **Datos geoespaciales:** ya verificados y disponibles — `data/geoespacial/` (213 barrios, 184 con

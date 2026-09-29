@@ -312,6 +312,25 @@ class GestionarCorteOficialServiceTest {
     }
 
     @Test
+    void debeCerrarTambienUnCorteNacidoDeLaIngesta() {
+        CorteAgua deIngesta = CorteAgua.builder()
+                .id(new CorteId("corte-1"))
+                .sectoresAfectados(List.of(new SectorId("manga")))
+                .inicio(INICIO)
+                .finPrometido(INICIO.plus(6, ChronoUnit.HOURS))
+                .causa("Boletín de Acuacar")
+                .origen(OrigenCorte.INGESTA_IA)
+                .estado(EstadoCorte.ANUNCIADO)
+                .build();
+        given(cortes.buscarPorId(new CorteId("corte-1"))).willReturn(Optional.of(deIngesta));
+
+        CorteAgua cerrado = servicio.cerrar(new CorteId("corte-1"), INICIO.plus(5, ChronoUnit.HOURS));
+
+        assertThat(cerrado.estado()).isEqualTo(EstadoCorte.RESTABLECIDO);
+        assertThat(cerrado.origen()).isEqualTo(OrigenCorte.INGESTA_IA);
+    }
+
+    @Test
     void debeRechazarCerrarUnCorteQueNoExiste() {
         given(cortes.buscarPorId(new CorteId("no-existe"))).willReturn(Optional.empty());
 

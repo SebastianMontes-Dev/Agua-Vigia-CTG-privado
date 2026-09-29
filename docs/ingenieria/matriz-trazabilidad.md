@@ -31,8 +31,8 @@
 
 | # | Objetivo específico | Requisitos | Evidencia |
 |---|---|---|---|
-| **1** | Analizar los requisitos del sistema mediante técnicas de elicitación con usuarios del servicio | RF001–RF046 (elicitados) | Anexos 1, 2, 4 |
-| **2** | Diseñar la arquitectura del software bajo Arquitectura Limpia y un modelo de datos geoespacial | RNF018, RNF020, RNF026, RF001, RF007, RF009 | Anexo 6 · ADR-001 · ADR-003 · ADR-039 |
+| **1** | Analizar los requisitos del sistema mediante técnicas de elicitación con usuarios del servicio | RF001–RF046 (elicitados) | Anexo 4 |
+| **2** | Diseñar la arquitectura del software bajo Arquitectura Limpia y un modelo de datos geoespacial | RNF018, RNF020, RNF026, RF001, RF007, RF009 | ADR-001 · ADR-003 · ADR-039 |
 | **3** | Implementar la plataforma con Spring Boot, MongoDB, Redis y React aplicando principios SOLID | Todos los RF de M1–M9 y de M10–M15 (Fase 2, RF037–RF046), RNF021 | `registro-de-implementaciones.md` |
 | **4** | Validar el funcionamiento y la aceptación de la plataforma | RNF017, RNF019, RNF022–RNF025, RF023 + instrumentos | Anexos 3, 5 · Capítulo IV |
 
@@ -112,18 +112,18 @@
 | RF027 Consulta pública sin autenticación | HU027 | CP027 | 3 | 4 | ✅ |
 | RF028 Inmutabilidad: no se edita ni se elimina | HU028 | CP028 | 2, 3 | 3 | ✅ |
 
-### M9 — Ingesta automática con IA ⭐
+### M9 — Ingesta automática (sin IA, `ADR-025`) ⭐
 
 | RF | Historia | Caso de prueba | Obj. | Sprint | Estado |
 |---|---|---|---|---|---|
 | RF029 Consumo periódico de la API oficial | HU029 | CP029 | 3 | 1 | ✅ (`AcuacarApiCollectorTest`) |
 | RF030 Consumo de prensa vía RSS de agregadores | HU030 | CP030 | 3 | 3 | ✅ (`RssCollectorTest`) |
 | RF031 Descarte de duplicados por hash | HU031 | CP031 | 3 | 2 | ✅ (`DeduplicadorRecienteTest` · `PipelineOrquestadorTest`) |
-| RF032 Clasificación y extracción con IA estructurada | HU032 | CP032 | 3, 4 | 4 | ❌ (Descartado) |
-| RF033 Confianza y cita textual en toda extracción | HU033 | CP033 | 3, 4 | 4 | ❌ (Descartado) |
-| RF034 Rechazo automático si la cita no es literal | HU034 | CP034 | 3, 4 | 4 | ❌ (Descartado) |
-| RF035 Confianza intermedia a revisión humana | HU035 | CP035 | 3 | 4 | ❌ (Descartado) |
-| RF036 No acceder a fuentes que bloquean agentes de IA | HU036 | CP036 | 3 | 1 | ❌ (Descartado) |
+| RF032 Clasificación y extracción con IA estructurada | HU032 | CP032 | 3, 4 | 4 | 🟡 **Sin IA (`ADR-025`), con heurística.** Se clasifica con `PrefiltroDeterminista` (9 palabras clave) y se extraen barrios, ventana y causa con `HeuristicaExtractor` (expresiones regulares sobre boletines y prensa). No hay salida estructurada de un modelo: el requisito como está escrito no se cumple, su propósito sí (`PrefiltroDeterministaTest` · `HeuristicaExtractorTest`) |
+| RF033 Confianza y cita textual en toda extracción | HU033 | CP033 | 3, 4 | 4 | ✅ Toda extracción lleva confianza graduada por la evidencia (0,85 / 0,75 / 0,45) y la cita literal del fragmento (`HeuristicaExtractorTest.debeGraduarLaConfianzaSegunLaEvidenciaEncontrada` · `RegistrarPropuestaIngestaServiceTest`) |
+| RF034 Rechazo automático si la cita no es literal | HU034 | CP034 | 3, 4 | 4 | 🟡 **Cumplido por construcción, no por verificación.** La cita es un fragmento cortado del propio texto de origen, así que no puede ser inventada; pero no existe un paso que compare la cita con el documento y rechace. Si un día la cita la produjera algo que no fuera el extractor actual, ese paso sería obligatorio |
+| RF035 Confianza intermedia a revisión humana | HU035 | CP035 | 3 | 4 | ✅ Más estricto que lo pedido (`ADR-028`, `ADR-034`): las propuestas de prensa **siempre** pasan a la cola del veedor, sin importar la confianza, y no se resuelven dos veces (`RevisarPropuestaIngestaServiceTest`) |
+| RF036 No acceder a fuentes que bloquean agentes de IA | HU036 | CP036 | 3 | 1 | 🟡 **Política cumplida por auditoría, no por código.** Cada fuente se verifica a mano antes de usarse (`verificar-fuente`, `auditoria-fuentes-de-datos.md`, `ADR-005`); el colector se identifica con su `User-Agent` y no hay una comprobación de `robots.txt` en ejecución. Abierto: Google News RSS tiene `Disallow: /`; la auditoría lo justifica como agregador legítimo y falta que el dueño lo confirme |
 
 ### M10 — Evidencia Multimedia (Fase 2)
 
@@ -179,7 +179,7 @@ Los RNF no llevan historia de usuario: se verifican con una medición, no con un
 | RNF004 | Fuente caída no tumba el sistema | Prueba de caos | 4 | ✅ (`PipelineOrquestadorTest.unColectorCaidoNoDebeImpedirQueSeLeaElOtro`) |
 | RNF005 | Backoff + cortacircuitos tras 3 fallos | Test de integración | 4 | ✅ (`ResilienciaDeColectoresTest.debeAbrirElCortacircuitosAlTercerFalloConsecutivo`) |
 | RNF006 | Cero descartes silenciosos | Revisión de la cola muerta | 2 | ✅ **Cerrado 2026-09-22** (`BUG-091`): además de no marcarse como visto (`PipelineOrquestadorTest.noDebeMarcarComoVistoUnDocumentoQueFalloAlProcesarse`), ahora queda en la colección Mongo `documentos_fallidos` con su motivo, consultable en `GET /api/veedor/ingesta/fallidos` — sale de la cola en cuanto se procesa con éxito (`PipelineOrquestadorTest`, `IngestaFallidosControllerTest`) |
-| RNF007 | Salud por colector expuesta | `/actuator/health` | 4 | ✅ (`ColectorHealthIndicatorTest` · detalle autenticado en `GET /api/veedor/ingesta/salud`) |
+| RNF007 | Salud por colector expuesta | `/actuator/health` | 4 | ✅ (`ColectorHealthIndicatorTest` · detalle autenticado en `GET /api/veedor/ingesta/salud`; `show-details: never` salvo en el perfil `dev`, `DetalleDeSaludPorPerfilTest`) |
 | RNF008 | Sin datos personales del reportante | Revisión del modelo de datos | 2 | ✅ (`ADR-007` huella anónima · `ADR-026` Open311 agregado · `ADR-027` evidencia) |
 | RNF009 | Correos con acceso restringido, borrados al darse de baja | Revisión de código y prueba | 2 | ✅ (`MailNotificacionAdapterTest.debeIncluirElEnlaceDeBajaEnElAviso`) |
 | RNF010 | Cero credenciales en el repositorio | `gitleaks` en CI | 0 | ✅ |
@@ -189,10 +189,10 @@ Los RNF no llevan historia de usuario: se verifican con una medición, no con un
 | RNF014 | Objetivos táctiles ≥ 44×44 px | Inspección de CSS | 5 | ⛔ **Retirado por alcance (`ADR-048`).** Antes: ✅ |
 | RNF015 | Funcional desde 360 px | Prueba responsive | 5 | ⛔ **Retirado por alcance (`ADR-048`).** Antes: ✅ |
 | RNF016 | El estado nunca solo por color | Revisión de diseño | 5 | ⛔ **Retirado por alcance (`ADR-048`).** Antes: ✅ |
-| RNF017 | Cobertura ≥ 70% en `domain/` y `application/` | JaCoCo en CI | 5 | ✅ (real: **91,1 %** en `domain/`, **97,7 %** en `application/` y **94,1 %** en todo el backend, sobre 1 100 pruebas, medido el 2026-09-29 con Docker; el 2026-09-22 eran 90,2 % y 97,6 % sobre 825. El `jacoco:check` del `pom.xml` falla la build por debajo del 85% **desde el 2026-09-22**: hasta entonces la regla no evaluaba ningún paquete real — `BUG-096` — y pasaba sin importar la cobertura) |
-| RNF018 | Build falla si se viola una capa | ArchUnit en CI | 1 | ✅ (`ReglaDeOroArchitectureTest`, 5 reglas) |
+| RNF017 | Cobertura ≥ 70% en `domain/` y `application/` | JaCoCo en CI | 5 | ✅ (real: **91,1 %** en `domain/`, **97,7 %** en `application/` y **94,1 %** en todo el backend, sobre 1 104 pruebas, medido el 2026-09-29 con Docker; el 2026-09-22 eran 90,2 % y 97,6 % sobre 825. El `jacoco:check` del `pom.xml` falla la build por debajo del 85% **desde el 2026-09-22**: hasta entonces la regla no evaluaba ningún paquete real — `BUG-096` — y pasaba sin importar la cobertura) |
+| RNF018 | Build falla si se viola una capa | ArchUnit en CI | 1 | ✅ (`ReglaDeOroArchitectureTest`, 10 reglas) |
 | RNF019 | Precisión del clasificador ≥ 90% | Regresión sobre el conjunto dorado | 5 | ❌ (Descartado) |
-| RNF020 | Levanta con un solo comando | `docker compose up` en máquina limpia | 0 | ✅ (verificado en CI: `.github/workflows/despliegue-ci.yml` construye la imagen y valida ambos compose en cada push) |
+| RNF020 | Levanta con un solo comando | `docker compose up` en máquina limpia | 0 | ✅ (verificado en CI: `.github/workflows/contenedores-ci.yml` construye la imagen y valida el compose en cada push) |
 | RNF021 | Imágenes en bucket con compresión automática | Inspección de bucket y metadatos | Fase 2 | 🟡 **Parcial.** Compresión y limpieza de EXIF ✅ (`CompresorDeImagenes`, recodifica jpg/png y descarta metadatos al reescribir — `CompresorDeImagenesTest`). El almacenamiento es el volumen local `fotos-data`: el proyecto es solo local (`ADR-080`) y el bucket queda fuera de alcance. `.webp` no se procesa — el JDK no trae lector nativo |
 | RNF022 | Autorización siempre contra un permiso concreto, nunca contra el rol | ArchUnit + pruebas de contrato por endpoint | Fase 2 | ✅ (`@PreAuthorize("hasAuthority('PERM_...')")` en `AdminUsuariosController` y `SegundoFactorController`; `AdministrarCuentaServiceTest.debeExigirUnaSesionDeAdministrador`) |
 | RNF023 | Suspender o cambiar permisos invalida sesiones vivas de inmediato | Prueba de integración de revocación | Fase 2 | ✅ (`AdministrarCuentaServiceTest.suspenderDebeRevocarLasSesionesVivasDelAfectado`, `.rechazarDebeRevocarLasSesionesVivasDelAfectado`, `.ampliarPermisosTambienDebeRevocarLaSesion`) |
@@ -219,7 +219,7 @@ Se revisa al cerrar cada sprint. Un hueco aquí es un hallazgo del docente esper
 | `backend/openapi.yaml` es un archivo generado que se comitea a mano, sin nada que garantice que siga al día | 2026-08-11 | ✅ **Cerrado 2026-08-11** — `ContratoOpenApiTest` compara las rutas publicadas contra el archivo versionado |
 | Ningún endpoint paginaba: `/api/bitacora` devolvía la bitácora entera, que por RF028 crece sin cota | 2026-08-11 | ✅ **Cerrado 2026-08-11** — paginación con metadatos en cabeceras en bitácora y las dos colas del veedor |
 | El cupo por dispositivo (RF006) contaba y luego guardaba: dos peticiones simultáneas del mismo dispositivo pasaban ambas | 2026-08-11 | ✅ **Cerrado 2026-08-11** — reserva atómica con INCR de Redis, con prueba de 50 hilos concurrentes |
-| RNF020 marcado ✅ sin verificación: el CI no construía las imágenes ni validaba los compose | 2026-08-11 | ✅ **Cerrado 2026-08-11** — `despliegue-ci.yml`, que además falla si producción publica un puerto de base de datos |
+| RNF020 marcado ✅ sin verificación: el CI no construía las imágenes ni validaba los compose | 2026-08-11 | ✅ **Cerrado 2026-08-11** — `despliegue-ci.yml` (hoy `contenedores-ci.yml`, `ADR-080`), que en su día también fallaba si producción publicaba un puerto de base de datos |
 | RNF001 y RNF002 marcados ✅ sin ninguna medición | 2026-08-11 | 🟡 **RNF001 sigue abierto** (es de frontend) · ✅ **RNF002 cerrado 2026-08-11** — k6 midió p(95)=16.49 ms contra el umbral de 1 s |
 | El backend paginó `/api/veedor/reportes/pendientes` y `/api/veedor/ingesta/propuestas` (fila anterior), pero el frontend nunca leyó `X-Total-Count`: un reporte o propuesta más allá del elemento 50 era invisible para el veedor, sin aviso | 2026-08-12 | ✅ **Cerrado 2026-08-12** — ambas colas piden el máximo (`tamano=200`) y el panel avisa si aun así sobra más de lo mostrado (`PanelVeedor.tsx`) |
 | M15 (cuentas individuales, roles, permisos y TOTP) está construido y probado en el backend desde el 2026-08-31 (`ADR-039`), pero nunca entró a la cadena académica: `product-requirements.md` §4 no citaba `RF037`–`RF046` ni `RNF020`–`RNF026`, esta matriz no tenía Nivel 1 ni sección M15 para RF042–RF046 y llegaba solo hasta RNF021 en Nivel 3, y esta misma matriz citaba `HU037`–`HU041` para M10–M14 sin que `anexo-4-historias-de-usuario.md` las tuviera escritas (solo cubría HU001–HU036) | 2026-09-05 | ✅ **Cerrado 2026-09-05** — `anexo-4` incorpora HU037–HU041 (M10–M14) y HU042–HU046 (M15); `anexo-5` incorpora CP042–CP046; `product-requirements.md` §4 y esta matriz citan RF037–RF046 y RNF020–RNF026. **Pendiente de verificar por un humano:** los nombres de los métodos JUnit citados en CP042–CP046 y en las filas RNF022–RNF025 se tomaron de una lectura estática del código (`Grep`), sin ejecutar `mvnw test` en esta sesión — confirmar que compilan y pasan antes de cerrar el sprint |

@@ -1,9 +1,10 @@
 # Guion de demo — AguaVigía CTG
 
 > **Para qué sirve.** Es el orden para presentar el sistema funcionando en local (`ADR-057`), contra el
-> backend y sin frontend propio (`REC-018`, aceptada el 2026-09-24). Cada comando de las secciones 1–5 se
-> ejecutó el 2026-09-24 contra el entorno descrito abajo; las salidas son las reales de esa corrida, no
-> inventadas. Duración: unos 10 minutos.
+> backend (`REC-018`, aceptada el 2026-09-24). Cada comando de las secciones 1–5 se ejecutó el 2026-09-24 contra el
+> entorno descrito abajo; las salidas son las reales de esa corrida, no inventadas. El frontend nuevo (`frontend/`,
+> `ADR-067`) se enseña en la sección 7; el panel del veedor (F5) aún no tiene interfaz y se muestra con Swagger.
+> Duración: unos 10 minutos.
 
 **Entorno de la corrida:** `docker compose up` con Mongo, Redis, MailHog y backend sanos, 211 sectores
 sembrados y el histórico de `scripts/sembrar-historico-cortes.mjs` cargado. El backend queda en
@@ -22,7 +23,7 @@ curl -s localhost:8081/actuator/health/readiness        # {"status":"UP"}
 - **La siembra histórica es aleatoria** (`Math.random()`): las cifras del índice cambian en cada corrida. En
   la corrida de referencia dieron 99,62 % global; **lee el valor real en pantalla, no lo cites de este archivo.**
 - **Sembrar borra los cortes y reportes de mayo–julio 2026** que hubiera antes (`deleteMany` del script).
-- **Copia de la base de la demo** (211 sectores, histórico y 40 001 cuentas, 2026-09-24): `C:UserssabasDocumentosespaldos-aguavigiaaguavigia-demo-2026-09-24.archive.gz`, fuera del repo. Para volver a ese estado (sustituye la base actual):
+- **Copia de la base de la demo** (211 sectores, histórico y cuentas): la de la corrida del 2026-09-24, con 40 001 cuentas sin barrio, está en `C:\Users\sabas\Documentos\respaldos-aguavigia\aguavigia-demo-2026-09-24.archive.gz`, fuera del repo. La base de hoy tiene **30 000 cuentas completas** (barrio, segundo factor, tokens y auditoría; `scripts/sembrar-usuarios-demo.mjs`) y la demo de carga (sección 7) hace su propio respaldo en `respaldos-mongo/` (ignorado por git). Para volver a un respaldo (sustituye la base actual):
   `docker exec -i aguavigia-mongo mongorestore --archive --gzip --drop < <ruta del archivo>`. Contiene los datos de cuentas, incluido el hash del ADMIN: no la subas a git.
 - Abre en pestañas: `http://localhost:8081/swagger-ui.html` y MailHog `http://localhost:8025`.
 
@@ -130,8 +131,8 @@ reales entran por la ingesta de Acuacar (sección 5).
 curl -s "localhost:8081/api/bitacora?tamano=2"    # eventos CORTE_DETECTADO_POR_INGESTA con urlOriginal al boletín
 ```
 
-**Qué decir:** nada llega al mapa sin verificación; la IA debe citar la frase exacta del boletín (ética de
-datos, `ADR-005` y `ADR-006`). El colector se identifica con su `User-Agent` y respeta `robots.txt`.
+**Qué decir:** nada llega al mapa sin verificación; el extractor debe citar la frase exacta del boletín (es una
+heurística determinista, sin IA: `ADR-025`; ética de datos, `ADR-005` y `ADR-006`). El colector se identifica con su `User-Agent` y respeta `robots.txt`.
 
 ## 6. Panel del veedor
 
@@ -197,7 +198,7 @@ node scripts/carga/demo.mjs --usuarios 30000 --ventana 60 --conectados 30000 --r
 | **IoT (`RF040`)** | Solución que se implementaría en físico: el endpoint `POST /api/iot/presion` existe y está probado, pero no hay sensores instalados. Para probarlo en local hay que dar valor a `IOT_KEY` en `.env` y mandarlo en `X-IoT-Key`; vacía, responde 503. |
 | **Confirmar un reporte (`RF038`) no mueve el mapa** | Decisión mantenida (`BUG-114`): la confirmación suma al conteo `confirmaciones` del reporte, una vez por dispositivo, pero no entra al consenso; solo los reportes originales cuentan. |
 | **TLS, dominio, CDN, hosting** | No existen por decisión del proyecto (`ADR-057`). |
-| **Interfaz web** | No hay frontend en `main` (`ADR-048`); se demuestra la API con Swagger y `curl`. |
+| **Interfaz web completa** | El frontend nuevo (`ADR-067`) cubre el mapa, la historia pública y los avisos (F2–F4); el panel del veedor y las cuentas (F5) aún no tienen pantalla y se demuestran con Swagger y `curl`. |
 | **Datos históricos reales** | Los de mayo–julio son sintéticos. |
 
 ## Si algo falla en vivo

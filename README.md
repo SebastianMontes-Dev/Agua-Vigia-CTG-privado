@@ -108,7 +108,7 @@ El backend de AguaVigía tiene pruebas unitarias y de integración (cifra al dí
 cobertura de `domain/` o `application/` baja del 85% (RNF017) o si se viola una capa de la
 arquitectura (RNF018, ArchUnit).
 
-**16 de esas pruebas exigen Docker** (Testcontainers levanta MongoDB y Redis reales). Sin un motor de
+**30 clases de prueba exigen Docker** (Testcontainers levanta MongoDB y Redis reales). Sin un motor de
 Docker en marcha fallan con `Could not find a valid Docker environment`; no son defectos del código.
 
 Para correr la suite de pruebas localmente, asegúrate de tener Docker abierto y ejecuta:
