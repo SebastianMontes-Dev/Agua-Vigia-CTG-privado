@@ -1,193 +1,79 @@
 @layer componentes {
-  .pagina {
-    max-width: 1040px;
-    gap: var(--espacio-5);
+  /* identidad.md §4.1: la duración es el titular; cifras y barrios a la izquierda, días a la derecha. */
+  .pagina { gap: var(--espacio-6); padding-top: var(--espacio-6); }
+
+  .cabecera { display: grid; gap: var(--espacio-3); }
+  .rotulo { font-size: var(--texto-xs); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--tinta-2); font-variant-numeric: tabular-nums; }
+  .titular { max-width: 22ch; font-size: clamp(2rem, 3.6vw, 3rem); line-height: 1.08; text-wrap: balance; }
+
+  .columnas { display: grid; gap: var(--espacio-6); align-items: start; }
+  .respuesta, .evidencia { display: grid; gap: var(--espacio-4); align-content: start; min-width: 0; }
+
+  .cifras { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; border-top: 1px solid var(--tinta); }
+  .cifras > div { display: grid; gap: var(--espacio-1); align-content: start; padding: var(--espacio-3) var(--espacio-3) var(--espacio-3) 0; border-right: 1px solid var(--linea); }
+  .cifras > div + div { padding-left: var(--espacio-3); }
+  .cifras > div:last-child { border-right: 0; }
+  .cifras dt { font-size: var(--texto-xs); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--tinta-2); }
+  .cifras dd { margin: 0; font-size: clamp(1.125rem, 1.7vw, 1.5rem); font-weight: 600; line-height: 1.15; font-variant-numeric: tabular-nums; }
+  .nota { max-width: var(--medida-lectura); color: var(--tinta-2); }
+  .enlace { color: var(--tinta); text-decoration-color: var(--laton); text-underline-offset: 3px; white-space: nowrap; }
+
+  .bloque { display: grid; gap: var(--espacio-2); padding-top: var(--espacio-3); }
+  .bloque h2, .cabeceraBloque h2 { font-size: var(--texto-l); font-weight: 600; }
+  .cabeceraBloque { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: var(--espacio-2); padding-bottom: var(--espacio-2); border-bottom: 1px solid var(--tinta); }
+  .cabeceraBloque p { font-size: var(--texto-s); color: var(--tinta-2); font-variant-numeric: tabular-nums; }
+
+  .barrios { display: grid; padding: 0; list-style: none; border-top: 1px solid var(--tinta); }
+  .barrios li { display: grid; grid-template-columns: minmax(0, 9rem) minmax(0, 1fr) auto; align-items: center; gap: var(--espacio-3); min-height: 40px; border-bottom: 1px solid var(--linea-suave); font-size: var(--texto-s); font-variant-numeric: tabular-nums; }
+  .barrios li > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ejeBarrio { height: 8px; }
+  .ejeBarrio span { display: block; height: 100%; background: var(--cardenillo); transform-origin: left center; }
+
+  /* Columnas verticales de lunes a domingo: la cifra encima, el día debajo. */
+  .columnasDias { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--espacio-2); padding: 0; list-style: none; }
+  .columnasDias li { display: grid; grid-template-rows: auto 180px auto; justify-items: center; gap: var(--espacio-1); font-variant-numeric: tabular-nums; }
+  .columnasDias strong { font-size: var(--texto-s); font-weight: 600; }
+  .columnasDias abbr { font-size: var(--texto-s); color: var(--tinta-2); text-decoration: none; }
+  .destacado abbr { color: var(--tinta); font-weight: 600; }
+  .columna { position: relative; width: 100%; max-width: 44px; border-bottom: 1px solid var(--tinta-3); }
+  .columna span { position: absolute; left: 0; right: 0; bottom: 0; background: var(--cardenillo); transform-origin: center bottom; opacity: 0.55; }
+  .destacado .columna span { opacity: 1; }
+
+  .accion { justify-self: start; min-height: var(--objetivo-tactil); padding: 0; border: 0; background: none; color: var(--tinta); font-weight: 600; text-decoration: underline; text-decoration-color: var(--laton); text-underline-offset: 3px; cursor: pointer; }
+  .datos { border-top: 1px solid var(--linea); }
+  .datos summary { min-height: var(--objetivo-tactil); display: flex; align-items: center; cursor: pointer; font-size: var(--texto-s); font-weight: 600; }
+  .tablaContenedor { display: grid; gap: var(--espacio-4); max-width: 100%; overflow-x: auto; }
+  .tablaContenedor table { width: 100%; border-collapse: collapse; font-size: var(--texto-s); }
+  .tablaContenedor caption { text-align: left; font-weight: 600; padding: var(--espacio-2) 0; }
+  .tablaContenedor th, .tablaContenedor td { padding: var(--espacio-2); border-top: 1px solid var(--linea); text-align: left; font-variant-numeric: tabular-nums; }
+  .tablaContenedor th:first-child { padding-left: 0; }
+  .csv { display: inline-block; margin: var(--espacio-3) 0; font-size: var(--texto-s); font-weight: 600; color: var(--tinta); text-decoration-color: var(--laton); }
+
+  .vacio { border-top: 1px solid var(--tinta); padding: var(--espacio-5) 0; }
+  .esqueleto { display: grid; gap: var(--espacio-3); color: var(--tinta-2); }
+  .esqueleto span { display: block; height: 50px; border-bottom: 1px solid var(--linea); }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .columna span { animation: subir 0.9s var(--suave) both; }
+    .ejeBarrio span { animation: crecer 0.9s var(--suave) both; }
+  }
+  @keyframes subir { from { transform: scaleY(0); } }
+  @keyframes crecer { from { transform: scaleX(0); } }
+
+  @media (min-width: 1100px) {
+    .columnas { grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); column-gap: var(--espacio-7); }
   }
 
-  .cabecera {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(250px, 0.75fr);
-    gap: var(--espacio-3) var(--espacio-7);
-    align-items: end;
-    padding-bottom: var(--espacio-4);
-    border-bottom: 1px solid var(--tinta);
-  }
-
-  .cabecera h1 {
-    grid-row: span 2;
-    align-self: start;
-    line-height: 1.05;
-  }
-
-  .cabecera p {
-    max-width: var(--medida-lectura);
-  }
-
-  .descarga {
-    justify-self: start;
-    min-height: var(--objetivo-tactil);
-    display: inline-flex;
-    align-items: center;
-    color: var(--tinta);
-    font-size: var(--texto-s);
-    text-decoration-color: var(--laton);
-    text-underline-offset: 0.25em;
-  }
-
-  .descarga:hover { color: var(--cardenillo); }
-
-  .duracion {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: var(--espacio-2) var(--espacio-4);
-    padding: 0 0 var(--espacio-4);
-    border-bottom: 1px solid var(--linea);
-    color: var(--tinta-2);
-  }
-
-  .duracion strong {
-    color: var(--tinta);
-    font-size: var(--texto-xl);
-    font-weight: 500;
-    font-variant-numeric: tabular-nums;
-  }
-
-  .seccion {
-    display: grid;
-    gap: var(--espacio-5);
-  }
-
-  .seccion h2 {
-    font-size: var(--texto-xl);
-    font-weight: 500;
-    line-height: 1.2;
-  }
-
-  .explicacionAvisos { max-width: var(--medida-lectura); color: var(--tinta-2); font-size: var(--texto-s); }
-  .explicacionAvisos a { color: var(--tinta); text-decoration-color: var(--laton); }
-  .seccion .vacio { padding: var(--espacio-4) 0; }
-
-  .par {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: var(--espacio-4);
-    align-items: start;
-  }
-
-  .subtitulo {
-    margin-bottom: var(--espacio-3);
-    color: var(--tinta-2);
-    font-size: var(--texto-s);
-  }
-
-  .barras {
-    list-style: none;
-    display: grid;
-    gap: var(--espacio-2);
-    padding: 0;
-  }
-
-  .barras li {
-    display: grid;
-    grid-template-columns: minmax(100px, 145px) minmax(0, 1fr) minmax(2ch, auto);
-    align-items: center;
-    gap: var(--espacio-3);
-    min-height: 36px;
-    font-size: var(--texto-s);
-  }
-
-  .barras li > span {
-    overflow-wrap: anywhere;
-  }
-
-  .barras strong {
-    text-align: right;
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
-  }
-
-  .eje {
-    height: 12px;
-    border-left: 1px solid var(--tinta-2);
-    background: var(--linea-suave);
-  }
-
-  .eje span {
-    display: block;
-    height: 100%;
-    background: var(--cardenillo);
-  }
-
-  .tablaPlegable { border-top: 1px solid var(--linea); border-bottom: 1px solid var(--linea); }
-  .tablaPlegable summary { display: list-item; min-height: var(--objetivo-tactil); padding: var(--espacio-2) 0; cursor: pointer; font-weight: 600; }
-  .verTodos { display: none; }
-
-  .tablaContenedor {
-    min-width: 0;
-    overflow-x: auto;
-  }
-
-  .tablaContenedor table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: var(--texto-s);
-    font-variant-numeric: tabular-nums;
-  }
-
-  .tablaContenedor caption {
-    margin-bottom: var(--espacio-3);
-    color: var(--tinta-2);
-    text-align: left;
-  }
-
-  .tablaContenedor th,
-  .tablaContenedor td {
-    padding: var(--espacio-2) 0;
-    border-bottom: 1px solid var(--linea);
-    text-align: left;
-  }
-
-  .tablaContenedor thead th {
-    border-top: 1px solid var(--tinta);
-    font-weight: 600;
-  }
-
-  .tablaContenedor tbody th { font-weight: 400; }
-  .tablaContenedor td { text-align: right; }
-
-  .esqueleto {
-    display: grid;
-    gap: var(--espacio-3);
-    padding: var(--espacio-5) 0;
-  }
-
-  .esqueleto span {
-    display: block;
-    height: 18px;
-    background: var(--linea-suave);
-  }
-
-  .esqueleto span:nth-child(2) { width: 70%; }
-  .esqueleto span:nth-child(3) { width: 90%; }
-
-  .vacio {
-    padding: var(--espacio-6) 0;
-    border-top: 1px solid var(--linea);
-  }
-
-  @media (max-width: 767px) {
-    .pagina { gap: var(--espacio-5); padding-top: var(--espacio-5); padding-bottom: var(--espacio-5); }
-    .cabecera { grid-template-columns: 1fr; gap: var(--espacio-3); padding-bottom: var(--espacio-5); }
-    .cabecera h1 { grid-row: auto; }
-    .seccion { gap: var(--espacio-4); }
-    .par { grid-template-columns: 1fr; gap: var(--espacio-3); }
-    .filaMovilPlegada { display: none !important; }
-    .verTodos { display: inline-flex; align-items: center; min-height: var(--objetivo-tactil); margin-top: var(--espacio-2); padding: var(--espacio-2) 0; border: 0; background: none; color: var(--tinta); font-weight: 600; text-decoration: underline; text-decoration-color: var(--laton); cursor: pointer; }
-    .tablaContenedor { padding-bottom: var(--espacio-3); }
-  }
-
-  @media (max-width: 440px) {
-    .barras li { grid-template-columns: minmax(72px, 100px) minmax(0, 1fr) minmax(2ch, auto); }
+  @media (max-width: 599px) {
+    .pagina { gap: var(--espacio-4); padding-top: var(--espacio-4); padding-bottom: var(--espacio-5); }
+    .titular { font-size: 1.75rem; }
+    .columnas { gap: var(--espacio-5); }
+    /* En el celular el gráfico de días va antes que los barrios: es lo que más informa. */
+    .respuesta { display: contents; }
+    .barriosBloque { order: 1; }
+    .cifras dd { font-size: var(--texto-m); }
+    .columnasDias li { grid-template-rows: auto 120px auto; }
+    .barrios li { grid-template-columns: minmax(0, 1fr) auto; }
+    .ejeBarrio { display: none; }
   }
 }

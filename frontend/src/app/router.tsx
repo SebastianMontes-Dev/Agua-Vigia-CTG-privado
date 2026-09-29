@@ -24,11 +24,8 @@ const confirmar = createRoute({ getParentRoute: () => publico, path: 'confirmar/
 const historial = createRoute({ getParentRoute: () => publico, path: 'historial', component: Historial })
 const cumplimiento = createRoute({
   getParentRoute: () => publico, path: 'cumplimiento',
-  validateSearch: (busqueda: Record<string, unknown>): { sector?: string; desde?: string; hasta?: string } => ({
-    ...(typeof busqueda.sector === 'string' ? { sector: busqueda.sector } : {}),
-    ...(typeof busqueda.desde === 'string' ? { desde: busqueda.desde } : {}),
-    ...(typeof busqueda.hasta === 'string' ? { hasta: busqueda.hasta } : {}),
-  }),
+  validateSearch: (busqueda: Record<string, unknown>): { sector?: string } =>
+    typeof busqueda.sector === 'string' ? { sector: busqueda.sector } : {},
   component: Cumplimiento,
 })
 const bitacora = createRoute({

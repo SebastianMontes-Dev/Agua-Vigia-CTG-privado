@@ -2,130 +2,174 @@ import { useState } from 'react'
 import { useNavigate, useSearch } from '@tanstack/react-router'
 import { useIndiceCumplimiento, useListado, useSerieCumplimiento } from '../../app/datos'
 import { SelectorBarrio } from '../../componentes/SelectorBarrio'
-import { conclusionCumplimiento, diferenciaBreve, duracionAcumulada, indiceCompleto, limiteSerieCartagena, mesEnPalabras, ordenarSerie, rangoSerieValido, type Indice, type PuntoSerie } from '../../dominio/cumplimiento'
+import {
+  conclusionCumplimiento,
+  diferenciaEnPalabras,
+  diferenciaMensualPorCorte,
+  duracionCorta,
+  indiceCompleto,
+  mesEnPalabras,
+  ordenarSerie,
+  periodoEnPalabras,
+  resumirCumplimiento,
+  significadoIndice,
+  titularVeredicto,
+  type Indice,
+  type PuntoSerie,
+  type ResumenCumplimiento,
+} from '../../dominio/cumplimiento'
 import { formatearNumero, formatearPorcentaje } from '../../dominio/formato'
+import { nombreLegible } from '../../dominio/sectores'
 import estilosPagina from './Pagina.module.css'
 import estilos from './Cumplimiento.module.css'
 
-function Comparacion({ indice }: { indice: Indice }) {
-  if (!indiceCompleto(indice)) return <p role="alert">No pudimos leer la comparación de los cortes. Reintenta la consulta.</p>
-  const escala = Math.max(indice.duracionPrometidaSegundos, indice.duracionRealSegundos, 1)
-  const prometido = indice.duracionPrometidaSegundos / escala * 100
-  const real = indice.duracionRealSegundos / escala * 100
-  const exceso = Math.max(0, real - prometido)
+const MESES_VISIBLES = 6
 
+function Respuesta({ resumen }: { resumen: ResumenCumplimiento }) {
   return (
-    <section className={estilos.comparacion} aria-label="Comparación entre lo prometido y lo real">
-      <div className={estilos.resultado}>
-        <p className={estilos.rotuloIndice}>Índice de cumplimiento</p>
-        <strong className={estilos.indiceGrande}>{formatearPorcentaje(indice.porcentajeCumplimiento)}</strong>
-        <p className={estilos.conclusion}>{conclusionCumplimiento(indice)}</p>
-      </div>
-      <div className={estilos.cifras}>
-        <p><span>Anunciado</span><strong>{duracionAcumulada(indice.duracionPrometidaSegundos)}</strong></p>
-        <p><span>Duró</span><strong>{duracionAcumulada(indice.duracionRealSegundos)}</strong></p>
-        <p><span>Diferencia</span><strong>{indice.desviacionSegundos === 0 ? 'Sin diferencia' : `${duracionAcumulada(Math.abs(indice.desviacionSegundos))} ${indice.desviacionSegundos > 0 ? 'más' : 'menos'}`}</strong></p>
-      </div>
-      <div className={estilos.graficoComparacion} aria-hidden="true">
-        <p>Prometido</p><div className={estilos.eje}><span className={estilos.prometido} style={{ width: `${prometido}%` }} /></div>
-        <p>Real</p><div className={estilos.eje}><span className={estilos.real} style={{ width: `${Math.min(real, prometido)}%` }} />
-          {exceso > 0 && <span className={estilos.exceso} style={{ left: `${prometido}%`, width: `${exceso}%` }} />}</div>
-      </div>
-      <p className={estilos.regla}>Solo cuentan los cortes cerrados registrados. El agregado suma sus duraciones; no promedia porcentajes.</p>
+    <section className={estilos.respuesta} aria-label="Promedio por corte">
+      <dl className={estilos.cifras}>
+        <div><dt>Se anuncia</dt><dd>{duracionCorta(resumen.prometidoPorCorte)}</dd></div>
+        <div><dt>Dura</dt><dd>{duracionCorta(resumen.realPorCorte)}</dd></div>
+        <div><dt>Diferencia</dt><dd>{diferenciaEnPalabras(resumen.diferenciaPorCorte)}</dd></div>
+      </dl>
+      <p className={estilos.nota}>
+        Promedio por corte. <strong>Índice {formatearPorcentaje(resumen.porcentaje)}</strong>: {significadoIndice(resumen.porcentaje)}.
+      </p>
+      <details className={estilos.comoSeMide}>
+        <summary>Cómo se mide</summary>
+        <p>
+          Solo cuentan los cortes cerrados. Se suma lo que se anunció y lo que duró cada uno, y se divide entre la cantidad
+          de cortes; el índice compara esas dos sumas y no pasa de 100 %.
+        </p>
+      </details>
     </section>
   )
 }
 
-function Serie({ puntos }: { puntos: readonly PuntoSerie[] }) {
-  const [verTodos, setVerTodos] = useState(false)
-  const serie = ordenarSerie(puntos)
-  if (!serie.length) return <p className={estilos.vacio}>No hay cortes cerrados en la serie para esas fechas.</p>
-  const visibles = verTodos ? serie : serie.slice(-6)
+/** Sin la serie no hay conteo ni promedio por corte: se dice el total sin inventar lo demás. */
+function RespuestaSinSerie({ indice }: { indice: Indice }) {
+  if (!indiceCompleto(indice)) return <p role="alert">No pudimos leer la comparación de los cortes. Reintenta la consulta.</p>
   return (
-    <div className={estilos.serieContenido}>
-      <div className={estilos.listaMovil}>
-        <ol className={estilos.meses}>
-          {visibles.map((punto) => <li key={punto.periodo}>
-            <div className={estilos.mesResumen}>
-              <span>{mesEnPalabras(punto.periodo)}</span>
-              <strong>{diferenciaBreve(punto.desviacionSegundos)}</strong>
-            </div>
-            <p>{punto.porcentajeCumplimiento === undefined ? 'Sin índice' : formatearPorcentaje(punto.porcentajeCumplimiento)} · {punto.cantidadCortes === undefined ? 'sin dato de cortes' : `sobre ${formatearNumero(punto.cantidadCortes)} ${punto.cantidadCortes === 1 ? 'corte' : 'cortes'}`} · anunciados {punto.duracionPrometidaSegundos === undefined ? 'sin dato' : duracionAcumulada(punto.duracionPrometidaSegundos)}, duraron {punto.duracionRealSegundos === undefined ? 'sin dato' : duracionAcumulada(punto.duracionRealSegundos)}</p>
-          </li>)}
-        </ol>
-        {serie.length > 6 && !verTodos && <button type="button" className={estilos.verTodos} onClick={() => setVerTodos(true)}>Ver todos los meses ({formatearNumero(serie.length)})</button>}
-      </div>
-      <div className={estilos.tablaContenedor}>
-        <table>
-          <caption>Datos de la serie mensual de cumplimiento</caption>
-          <thead><tr><th scope="col">Mes</th><th scope="col">Índice</th><th scope="col">Diferencia</th><th scope="col">Cortes</th><th scope="col">Anunciado</th><th scope="col">Duró</th></tr></thead>
-          <tbody>{serie.map((punto) => <tr key={punto.periodo}>
-            <th scope="row">{mesEnPalabras(punto.periodo)}</th>
-            <td>{punto.porcentajeCumplimiento === undefined ? 'Sin dato' : formatearPorcentaje(punto.porcentajeCumplimiento)}</td>
-            <td>{diferenciaBreve(punto.desviacionSegundos)}</td>
-            <td>{punto.cantidadCortes === undefined ? 'Sin dato' : formatearNumero(punto.cantidadCortes)}</td>
-            <td>{punto.duracionPrometidaSegundos === undefined ? 'Sin dato' : duracionAcumulada(punto.duracionPrometidaSegundos)}</td>
-            <td>{punto.duracionRealSegundos === undefined ? 'Sin dato' : duracionAcumulada(punto.duracionRealSegundos)}</td>
-          </tr>)}</tbody>
-        </table>
-      </div>
-    </div>
+    <section className={estilos.respuesta} aria-label="Total de los cortes cerrados">
+      <p className={estilos.nota}>{conclusionCumplimiento(indice)}</p>
+      <p className={estilos.nota}><strong>Índice {formatearPorcentaje(indice.porcentajeCumplimiento)}</strong>: {significadoIndice(indice.porcentajeCumplimiento)}.</p>
+    </section>
   )
 }
 
+function MesAMes({ puntos, csv }: { puntos: readonly PuntoSerie[]; csv: string }) {
+  const [verTodos, setVerTodos] = useState(false)
+  const serie = ordenarSerie(puntos)
+  const visibles = verTodos ? serie : serie.slice(-MESES_VISIBLES)
+  const maximo = Math.max(60, ...serie.map((punto) => Math.abs(diferenciaMensualPorCorte(punto) ?? 0)))
+
+  return (
+    <section className={estilos.evidencia} aria-labelledby="titulo-serie">
+      <header className={estilos.cabeceraSerie}>
+        <h2 id="titulo-serie">Mes a mes</h2>
+        <p>Diferencia promedio por corte</p>
+      </header>
+      <ol className={estilos.meses}>
+        {visibles.map((punto) => {
+          const diferencia = diferenciaMensualPorCorte(punto)
+          const ancho = diferencia === null ? 0 : Math.abs(diferencia) / maximo * 50
+          return (
+            <li key={punto.periodo}>
+              <span className={estilos.mes}>{mesEnPalabras(punto.periodo)}</span>
+              <span className={estilos.eje} aria-hidden="true">
+                {diferencia !== null && diferencia !== 0 && (
+                  <span className={diferencia > 0 ? estilos.mas : estilos.menos} style={{ width: `${ancho}%` }} />
+                )}
+              </span>
+              <strong className={estilos.valor}>{diferencia === null ? 'Sin dato' : diferenciaEnPalabras(diferencia)}</strong>
+              <span className={estilos.cantidad}>
+                {punto.cantidadCortes === undefined ? 'sin conteo' : `${formatearNumero(punto.cantidadCortes)} ${punto.cantidadCortes === 1 ? 'corte' : 'cortes'}`}
+              </span>
+            </li>
+          )
+        })}
+      </ol>
+      {serie.length > MESES_VISIBLES && !verTodos && (
+        <button type="button" className={estilos.accion} onClick={() => setVerTodos(true)}>
+          Ver los {formatearNumero(serie.length)} meses
+        </button>
+      )}
+      <details className={estilos.datos}>
+        <summary>Ver datos</summary>
+        <div className={estilos.tablaContenedor}>
+          <table>
+            <caption>Datos de la serie mensual de cumplimiento</caption>
+            <thead><tr><th scope="col">Mes</th><th scope="col">Cortes</th><th scope="col">Anunciado</th><th scope="col">Duró</th><th scope="col">Índice</th></tr></thead>
+            <tbody>{serie.map((punto) => (
+              <tr key={punto.periodo}>
+                <th scope="row">{mesEnPalabras(punto.periodo)}</th>
+                <td>{punto.cantidadCortes === undefined ? 'Sin dato' : formatearNumero(punto.cantidadCortes)}</td>
+                <td>{punto.duracionPrometidaSegundos === undefined ? 'Sin dato' : duracionCorta(punto.duracionPrometidaSegundos)}</td>
+                <td>{punto.duracionRealSegundos === undefined ? 'Sin dato' : duracionCorta(punto.duracionRealSegundos)}</td>
+                <td>{punto.porcentajeCumplimiento === undefined ? 'Sin dato' : formatearPorcentaje(punto.porcentajeCumplimiento)}</td>
+              </tr>
+            ))}</tbody>
+          </table>
+        </div>
+        <a href={csv} download className={estilos.csv}>Descargar en CSV</a>
+      </details>
+    </section>
+  )
+}
+
+/** RF020–RF022, RF024 · `ADR-079`: el titular es el veredicto y las cifras son por corte. */
 export function Cumplimiento() {
   const buscar = useSearch({ from: '/publico/cumplimiento' })
   const navegar = useNavigate()
   const { sectores, lectura, reintentar: reintentarListado } = useListado()
-  const barrioNoEncontrado = !!buscar.sector && !!lectura.listado && !sectores.some((sector) => sector.id === buscar.sector)
-  const rangoValido = rangoSerieValido(buscar.desde, buscar.hasta)
-  const filtros = {
-    sectorId: buscar.sector,
-    desde: buscar.desde ? limiteSerieCartagena(buscar.desde) ?? undefined : undefined,
-    hasta: buscar.hasta ? limiteSerieCartagena(buscar.hasta, true) ?? undefined : undefined,
-  }
+  const sector = sectores.find((candidato) => candidato.id === buscar.sector)
+  const barrioNoEncontrado = !!buscar.sector && !!lectura.listado && !sector
   const indice = useIndiceCumplimiento(buscar.sector)
-  const serie = useSerieCumplimiento(filtros, rangoValido && !barrioNoEncontrado)
+  const serie = useSerieCumplimiento({ sectorId: buscar.sector }, !barrioNoEncontrado)
   const errorIndice = indice.error as { estado?: number } | null
-  const actualizar = (cambio: Partial<typeof buscar>) => navegar({ to: '/cumplimiento', search: { ...buscar, ...cambio }, replace: true })
-  const parametros = new URLSearchParams()
-  if (filtros.sectorId) parametros.set('sectorId', filtros.sectorId)
-  if (filtros.desde) parametros.set('desde', filtros.desde)
-  if (filtros.hasta) parametros.set('hasta', filtros.hasta)
-  const csv = `/api/cumplimiento/serie.csv${parametros.size ? `?${parametros.toString()}` : ''}`
+  const sinCortes = indice.isError && errorIndice?.estado === 400
+  const resumen = resumirCumplimiento(indice.data, serie.data)
+  const barrio = sector ? nombreLegible(sector.nombre) : undefined
+  const periodo = resumen && periodoEnPalabras(resumen.primerMes, resumen.ultimoMes)
+  const cargando = !barrioNoEncontrado && (indice.isPending || (indice.isSuccess && serie.isPending))
+  const csv = `/api/cumplimiento/serie.csv${buscar.sector ? `?sectorId=${encodeURIComponent(buscar.sector)}` : ''}`
+
+  const titular = resumen
+    ? titularVeredicto(resumen.diferenciaPorCorte, barrio)
+    : barrio ? `Lo prometido y lo que duró en ${barrio}` : 'Lo prometido y lo que duró'
 
   return (
     <div className={`${estilosPagina.pagina} ${estilos.pagina}`}>
       <header className={estilos.cabecera}>
-        <h1 className={estilosPagina.titular}>Lo prometido y lo que duró</h1>
-        <p className={estilosPagina.entrada}>Lo anunciado frente a lo que duró.</p>
+        <p className={estilos.rotulo}>
+          Cumplimiento
+          {resumen && <> · {formatearNumero(resumen.cortes)} {resumen.cortes === 1 ? 'corte cerrado' : 'cortes cerrados'}</>}
+          {periodo && <> · {periodo}</>}
+        </p>
+        <h1 className={`${estilosPagina.titular} ${estilos.titular}`}>{titular}</h1>
+        <div className={estilos.barra}>
+          <SelectorBarrio sectores={sectores} valor={buscar.sector} etiqueta="Barrio"
+            alCambiar={(id) => void navegar({ to: '/cumplimiento', search: id ? { sector: id } : {}, replace: true })} />
+          {lectura.error && !sectores.length && <p role="alert">No pudimos cargar los barrios. <button type="button" className={estilos.accion} onClick={reintentarListado}>Reintentar</button></p>}
+        </div>
       </header>
-      <div className={estilos.selector}><SelectorBarrio sectores={sectores} valor={buscar.sector} alCambiar={(sector) => actualizar({ sector })} />
-        {lectura.error && !sectores.length && <p role="alert">No pudimos cargar los barrios. <button type="button" onClick={reintentarListado}>Reintentar</button></p>}
-      </div>
+
       {barrioNoEncontrado && <p className={estilos.vacio}>No encontramos este barrio.</p>}
-      {!barrioNoEncontrado && indice.isPending && <output className={estilos.esqueleto}>Consultando el cumplimiento…<span /><span /><span /></output>}
-      {!barrioNoEncontrado && indice.isError && errorIndice?.estado === 400 && <p className={estilos.vacio}>Aún no hay cortes cerrados para medir. Un corte abierto todavía no se puede medir.</p>}
-      {!barrioNoEncontrado && indice.isError && errorIndice?.estado !== 400 && <p role="alert">No pudimos consultar el cumplimiento. Revisa tu conexión e inténtalo otra vez. <button type="button" onClick={() => indice.refetch()}>Reintentar</button></p>}
-      {!barrioNoEncontrado && indice.data && <Comparacion indice={indice.data} />}
-      {!barrioNoEncontrado && <section className={estilos.seccionSerie} aria-labelledby="titulo-serie">
-        <header className={estilos.cabeceraSerie}><h2 id="titulo-serie">Mes a mes</h2>
-          <a href={csv} download>Descargar serie en CSV</a></header>
-        <details className={estilos.filtroFechas} open={!!(buscar.desde || buscar.hasta)}>
-          <summary>Filtrar por fechas</summary>
-          <div className={estilos.contenidoFechas}>
-            <p>Las fechas filtran solo la serie y el CSV; la comparación de arriba muestra todos los cortes cerrados.</p>
-            <div className={estilos.fechas}>
-              <label>Desde (día de Cartagena)<input type="date" value={buscar.desde ?? ''} onChange={(e) => actualizar({ desde: e.target.value || undefined })} /></label>
-              <label>Hasta (inclusive, día de Cartagena)<input type="date" value={buscar.hasta ?? ''} onChange={(e) => actualizar({ hasta: e.target.value || undefined })} /></label>
-              {!rangoValido && <p role="alert">Revisa las fechas: la final debe ser igual o posterior a la inicial.</p>}
-            </div>
-          </div>
-        </details>
-        {rangoValido && serie.isPending && <output className={estilos.esqueleto}>Consultando la serie mensual…<span /><span /></output>}
-        {serie.isError && <p role="alert">No pudimos consultar la serie mensual. <button type="button" onClick={() => serie.refetch()}>Reintentar</button></p>}
-        {serie.data && <Serie puntos={serie.data} />}
-      </section>}
+      {cargando && <output className={estilos.esqueleto}>Consultando el cumplimiento…<span /><span /><span /></output>}
+      {!barrioNoEncontrado && sinCortes && (
+        <p className={estilos.vacio}>Aún no hay cortes cerrados para medir{barrio ? ` en ${barrio}` : ''}. Un corte abierto todavía no se puede medir.</p>
+      )}
+      {!barrioNoEncontrado && indice.isError && !sinCortes && (
+        <p role="alert">No pudimos consultar el cumplimiento. Revisa tu conexión e inténtalo otra vez. <button type="button" className={estilos.accion} onClick={() => void indice.refetch()}>Reintentar</button></p>
+      )}
+      {!barrioNoEncontrado && indice.data && !cargando && (
+        <div className={estilos.columnas}>
+          {resumen ? <Respuesta resumen={resumen} /> : <RespuestaSinSerie indice={indice.data} />}
+          {serie.isError && <p role="alert">No pudimos consultar el mes a mes. <button type="button" className={estilos.accion} onClick={() => void serie.refetch()}>Reintentar</button></p>}
+          {serie.data && serie.data.length > 0 && <MesAMes puntos={serie.data} csv={csv} />}
+        </div>
+      )}
     </div>
   )
 }
