@@ -109,7 +109,10 @@ public class IndicesMongo {
             indicesUsuarios.ensureIndex(new CompoundIndexDefinition(
                     new Document("rol", 1).append("estado", 1)));
             indicesUsuarios.ensureIndex(new Index().on("estado", Sort.Direction.ASC));
-            log.info("Indices de `usuarios` asegurados: correo (unico), rol+estado y estado");
+            // El listado del panel filtra por barrio y ordena por creadoEn descendente (ADR-081).
+            indicesUsuarios.ensureIndex(new CompoundIndexDefinition(
+                    new Document("barrio", 1).append("creadoEn", -1)));
+            log.info("Indices de `usuarios` asegurados: correo (unico), rol+estado, estado y barrio+creadoEn");
 
             // TTL sobre expiraEn: Mongo borra solo el token vencido. Sin esto la coleccion crece
             // con hashes que ya no valen para nada (TokenCuenta.estaVigente los rechaza igual).

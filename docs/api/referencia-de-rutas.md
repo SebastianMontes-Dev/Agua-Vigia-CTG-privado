@@ -181,7 +181,7 @@ Crea la cuenta en PENDIENTE_VERIFICACION y envia el enlace de confirmacion. Regi
 | **Acceso** | Público |
 | **Parámetros** | — |
 | **Cuerpo** | [SolicitudRegistro](#esquema-solicitudregistro) (`application/json`) |
-| **Respuestas** | `202` Solicitud recibida; revisa tu correo<br>`400` Correo mal formado o clave que no cumple la politica |
+| **Respuestas** | `202` Solicitud recibida; revisa tu correo<br>`400` Correo mal formado, clave que no cumple la politica o barrio inexistente |
 
 ### `POST /api/cuentas/restablecimiento`
 
@@ -670,12 +670,12 @@ Solo anexado: no hay forma de editar ni borrar un asiento desde la API.
 
 **Listar cuentas, mas recientes primero**
 
-Paginado, con el total y el enlace a la siguiente pagina en `X-Total-Count` y `Link`. `estado` filtra por PENDIENTE_APROBACION para ver solo la cola de altas.
+Paginado, con el total y el enlace a la siguiente pagina en `X-Total-Count` y `Link`. `estado` filtra por PENDIENTE_APROBACION para ver solo la cola de altas y `barrioId` (slug de un sector) por el barrio donde viven las personas.
 
 | | |
 |---|---|
 | **Acceso** | Sesión + `GESTIONAR_USUARIOS` |
-| **Parámetros** | `estado` (query)<br>`pagina` (query)<br>`tamano` (query) |
+| **Parámetros** | `estado` (query)<br>`barrioId` (query)<br>`pagina` (query)<br>`tamano` (query) |
 | **Cuerpo** | — |
 | **Respuestas** | `200` OK → lista de [UsuarioRespuesta](#esquema-usuariorespuesta)<br>`401` Sin sesión, token inválido, caducado o revocado → [ProblemDetail](#esquema-problemdetail)<br>`403` La sesión no tiene el permiso que exige esta operación → [ProblemDetail](#esquema-problemdetail) |
 
@@ -749,7 +749,7 @@ Crea la cuenta en INVITADA y le envia un enlace para que fije su clave. Al acept
 | **Acceso** | Sesión + `GESTIONAR_USUARIOS` |
 | **Parámetros** | — |
 | **Cuerpo** | [SolicitudInvitacion](#esquema-solicitudinvitacion) (`application/json`) |
-| **Respuestas** | `201` Invitacion enviada → [UsuarioRespuesta](#esquema-usuariorespuesta)<br>`401` Sin sesión, token inválido, caducado o revocado → [ProblemDetail](#esquema-problemdetail)<br>`403` La sesión no tiene el permiso que exige esta operación → [ProblemDetail](#esquema-problemdetail)<br>`409` Ya existe una cuenta con ese correo → [UsuarioRespuesta](#esquema-usuariorespuesta) |
+| **Respuestas** | `201` Invitacion enviada → [UsuarioRespuesta](#esquema-usuariorespuesta)<br>`400` Datos invalidos o barrio inexistente → [UsuarioRespuesta](#esquema-usuariorespuesta)<br>`401` Sin sesión, token inválido, caducado o revocado → [ProblemDetail](#esquema-problemdetail)<br>`403` La sesión no tiene el permiso que exige esta operación → [ProblemDetail](#esquema-problemdetail)<br>`409` Ya existe una cuenta con ese correo → [UsuarioRespuesta](#esquema-usuariorespuesta) |
 
 ## Veedor - Ingesta
 
@@ -792,20 +792,20 @@ Aplica el estado propuesto al sector y anexa el evento a la bitácora pública (
 | **Acceso** | Sesión + `REVISAR_INGESTA` |
 | **Parámetros** | `id` (path, obligatorio) |
 | **Cuerpo** | — |
-| **Respuestas** | `200` Propuesta aprobada y estado aplicado → [PropuestaIngestaRespuesta](#esquema-propuestaingestarespuesta)<br>`401` Sin sesión, token inválido, caducado o revocado → [ProblemDetail](#esquema-problemdetail)<br>`403` La sesión no tiene el permiso que exige esta operación → [ProblemDetail](#esquema-problemdetail)<br>`404` La propuesta no existe → [ProblemDetail](#esquema-problemdetail)<br>`409` El sector de la propuesta ya no existe → [ProblemDetail](#esquema-problemdetail) |
+| **Respuestas** | `200` Propuesta aprobada y estado aplicado → [PropuestaIngestaRespuesta](#esquema-propuestaingestarespuesta)<br>`401` Sin sesión, token inválido, caducado o revocado → [ProblemDetail](#esquema-problemdetail)<br>`403` La sesión no tiene el permiso que exige esta operación → [ProblemDetail](#esquema-problemdetail)<br>`404` La propuesta no existe → [ProblemDetail](#esquema-problemdetail)<br>`409` El sector de la propuesta ya no existe, o la propuesta ya estaba descartada → [ProblemDetail](#esquema-problemdetail) |
 
 ### `PATCH /api/veedor/ingesta/propuestas/{id}/descartar`
 
 **Descartar una propuesta**
 
-No toca el sector. La propuesta se archiva como descartada, no se borra.
+No toca el sector. La propuesta se archiva como descartada, no se borra. Descartar una ya aprobada responde 409.
 
 | | |
 |---|---|
 | **Acceso** | Sesión + `REVISAR_INGESTA` |
 | **Parámetros** | `id` (path, obligatorio) |
 | **Cuerpo** | — |
-| **Respuestas** | `200` Propuesta descartada → [PropuestaIngestaRespuesta](#esquema-propuestaingestarespuesta)<br>`401` Sin sesión, token inválido, caducado o revocado → [ProblemDetail](#esquema-problemdetail)<br>`403` La sesión no tiene el permiso que exige esta operación → [ProblemDetail](#esquema-problemdetail)<br>`404` La propuesta no existe → [ProblemDetail](#esquema-problemdetail) |
+| **Respuestas** | `200` Propuesta descartada → [PropuestaIngestaRespuesta](#esquema-propuestaingestarespuesta)<br>`401` Sin sesión, token inválido, caducado o revocado → [ProblemDetail](#esquema-problemdetail)<br>`403` La sesión no tiene el permiso que exige esta operación → [ProblemDetail](#esquema-problemdetail)<br>`404` La propuesta no existe → [ProblemDetail](#esquema-problemdetail)<br>`409` La propuesta ya estaba aprobada → [ProblemDetail](#esquema-problemdetail) |
 
 ### `GET /api/veedor/ingesta/salud`
 
@@ -1296,6 +1296,7 @@ Invitacion emitida por un ADMIN: crea la cuenta con su rol y manda el enlace
 | `correo` | string (email) | sí |  |  |
 | `nombre` | string | sí |  |  |
 | `rol` | string | sí |  | ADMIN, VEEDOR u OBSERVADOR |
+| `barrioId` | string |  | sí | Opcional: slug del barrio de la persona. 400 si no existe. |
 
 <a id="esquema-solicitudpermisos"></a>
 
@@ -1330,6 +1331,7 @@ Solicitud de acceso al panel. No concede nada: exige verificar el correo y que u
 | `correo` | string (email) | sí |  |  |
 | `nombre` | string | sí |  | Nombre con el que apareceras en la auditoria del panel |
 | `clave` | string | sí |  | Minimo 12 caracteres. La politica completa vive en ClaveEnClaro. |
+| `barrioId` | string |  | sí | Opcional: slug del barrio donde vives (uno de `GET /api/sectores`). 400 si no existe. |
 
 <a id="esquema-solicitudreporte"></a>
 
@@ -1392,6 +1394,7 @@ Cuenta del panel, tal como la ve un ADMIN
 | `nombre` | string |  |  |  |
 | `estado` | string |  |  | PENDIENTE_VERIFICACION, PENDIENTE_APROBACION, INVITADA, ACTIVA, SUSPENDIDA o RECHAZADA |
 | `rol` | string |  |  |  |
+| `barrioId` | string |  | sí | Slug del barrio donde vive la persona; nulo si no lo dio (ADR-081) |
 | `permisosEfectivos` | lista de string |  |  |  |
 | `permisosConcedidos` | lista de string |  |  |  |
 | `permisosRevocados` | lista de string |  |  |  |

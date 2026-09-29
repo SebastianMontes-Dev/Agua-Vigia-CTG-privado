@@ -1,5 +1,6 @@
 package com.aguavigia.ctg.domain.port.out;
 
+import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.CorreoElectronico;
 import com.aguavigia.ctg.domain.EstadoCuenta;
 import com.aguavigia.ctg.domain.Pagina;
@@ -20,7 +21,11 @@ public interface UsuarioRepository {
 
     boolean existePorCorreo(CorreoElectronico correo);
 
-    Pagina<Usuario> listar(EstadoCuenta filtroEstado, int pagina, int tamano);
+    default Pagina<Usuario> listar(EstadoCuenta filtroEstado, int pagina, int tamano) {
+        return listar(filtroEstado, null, pagina, tamano);
+    }
+
+    Pagina<Usuario> listar(EstadoCuenta filtroEstado, SectorId filtroBarrio, int pagina, int tamano);
 
     /**
      * Lo usa la guarda del último administrador: sin este conteo, suspender o despromover a la

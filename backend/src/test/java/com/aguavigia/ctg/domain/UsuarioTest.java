@@ -36,6 +36,27 @@ class UsuarioTest {
     }
 
     @Test
+    void elBarrioEsOpcionalYSobreviveATodasLasTransiciones() {
+        SectorId manga = new SectorId("manga");
+        Usuario vecina = Usuario.registrado(new UsuarioId("u-2"), new CorreoElectronico("v@ejemplo.org"),
+                "Vecina", HASH, manga, AHORA);
+        assertThat(vecina.barrio()).isEqualTo(manga);
+        assertThat(registrado().barrio()).isNull();
+
+        Usuario aprobada = vecina.verificarCorreo(DESPUES)
+                .aprobar(PermisosEfectivos.deRol(RolVeedor.OBSERVADOR), DESPUES.plusSeconds(1));
+        assertThat(aprobada.barrio()).isEqualTo(manga);
+        assertThat(aprobada.suspender(DESPUES.plusSeconds(2)).barrio()).isEqualTo(manga);
+    }
+
+    @Test
+    void unaInvitacionPuedeLlevarBarrio() {
+        Usuario invitado = Usuario.invitado(new UsuarioId("u-3"), new CorreoElectronico("i@ejemplo.org"),
+                "Invitada", RolVeedor.VEEDOR, new SectorId("crespo"), AHORA);
+        assertThat(invitado.barrio()).isEqualTo(new SectorId("crespo"));
+    }
+
+    @Test
     void debeRechazarUnRegistroSinClave() {
         assertThatIllegalArgumentException().isThrownBy(() -> Usuario.registrado(
                 new UsuarioId("u-1"), new CorreoElectronico("ana@ejemplo.org"), "Ana", null, AHORA));

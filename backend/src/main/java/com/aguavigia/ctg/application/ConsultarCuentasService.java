@@ -3,6 +3,7 @@ package com.aguavigia.ctg.application;
 import com.aguavigia.ctg.domain.EstadoCuenta;
 import com.aguavigia.ctg.domain.EventoAuditoria;
 import com.aguavigia.ctg.domain.Pagina;
+import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.Usuario;
 import com.aguavigia.ctg.domain.UsuarioId;
 import com.aguavigia.ctg.domain.port.in.ConsultarCuentasUseCase;
@@ -26,8 +27,8 @@ public class ConsultarCuentasService implements ConsultarCuentasUseCase {
     }
 
     @Override
-    public Pagina<Usuario> listar(EstadoCuenta filtroEstado, int pagina, int tamano) {
-        return usuarios.listar(filtroEstado, Pagina.paginaValida(pagina), Pagina.tamanoValido(tamano));
+    public Pagina<Usuario> listar(EstadoCuenta filtroEstado, SectorId filtroBarrio, int pagina, int tamano) {
+        return usuarios.listar(filtroEstado, filtroBarrio, Pagina.paginaValida(pagina), Pagina.tamanoValido(tamano));
     }
 
     @Override

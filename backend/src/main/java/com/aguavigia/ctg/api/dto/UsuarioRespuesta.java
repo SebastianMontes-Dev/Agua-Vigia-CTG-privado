@@ -21,6 +21,10 @@ public record UsuarioRespuesta(
         String estado,
 
         String rol,
+
+        @Schema(description = "Slug del barrio donde vive la persona; nulo si no lo dio (ADR-081)", nullable = true)
+        String barrioId,
+
         List<String> permisosEfectivos,
         List<String> permisosConcedidos,
         List<String> permisosRevocados,
@@ -35,6 +39,7 @@ public record UsuarioRespuesta(
                 usuario.nombre(),
                 usuario.estado().name(),
                 usuario.permisos().rol().name(),
+                usuario.barrio() == null ? null : usuario.barrio().valor(),
                 aNombres(usuario.permisosEfectivos()),
                 aNombres(usuario.permisos().concedidos()),
                 aNombres(usuario.permisos().revocados()),

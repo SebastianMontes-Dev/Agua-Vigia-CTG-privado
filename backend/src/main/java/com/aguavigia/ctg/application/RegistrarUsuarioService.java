@@ -4,6 +4,7 @@ import com.aguavigia.ctg.domain.AccionAuditada;
 import com.aguavigia.ctg.domain.ClaveEnClaro;
 import com.aguavigia.ctg.domain.ContextoDeAccion;
 import com.aguavigia.ctg.domain.CorreoElectronico;
+import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.TipoTokenCuenta;
 import com.aguavigia.ctg.domain.Usuario;
 import com.aguavigia.ctg.domain.UsuarioId;
@@ -11,6 +12,7 @@ import com.aguavigia.ctg.domain.port.in.RegistrarUsuarioUseCase;
 import com.aguavigia.ctg.domain.port.out.CifradorClavePort;
 import com.aguavigia.ctg.domain.port.out.NotificacionCuentaPort;
 import com.aguavigia.ctg.domain.port.out.RelojPort;
+import com.aguavigia.ctg.domain.port.out.SectorRepository;
 import com.aguavigia.ctg.domain.port.out.UsuarioRepository;
 
 import java.util.UUID;
@@ -31,28 +33,38 @@ public class RegistrarUsuarioService implements RegistrarUsuarioUseCase {
     private final NotificacionCuentaPort notificaciones;
     private final RegistroDeAuditoria auditoria;
     private final RelojPort reloj;
+    private final SectorRepository sectores;
 
     public RegistrarUsuarioService(UsuarioRepository usuarios,
                                    CifradorClavePort cifrador,
                                    EmisorDeTokensDeCuenta emisorDeTokens,
                                    NotificacionCuentaPort notificaciones,
                                    RegistroDeAuditoria auditoria,
-                                   RelojPort reloj) {
+                                   RelojPort reloj,
+                                   SectorRepository sectores) {
         this.usuarios = usuarios;
         this.cifrador = cifrador;
         this.emisorDeTokens = emisorDeTokens;
         this.notificaciones = notificaciones;
         this.auditoria = auditoria;
         this.reloj = reloj;
+        this.sectores = sectores;
     }
 
     @Override
-    public void registrar(CorreoElectronico correo, String nombre, ClaveEnClaro clave,
+    public void registrar(CorreoElectronico correo, String nombre, ClaveEnClaro clave, SectorId barrio,
                           ContextoDeAccion contexto) {
+        // Antes de mirar el correo: si el barrio no existe la respuesta es la misma tenga o no cuenta (RNF024).
+        if (barrio != null && sectores.buscarPorId(barrio).isEmpty()) {
+            throw new IllegalArgumentException("No existe el barrio '" + barrio.valor() + "'");
+        }
         CorreoElectronico normalizado = correo.normalizado();
 
         var existente = usuarios.buscarPorCorreo(normalizado);
         if (existente.isPresent()) {
+            // RNF024: un alta nueva cifra la clave (BCrypt, ~100 ms); sin este gasto equivalente, la
+            // respuesta más rápida delataría qué correos ya tienen cuenta.
+            cifrador.gastarTiempoEquivalente();
             notificaciones.avisarCambioDeAcceso(existente.get(),
                     "Alguien intentó registrarse con tu correo",
                     "Recibimos una solicitud de registro en AguaVigía con esta dirección, que ya "
@@ -66,6 +78,7 @@ public class RegistrarUsuarioService implements RegistrarUsuarioUseCase {
                 normalizado,
                 nombre.strip(),
                 cifrador.cifrar(clave.valor()),
+                barrio,
                 reloj.ahora()));
 
         String token = emisorDeTokens.emitir(nuevo.id(), TipoTokenCuenta.VERIFICACION_CORREO);

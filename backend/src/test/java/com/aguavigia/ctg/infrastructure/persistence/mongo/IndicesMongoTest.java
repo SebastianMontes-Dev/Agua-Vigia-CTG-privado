@@ -84,6 +84,15 @@ class IndicesMongoTest {
         assertThat(indicesReportes).doesNotContain("estadoModeracion_1").contains("estadoModeracion_1_timestamp_1");
     }
 
+    /** ADR-081: el listado del panel filtra por barrio y ordena por creadoEn descendente. */
+    @Test
+    void debeAsegurarElIndiceDeBarrioYFechaDeLasCuentas() {
+        indicesMongo.asegurarIndices();
+
+        Set<String> indicesUsuarios = nombresDeIndices(mongoTemplate.indexOps(UsuarioDocumento.class).getIndexInfo());
+        assertThat(indicesUsuarios).contains("barrio_1_creadoEn_-1");
+    }
+
     @Test
     void asegurarIndicesDebeSerIdempotente() {
         indicesMongo.asegurarIndices();

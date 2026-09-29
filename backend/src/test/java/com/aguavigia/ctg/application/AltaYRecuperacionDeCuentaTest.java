@@ -7,6 +7,9 @@ import com.aguavigia.ctg.domain.CorreoElectronico;
 import com.aguavigia.ctg.domain.EstadoCuenta;
 import com.aguavigia.ctg.domain.PermisosEfectivos;
 import com.aguavigia.ctg.domain.RolVeedor;
+import com.aguavigia.ctg.domain.port.out.SectorRepository;
+import com.aguavigia.ctg.domain.Sector;
+import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.TipoTokenCuenta;
 import com.aguavigia.ctg.domain.Usuario;
 import com.aguavigia.ctg.domain.UsuarioId;
@@ -23,6 +26,7 @@ import java.time.Instant;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -52,6 +56,7 @@ class AltaYRecuperacionDeCuentaTest {
     private RegistroDeAuditoria auditoria;
     private RevocacionSesionPort revocacion;
     private ControlIntentosPort intentos;
+    private SectorRepository sectores;
 
     @BeforeEach
     void montar() {
@@ -62,6 +67,7 @@ class AltaYRecuperacionDeCuentaTest {
         auditoria = mock(RegistroDeAuditoria.class);
         revocacion = mock(RevocacionSesionPort.class);
         intentos = mock(ControlIntentosPort.class);
+        sectores = mock(SectorRepository.class);
 
         given(usuarios.guardar(any())).willAnswer(invocacion -> invocacion.getArgument(0));
         given(cifrador.cifrar(anyString())).willReturn(HASH);
@@ -70,7 +76,7 @@ class AltaYRecuperacionDeCuentaTest {
 
     private RegistrarUsuarioService registro() {
         return new RegistrarUsuarioService(
-                usuarios, cifrador, emisorDeTokens, notificaciones, auditoria, () -> AHORA);
+                usuarios, cifrador, emisorDeTokens, notificaciones, auditoria, () -> AHORA, sectores);
     }
 
     private RestablecerClaveService restablecimiento() {
@@ -120,6 +126,51 @@ class AltaYRecuperacionDeCuentaTest {
         verify(usuarios, never()).guardar(any());
         verify(notificaciones, never()).enviarVerificacionDeCorreo(any(), anyString());
         verify(notificaciones).avisarCambioDeAcceso(any(), anyString(), anyString());
+    }
+
+    /** RNF024: la rama de un correo existente no cifra nada, y sin esto responde mucho más rápido que un alta nueva. */
+    @Test
+    void registrarseConUnCorreoYaRegistradoDebeGastarElMismoTiempoQueUnAltaNueva() {
+        given(usuarios.buscarPorCorreo(any())).willReturn(Optional.of(cuenta(EstadoCuenta.ACTIVA)));
+
+        registro().registrar(CORREO, "Ana", CLAVE, CONTEXTO);
+
+        verify(cifrador).gastarTiempoEquivalente();
+    }
+
+    @Test
+    void registrarseConUnBarrioQueExisteDebeGuardarloEnLaCuenta() {
+        SectorId manga = new SectorId("manga");
+        given(sectores.buscarPorId(manga)).willReturn(Optional.of(new Sector(manga, "Manga", 1000, null)));
+        given(usuarios.buscarPorCorreo(any())).willReturn(Optional.empty());
+
+        registro().registrar(CORREO, "Ana", CLAVE, manga, CONTEXTO);
+
+        ArgumentCaptor<Usuario> guardado = ArgumentCaptor.forClass(Usuario.class);
+        verify(usuarios).guardar(guardado.capture());
+        assertThat(guardado.getValue().barrio()).isEqualTo(manga);
+    }
+
+    /** RNF024: el 400 por barrio inexistente sale antes de mirar el correo, así que no delata cuentas. */
+    @Test
+    void registrarseConUnBarrioInexistenteDebeRechazarseIgualExistaONoElCorreo() {
+        given(sectores.buscarPorId(any())).willReturn(Optional.empty());
+        given(usuarios.buscarPorCorreo(any())).willReturn(Optional.of(cuenta(EstadoCuenta.ACTIVA)));
+
+        assertThatThrownBy(() -> registro().registrar(CORREO, "Ana", CLAVE, new SectorId("no-existe"), CONTEXTO))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("No existe el barrio");
+        verify(usuarios, never()).buscarPorCorreo(any());
+        verify(notificaciones, never()).avisarCambioDeAcceso(any(), anyString(), anyString());
+    }
+
+    @Test
+    void registrarseConUnCorreoNuevoNoDebeGastarTiempoDeMas() {
+        given(usuarios.buscarPorCorreo(any())).willReturn(Optional.empty());
+
+        registro().registrar(CORREO, "Ana", CLAVE, CONTEXTO);
+
+        verify(cifrador, never()).gastarTiempoEquivalente();
     }
 
     @Test

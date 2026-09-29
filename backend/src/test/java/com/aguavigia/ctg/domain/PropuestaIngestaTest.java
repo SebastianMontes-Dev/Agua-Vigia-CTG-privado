@@ -37,6 +37,29 @@ class PropuestaIngestaTest {
     }
 
     @Test
+    void descartarDebeSerIdempotente() {
+        assertThat(propuesta().descartar().descartar().estadoRevision()).isEqualTo(EstadoRevision.DESCARTADA);
+    }
+
+    @Test
+    void noDebeDescartarUnaPropuestaYaAprobada() {
+        PropuestaIngesta aprobada = propuesta().aprobar();
+
+        assertThatThrownBy(aprobada::descartar)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("ya fue aprobada");
+    }
+
+    @Test
+    void noDebeAprobarUnaPropuestaYaDescartada() {
+        PropuestaIngesta descartada = propuesta().descartar();
+
+        assertThatThrownBy(descartada::aprobar)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("ya fue descartada");
+    }
+
+    @Test
     void debeExigirSectorEstadoFuenteYFecha() {
         assertThatThrownBy(() -> new PropuestaIngesta(new PropuestaId("p-1"), null,
                 EstadoServicio.SIN_SERVICIO, "acuacar", null, "cita", 0.6, AHORA))

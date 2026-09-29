@@ -4,12 +4,14 @@ import com.aguavigia.ctg.domain.AccionAuditada;
 import com.aguavigia.ctg.domain.ContextoDeAccion;
 import com.aguavigia.ctg.domain.CorreoElectronico;
 import com.aguavigia.ctg.domain.RolVeedor;
+import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.TipoTokenCuenta;
 import com.aguavigia.ctg.domain.Usuario;
 import com.aguavigia.ctg.domain.UsuarioId;
 import com.aguavigia.ctg.domain.port.in.InvitarUsuarioUseCase;
 import com.aguavigia.ctg.domain.port.out.NotificacionCuentaPort;
 import com.aguavigia.ctg.domain.port.out.RelojPort;
+import com.aguavigia.ctg.domain.port.out.SectorRepository;
 import com.aguavigia.ctg.domain.port.out.UsuarioRepository;
 
 import java.util.UUID;
@@ -26,22 +28,28 @@ public class InvitarUsuarioService implements InvitarUsuarioUseCase {
     private final NotificacionCuentaPort notificaciones;
     private final RegistroDeAuditoria auditoria;
     private final RelojPort reloj;
+    private final SectorRepository sectores;
 
     public InvitarUsuarioService(UsuarioRepository usuarios,
                                  EmisorDeTokensDeCuenta emisorDeTokens,
                                  NotificacionCuentaPort notificaciones,
                                  RegistroDeAuditoria auditoria,
-                                 RelojPort reloj) {
+                                 RelojPort reloj,
+                                 SectorRepository sectores) {
         this.usuarios = usuarios;
         this.emisorDeTokens = emisorDeTokens;
         this.notificaciones = notificaciones;
         this.auditoria = auditoria;
         this.reloj = reloj;
+        this.sectores = sectores;
     }
 
     @Override
-    public Usuario invitar(CorreoElectronico correo, String nombre, RolVeedor rol,
+    public Usuario invitar(CorreoElectronico correo, String nombre, RolVeedor rol, SectorId barrio,
                            ContextoDeAccion contexto) {
+        if (barrio != null && sectores.buscarPorId(barrio).isEmpty()) {
+            throw new IllegalArgumentException("No existe el barrio '" + barrio.valor() + "'");
+        }
         CorreoElectronico normalizado = correo.normalizado();
         if (usuarios.existePorCorreo(normalizado)) {
             throw new IllegalStateException("Ya existe una cuenta con el correo " + normalizado.valor());
@@ -55,6 +63,7 @@ public class InvitarUsuarioService implements InvitarUsuarioUseCase {
                 normalizado,
                 nombre.strip(),
                 rol,
+                barrio,
                 reloj.ahora()));
 
         String token = emisorDeTokens.emitir(invitado.id(), TipoTokenCuenta.INVITACION);

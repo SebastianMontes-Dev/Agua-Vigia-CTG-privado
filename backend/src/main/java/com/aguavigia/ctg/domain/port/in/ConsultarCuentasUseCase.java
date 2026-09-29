@@ -1,5 +1,6 @@
 package com.aguavigia.ctg.domain.port.in;
 
+import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.EstadoCuenta;
 import com.aguavigia.ctg.domain.EventoAuditoria;
 import com.aguavigia.ctg.domain.Pagina;
@@ -10,7 +11,12 @@ import java.util.Optional;
 
 public interface ConsultarCuentasUseCase {
 
-    Pagina<Usuario> listar(EstadoCuenta filtroEstado, int pagina, int tamano);
+    default Pagina<Usuario> listar(EstadoCuenta filtroEstado, int pagina, int tamano) {
+        return listar(filtroEstado, null, pagina, tamano);
+    }
+
+    /** Ambos filtros son opcionales y se combinan con AND. */
+    Pagina<Usuario> listar(EstadoCuenta filtroEstado, SectorId filtroBarrio, int pagina, int tamano);
 
     Optional<Usuario> buscar(UsuarioId id);
 
