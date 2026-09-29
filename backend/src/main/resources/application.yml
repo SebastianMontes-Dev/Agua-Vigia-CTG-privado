@@ -153,6 +153,10 @@ aguavigia:
     # Nombre que la app de autenticacion muestra junto al codigo. Sin tilde a proposito: algunas
     # apps no normalizan UTF-8 en la etiqueta del otpauth:// y lo pintan roto.
     emisor-totp: AguaVigia CTG
+  seguridad:
+    # RNF024: el registro y "olvidé mi clave" duran al menos esto, exista o no la cuenta. Debe superar
+    # con holgura la rama más lenta (medida ~70 ms); con hilos virtuales la espera no cuesta capacidad.
+    duracion-minima-solicitud-ms: 100
   iot:
     # Clave compartida para /api/iot/presion (header X-IoT-Key), mismo patron que JWT_SECRET y
     # VEEDOR_PASSWORD_HASH: vacia por defecto, el endpoint responde 503 hasta que se configure.

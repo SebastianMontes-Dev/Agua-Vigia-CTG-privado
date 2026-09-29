@@ -13,6 +13,7 @@ import com.aguavigia.ctg.domain.port.out.CifradorClavePort;
 import com.aguavigia.ctg.domain.port.out.NotificacionCuentaPort;
 import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.SectorRepository;
+import com.aguavigia.ctg.domain.port.out.TiempoConstantePort;
 import com.aguavigia.ctg.domain.port.out.UsuarioRepository;
 
 import java.util.UUID;
@@ -34,6 +35,7 @@ public class RegistrarUsuarioService implements RegistrarUsuarioUseCase {
     private final RegistroDeAuditoria auditoria;
     private final RelojPort reloj;
     private final SectorRepository sectores;
+    private final TiempoConstantePort tiempoConstante;
 
     public RegistrarUsuarioService(UsuarioRepository usuarios,
                                    CifradorClavePort cifrador,
@@ -41,7 +43,8 @@ public class RegistrarUsuarioService implements RegistrarUsuarioUseCase {
                                    NotificacionCuentaPort notificaciones,
                                    RegistroDeAuditoria auditoria,
                                    RelojPort reloj,
-                                   SectorRepository sectores) {
+                                   SectorRepository sectores,
+                                   TiempoConstantePort tiempoConstante) {
         this.usuarios = usuarios;
         this.cifrador = cifrador;
         this.emisorDeTokens = emisorDeTokens;
@@ -49,6 +52,7 @@ public class RegistrarUsuarioService implements RegistrarUsuarioUseCase {
         this.auditoria = auditoria;
         this.reloj = reloj;
         this.sectores = sectores;
+        this.tiempoConstante = tiempoConstante;
     }
 
     @Override
@@ -58,11 +62,18 @@ public class RegistrarUsuarioService implements RegistrarUsuarioUseCase {
         if (barrio != null && sectores.buscarPorId(barrio).isEmpty()) {
             throw new IllegalArgumentException("No existe el barrio '" + barrio.valor() + "'");
         }
+        // RNF024: además del gasto de cifrado, la espera mínima cubre lo que el cifrado no iguala
+        // (guardar, emitir el token, auditar): medido, ~49 ms con correo existente contra ~71 ms con uno nuevo.
+        tiempoConstante.ejecutar(() -> registrarSinDelatarDuracion(correo, nombre, clave, barrio, contexto));
+    }
+
+    private void registrarSinDelatarDuracion(CorreoElectronico correo, String nombre, ClaveEnClaro clave,
+                                             SectorId barrio, ContextoDeAccion contexto) {
         CorreoElectronico normalizado = correo.normalizado();
 
         var existente = usuarios.buscarPorCorreo(normalizado);
         if (existente.isPresent()) {
-            // RNF024: un alta nueva cifra la clave (BCrypt, ~100 ms); sin este gasto equivalente, la
+            // Un alta nueva cifra la clave (BCrypt, ~100 ms); sin este gasto equivalente, la
             // respuesta más rápida delataría qué correos ya tienen cuenta.
             cifrador.gastarTiempoEquivalente();
             notificaciones.avisarCambioDeAcceso(existente.get(),
