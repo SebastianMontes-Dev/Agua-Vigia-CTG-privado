@@ -27,6 +27,7 @@ su panel.**
 | RF012–RF015, RF041 | F4 — Avisos, con los enlaces de los correos apuntando a la SPA | F2 · URL de los correos decidida (`plan-frontend.md` §13.3) |
 | RF016–RF019, RF042–RF046 | F5 — Cuentas y panel del veedor | F2 |
 | RNF001, RNF012–RNF016, RNF020 | F6 — Integración: nginx sirve la SPA, un solo `docker compose`, Lighthouse y axe | F2–F5 |
+| RF029–RF031, RF042–RF046, RNF024, RNF027 | 🟡 Cierre funcional del backend, en paralelo a F4–F6 (decisión del dueño del 2026-09-29: solo local, `ADR-080`). Hecho: #90–#96 (Jackson, estabilidad bajo carga, solo local, contrato sin rutas de prueba, barrio en la cuenta, ingesta sin internet, `RNF024` medido). Falta: 30 000 cuentas completas (Fase 4), demo de carga para la presentación con cifras medidas de `RNF027` (Fase 5), pruebas de adaptadores y reglas ArchUnit (Fase 6) y conciliación de la documentación (Fase 7) | Backend de los Sprints 1–6 |
 
 ---
 

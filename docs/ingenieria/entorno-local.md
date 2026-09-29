@@ -178,30 +178,46 @@ host: `API_URL`, `MAILHOG_URL`. Resultado de la corrida de la Fase 5: [plan de p
 interpola `$`; sin duplicarlos el ADMIN se siembra con un hash truncado y no puede entrar (y, como solo se siembra
 con la base vacía, hay que borrar la colección de cuentas para corregirlo).
 
-## 7. Datos de demostración: 20 000 cuentas para la presentación
+## 7. Datos de demostración: 30 000 cuentas completas para la presentación
 
-Para mostrar una base grande y variada, `scripts/sembrar-usuarios-demo.mjs` siembra **20 000 cuentas** en la colección
-`usuarios`: nombres completos **todos distintos**, correos con estilos y proveedores variados, los seis estados de cuenta
-(`ACTIVA`, `PENDIENTE_APROBACION`, `PENDIENTE_VERIFICACION`, `INVITADA`, `SUSPENDIDA`, `RECHAZADA`), los roles `OBSERVADOR` y `VEEDOR`
-(con algunos permisos sueltos) y fechas de alta repartidas en los últimos 18 meses.
+Para mostrar una base grande y variada, `scripts/sembrar-usuarios-demo.mjs` siembra **30 000 cuentas** y lo que esas
+cuentas dejarían en el sistema, en cuatro colecciones coherentes entre sí:
 
-**El orden importa**: el ADMIN inicial solo se crea si **no existe ninguna cuenta**. Primero arranca el backend con
-`ADMIN_INICIAL_CORREO` y `VEEDOR_PASSWORD_HASH` (sección 2) y **después** siembra:
+| Colección | Qué lleva (sembrado con la marca `datosDeDemostracion`) |
+|---|---|
+| `usuarios` | 30 000 cuentas con nombre completo **distinto**, correo de estilos y proveedores variados, **barrio real** (uno de los 211 sectores, repartido según su población), los seis estados (`ACTIVA`, `PENDIENTE_APROBACION`, `PENDIENTE_VERIFICACION`, `INVITADA`, `SUSPENDIDA`, `RECHAZADA`), los roles `OBSERVADOR` y `VEEDOR` (con algunos permisos sueltos), fechas de alta en los últimos 18 meses y, en alrededor del 40 % de los `VEEDOR` activos o suspendidos, el segundo factor (TOTP) ya dado de alta |
+| `tokens_cuenta` | Un enlace **vigente** por cada cuenta `PENDIENTE_VERIFICACION` (48 h) e `INVITADA` (7 días); su token en claro es `demo-token-<id de la cuenta>` y se usa como cualquier otro (`POST /api/cuentas/verificacion?token=…`) |
+| `auditoria_cuentas` | El rastro de cada cuenta: registro o invitación, verificación, aprobación o rechazo por el ADMIN, suspensión y alta del segundo factor (≈78 000 eventos) |
+| `suscripciones` | Alertas por correo de las cuentas activas ligadas a su barrio: confirmadas, pendientes y canceladas |
+
+**El orden importa**: el ADMIN inicial solo se crea si **no existe ninguna cuenta**, y el barrio de cada cuenta es un
+sector ya sembrado. Primero arranca el backend con `ADMIN_INICIAL_CORREO` y `VEEDOR_PASSWORD_HASH` (sección 2), siembra
+los sectores (`sembrar-sectores.mjs`) y **después** las cuentas:
 
 ```bash
 docker compose up -d mongo redis mailhog     # y arranca el backend con las dos variables del ADMIN
 cd scripts && npm install                    # solo la primera vez
-node sembrar-usuarios-demo.mjs               # 20 000 cuentas en ~3 s; --cantidad y --semilla opcionales
+node sembrar-usuarios-demo.mjs               # 30 000 cuentas en ~3 s; --cantidad, --semilla y --minimo opcionales
 ```
 
-- **Idempotente y seguro:** antes de insertar borra solo lo que él mismo sembró (marca `datosDeDemostracion`); no toca al ADMIN
-  ni a cuentas reales. Se niega a correr contra una base que no sea local.
-- **Determinista:** la misma semilla da las mismas cuentas.
+- **Comprobación final:** imprime los conteos por colección, estado, rol y barrio, y **sale con error** si `usuarios` queda por
+  debajo de `--minimo` (30 000 por defecto), si alguna cuenta sembrada no tiene barrio o si su barrio no existe en `sectores`.
+  Con `--cantidad` menor hay que bajar también `--minimo`.
+- **Idempotente y seguro:** antes de insertar borra solo lo que él mismo sembró (marca `datosDeDemostracion`, en las cuatro
+  colecciones); no toca al ADMIN ni a cuentas reales. Se niega a correr contra una base que no sea local. Si la aplicación
+  ya modificó una fila sembrada (usó un token, suspendió una cuenta), esa fila pierde la marca: el script la respeta, la
+  omite al resembrar y lo dice al final.
+- **Determinista:** la misma semilla da las mismas cuentas, tokens, eventos y suscripciones (las fechas cuelgan de la hora
+  en que se corre).
 - **Entrar como una cuenta sembrada:** las `ACTIVA` (VEEDOR y OBSERVADOR, nunca ADMIN) usan la clave `DemoAguaVigia-2026`.
-- **Cómo verlas:** como ADMIN, `GET /api/veedor/usuarios?pagina=0&tamano=200` devuelve `X-Total-Count: 20001` (las 20 000 más el
-  ADMIN) y 101 páginas; se puede filtrar con `?estado=ACTIVA`.
-- **Comprobado el 2026-09-21** contra el backend real: 20 001 cuentas, páginas y filtros en 17–58 ms, inicio de sesión de un
-  VEEDOR y un OBSERVADOR sembrados, y una cuenta suspendida rechazada con 403.
+  Las que tienen segundo factor guardan su secreto en `secretoTotp` y piden el código
+  (`node scripts/codigo-totp.mjs <secreto>`); las pruebas de carga usan las que no lo tienen.
+- **Cómo verlas:** como ADMIN, `GET /api/veedor/usuarios?pagina=0&tamano=200` devuelve `X-Total-Count` con las 30 000 más el
+  ADMIN y las cuentas reales, y se puede filtrar con `?estado=ACTIVA` y `?barrioId=el-pozon`.
+- **Comprobado el 2026-09-29** contra el backend real: 30 000 cuentas en 211 barrios (0 sin barrio, 0 con barrio inexistente),
+  inicio de sesión de un `VEEDOR` sin segundo factor y de otro con él (`401` sin código, `200` con él), una verificación de correo
+  con un token sembrado (`204` y la cuenta pasa a `PENDIENTE_APROBACION`) y el listado por barrio (`el-pozon`: 1 839 cuentas) en
+  51 ms.
 
 ---
 
