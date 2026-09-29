@@ -172,6 +172,10 @@ ya no se publica. Detalle: `docs/gestion/README.md`.
 
 ## Cómo colaborar conmigo
 
+- **Reparto del trabajo: backend de Sebastian, frontend de Yordy Pardo (`Jordy-Lv`).** El agente **no crea ni edita nada
+  en `frontend/`** (ni las fases F0–F6 de `plan-frontend.md`) salvo que el dueño del frontend lo pida en la conversación.
+  Si el backend cambia el contrato (`openapi.yaml`, correos, rutas), se avisa qué debe adaptar el frontend en vez de hacerlo.
+  Antes de tocar algo ambiguo: `git log --format=%an -- <ruta>` y las ramas `origin/*`.
 - **Antes de tu primera sesión, lee `docs/gestion/protocolo-de-contexto.md`**: dónde vive cada dato y
   el presupuesto de líneas de los archivos permanentes. Cada línea que agregues aquí se paga en cada
   sesión de trabajo.
