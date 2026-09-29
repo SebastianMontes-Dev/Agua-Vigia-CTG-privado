@@ -1,0 +1,25 @@
+@layer componentes {
+  .pagina { gap: var(--espacio-6); }
+  .encabezado { display: grid; gap: var(--espacio-2); }
+  .rotulo { font-size: var(--texto-xs); font-weight: 700; letter-spacing: .1em; color: var(--tinta-2); }
+  .columnas { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(240px, .65fr); gap: var(--espacio-7); align-items: start; }
+  .formulario { display: grid; gap: var(--espacio-4); min-width: 0; }
+  .campo { display: grid; gap: var(--espacio-1); font-size: var(--texto-s); font-weight: 600; }
+  .campo input { width: 100%; min-height: var(--objetivo-tactil); padding: var(--espacio-2) 0; border: 0; border-bottom: 1px solid var(--tinta-2); border-radius: 0; background: transparent; font-size: var(--texto-m); font-weight: 400; }
+  .campo input::placeholder { color: var(--tinta-2); }
+  .elegidos { display: grid; gap: 0; list-style: none; padding: 0; border-top: 1px solid var(--linea); }
+  .elegidos li { display: flex; justify-content: space-between; align-items: center; gap: var(--espacio-3); min-height: var(--objetivo-tactil); border-bottom: 1px solid var(--linea); }
+  .elegidos button, .enlace { min-height: var(--objetivo-tactil); border: 0; background: transparent; color: var(--cardenillo); text-decoration: underline; cursor: pointer; }
+  .respuesta { display: grid; gap: var(--espacio-2); padding-top: var(--espacio-4); border-top: 1px solid var(--tinta); }
+  .respuesta p { color: var(--tinta-2); }
+  .explicacion { display: grid; gap: var(--espacio-4); padding-top: var(--espacio-4); border-top: 1px solid var(--tinta); font-size: var(--texto-s); }
+  .explicacion p { color: var(--tinta-2); }
+  .explicacion strong { color: var(--tinta); }
+  .enlacePagina { align-content: start; max-width: 720px; gap: var(--espacio-5); }
+  @media (max-width: 700px) {
+    .pagina { gap: var(--espacio-4); padding-top: var(--espacio-5); padding-bottom: var(--espacio-5); }
+    .columnas { grid-template-columns: 1fr; gap: var(--espacio-5); }
+    .explicacion { gap: var(--espacio-3); }
+    .enlacePagina { gap: var(--espacio-4); }
+  }
+}

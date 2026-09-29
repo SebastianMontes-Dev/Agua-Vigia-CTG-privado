@@ -2,13 +2,15 @@ import { createRootRoute, createRoute, createRouter, lazyRouteComponent, Outlet 
 import { Marco } from './Marco'
 import { ConfirmarReporte } from '../pantallas/publico/ConfirmarReporte'
 import { FichaSector } from '../pantallas/publico/FichaSector'
-import { Historial, NoEncontrada, Pendiente } from '../pantallas/publico/Pendiente'
+import { Historial, NoEncontrada } from '../pantallas/publico/Pendiente'
 import { PantallaMapa } from '../pantallas/publico/PantallaMapa'
 import { ResumenCiudad } from '../pantallas/publico/ResumenCiudad'
 import { Cumplimiento } from '../pantallas/publico/Cumplimiento'
 import { Estadisticas } from '../pantallas/publico/Estadisticas'
 import { Bitacora } from '../pantallas/publico/Bitacora'
 import { esTipoBitacora } from '../dominio/historia'
+import { Avisos } from '../pantallas/publico/Avisos'
+import { BajaAvisos, ConfirmarAvisos } from '../pantallas/publico/EnlaceAvisos'
 
 const raiz = createRootRoute({ component: Outlet, notFoundComponent: NoEncontrada })
 
@@ -49,7 +51,19 @@ const avisos = createRoute({
   path: 'avisos',
   validateSearch: (busqueda: Record<string, unknown>): { sector?: string } =>
     typeof busqueda.sector === 'string' ? { sector: busqueda.sector } : {},
-  component: () => <Pendiente titular="Recibe avisos de tus barrios" fase="fase F4" />,
+  component: Avisos,
+})
+const confirmarAvisos = createRoute({
+  getParentRoute: () => publico, path: 'avisos/confirmar',
+  validateSearch: (busqueda: Record<string, unknown>): { token?: string } =>
+    typeof busqueda.token === 'string' ? { token: busqueda.token } : {},
+  component: ConfirmarAvisos,
+})
+const bajaAvisos = createRoute({
+  getParentRoute: () => publico, path: 'avisos/baja',
+  validateSearch: (busqueda: Record<string, unknown>): { token?: string } =>
+    typeof busqueda.token === 'string' ? { token: busqueda.token } : {},
+  component: BajaAvisos,
 })
 
 // Provisional de F0–F1: tokens y contraste medidos en pantalla, fuera de la navegación ciudadana.
@@ -60,7 +74,7 @@ const muestrario = createRoute({
 const arbol = raiz.addChildren([
   publico.addChildren([
     mapa.addChildren([inicio, sector]),
-    confirmar, historial, cumplimiento, bitacora, estadisticas, avisos,
+    confirmar, historial, cumplimiento, bitacora, estadisticas, avisos, confirmarAvisos, bajaAvisos,
   ]),
   muestrario,
 ])
