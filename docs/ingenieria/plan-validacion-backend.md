@@ -10,7 +10,7 @@
 | `backend/pom.xml` usa Spring Boot 3.5.x y Testcontainers 1.21.3 (`ADR-059`, `ADR-060`). | Las actualizaciones de dependencias se revisan contra esos ADR; no se presupone una migración mayor. |
 | JaCoCo aplica el 85 % a `com.aguavigia.ctg.domain.*` y `com.aguavigia.ctg.application.*`. | Hay que comprobar y corregir si los paquetes raíz quedan fuera de la regla. |
 | `ContratoOpenApiTest` compara conjuntos de rutas del contrato vivo y el versionado; además prueba algunos casos de seguridad concretos. | La sincronía completa de métodos, parámetros, cuerpos, esquemas, respuestas y seguridad no está cubierta. |
-| La etiqueta `pre-retiro-frontend` no apareció ni localmente ni en `origin`; varios documentos afirman que existe. | Resolver la referencia histórica en la fase 0, tras verificar el commit exacto al que debe apuntar. |
+| La etiqueta `pre-retiro-frontend` no aparecía en ese momento. **Resuelto el 2026-09-29:** existe (apunta a `8d51b64`) y ya está también en `origin`; antes solo vivía en la máquina del dueño. | Ninguna: los documentos que la citan dicen la verdad. |
 | El arreglo del escaneo de secretos ya entró a `main` en `6500e25`. | No se incluye como pendiente. |
 
 El diagnóstico previo sobre `608f4b9` informó 693 pruebas locales sin Docker, 825 en CI con una omitida y un sistema completo aún sin arrancar localmente. Son **cifras históricas, no la línea base de esta ejecución**. Las carreras, los cambios parciales de estado y la atribución de auditoría descritos allí se tratarán como hipótesis hasta reproducirlos con pruebas. La fuente operativa del estado general sigue siendo [estado-del-backend.md](estado-del-backend.md).

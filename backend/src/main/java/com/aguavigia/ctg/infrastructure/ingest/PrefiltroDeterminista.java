@@ -5,7 +5,7 @@ import java.util.List;
 
 /**
  * Etapa 3 del pipeline (docs/ingenieria/pipeline-ingesta-datos.md §3): descarta ~70% del volumen
- * antes de gastar un token de IA. Sin costo, sin red, sin estado.
+ * antes de que lo procese el extractor heurístico (no hay IA: ADR-025). Sin costo, sin red, sin estado.
  *
  * Las 9 palabras son exactamente las del diseño ya aprobado. Ampliarlas es decision
  * de quien valide el conjunto dorado (100 boletines etiquetados a mano, §4 del mismo documento),

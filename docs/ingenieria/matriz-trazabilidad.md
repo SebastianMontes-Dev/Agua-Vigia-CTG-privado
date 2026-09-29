@@ -112,18 +112,18 @@
 | RF027 Consulta pública sin autenticación | HU027 | CP027 | 3 | 4 | ✅ |
 | RF028 Inmutabilidad: no se edita ni se elimina | HU028 | CP028 | 2, 3 | 3 | ✅ |
 
-### M9 — Ingesta automática con IA ⭐
+### M9 — Ingesta automática (sin IA, `ADR-025`) ⭐
 
 | RF | Historia | Caso de prueba | Obj. | Sprint | Estado |
 |---|---|---|---|---|---|
 | RF029 Consumo periódico de la API oficial | HU029 | CP029 | 3 | 1 | ✅ (`AcuacarApiCollectorTest`) |
 | RF030 Consumo de prensa vía RSS de agregadores | HU030 | CP030 | 3 | 3 | ✅ (`RssCollectorTest`) |
 | RF031 Descarte de duplicados por hash | HU031 | CP031 | 3 | 2 | ✅ (`DeduplicadorRecienteTest` · `PipelineOrquestadorTest`) |
-| RF032 Clasificación y extracción con IA estructurada | HU032 | CP032 | 3, 4 | 4 | ❌ (Descartado) |
-| RF033 Confianza y cita textual en toda extracción | HU033 | CP033 | 3, 4 | 4 | ❌ (Descartado) |
-| RF034 Rechazo automático si la cita no es literal | HU034 | CP034 | 3, 4 | 4 | ❌ (Descartado) |
-| RF035 Confianza intermedia a revisión humana | HU035 | CP035 | 3 | 4 | ❌ (Descartado) |
-| RF036 No acceder a fuentes que bloquean agentes de IA | HU036 | CP036 | 3 | 1 | ❌ (Descartado) |
+| RF032 Clasificación y extracción con IA estructurada | HU032 | CP032 | 3, 4 | 4 | 🟡 **Sin IA (`ADR-025`), con heurística.** Se clasifica con `PrefiltroDeterminista` (9 palabras clave) y se extraen barrios, ventana y causa con `HeuristicaExtractor` (expresiones regulares sobre boletines y prensa). No hay salida estructurada de un modelo: el requisito como está escrito no se cumple, su propósito sí (`PrefiltroDeterministaTest` · `HeuristicaExtractorTest`) |
+| RF033 Confianza y cita textual en toda extracción | HU033 | CP033 | 3, 4 | 4 | ✅ Toda extracción lleva confianza graduada por la evidencia (0,85 / 0,75 / 0,45) y la cita literal del fragmento (`HeuristicaExtractorTest.debeGraduarLaConfianzaSegunLaEvidenciaEncontrada` · `RegistrarPropuestaIngestaServiceTest`) |
+| RF034 Rechazo automático si la cita no es literal | HU034 | CP034 | 3, 4 | 4 | 🟡 **Cumplido por construcción, no por verificación.** La cita es un fragmento cortado del propio texto de origen, así que no puede ser inventada; pero no existe un paso que compare la cita con el documento y rechace. Si un día la cita la produjera algo que no fuera el extractor actual, ese paso sería obligatorio |
+| RF035 Confianza intermedia a revisión humana | HU035 | CP035 | 3 | 4 | ✅ Más estricto que lo pedido (`ADR-028`, `ADR-034`): las propuestas de prensa **siempre** pasan a la cola del veedor, sin importar la confianza, y no se resuelven dos veces (`RevisarPropuestaIngestaServiceTest`) |
+| RF036 No acceder a fuentes que bloquean agentes de IA | HU036 | CP036 | 3 | 1 | 🟡 **Política cumplida por auditoría, no por código.** Cada fuente se verifica a mano antes de usarse (`verificar-fuente`, `auditoria-fuentes-de-datos.md`, `ADR-005`); el colector se identifica con su `User-Agent` y no hay una comprobación de `robots.txt` en ejecución. Abierto: Google News RSS tiene `Disallow: /`; la auditoría lo justifica como agregador legítimo y falta que el dueño lo confirme |
 
 ### M10 — Evidencia Multimedia (Fase 2)
 
@@ -179,7 +179,7 @@ Los RNF no llevan historia de usuario: se verifican con una medición, no con un
 | RNF004 | Fuente caída no tumba el sistema | Prueba de caos | 4 | ✅ (`PipelineOrquestadorTest.unColectorCaidoNoDebeImpedirQueSeLeaElOtro`) |
 | RNF005 | Backoff + cortacircuitos tras 3 fallos | Test de integración | 4 | ✅ (`ResilienciaDeColectoresTest.debeAbrirElCortacircuitosAlTercerFalloConsecutivo`) |
 | RNF006 | Cero descartes silenciosos | Revisión de la cola muerta | 2 | ✅ **Cerrado 2026-09-22** (`BUG-091`): además de no marcarse como visto (`PipelineOrquestadorTest.noDebeMarcarComoVistoUnDocumentoQueFalloAlProcesarse`), ahora queda en la colección Mongo `documentos_fallidos` con su motivo, consultable en `GET /api/veedor/ingesta/fallidos` — sale de la cola en cuanto se procesa con éxito (`PipelineOrquestadorTest`, `IngestaFallidosControllerTest`) |
-| RNF007 | Salud por colector expuesta | `/actuator/health` | 4 | ✅ (`ColectorHealthIndicatorTest` · detalle autenticado en `GET /api/veedor/ingesta/salud`) |
+| RNF007 | Salud por colector expuesta | `/actuator/health` | 4 | ✅ (`ColectorHealthIndicatorTest` · detalle autenticado en `GET /api/veedor/ingesta/salud`; `show-details: never` salvo en el perfil `dev`, `DetalleDeSaludPorPerfilTest`) |
 | RNF008 | Sin datos personales del reportante | Revisión del modelo de datos | 2 | ✅ (`ADR-007` huella anónima · `ADR-026` Open311 agregado · `ADR-027` evidencia) |
 | RNF009 | Correos con acceso restringido, borrados al darse de baja | Revisión de código y prueba | 2 | ✅ (`MailNotificacionAdapterTest.debeIncluirElEnlaceDeBajaEnElAviso`) |
 | RNF010 | Cero credenciales en el repositorio | `gitleaks` en CI | 0 | ✅ |
