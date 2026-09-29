@@ -3514,8 +3514,54 @@ usan las pruebas) y `scripts/limpiar-puertos.sh` (la utilidad para Linux y macOS
 Retirar `RF039`/`RF040` del PRD y de la matriz, borrar sus controladores, casos de uso y pruebas, regenerar `openapi.yaml` y
 avisar al frontend para regenerar su esquema.
 
+## ADR-086 — Todo se levanta con un solo `docker compose up`, sin `.env`: el backend genera sus secretos y un sembrador deja la base lista
+
+- **Fecha:** 2026-09-29
+- **Estado:** Aceptada
+- **Decide:** Dueño del proyecto (Sebastian)
+
+### Contexto
+La entrega exige que el proyecto solo necesite `docker compose up` y que Mongo tenga al menos 30 000 registros. Hasta hoy
+hacían falta, además: copiar `.env`, generar `JWT_SECRET`, calcular el hash BCrypt del primer ADMIN con `GenerarHashVeedor`
+desde el IDE, y correr a mano `sembrar-sectores.mjs` y `sembrar-usuarios-demo.mjs` con Node en el equipo. Sin `JWT_SECRET`
+el panel respondía 503, y un clon limpio arrancaba con la base vacía (medido: 0 usuarios; el equipo del dueño tenía 30 004
+solo porque los había sembrado a mano).
+
+### Alternativas consideradas
+| Opción | A favor | En contra |
+|---|---|---|
+| Credenciales de demostración fijas en el compose | Simple; clave conocida para la demo | Versiona un secreto (regla del proyecto) y un hash que habilita el panel |
+| Restaurar un respaldo de Mongo al primer arranque | Arranque rápido, datos idénticos | Un binario de ~12 MB en git (LFS) que envejece con cada cambio de esquema |
+| **Autogenerar secretos en el perfil `docker` y sembrar con un servicio de un solo uso** | Sin secretos versionados; datos siempre coherentes con el código | El primer arranque tarda más; la clave del ADMIN hay que leerla del log |
+
+### Decisión
+- Perfil `docker`: `aguavigia.jwt.secret` = `${JWT_SECRET:${random.uuid}${random.uuid}}` (UUID de `SecureRandom`) y
+  `aguavigia.cuentas.admin-inicial-generar-clave: true`, con `admin@aguavigia.local` por defecto. Sin
+  `VEEDOR_PASSWORD_HASH`, `SembradorAdminInicial` genera una clave aleatoria de 20 caracteres, la cifra con BCrypt y la escribe
+  **una sola vez** en el log del backend.
+- Servicio `sembrador` (`scripts/Dockerfile`, `scripts/sembrador.mjs`): Node con los scripts y `data/geoespacial` dentro.
+  Corre al quedar sano el backend y orquesta los scripts que ya existían, cada uno con su puerta: sectores si hay menos de 211,
+  30 000 cuentas si hay menos de 30 000 de demostración, reportes reales por la API si no hay reportes fuera del histórico, e
+  histórico si no hay cortes de mayo–julio. Un segundo `up` no escribe nada.
+- `mongo-express` en el perfil `demo`, solo en `127.0.0.1:8082`, para enseñar dónde se guarda cada dato.
+- `contenedores-ci.yml` levanta todo sin `.env` en cada PR, exige que el sembrador termine con 0, que se cumplan los mínimos y que
+  un segundo `up` no cambie los conteos.
+
+### Consecuencias
+- **Gana:** clon limpio → `docker compose up` → 211 sectores, 30 001 usuarios, 120 cortes y barrios afectados por consenso real,
+  en 106 s con las imágenes en caché (medido el 2026-09-29). Ningún secreto nuevo en git.
+- **Pierde:** con el secreto aleatorio, las sesiones no sobreviven a un reinicio del backend. La clave del ADMIN se lee con
+  `docker compose logs backend`; si se pierde, `scripts/restablecer-admin.mjs`. Las cuentas de demostración comparten una clave
+  pública (`DemoAguaVigia-2026`, ya documentada), aceptable solo porque el proyecto es local (`ADR-057`, `ADR-080`).
+- **Queda condicionado:** con `image:` y `build:` a la vez, `docker compose up` reutiliza la imagen existente; tras cambiar
+  código hay que usar `docker compose up --build`. La primera construcción necesita internet (Maven Central y npm).
+
+### Cómo se revierte
+Quitar las dos claves de `application-docker.yml`, el parámetro `generarClaveSiFalta` de `SembradorAdminInicial` y el servicio
+`sembrador`; volver a exigir `.env` y la siembra a mano. No toca datos.
+
 <!--
-Siguiente número disponible: ADR-086
+Siguiente número disponible: ADR-087
 Para agregar: usa la skill `registrar-decision`.
 Recuerda: append-only. Las entradas viejas solo cambian de estado, no de contenido.
 -->

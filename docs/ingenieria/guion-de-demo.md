@@ -6,23 +6,26 @@
 > `ADR-067`) se enseña en la sección 7; el panel del veedor (F5) aún no tiene interfaz y se muestra con Swagger.
 > Duración: unos 10 minutos.
 
-**Entorno de la corrida:** `docker compose up` con Mongo, Redis, MailHog y backend sanos, 211 sectores
-sembrados y el histórico de `scripts/sembrar-historico-cortes.mjs` cargado. El backend queda en
-`http://localhost:8081`.
+**Entorno de la corrida:** `docker compose up` con Mongo, Redis, MailHog y backend sanos; desde `ADR-086` ese mismo comando
+siembra los 211 sectores, las 30 000 cuentas, el histórico y los barrios afectados. El backend queda en `http://localhost:8081`.
 
 ---
 
 ## 0. Antes de presentar
 
 ```bash
-docker compose up -d --build --wait
-cd scripts && npm install && node sembrar-sectores.mjs && node sembrar-historico-cortes.mjs && cd ..
-curl -s localhost:8081/actuator/health/readiness        # {"status":"UP"}
+docker compose up                                   # espera la línea «Datos listos: …» del sembrador
+docker compose run --rm sembrador verificar         # conteo por colección y mínimos de la entrega
+docker compose logs backend | findstr ADMINISTRADOR # clave del ADMIN (solo en una base recién creada)
 ```
+
+- **El día antes**, con internet: `docker compose up --build` para dejar las imágenes construidas; el día de la sustentación
+  arranca sin conexión si además `INGESTA_MODO=local` (`ADR-082`).
 
 - **La siembra histórica es aleatoria** (`Math.random()`): las cifras del índice cambian en cada corrida. En
   la corrida de referencia dieron 99,62 % global; **lee el valor real en pantalla, no lo cites de este archivo.**
-- **Sembrar borra los cortes y reportes de mayo–julio 2026** que hubiera antes (`deleteMany` del script).
+- **El sembrador no repite el histórico** si ya hay cortes de mayo–julio; si se corre a mano, `sembrar-historico-cortes.mjs`
+  borra los de ese rango antes de insertar (`deleteMany`).
 - **Copia de la base de la demo** (211 sectores, histórico y cuentas): la de la corrida del 2026-09-24, con 40 001 cuentas sin barrio, está en `C:\Users\sabas\Documentos\respaldos-aguavigia\aguavigia-demo-2026-09-24.archive.gz`, fuera del repo. La base de hoy tiene **30 000 cuentas completas** (barrio, segundo factor, tokens y auditoría; `scripts/sembrar-usuarios-demo.mjs`) y la demo de carga (sección 7) hace su propio respaldo en `respaldos-mongo/` (ignorado por git). Para volver a un respaldo (sustituye la base actual):
   `docker exec -i aguavigia-mongo mongorestore --archive --gzip --drop < <ruta del archivo>`. Contiene los datos de cuentas, incluido el hash del ADMIN: no la subas a git.
 - Abre en pestañas: `http://localhost:8081/swagger-ui.html` y MailHog `http://localhost:8025`.
@@ -205,7 +208,7 @@ node scripts/carga/demo.mjs --usuarios 30000 --ventana 60 --conectados 30000 --r
 
 ## Si algo falla en vivo
 
-- **Backend con imagen vieja:** si CORS, la foto o «cerrar sesión» fallan tras traer cambios de `main`, reconstruye con `docker compose up -d --build backend` (el 2026-09-24 eso resolvió los tres).
+- **Imagen vieja:** tras traer cambios de `main`, `docker compose up` reutiliza las imágenes ya construidas; reconstruye con `docker compose up --build` (el 2026-09-24 eso resolvió CORS, la foto y «cerrar sesión»).
 - Docker Desktop apagado: `docker info` falla; ábrelo y espera a que `docker ps` muestre los cuatro contenedores sanos.
 - `429` al reportar: límite por dispositivo o por IP; cambia la huella o espera (`Retry-After`).
 - El sector no cambia: cuenta los reportes de la ventana de 30 min; un empate no cambia el estado.

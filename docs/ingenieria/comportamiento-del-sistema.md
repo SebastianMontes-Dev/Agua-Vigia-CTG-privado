@@ -31,6 +31,7 @@
 | [Telemetría IoT pasiva](#telemetría-iot-pasiva) | M13 | RF040 |
 | [Alertas push](#alertas-push) | M14 | RF041 |
 | [Cuentas y permisos del panel](#cuentas-y-permisos-del-panel) | M15 | RF042–RF046 |
+| [Arranque y datos de demostración](#arranque-y-datos-de-demostración) | Infraestructura | RNF020 |
 
 ---
 
@@ -1325,6 +1326,53 @@ ni por el mensaje ni por el tiempo de respuesta (RNF024).
 
 - **Cuando** se intenta iniciar sesión con un correo sin cuenta
 - **Entonces** el error es el mismo que el de una clave equivocada, y tarda lo mismo
+
+## Arranque y datos de demostración
+
+*Infraestructura · RNF020*
+
+Que el proyecto entero se levante con un solo comando en el equipo de la sustentación, sin `.env` ni herramientas
+instaladas, y con una base de demostración que cumpla los mínimos de la entrega. El porqué y lo que se pierde: `ADR-086`.
+
+### Requisito: Un solo comando, sin configuración
+
+El sistema debe quedar funcionando, con el panel accesible, tras `docker compose up` en un clon sin `.env`.
+
+#### Escenario: Clon limpio sin `.env`
+
+- **Dado** un clon del repositorio sin `.env` y sin volúmenes previos
+- **Cuando** se ejecuta `docker compose up`
+- **Entonces** quedan sanos Mongo, Redis, MailHog y el backend, y el servicio `sembrador` termina con código 0 y la línea
+  `Datos listos: 211 sectores, 30001 usuarios, …`
+
+#### Escenario: Primer ADMIN sin hash configurado
+
+- **Dado** el perfil `docker` sin `VEEDOR_PASSWORD_HASH` y con la colección `usuarios` vacía
+- **Cuando** el backend termina de arrancar
+- **Entonces** crea `admin@aguavigia.local` (o `ADMIN_INICIAL_CORREO`) con rol `ADMIN` y una clave aleatoria de 20 caracteres
+  que escribe una sola vez en el log, en una línea que empieza por `ADMINISTRADOR INICIAL`
+- **Y** con `VEEDOR_PASSWORD_HASH` configurado usa ese hash y no inventa ninguna clave
+
+#### Escenario: Secreto de sesión sin configurar
+
+- **Dado** el perfil `docker` sin `JWT_SECRET`
+- **Cuando** alguien inicia sesión en el panel
+- **Entonces** recibe un token firmado con un secreto aleatorio del arranque, y al reiniciarse el backend ese token deja de valer
+
+### Requisito: Base de demostración idempotente
+
+El sembrador debe dejar al menos 30 000 cuentas en `usuarios` y no debe duplicar nada si se vuelve a ejecutar.
+
+#### Escenario: Segundo `docker compose up`
+
+- **Dado** una base ya sembrada
+- **Cuando** se vuelve a ejecutar `docker compose up`
+- **Entonces** el sembrador informa que cada paso ya estaba hecho y los conteos de `usuarios`, `reportes` y `cortes` no cambian
+
+#### Escenario: Mínimo no alcanzado
+
+- **Cuando** tras sembrar `usuarios` tiene menos de 30 000 documentos
+- **Entonces** el sembrador termina con código distinto de 0 y lo dice (`FALLA: 'usuarios' tiene …`)
 
 ## Canal del frontend (F2, ADR-074)
 Cuando llega un aviso sectores, el cliente programa la lectura con jitter de 0–3 s y nunca inicia dos GET del listado en menos de 5 s. Ante 429 del canal respeta Retry-After y sondea cada 30 s. Al ocultarse la pestaña cancela las consultas y temporizadores inmediatamente; cierra la conexión a los 15 s. Al regresar refresca por el mismo limitador. Sin red conserva fecha y estado publicados; reconectar tras el cierre normal no es un error del vecino.

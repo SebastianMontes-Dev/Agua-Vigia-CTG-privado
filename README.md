@@ -59,35 +59,51 @@ El proyecto está construido bajo una estricta **Arquitectura Limpia (Puertos y 
 
 ---
 
-## 🚀 Cómo levantar el entorno local
+## 🚀 Cómo levantar el proyecto
 
-El proyecto está completamente contenerizado. Solo necesitas tener un motor de **Docker** en ejecución (Ej. Docker Desktop).
+Solo hace falta **Docker** en marcha (Docker Desktop en Windows o macOS) y, para clonar, **Git con Git LFS** (el mapa base
+del frontend se versiona con LFS). No hace falta `.env`, Java ni Node en el equipo (`ADR-086`).
 
-1. **Configurar el entorno:**
-   ```bash
-   cp .env.example .env
-   # Si deseas habilitar Webhooks (M14) y envío de correos, configura el .env.
-   ```
-   El mapa, los reportes y las estadísticas funcionan así, sin nada más. El **panel del
-   veedor** (`/veedor`) necesita tres variables que `.env.example` deja vacías a propósito
-   (`JWT_SECRET`, `VEEDOR_PASSWORD_HASH`, `ADMIN_INICIAL_CORREO`) — ver
-   [`docs/ingenieria/entorno-local.md`](docs/ingenieria/entorno-local.md) para la clave de
-   desarrollo lista para copiar.
+```bash
+docker compose up
+```
 
-   Con la base de datos vacía, al arrancar se crea **una sola cuenta**: el administrador de
-   `ADMIN_INICIAL_CORREO`, con la clave cuyo hash está en `VEEDOR_PASSWORD_HASH` (`ADR-039`).
-   Esa cuenta es `ADMIN`, y el rol `ADMIN` exige segundo factor: su primera sesión solo sirve
-   para escanear el QR y activarlo. A partir de ahí, cada quien tiene su propio correo y clave.
+Eso construye las imágenes, levanta MongoDB (replica set de un nodo), Redis, MailHog y el backend, y el servicio
+`sembrador` deja la base lista: los 211 barrios de Cartagena, **30 000 cuentas de demostración**, el histórico de cortes de
+mayo a julio y algunos barrios afectados por consenso real. Termina con `Datos listos: … usuarios …`. Repetir `up` no duplica
+nada. La primera vez necesita internet para descargar imágenes y dependencias; después funciona sin conexión.
 
-2. **Levantar los servicios:**
-   ```bash
-   docker compose up -d --wait
-   ```
-   *Esto levantará MongoDB, Redis, un servidor de correo de pruebas (Mailhog) y el backend.*
+| Qué | Dónde |
+|---|---|
+| API y Swagger UI | `http://localhost:8081/swagger-ui.html` |
+| Correos que envía el sistema (MailHog) | `http://localhost:8025` |
+| Visor web de Mongo (opcional: `docker compose --profile demo up`) | `http://localhost:8082` |
+| MongoDB para Compass o `mongosh` | `mongodb://localhost:27017/?directConnection=true` (base `aguavigia`) |
 
-3. **Interactuar con la API (Swagger UI):**
-   Una vez que el backend esté arriba, toda la documentación interactiva de los endpoints y modelos de datos estará disponible en:
-   👉 `http://localhost:8081/swagger-ui.html` (docker-compose mapea el backend a 8081:8080 en el host)
+**Entrar al panel del veedor.** Al arrancar con la base vacía, el backend crea el primer administrador
+(`admin@aguavigia.local`) con una clave aleatoria que escribe **una sola vez** en su log:
+
+```bash
+docker compose logs backend | findstr "ADMINISTRADOR"      # Windows (PowerShell o cmd)
+docker compose logs backend | grep ADMINISTRADOR           # Linux, macOS o Git Bash
+```
+
+El rol `ADMIN` exige segundo factor: su primera sesión solo sirve para darlo de alta, y el código de 6 dígitos se calcula sin
+app con `docker compose run --rm sembrador totp <SECRETO>`. Las cuentas de demostración `VEEDOR` y `OBSERVADOR` activas entran
+con la clave pública `DemoAguaVigia-2026` (detalle en
+[`credenciales-y-accesos.md`](docs/ingenieria/credenciales-y-accesos.md)).
+
+**Datos en vivo, sin instalar nada:**
+
+```bash
+docker compose run --rm sembrador verificar                                # conteo por colección y mínimos de la entrega
+docker compose run --rm sembrador agregar-usuarios --cantidad 1000         # 1 000 usuarios nuevos (faker), distintos cada vez
+```
+
+**Después de traer cambios del repositorio**, reconstruye: `docker compose up --build`. Para apagar: `docker compose down`
+conserva los datos; `docker compose down -v` los borra y el siguiente `up` vuelve a sembrar. Para cambiar un valor por defecto
+(puertos, secreto fijo, correo del admin), copia `.env.example` a `.env`: todo lo demás está en
+[`entorno-local.md`](docs/ingenieria/entorno-local.md).
 
 ---
 
