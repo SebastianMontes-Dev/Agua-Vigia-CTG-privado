@@ -1,6 +1,6 @@
 package com.aguavigia.ctg.api;
 
-import com.aguavigia.ctg.infrastructure.sse.SseSectoresBroadcaster;
+import com.aguavigia.ctg.domain.port.out.CanalEnVivoPort;
 import com.aguavigia.ctg.api.error.ManejadorGlobalDeErrores;
 import com.aguavigia.ctg.api.mapper.SectorApiMapperImpl;
 import com.aguavigia.ctg.domain.EstadoServicio;
@@ -67,7 +67,7 @@ class SectorControllerTest {
     private RedisTemplate<String, String> redisTemplateMock;
 
     @MockitoBean
-    private SseSectoresBroadcaster sseBroadcaster;
+    private CanalEnVivoPort<SseEmitter> sseBroadcaster;
 
     /** El frontend nuevo no tiene el GeoJSON: lo pide aquí, ya con el id que usa el resto de la API. */
     @Test

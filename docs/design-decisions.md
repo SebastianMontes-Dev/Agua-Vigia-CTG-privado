@@ -3442,8 +3442,48 @@ barrios y el mapa moviéndose por SSE— sin que se caiga y sin afirmar más de 
 Quitar `application-carga.yml`, `docker-compose.carga.yml`, `flujo-ciudadano.js`, `demo.mjs` y `PerfilCargaTest`; los
 scripts sueltos de `scripts/carga/` siguen sirviendo.
 
+---
+
+## ADR-084 — La capa de API no importa infraestructura: lo que necesita lo declara un puerto de salida
+
+- **Fecha:** 2026-09-29
+- **Estado:** Aceptada
+- **Decide:** Dueño del proyecto
+
+### Contexto
+`ADR-015` dice que un controlador puede leer de un puerto de salida, y `application/` ya tenía reglas ArchUnit que le vetan
+`infrastructure/`. `api/` no: cuatro controladores importaban clases de infraestructura y nada lo detectaba
+—`ContextoHttp` (`SesionAutenticada`), `IngestaSaludController` (`EstadoColectorRegistry`), `IngestaFallidosController`
+(el repositorio de Spring Data directo) y `SectorController` (`SseSectoresBroadcaster`)—. Además, `RNF022` pide que toda
+ruta del panel exija un permiso, y solo lo garantizaba la disciplina de quien escribía el endpoint.
+
+### Alternativas consideradas
+| Opción | A favor | En contra |
+|---|---|---|
+| Dejar las cuatro excepciones y documentarlas | Sin cambios de código | Cada excepción es una puerta: la siguiente se justifica con «como las otras» |
+| Que `infrastructure/` implemente una interfaz declarada en `api/` | Un solo salto | La infraestructura pasaría a depender de la capa de entrada |
+| **Puertos de salida en `domain/port/out/`, implementados por infraestructura** | Misma dirección de dependencias que el resto del sistema; los controladores se prueban con un simulacro del puerto | Cuatro tipos y tres puertos nuevos |
+
+### Decisión
+- `SesionAutenticada` (quién es la sesión, sin ninguna dependencia de framework) pasa de `infrastructure.security` a `domain/`.
+- Nuevos puertos: `DocumentosFallidosPort` (+ `DocumentoFallido`), `SaludDeColectoresPort` (+ `SaludDeColector`) y
+  `CanalEnVivoPort<C>`. Este último es genérico porque el dominio no conoce el transporte: `SectorController` declara
+  `CanalEnVivoPort<SseEmitter>` y `SseSectoresBroadcaster` lo implementa.
+- Dos reglas ArchUnit nuevas en `ReglaDeOroArchitectureTest`: `apiNoDebeDependerDeInfrastructure` y
+  `todaRutaDelPanelDebeExigirUnPermiso` (toda ruta bajo `/api/veedor/**` lleva `@PreAuthorize`, salvo el inicio de sesión,
+  `/sesion/cierre` y `/yo`, que existen para quien aún no tiene, ya no quiere o solo pregunta por su sesión).
+
+### Consecuencias
+- **Gana:** la frontera se vigila en cada build; un endpoint del panel sin permiso rompe la compilación de pruebas (comprobado
+  quitando un `@PreAuthorize`). Sin cambio de comportamiento ni de contrato: el `openapi.yaml` no varía.
+- **Pierde:** un nivel de indirección más para cosas tan pequeñas como la lista de documentos fallidos.
+- **Queda condicionado:** un puerto nuevo por cada cosa de infraestructura que un controlador quiera leer.
+
+### Cómo se revierte
+Quitar las dos reglas y devolver los tipos y los controladores a su forma anterior; no toca datos.
+
 <!--
-Siguiente número disponible: ADR-084
+Siguiente número disponible: ADR-085
 Para agregar: usa la skill `registrar-decision`.
 Recuerda: append-only. Las entradas viejas solo cambian de estado, no de contenido.
 -->

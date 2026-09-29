@@ -1,7 +1,7 @@
 package com.aguavigia.ctg.api;
 
 import com.aguavigia.ctg.api.dto.SaludColectorRespuesta;
-import com.aguavigia.ctg.infrastructure.ingest.EstadoColectorRegistry;
+import com.aguavigia.ctg.domain.port.out.SaludDeColectoresPort;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -29,10 +29,10 @@ import java.util.List;
 @RequestMapping(value = "/api/veedor/ingesta/salud", produces = MediaType.APPLICATION_JSON_VALUE)
 public class IngestaSaludController {
 
-    private final EstadoColectorRegistry estadoColectores;
+    private final SaludDeColectoresPort saludDeColectores;
 
-    public IngestaSaludController(EstadoColectorRegistry estadoColectores) {
-        this.estadoColectores = estadoColectores;
+    public IngestaSaludController(SaludDeColectoresPort saludDeColectores) {
+        this.saludDeColectores = saludDeColectores;
     }
 
     @Operation(summary = "Salud de cada colector: última ejecución exitosa, ítems y tasa de error",
@@ -46,15 +46,15 @@ public class IngestaSaludController {
     @PreAuthorize("hasAuthority('PERM_VER_PANEL')")
     @GetMapping
     public List<SaludColectorRespuesta> salud() {
-        return estadoColectores.estados().stream()
-                .map(estado -> new SaludColectorRespuesta(
-                        estado.nombre(),
-                        estado.ultimaEjecucionExitosa(),
-                        estado.ultimoFallo(),
-                        estado.motivoDelUltimoFallo(),
-                        estado.itemsProcesados(),
-                        estado.tasaDeError(),
-                        estado.fallosConsecutivos()))
+        return saludDeColectores.salud().stream()
+                .map(salud -> new SaludColectorRespuesta(
+                        salud.nombre(),
+                        salud.ultimaEjecucionExitosa(),
+                        salud.ultimoFallo(),
+                        salud.motivoDelUltimoFallo(),
+                        salud.itemsProcesados(),
+                        salud.tasaDeError(),
+                        salud.fallosConsecutivos()))
                 .toList();
     }
 }

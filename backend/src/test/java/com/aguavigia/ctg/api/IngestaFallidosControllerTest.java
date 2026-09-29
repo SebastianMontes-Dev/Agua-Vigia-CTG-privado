@@ -3,8 +3,8 @@ package com.aguavigia.ctg.api;
 import com.aguavigia.ctg.api.error.ManejadorGlobalDeErrores;
 import com.aguavigia.ctg.domain.Permiso;
 import com.aguavigia.ctg.infrastructure.config.SecurityConfig;
-import com.aguavigia.ctg.infrastructure.persistence.mongo.DocumentoFallidoDocumento;
-import com.aguavigia.ctg.infrastructure.persistence.mongo.DocumentoFallidoMongoRepository;
+import com.aguavigia.ctg.domain.DocumentoFallido;
+import com.aguavigia.ctg.domain.port.out.DocumentosFallidosPort;
 import com.aguavigia.ctg.infrastructure.security.JwtProvider;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,7 +35,7 @@ class IngestaFallidosControllerTest {
     private MockMvc mockMvc;
 
     @MockitoBean
-    private DocumentoFallidoMongoRepository fallidos;
+    private DocumentosFallidosPort fallidos;
 
     @MockitoBean
     private JwtProvider jwtProvider;
@@ -58,8 +58,8 @@ class IngestaFallidosControllerTest {
         given(jwtProvider.validar("token-de-veedor"))
                 .willReturn(Optional.of(AutenticacionDePrueba.sesionCon(Permiso.VER_PANEL)));
         Instant ahora = Instant.parse("2026-08-09T15:30:00Z");
-        given(fallidos.findTop200ByOrderByUltimoIntentoDesc()).willReturn(List.of(
-                new DocumentoFallidoDocumento("hash-1", "acuacar", "https://acuacar.com/x", "Titulo",
+        given(fallidos.masRecientes()).willReturn(List.of(
+                new DocumentoFallido("acuacar", "https://acuacar.com/x", "Titulo",
                         "java.lang.RuntimeException: Mongo caído", ahora, ahora, 3)));
 
         mockMvc.perform(get("/api/veedor/ingesta/fallidos").header("Authorization", TOKEN))

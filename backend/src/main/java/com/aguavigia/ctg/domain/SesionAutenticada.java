@@ -1,8 +1,5 @@
-package com.aguavigia.ctg.infrastructure.security;
+package com.aguavigia.ctg.domain;
 
-import com.aguavigia.ctg.domain.AlcanceSesion;
-import com.aguavigia.ctg.domain.Permiso;
-import com.aguavigia.ctg.domain.UsuarioId;
 
 import java.time.Instant;
 import java.util.Set;
