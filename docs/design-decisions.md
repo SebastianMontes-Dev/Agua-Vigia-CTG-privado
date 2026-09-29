@@ -3170,8 +3170,61 @@ Quitar el punto de §4.2 de la guía y la línea del checklist de `DESIGN.md` §
 
 ---
 
+## ADR-079 — Cada página se entiende en cinco segundos: el titular es la respuesta y el escritorio usa dos columnas
+
+- **Fecha:** 2026-09-28
+- **Estado:** Aceptada
+- **Decide:** el dueño («muy básico», «poco intuitivo», «mucho scroll», «muy difícil de entender en los primeros 5
+  segundos»); la forma concreta la propuso Claude
+- **Relacionada:** `ADR-071` (identidad contenida), `ADR-077` (altura en el celular, sigue vigente), guía §4.2 y §5.2,
+  `identidad.md` §4.1. `ADR-078` queda para la URL del frontend en los correos (F4)
+
+### Contexto
+F3 cumplía la guía, las pruebas y `ADR-077`, y aun así el dueño la rechazó al verla con datos reales (siembra local,
+2026-09-28). En `/cumplimiento` a 1440 px el titular y la entrada decían lo mismo; «100 %» no explicaba qué medía;
+«121 días y 18 horas» es la suma de 120 cortes y nadie la interpreta; las barras prometido/real salían idénticas;
+los filtros de fecha ocupaban media pantalla y solo afectaban la tabla. La bitácora gastaba la primera pantalla en
+filtros y cinco líneas por evento en ruido («Informativo», «Sin enlace a la fuente»). Estadísticas escondía su dato
+fuerte (24,2 h por corte) en una línea. La guía fijaba el orden de los datos y una columna de 960 px, pero no qué debía
+entenderse sin leer. El cambio alcanza también a avisos (F4, en curso).
+
+### Alternativas consideradas
+| Opción | A favor | En contra |
+|---|---|---|
+| Ajustar espacios y tamaños de lo que hay | Poco trabajo | No cambia lo que el dueño rechazó: la página sigue sin decir su respuesta |
+| Tarjetas de KPI y más gráficos | Aspecto de tablero | Lo prohíbe `identidad.md` §6 y la guía §5.2; vuelve al diseño genérico |
+| **El titular es la respuesta, cifras que se leen solas, dos columnas en escritorio y el detalle detrás de una acción** | Se entiende sin leer; usa los datos que ya existen | Obliga a redactar veredictos con umbrales, y a rehacer las tres páginas y sus pruebas |
+
+### Decisión
+Las reglas viven en `identidad.md` §4.1. En resumen:
+1. El titular de cada página de lectura dice la respuesta en palabras del vecino («Los cortes terminan antes de lo
+   anunciado», «Un corte dura 24 horas en promedio»). Encima va un rótulo con el contexto.
+2. Las cifras se leen solas: promedio por corte, no totales acumulados. El índice va con su significado al lado.
+3. En escritorio, dos columnas dentro del primer pliegue (1440 × 900): la respuesta a la izquierda y la evidencia
+   (mes a mes, días, eventos) a la derecha.
+4. Los filtros van en una sola barra compacta. Sale el filtro de fechas de cumplimiento: el plan no lo pedía y
+   confundía, porque solo filtraba la serie.
+5. No se muestra lo que no existe, y las tablas van detrás de «Ver datos».
+
+La cantidad de cortes en la cabecera de cumplimiento sale de sumar `cantidadCortes` de la serie sin filtros, que
+agrupa los mismos cortes cerrados que el índice (`CalcularCumplimientoService`: misma condición y misma fórmula).
+Esto corrige la guía §5.2, que lo prohibía suponiendo que el dato no existía.
+
+### Consecuencias
+Cumplimiento, estadísticas y bitácora se rehacen en `feat/historia-en-5-segundos`, y avisos (F4) se construye con
+estas reglas. La guía §4.2 deja de fijar una sola columna de 960 px para las páginas de lectura. Los veredictos usan
+un umbral (±5 minutos por corte) que simplifica, y un cambio pequeño lo hace cambiar de frase. Pedir la serie antes de
+mostrar el veredicto suma una petición a la carga de cumplimiento. Cada PR de interfaz anota qué se entiende en 5 s a
+1440 × 900 y a 390 × 844.
+
+### Cómo se revierte
+Devolver `identidad.md` §4.1, la guía §4.2 y §5.2 y el checklist de `DESIGN.md` §10 a su versión anterior, y restaurar
+las páginas desde el commit que fusione este rediseño. Las pruebas de F3 anteriores quedan en el historial de git.
+
+---
+
 <!--
-Siguiente número disponible: ADR-078
+Siguiente número disponible: ADR-080 (el ADR-078 lo registra F4)
 Para agregar: usa la skill `registrar-decision`.
 Recuerda: append-only. Las entradas viejas solo cambian de estado, no de contenido.
 -->

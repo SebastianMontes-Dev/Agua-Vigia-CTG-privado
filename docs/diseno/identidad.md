@@ -89,8 +89,8 @@ Historial (Bitácora, Cumplimiento y Estadísticas) y Avisos. El panel del veedo
 - **Mapa:** panel contextual compacto de 400–460 px a la izquierda (buscador, respuesta, historial) y mapa a la derecha, sin tarjetas
   flotando encima salvo leyenda, zoom y crédito. Sin barrio elegido, el panel muestra Cartagena ahora: barra de la
   ciudad por estado, conteos y barrios con novedades.
-- **Páginas de lectura:** ancho máximo 1180 px; encabezado a dos columnas (titular a la izquierda, entrada a la
-  derecha); cifras en una fila de cuatro separadas por reglas; contenido a dos columnas 1,6 : 1.
+- **Páginas de lectura:** ancho máximo 1180 px; rótulo, titular-respuesta y barra de filtros arriba (§4.1); debajo,
+  dos columnas 1 : 1,2 dentro del primer pliegue: la respuesta y sus cifras a la izquierda, la evidencia a la derecha.
 - **Márgenes:** `max(20px, 3vw)` a los lados; 64 px entre bloques de página, 32 px dentro del panel.
 
 **Tableta (600–1099 px)** — navegación en «Menú»; el mapa arriba (44 vh) y el panel debajo.
@@ -106,6 +106,27 @@ hoja inferior. El mapa, el buscador y la lista accesible abren la misma ficha.
   texto subrayado con regla fina que pasa a latón.
 - Mapa: relleno de estado a baja opacidad (16 % claro, 22 % oscuro; más para sin servicio), borde de 0,8 px del
   color del estado; sin datos con trama; el barrio elegido lleva contorno de latón y los demás se atenúan.
+
+### 4.1 Se entiende en cinco segundos (`ADR-079`)
+
+La prueba: a 1440 × 900 y a 390 × 844, **sin bajar**, alguien que nunca vio la página sabe qué responde y qué puede
+hacer. Cada PR de interfaz anota qué se entiende en ese tiempo en los dos tamaños.
+
+1. **El titular es la respuesta**, en palabras del vecino: «Los cortes terminan antes de lo anunciado», «Un corte dura
+   24 horas en promedio». Una página de tarea (avisos, ingreso) titula la tarea. Encima, un rótulo con el contexto
+   («CUMPLIMIENTO · 120 CORTES CERRADOS · MAYO A JULIO DE 2026»). Nunca titular y entrada que repiten lo mismo.
+2. **Cifras que se leen solas.** Promedio por corte («se anuncia 24 h 21 min, dura 24 h 13 min»), no totales
+   acumulados («121 días»). Un índice o porcentaje va con su significado en la misma línea.
+3. **Una sola forma por dato.** Si la frase ya lo dice, no se repite en cifra, barra y tabla. Un gráfico que no
+   muestra diferencias visibles (dos barras casi iguales) no se dibuja.
+4. **Dos columnas en escritorio** dentro del primer pliegue: la respuesta a la izquierda y la evidencia (mes a mes,
+   días, eventos) a la derecha. En el celular, el mismo orden en una columna, con el tope de `ADR-077`.
+5. **Filtros en una barra compacta**, en una línea en escritorio. Los tipos o categorías, como pestañas con su
+   cantidad. Las fechas, detrás de «Fechas».
+6. **Sin ruido.** No se muestra lo que no existe («Sin enlace a la fuente», «Informativo» repetido en cada fila). Una
+   explicación cabe en una línea; lo demás va detrás de «Cómo se mide» o «Ver datos».
+7. **Listas densas y agrupadas.** Lo cronológico se agrupa por día («Hoy», «Ayer», «lunes 21 de septiembre»), con una
+   o dos líneas por elemento.
 
 ## 5. Movimiento
 
