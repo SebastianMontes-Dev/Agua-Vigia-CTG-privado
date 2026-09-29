@@ -156,6 +156,23 @@ node scripts/verificar-flujos.mjs
 - **Para mostrarlo en vivo** usa Swagger con el token de `POST /api/veedor/sesion` (con el segundo factor ya dado de alta, el cuerpo del login lleva
   además `codigoTotp`; la primera vez, sin alta, devuelve `alcance: ALTA_SEGUNDO_FACTOR`).
 
+## 6.1 «Metan 1 000 usuarios más» (dónde se guarda un usuario)
+
+```bash
+docker compose run --rm sembrador agregar-usuarios --cantidad 1000
+```
+
+- Muestra `aguavigia.usuarios` antes → después (30 001 → 31 001 sobre una base recién sembrada), lo que cada cuenta dejó en
+  `tokens_cuenta`, `auditoria_cuentas` y `suscripciones`, y tres documentos tal como quedaron en Mongo. Son personas distintas
+  en cada ejecución (faker, `ADR-087`).
+- Para verlas en la base: `docker compose --profile demo up -d mongo-express` y abrir `http://localhost:8082` →
+  `aguavigia` → `usuarios`, o `db.usuarios.find({"lote": "<el lote que imprimió>"})` en Compass.
+- Para demostrar que entran de verdad: una cuenta `ACTIVA` del lote sin segundo factor inicia sesión en
+  `POST /api/veedor/sesion` con la clave `DemoAguaVigia-2026`.
+- Con `--modo api` cada usuario se registra por `POST /api/cuentas/registro` y su correo de verificación llega a MailHog; con el
+  límite normal solo pasan 10 cada 10 min por IP (el resto, `429`, y el script lo explica).
+- Deshacer: `docker compose run --rm sembrador agregar-usuarios --borrar-lote <lote>`.
+
 ## 7. La ciudad entera reportando a la vez (demo de carga)
 
 Es la parte que responde «¿y si lo usa toda la ciudad?». Un solo comando abre 30 000 conexiones en vivo, dispara 30 000

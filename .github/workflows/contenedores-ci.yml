@@ -56,6 +56,33 @@ jobs:
           echo "usuarios/reportes/cortes: $ANTES -> $DESPUES"
           [ "$ANTES" = "$DESPUES" ] || { echo "::error::el segundo up cambió los datos"; exit 1; }
 
+      # ADR-087: «metan 1 000 usuarios más» tiene que sumar exactamente 1 000, y borrar el lote dejarlo como estaba.
+      - name: Agregar un lote de usuarios con faker y borrarlo
+        run: |
+          contar() { docker compose exec -T mongo mongosh aguavigia --quiet --eval 'print(db.usuarios.countDocuments())'; }
+          ANTES=$(contar)
+          docker compose run --rm sembrador agregar-usuarios --cantidad 1000 --lote lote-ci | grep -v '^\s\|^[{}]'
+          CON_LOTE=$(contar)
+          [ "$CON_LOTE" = "$((ANTES + 1000))" ] || { echo "::error::se esperaban $((ANTES + 1000)) usuarios y hay $CON_LOTE"; exit 1; }
+          docker compose run --rm sembrador agregar-usuarios --borrar-lote lote-ci | tail -2
+          [ "$(contar)" = "$ANTES" ] || { echo "::error::borrar el lote no devolvió los $ANTES usuarios"; exit 1; }
+
+  scripts:
+    name: Pruebas de los scripts de datos
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: scripts
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: scripts/package-lock.json
+      - run: npm ci
+      - run: npm test
+
       - name: Verificar que los scripts de shell son válidos
         run: |
           for script in scripts/*.sh; do

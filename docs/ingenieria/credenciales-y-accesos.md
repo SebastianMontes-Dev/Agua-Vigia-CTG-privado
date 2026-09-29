@@ -182,7 +182,7 @@ No son secretos: sirven solo contra una base local de demostración.
 
 | Clave | Dónde está documentada | Sirve para |
 |---|---|---|
-| `DemoAguaVigia-2026` | `scripts/sembrar-usuarios-demo.mjs` | Entrar como `VEEDOR`/`OBSERVADOR` de las 30 000 cuentas de demostración ACTIVAS (las que tienen segundo factor piden además el código: `docker compose run --rm sembrador totp <secretoTotp>`). **No hay ADMIN entre ellas** |
+| `DemoAguaVigia-2026` | `scripts/lib/cuentas-demo.mjs` | Entrar como `VEEDOR`/`OBSERVADOR` de las cuentas de demostración ACTIVAS, las 30 000 iniciales y las que agrega `agregar-usuarios.mjs` (las que tienen segundo factor piden además el código: `docker compose run --rm sembrador totp <secretoTotp>`). **No hay ADMIN entre ellas** |
 
 `entorno-local.md` publicó hasta el 2026-09-29 una clave de desarrollo, su hash y un `JWT_SECRET`. Se retiraron del documento
 pero siguen en el historial de git: se tratan como expuestos y no deben usarse en ningún `.env`.

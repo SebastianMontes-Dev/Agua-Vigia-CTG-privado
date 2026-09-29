@@ -3560,8 +3560,45 @@ solo porque los había sembrado a mano).
 Quitar las dos claves de `application-docker.yml`, el parámetro `generarClaveSiFalta` de `SembradorAdminInicial` y el servicio
 `sembrador`; volver a exigir `.env` y la siembra a mano. No toca datos.
 
+## ADR-087 — Los usuarios que se agregan en vivo salen de faker y se agrupan por lote; las 30 000 iniciales siguen deterministas
+
+- **Fecha:** 2026-09-29
+- **Estado:** Aceptada
+- **Decide:** Dueño del proyecto (Sebastian)
+
+### Contexto
+En la sustentación pueden pedir «metan 1 000 usuarios más» para ver dónde se guardan y cómo se comporta el sistema. El
+sembrador de las 30 000 (`sembrar-usuarios-demo.mjs`) es determinista a propósito (misma semilla, misma base) y, antes de
+insertar, borra lo que él mismo sembró: correrlo otra vez no agrega nada.
+
+### Alternativas consideradas
+| Opción | A favor | En contra |
+|---|---|---|
+| Reusar el sembrador con otra semilla | Sin código nuevo | Borra las 30 000 antes de insertar; los nombres salen de las mismas listas cortas |
+| Script aparte con su propia lógica de cuentas | Independiente | Duplica ~150 líneas de reglas (estados, auditoría, tokens, suscripciones) que tarde o temprano divergen |
+| **Fábrica compartida (`scripts/lib/cuentas-demo.mjs`) con dos fuentes de azar** | Una sola copia de las reglas; el sembrador queda byte a byte igual (comprobado con 2 000 cuentas); faker da personas distintas en cada ejecución | Una dependencia nueva (`@faker-js/faker`) en `scripts/` |
+
+### Decisión
+- `scripts/lib/cuentas-demo.mjs` genera la cuenta y lo que deja en el sistema; recibe `azar`, `nombrar` y `extras`.
+- `sembrar-usuarios-demo.mjs` la usa con su semilla y sus listas; `agregar-usuarios.mjs` con `lib/fuente-faker.mjs` (faker
+  `es_MX`, sin semilla salvo `--semilla`).
+- `agregar-usuarios.mjs --modo directo` (por defecto) inserta cuentas completas con la marca `lote`; `--modo api` las registra por
+  `POST /api/cuentas/registro` en un dominio reservado (`<lote>.registro.aguavigia.local`). `--borrar-lote` retira un lote y lo que
+  dejó. Se ejecuta sin Node en el equipo: `docker compose run --rm sembrador agregar-usuarios --cantidad 1000`.
+
+### Consecuencias
+- **Gana:** medido el 2026-09-29, 1 000 cuentas en segundos (30 001 → 31 001) con tokens, auditoría y suscripciones coherentes; una
+  de ellas inicia sesión en el backend con la clave de demostración; borrar el lote devuelve exactamente los conteos anteriores.
+- **Pierde:** el modo `api` choca con el límite de 10 registros cada 10 min por IP salvo con el perfil `carga`, y las cuentas que
+  crea no llevan `lote` (se reconocen por el dominio). Volver a correr el sembrador de las 30 000 borra también los lotes de faker,
+  porque llevan la misma marca `datosDeDemostracion`.
+- **Queda condicionado:** cualquier regla nueva de las cuentas de demostración se escribe en la fábrica, no en los scripts.
+
+### Cómo se revierte
+Borrar `agregar-usuarios.mjs`, `lib/fuente-faker.mjs` y la dependencia; `sembrar-usuarios-demo.mjs` puede quedarse con la fábrica.
+
 <!--
-Siguiente número disponible: ADR-087
+Siguiente número disponible: ADR-088
 Para agregar: usa la skill `registrar-decision`.
 Recuerda: append-only. Las entradas viejas solo cambian de estado, no de contenido.
 -->

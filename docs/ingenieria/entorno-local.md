@@ -159,6 +159,37 @@ node sembrar-usuarios-demo.mjs               # 30 000 cuentas en ~3 s; --cantida
   con un token sembrado (`204` y la cuenta pasa a `PENDIENTE_APROBACION`) y el listado por barrio (`el-pozon`: 1 839 cuentas) en
   51 ms.
 
+## 7. Agregar usuarios en vivo (faker)
+
+Para mostrar dónde se guarda un usuario y cómo crece la base, `scripts/agregar-usuarios.mjs` agrega cuentas **nuevas y
+distintas en cada ejecución** (faker, `ADR-087`), con las mismas reglas que las 30 000 iniciales (barrio real, estado, rol,
+auditoría, tokens y suscripciones). Cada ejecución es un **lote** con nombre que se puede contar y borrar.
+
+```bash
+docker compose run --rm sembrador agregar-usuarios --cantidad 1000                    # modo directo: miles por segundo
+docker compose run --rm sembrador agregar-usuarios --cantidad 200 --modo api          # registro real por la API
+docker compose run --rm sembrador agregar-usuarios --borrar-lote lote-20260929-1715   # quitar un lote
+```
+
+| Opción | Por defecto | Qué hace |
+|---|---|---|
+| `--cantidad` | 1000 | Cuántos usuarios |
+| `--modo` | `directo` | `directo` inserta en Mongo cuentas completas con la marca `lote`; `api` llama a `POST /api/cuentas/registro` por cada una (el backend cifra la clave, audita y manda el correo de verificación a MailHog; quedan en `PENDIENTE_VERIFICACION`) |
+| `--lote` | `lote-<fecha-hora>` | Nombre del lote |
+| `--concurrencia` | 20 | Peticiones a la vez en modo `api` |
+| `--semilla` | ninguna | Reproduce la misma serie (para pruebas) |
+| `--borrar-lote` | — | Borra las cuentas del lote y lo que dejaron (tokens, auditoría, suscripciones) |
+
+Al terminar imprime el conteo de cada colección **antes → después**, tres documentos del lote tal como quedaron en
+`aguavigia.usuarios` y la consulta para verlos en Mongo (`db.usuarios.find({"lote": "…"})`).
+
+- **Límite del modo `api`:** `/api/cuentas/**` admite 10 peticiones cada 10 min por IP; el resto responde `429` y el script lo
+  explica. Para registrar miles, se levanta el backend con el perfil `carga`, que quita ese límite (`ADR-083`).
+- **Sin correos repetidos:** carga antes todos los correos existentes y, si otro proceso inserta el mismo entre medias, el
+  índice único lo rechaza y el script genera otro.
+- Con Node en el equipo también sirve `cd scripts && node agregar-usuarios.mjs …` contra `localhost:27017`.
+- Pruebas del generador: `cd scripts && npm test`.
+
 ---
 
 Documentos relacionados: [`../api/README.md`](../api/README.md) (la guía de la API) · [`credenciales-y-accesos.md`](credenciales-y-accesos.md)
