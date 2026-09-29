@@ -63,6 +63,10 @@ Referencias cruzadas: `ADR-NNN` · `BUG-NNN` · `RF0NN` · `archivo:línea`.
 
 ## Preparación del backend
 
+### 2026-09-24 · `docs/entrega-bd2`
+**Qué:** Entrega de Base de Datos 2 (ER → NoSQL): `docs/ingenieria/transformacion-er-a-nosql-bd2.docx` y `.pdf` (14 tablas → 10 colecciones, índices tomados de `IndicesMongo.java`) y `modelo-nosql-moon-modeler.dmm` con el diagrama de las 10 colecciones. No hay `.sql` en el repo; el documento no lo cubre. Los diagramas omiten `suscripciones_telegram`, `bloqueos_administracion` y `documentos_fallidos`.
+**Sigue:** Versionados en `docs/ingenieria/` el 2026-09-29 por decisión del dueño. El PDF no se revisó renderizado.
+
 ### 2026-09-24 · `feat/mensajeria-telegram`
 **Qué:** `RF041` construido por Telegram y apagado hasta tener el token (`ADR-066`): sondeo sin webhook, `/suscribir`, `/baja`, `/estado`, `/mis`, baja que borra el chat; reemplaza el simulacro de M14. `./mvnw verify`: 929 pruebas, 0 fallos; probado de extremo a extremo con un Telegram falso, **no contra Telegram real**. Limpieza hecha con copia previa (base de la demo y etiquetas viejas en `Documentos/respaldos-aguavigia`); `verificar-flujos.mjs` espera 1,1 s antes del cierre de sesión.
 **Sigue:** Crear el bot con `@BotFather` y poner `TELEGRAM_BOT_TOKEN` (`docs/ingenieria/telegram.md`); fusionar el PR y registrarlo; fecha real de la presentación para la retrospectiva.
