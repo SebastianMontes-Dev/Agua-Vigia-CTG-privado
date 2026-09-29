@@ -76,7 +76,8 @@ if (!Number.isInteger(MINIMO) || MINIMO < 0) {
   console.error('--minimo debe ser un entero mayor o igual que 0');
   process.exit(1);
 }
-if (!/^mongodb:\/\/(localhost|127\.0\.0\.1|\[::1\])([:/]|$)/.test(MONGODB_URI) && !values['permitir-remoto']) {
+// `mongo` es el servicio de docker-compose.yml: el sembrador corre dentro de esa red (ADR-086).
+if (!/^mongodb:\/\/(localhost|127\.0\.0\.1|\[::1\]|mongo)([:/]|$)/.test(MONGODB_URI) && !values['permitir-remoto']) {
   console.error(`Me niego a sembrar cuentas de demostración en ${MONGODB_URI.replace(/\/\/.*@/, '//***@')}: no es local.\n`
     + 'Si de verdad es lo que quieres, repite con --permitir-remoto.');
   process.exit(1);

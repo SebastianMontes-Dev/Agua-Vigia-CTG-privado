@@ -2,10 +2,12 @@ package com.aguavigia.ctg.infrastructure.config;
 
 import com.aguavigia.ctg.application.RegistroDeAuditoria;
 import com.aguavigia.ctg.domain.AccionAuditada;
+import com.aguavigia.ctg.domain.ClaveHash;
 import com.aguavigia.ctg.domain.EstadoCuenta;
 import com.aguavigia.ctg.domain.Pagina;
 import com.aguavigia.ctg.domain.RolVeedor;
 import com.aguavigia.ctg.domain.Usuario;
+import com.aguavigia.ctg.domain.port.out.CifradorClavePort;
 import com.aguavigia.ctg.domain.port.out.UsuarioRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -33,16 +35,22 @@ class SembradorAdminInicialTest {
 
     private UsuarioRepository usuarios;
     private RegistroDeAuditoria auditoria;
+    private CifradorClavePort cifrador;
 
     @BeforeEach
     void montar() {
         usuarios = mock(UsuarioRepository.class);
         auditoria = mock(RegistroDeAuditoria.class);
+        cifrador = mock(CifradorClavePort.class);
         given(usuarios.guardar(any())).willAnswer(invocacion -> invocacion.getArgument(0));
     }
 
     private SembradorAdminInicial sembrador(String correo, String hash) {
-        return new SembradorAdminInicial(usuarios, auditoria, () -> AHORA, correo, hash);
+        return new SembradorAdminInicial(usuarios, auditoria, () -> AHORA, cifrador, correo, hash, false);
+    }
+
+    private SembradorAdminInicial sembradorQueGeneraClave(String correo, String hash) {
+        return new SembradorAdminInicial(usuarios, auditoria, () -> AHORA, cifrador, correo, hash, true);
     }
 
     private void sistemaConCuentas(long total) {
@@ -111,6 +119,42 @@ class SembradorAdminInicialTest {
         sistemaConCuentas(0);
 
         assertThatCode(() -> sembrador("esto-no-es-un-correo", HASH).sembrarSiNoHayNadie()).doesNotThrowAnyException();
+        verify(usuarios, never()).guardar(any());
+    }
+
+    @Test
+    void sinHashYConGeneracionActivaDebeCrearElAdminConUnaClaveAleatoriaCifrada() {
+        sistemaConCuentas(0);
+        ArgumentCaptor<String> claveEnClaro = ArgumentCaptor.forClass(String.class);
+        given(cifrador.cifrar(claveEnClaro.capture())).willReturn(new ClaveHash(HASH));
+
+        sembradorQueGeneraClave("admin@aguavigia.local", "").sembrarSiNoHayNadie();
+
+        ArgumentCaptor<Usuario> guardado = ArgumentCaptor.forClass(Usuario.class);
+        verify(usuarios).guardar(guardado.capture());
+        assertThat(guardado.getValue().claveHash().valor()).isEqualTo(HASH);
+        assertThat(claveEnClaro.getValue()).hasSize(20).matches("[A-Za-z2-9]+");
+    }
+
+    @Test
+    void conHashConfiguradoLaGeneracionActivaNoDebeInventarOtraClave() {
+        sistemaConCuentas(0);
+
+        sembradorQueGeneraClave("admin@aguavigia.local", HASH).sembrarSiNoHayNadie();
+
+        verifyNoInteractions(cifrador);
+        ArgumentCaptor<Usuario> guardado = ArgumentCaptor.forClass(Usuario.class);
+        verify(usuarios).guardar(guardado.capture());
+        assertThat(guardado.getValue().claveHash().valor()).isEqualTo(HASH);
+    }
+
+    @Test
+    void conGeneracionActivaYUnaCuentaExistenteNoDebeGenerarNada() {
+        sistemaConCuentas(1);
+
+        sembradorQueGeneraClave("admin@aguavigia.local", "").sembrarSiNoHayNadie();
+
+        verifyNoInteractions(cifrador, auditoria);
         verify(usuarios, never()).guardar(any());
     }
 }

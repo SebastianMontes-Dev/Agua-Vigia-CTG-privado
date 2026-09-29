@@ -1,3 +1,13 @@
+# Todo el proyecto se levanta con un solo comando (ADR-086):
+#
+#   docker compose up
+#
+# No hace falta .env: el backend genera su secreto de sesión y la clave del primer ADMIN (se imprime una sola vez en el log
+# del backend), y el servicio `sembrador` deja la base con los 211 barrios, 30 000 cuentas de demostración, el histórico
+# de cortes y algunos barrios afectados. Repetir `up` no duplica datos. Visor web de la base (opcional):
+#
+#   docker compose --profile demo up
+#
 networks:
   aguavigia:
     driver: bridge
@@ -78,6 +88,7 @@ services:
       - aguavigia
 
   backend:
+    image: aguavigia/backend:local
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -98,7 +109,6 @@ services:
       # La API y las pantallas de avisos tienen bases públicas independientes (ADR-078).
       AGUAVIGIA_APP_URL_PUBLICA: ${APP_URL_PUBLICA:-http://localhost:8081}
       AGUAVIGIA_APP_URL_FRONTEND: ${APP_URL_FRONTEND:-http://localhost:5173}
-      AGUAVIGIA_CUENTAS_ADMIN_INICIAL_CORREO: ${ADMIN_INICIAL_CORREO:-}
     ports:
       - "8081:8080"
     volumes:
@@ -120,6 +130,42 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
+
+  # Siembra de un solo uso (scripts/sembrador.mjs): corre al terminar de arrancar el backend y sale. También sirve para
+  # ampliar datos en vivo sin instalar Node: docker compose run --rm sembrador agregar-usuarios --cantidad 1000
+  sembrador:
+    image: aguavigia/sembrador:local
+    build:
+      context: .
+      dockerfile: scripts/Dockerfile
+    container_name: aguavigia-sembrador
+    restart: "no"
+    environment:
+      MONGODB_URI: mongodb://mongo:27017/?directConnection=true
+      MONGODB_DB: ${MONGO_INITDB_DATABASE:-aguavigia}
+      API_URL: http://backend:8080
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - aguavigia
+
+  # Visor web de Mongo para enseñar dónde se guarda cada dato. Solo con el perfil demo y solo en este equipo (127.0.0.1).
+  mongo-express:
+    image: mongo-express:1.0.2
+    container_name: aguavigia-mongo-express
+    profiles: ["demo"]
+    restart: unless-stopped
+    environment:
+      ME_CONFIG_MONGODB_URL: mongodb://mongo:27017/?directConnection=true
+      ME_CONFIG_BASICAUTH: "false"
+    ports:
+      - "127.0.0.1:8082:8081"
+    depends_on:
+      mongo:
+        condition: service_healthy
+    networks:
+      - aguavigia
 
 volumes:
   mongo-data:

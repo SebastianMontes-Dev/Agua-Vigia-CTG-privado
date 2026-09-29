@@ -22,3 +22,11 @@ aguavigia:
     url-frontend: ${APP_URL_FRONTEND:http://localhost:5173}
   cors:
     origenes-permitidos: ${CORS_ORIGENES:http://localhost:5173,http://localhost:4173,http://localhost:3000,http://localhost:4200}
+  # Arranque con un solo comando (ADR-086): sin .env el backend no se queda sin panel. El secreto del JWT sale
+  # de UUID aleatorios (SecureRandom), así que las sesiones no sobreviven a un reinicio; y el primer ADMIN nace con una
+  # clave aleatoria que se escribe una sola vez en el log. Con JWT_SECRET o VEEDOR_PASSWORD_HASH en .env, mandan esos.
+  jwt:
+    secret: ${JWT_SECRET:${random.uuid}${random.uuid}}
+  cuentas:
+    admin-inicial-correo: ${ADMIN_INICIAL_CORREO:admin@aguavigia.local}
+    admin-inicial-generar-clave: true

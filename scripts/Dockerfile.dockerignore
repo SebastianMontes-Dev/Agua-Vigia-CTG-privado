@@ -1,0 +1,7 @@
+# Solo para scripts/Dockerfile (BuildKit usa <Dockerfile>.dockerignore): el contexto es la raíz del repositorio y aquí
+# se deja pasar únicamente lo que la imagen del sembrador necesita.
+*
+!scripts/
+!data/geoespacial/
+scripts/node_modules/
+scripts/carga/resultados/
