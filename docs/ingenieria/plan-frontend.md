@@ -421,13 +421,15 @@ cuando su entregable se demuestra funcionando**, no por calendario.
   de §10 espera la revisión del dueño en un teléfono real.
 
 ### F3 — Historia pública (M6, M7, M8)
-- [ ] Bitácora paginada y filtrable por barrio, tipo y fecha contra la API (`ADR-073`), con fuente, portada por
+- [x] Bitácora paginada y filtrable por barrio, tipo y fecha contra la API (`ADR-073`), con fuente, portada por
       `/acuacar-media/` y sustento bajo demanda.
-- [ ] Cumplimiento global y por sector, con la conclusión en palabras primero, la regla de tiempo, la serie mensual
+- [x] Cumplimiento global y por sector, con la conclusión en palabras primero, la regla de tiempo, la serie mensual
       con `cantidadCortes` y el CSV.
-- [ ] Estadísticas con los días ordenados, tablas equivalentes a cada gráfico y el CSV.
-- [ ] Cifras en formato colombiano (coma decimal, punto de miles).
-- [ ] Estados vacíos que distinguen «no hay cortes cerrados» (un `400` de cumplimiento) de un error real.
+- [x] Estadísticas con los días ordenados, tablas equivalentes a cada gráfico y el CSV.
+- [x] Cifras en formato colombiano (coma decimal, punto de miles).
+- [x] Estados vacíos que distinguen «no hay cortes cerrados» (un `400` de cumplimiento) de un error real.
+- **Hecho el 2026-09-28** en tres PR: cumplimiento (#81), estadísticas (#83) y bitácora (#85), con E2E simuladas y
+  contra el backend real en CI. Como F2, queda la revisión visual del dueño en un teléfono real.
 
 ### F4 — Avisos (M4)
 - [ ] Formulario de suscripción y pantallas de confirmar y dar de baja (§6.6), con doble confirmación; abrir un
