@@ -1,30 +1,28 @@
 # Correos y enlaces
 
-El backend envía correo en cuatro situaciones. **Cada enlace de esos correos apunta a una ruta del propio
-backend**, porque el backend ya no tiene un frontend al que redirigir. Un frontend nuevo puede dejar esas
-páginas tal cual, o sustituirlas por las suyas.
+El backend envía correo en cinco situaciones. Los enlaces de suscripción llevan a las pantallas propias del
+frontend; los enlaces de cuenta siguen en el backend hasta F5.
 
 ## De dónde sale la URL de los enlaces
 
-`AGUAVIGIA_APP_URL_PUBLICA` (variable `APP_URL_PUBLICA` en el `.env`). En desarrollo vale por defecto
-`http://localhost:8080`; **en producción es obligatoria y el backend se niega a arrancar si apunta a
-`localhost`**, para no enviar enlaces que solo funcionan en la máquina del desarrollador.
+`aguavigia.app.url-frontend` (`APP_URL_FRONTEND` en `.env`) es la base de los enlaces de suscripción.
+En desarrollo vale `http://localhost:5173`. `aguavigia.app.url-publica` (`APP_URL_PUBLICA`) sigue siendo la
+base de la API y de los enlaces de cuenta hasta F5; en desarrollo, `http://localhost:8081`. En producción
+ambas deben señalar orígenes públicos: el backend rechaza valores locales o sin host.
 
 ## Qué correos salen y a dónde llevan
 
 | Correo | Cuándo | Enlace | Vigencia |
 |---|---|---|---|
-| Confirmar suscripción | `POST /api/suscripciones` | `…/api/suscripciones/confirmar?token=…` y baja `…/cancelar?token=…` | 48 h |
-| Aviso de cambio de estado | Cambia el estado de un sector suscrito | Ver el sector: `…/api/sectores/{id}` · baja: `…/api/suscripciones/cancelar?token=…` | — |
+| Confirmar suscripción | `POST /api/suscripciones` | `…/avisos/confirmar?token=…` y baja `…/avisos/baja?token=…` | 48 h |
+| Aviso de cambio de estado | Cambia el estado de un sector suscrito | Ver el sector: `…/sectores/{id}` · baja: `…/avisos/baja?token=…` | — |
 | Verificar cuenta | `POST /api/cuentas/registro` | `…/api/cuentas/enlaces/verificar?token=…` | 48 h |
 | Aceptar invitación | Un ADMIN invita | `…/api/cuentas/enlaces/invitacion?token=…` | 7 días |
 | Restablecer clave | `POST /api/cuentas/restablecimiento` | `…/api/cuentas/enlaces/restablecer?token=…` | 30 min |
 
 Los enlaces de cuentas son **de un solo uso**, y pedir uno nuevo **invalida los anteriores**.
 
-> **El enlace «ver el sector» del aviso de estado apunta hoy a la API JSON** (`/api/sectores/{id}`), porque
-> no hay una pantalla a la que llevar. **Un frontend nuevo debería cambiarlo** para que apunte a su pantalla
-> de sector: es el marcador `urlReportar` que arma `MailNotificacionAdapter`.
+`urlReportar` de `MailNotificacionAdapter` lleva a la ficha del sector en la SPA.
 
 ## Las páginas de cortesía de las cuentas
 
@@ -45,8 +43,8 @@ token no quede en cachés ni se filtre por la cabecera `Referer`.
 
 ### Si el frontend nuevo sirve sus propias pantallas
 
-1. Apunta el correo a tu pantalla: cambia la base de los enlaces (`AGUAVIGIA_APP_URL_PUBLICA`) **y** la ruta
-   que arma cada adaptador (`MailCuentaAdapter`, `MailNotificacionAdapter`).
+1. Apunta el correo a tu pantalla: cambia la base y la ruta que arma el adaptador correspondiente. F4 ya
+   usa `APP_URL_FRONTEND` en `MailNotificacionAdapter`; `MailCuentaAdapter` se aborda en F5.
 2. Tu pantalla lee el `token` de la URL y llama a la API JSON equivalente:
 
 | Pantalla | Llamada |

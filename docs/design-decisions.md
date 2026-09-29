@@ -3170,8 +3170,40 @@ Quitar el punto de §4.2 de la guía y la línea del checklist de `DESIGN.md` §
 
 ---
 
+## ADR-078 — Los correos de avisos usan una URL pública propia del frontend
+
+- **Fecha:** 2026-09-28
+- **Estado:** Aceptada
+- **Decide:** el dueño (nombre de la propiedad propuesto en F4)
+- **Relacionada:** ADR-054 (abrir un enlace no actúa), ADR-057 (entorno local), ADR-067 (SPA nueva)
+
+### Contexto
+`MailNotificacionAdapter` armaba los enlaces de confirmación y baja bajo `/api/suscripciones/…` y el de sector bajo
+`/api/sectores/{id}`. `APP_URL_PUBLICA` apunta a la API en `:8081` en el entorno local, mientras la SPA de F4 corre en
+`:5173`. Cambiar solo las rutas enviaría a un origen que no sirve esas pantallas.
+
+### Alternativas consideradas
+| Opción | A favor | En contra |
+|---|---|---|
+| Reutilizar `aguavigia.app.url-publica` | Una propiedad menos | Mezcla origen de API y frontend; rompe los enlaces locales |
+| `aguavigia.app.url-frontend` | Cada enlace señala el origen que sirve su pantalla | Dos valores públicos que configurar y validar |
+
+### Decisión
+`MailNotificacionAdapter` usa `aguavigia.app.url-frontend` (`APP_URL_FRONTEND`, por defecto
+`http://localhost:5173`) para `/sectores/{id}`, `/avisos/confirmar?token=` y `/avisos/baja?token=`. La API y
+`MailCuentaAdapter` conservan `aguavigia.app.url-publica` hasta F5. En perfil `prod` se validan ambas URL.
+
+### Consecuencias
+Los enlaces de avisos llegan a pantallas que explican y piden la acción antes del POST; la URL de la API sigue
+independiente. Cada despliegue debe configurar dos orígenes públicos, que pueden coincidir cuando nginx sirva la
+SPA y la API bajo el mismo dominio en F6. Los correos de cuenta siguen llegando a páginas del backend hasta F5.
+
+### Cómo se revierte
+Volver a construir los enlaces en `MailNotificacionAdapter` con `url-publica`, ajustar `docker-compose` y la
+validación de producción, y cambiar las rutas documentadas.
+
 <!--
-Siguiente número disponible: ADR-078
+Siguiente número disponible: ADR-079
 Para agregar: usa la skill `registrar-decision`.
 Recuerda: append-only. Las entradas viejas solo cambian de estado, no de contenido.
 -->

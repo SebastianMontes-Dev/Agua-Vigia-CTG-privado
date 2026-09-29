@@ -58,7 +58,7 @@ misma ruta (`ADR-054`). Un enlace ya enviado antes de este cambio sigue funciona
 Un frontend propio puede:
 1. **Dejar las páginas del backend** tal cual (cero trabajo), o
 2. **Servir su propia pantalla** con un botón que llame a `POST` con `Accept: application/json`. En ese caso, el
-   correo debe apuntar a esa pantalla: la base de los enlaces sale de `AGUAVIGIA_APP_URL_PUBLICA`
+   correo debe apuntar a esa pantalla: F4 usa `APP_URL_FRONTEND`
    (ver [Correos y enlaces](correos-y-enlaces.md)). **La llamada se hace al pulsar el botón, no al cargar la pantalla.**
 
 Errores: `400` con `type: peticion-invalida` si el token no existe o venció; `409` si intentas confirmar

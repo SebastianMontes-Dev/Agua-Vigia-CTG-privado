@@ -35,7 +35,7 @@ import static org.mockito.Mockito.verify;
 class MailNotificacionAdapterTest {
 
     private static final Instant ACTUALIZADO_EN = Instant.parse("2026-08-09T20:00:00Z");
-    private static final String URL_PUBLICA = "https://aguavigia.example";
+    private static final String URL_FRONTEND = "https://app.aguavigia.example";
     private static final String TOKEN = "token-abc-123";
 
     private JavaMailSender mailSender;
@@ -47,7 +47,7 @@ class MailNotificacionAdapterTest {
         given(mailSender.createMimeMessage())
                 .willAnswer(invocacion -> new MimeMessage(Session.getInstance(new Properties())));
         adaptador = new MailNotificacionAdapter(mailSender,
-                "AguaVigía CTG <no-responder@aguavigia.local>", URL_PUBLICA, 48);
+                "AguaVigía CTG <no-responder@aguavigia.local>", URL_FRONTEND, 48);
     }
 
     private Suscripcion suscripcion() {
@@ -109,16 +109,15 @@ class MailNotificacionAdapterTest {
         adaptador.avisarCambioDeEstado(suscripcion(), sector(EstadoServicio.SIN_SERVICIO));
 
         assertThat(cuerpoEnviado())
-                .contains(URL_PUBLICA + "/api/suscripciones/cancelar?token=" + TOKEN);
+                .contains(URL_FRONTEND + "/avisos/baja?token=" + TOKEN);
     }
 
-    /** Sin frontend (ADR-048) "ver mi sector" apunta a la propia API, no a una pantalla que ya no existe. */
     @Test
-    void elEnlaceParaVerElSectorDebeApuntarALaApi() throws Exception {
+    void elEnlaceParaVerElSectorDebeApuntarAlFrontend() throws Exception {
         adaptador.avisarCambioDeEstado(suscripcion(), sector(EstadoServicio.SIN_SERVICIO));
 
-        assertThat(cuerpoEnviado()).contains(URL_PUBLICA + "/api/sectores/manga")
-                .doesNotContain(URL_PUBLICA + "/sectores/manga");
+        assertThat(cuerpoEnviado()).contains(URL_FRONTEND + "/sectores/manga")
+                .doesNotContain(URL_FRONTEND + "/api/sectores/manga");
     }
 
     @Test
@@ -152,7 +151,7 @@ class MailNotificacionAdapterTest {
         adaptador.enviarConfirmacionSuscripcion(suscripcion(), List.of(sector(EstadoServicio.SIN_SERVICIO)));
 
         assertThat(cuerpoEnviado())
-                .contains(URL_PUBLICA + "/api/suscripciones/confirmar?token=" + TOKEN)
+                .contains(URL_FRONTEND + "/avisos/confirmar?token=" + TOKEN)
                 .contains("48")
                 .doesNotContain("{{");
     }
@@ -162,7 +161,7 @@ class MailNotificacionAdapterTest {
     void elCorreoDeConfirmacionDebeIncluirElEnlaceDeBaja() throws Exception {
         adaptador.enviarConfirmacionSuscripcion(suscripcion(), List.of(sector(EstadoServicio.SIN_SERVICIO)));
 
-        assertThat(cuerpoEnviado()).contains(URL_PUBLICA + "/api/suscripciones/cancelar?token=" + TOKEN);
+        assertThat(cuerpoEnviado()).contains(URL_FRONTEND + "/avisos/baja?token=" + TOKEN);
     }
 
     @Test

@@ -9,11 +9,8 @@ import java.util.Locale;
 import java.util.Set;
 
 /**
- * En producción los enlaces de los correos (verificar cuenta, restablecer clave, baja de una
- * suscripción) se arman con `aguavigia.app.url-publica`. Su valor por defecto es `localhost`, así
- * que si el despliegue se olvida de definirla los correos salen con enlaces que solo funcionan en
- * la máquina del desarrollador y nadie lo nota hasta que un usuario los abre. Se aborta el
- * arranque en vez de enviar enlaces rotos.
+ * En producción, los enlaces de cuenta usan `aguavigia.app.url-publica` y los avisos usan
+ * `aguavigia.app.url-frontend`. Ninguna puede apuntar a la máquina del desarrollador.
  */
 @Component
 @Profile("prod")
@@ -21,11 +18,17 @@ class ValidacionDeUrlPublicaProd {
 
     private static final Set<String> HOSTS_LOCALES = Set.of("localhost", "127.0.0.1", "0.0.0.0", "[::1]", "::1");
 
-    ValidacionDeUrlPublicaProd(@Value("${aguavigia.app.url-publica:}") String urlPublica) {
+    ValidacionDeUrlPublicaProd(@Value("${aguavigia.app.url-publica:}") String urlPublica,
+                              @Value("${aguavigia.app.url-frontend:}") String urlFrontend) {
+        validar(urlPublica, "APP_URL_PUBLICA");
+        validar(urlFrontend, "APP_URL_FRONTEND");
+    }
+
+    private static void validar(String urlPublica, String propiedad) {
         String host = hostDe(urlPublica);
         if (host == null || HOSTS_LOCALES.contains(host)) {
             throw new IllegalStateException(
-                    "APP_URL_PUBLICA debe ser la URL pública real del despliegue (https://tu-dominio) y no '"
+                    propiedad + " debe ser la URL pública real del despliegue (https://tu-dominio) y no '"
                             + urlPublica + "': los enlaces de los correos saldrían apuntando a la máquina local.");
         }
     }
