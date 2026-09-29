@@ -1,5 +1,5 @@
 import type { Page, Route } from '@playwright/test'
-import { cumplimientoDeEjemplo, estadisticasDeEjemplo, serieDeEjemplo } from '../src/pruebas/datos/historia'
+import { bitacoraDeEjemplo, cumplimientoDeEjemplo, estadisticasDeEjemplo, serieDeEjemplo } from '../src/pruebas/datos/historia'
 
 // Datos de prueba: tres barrios con coordenadas aproximadas de Cartagena. No describen su estado real.
 function cuadro(lon: number, lat: number) {
@@ -51,6 +51,8 @@ interface Opciones {
   confirmacion?: (route: Route) => Promise<void>
   cumplimiento?: (route: Route) => Promise<void>
   serie?: (route: Route) => Promise<void>
+  bitacora?: (route: Route) => Promise<void>
+  sustento?: (route: Route) => Promise<void>
 }
 
 /** Simula la API pública para las E2E que corren sin backend (CI). Devuelve los cuerpos de los reportes y confirmaciones. */
@@ -70,6 +72,24 @@ export async function simularApi(page: Page, opciones: Opciones = {}) {
   await page.route(/\/api\/cumplimiento(?:\/sectores\/[^/?]+)?(?:\?|$)/, opciones.cumplimiento ?? ((route) => route.fulfill({
     status: 200, contentType: 'application/json', body: JSON.stringify(cumplimientoDeEjemplo),
   })))
+  await page.route(/\/api\/bitacora\/[^/]+\/sustento/, opciones.sustento ?? ((route) => route.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify(['reporte-1', 'reporte-2']),
+    headers: { 'X-Total-Count': '2', 'X-Total-Pages': '1', 'X-Page': '0', 'X-Page-Size': '50' },
+  })))
+  await page.route(/\/api\/bitacora(?:\?|$)/, opciones.bitacora ?? ((route) => {
+    const url = new URL(route.request().url())
+    const eventos = bitacoraDeEjemplo.filter((evento) =>
+      (!url.searchParams.has('sectorId') || evento.sectorId === url.searchParams.get('sectorId'))
+      && (!url.searchParams.has('tipo') || evento.tipo === url.searchParams.get('tipo'))
+      && (!url.searchParams.has('desde') || evento.timestamp >= url.searchParams.get('desde')!)
+      && (!url.searchParams.has('hasta') || evento.timestamp < url.searchParams.get('hasta')!))
+    const pagina = Number(url.searchParams.get('pagina') ?? 0)
+    const tamano = Number(url.searchParams.get('tamano') ?? 5)
+    return route.fulfill({
+      status: 200, contentType: 'application/json', body: JSON.stringify(eventos.slice(pagina * tamano, (pagina + 1) * tamano)),
+      headers: { 'X-Total-Count': String(eventos.length), 'X-Total-Pages': String(Math.ceil(eventos.length / tamano)), 'X-Page': String(pagina), 'X-Page-Size': String(tamano) },
+    })
+  }))
   await page.route(/\/api\/sectores\/[^/]+\/cortes/, (route) => {
     const id = new URL(route.request().url()).pathname.split('/')[3] ?? ''
     const lista = cortes()[id] ?? []

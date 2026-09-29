@@ -7,6 +7,8 @@ import { PantallaMapa } from '../pantallas/publico/PantallaMapa'
 import { ResumenCiudad } from '../pantallas/publico/ResumenCiudad'
 import { Cumplimiento } from '../pantallas/publico/Cumplimiento'
 import { Estadisticas } from '../pantallas/publico/Estadisticas'
+import { Bitacora } from '../pantallas/publico/Bitacora'
+import { esTipoBitacora } from '../dominio/historia'
 
 const raiz = createRootRoute({ component: Outlet, notFoundComponent: NoEncontrada })
 
@@ -30,7 +32,14 @@ const cumplimiento = createRoute({
   component: Cumplimiento,
 })
 const bitacora = createRoute({
-  getParentRoute: () => publico, path: 'bitacora', component: () => <Pendiente titular="Bitácora" fase="fase F3" />,
+  getParentRoute: () => publico, path: 'bitacora',
+  validateSearch: (busqueda: Record<string, unknown>): { sector?: string; tipo?: import('../dominio/historia').TipoBitacora; desde?: string; hasta?: string } => ({
+    ...(typeof busqueda.sector === 'string' ? { sector: busqueda.sector } : {}),
+    ...(esTipoBitacora(busqueda.tipo) ? { tipo: busqueda.tipo } : {}),
+    ...(typeof busqueda.desde === 'string' ? { desde: busqueda.desde } : {}),
+    ...(typeof busqueda.hasta === 'string' ? { hasta: busqueda.hasta } : {}),
+  }),
+  component: Bitacora,
 })
 const estadisticas = createRoute({
   getParentRoute: () => publico, path: 'estadisticas', component: Estadisticas,
