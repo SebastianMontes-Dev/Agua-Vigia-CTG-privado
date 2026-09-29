@@ -36,8 +36,26 @@ export function partirHora(valor: string | Date): HoraPartida {
   return { cifra: normalizarEspacios(cifra), periodo: normalizarEspacios(periodo) }
 }
 
+const formatoDiaSemana = new Intl.DateTimeFormat('es-CO', { timeZone: ZONA, weekday: 'long', day: 'numeric', month: 'long' })
+const formatoDiaSemanaConAnio = new Intl.DateTimeFormat('es-CO', { timeZone: ZONA, weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+
 function claveDia(fecha: Date): string {
   return formatoClaveDia.format(fecha)
+}
+
+/** «2026-09-28» en el calendario de Cartagena: agrupa lo ocurrido el mismo día sin depender de la zona del navegador. */
+export function claveDiaCartagena(valor: string | Date): string {
+  return claveDia(aFecha(valor))
+}
+
+/** Encabezado de un grupo por día: «Hoy», «Ayer» o «lunes, 21 de septiembre». */
+export function etiquetaDia(valor: string | Date, ahora: Date): string {
+  const fecha = aFecha(valor)
+  const dia = diaRelativo(fecha, ahora)
+  if (dia === 'hoy' || dia === 'ayer' || dia === 'mañana') return dia.charAt(0).toUpperCase() + dia.slice(1)
+  const mismoAnio = claveDia(fecha).slice(0, 4) === claveDia(ahora).slice(0, 4)
+  const texto = normalizarEspacios((mismoAnio ? formatoDiaSemana : formatoDiaSemanaConAnio).format(fecha))
+  return texto.charAt(0).toUpperCase() + texto.slice(1)
 }
 
 /** «hoy», «ayer», «mañana» o la fecha, siempre según el calendario de Cartagena. */

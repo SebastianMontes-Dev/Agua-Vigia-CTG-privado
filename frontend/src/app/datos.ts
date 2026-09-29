@@ -1,4 +1,4 @@
-import { QueryClient, useInfiniteQuery, useQuery } from '@tanstack/react-query'
+import { QueryClient, useInfiniteQuery, useQueries, useQuery } from '@tanstack/react-query'
 import { useEffect, useMemo, useSyncExternalStore } from 'react'
 import { api, normalizarError } from '../api/cliente'
 import { crearCanal, entornoNavegador, type LecturaCanal } from '../api/canal-en-vivo'
@@ -138,13 +138,19 @@ export interface FiltrosBitacora {
   hasta?: string
 }
 
+// ADR-077: en el celular, un lote que quepa en pantalla y media; en escritorio, uno que llene el primer pliegue.
+function tamanoLoteBitacora(): number {
+  return typeof window !== 'undefined' && window.matchMedia?.('(max-width: 599px)').matches ? 6 : 10
+}
+
 export function useBitacora(filtros: FiltrosBitacora) {
+  const tamano = useMemo(() => tamanoLoteBitacora(), [])
   return useInfiniteQuery({
-    queryKey: ['bitacora', filtros.sector, filtros.tipo, filtros.desde, filtros.hasta],
+    queryKey: ['bitacora', tamano, filtros.sector, filtros.tipo, filtros.desde, filtros.hasta],
     initialPageParam: 0,
     queryFn: async ({ pageParam, signal }) => {
       const { data, error, response } = await api.GET('/api/bitacora', {
-        params: { query: { pagina: pageParam, tamano: 5, sectorId: filtros.sector, tipo: filtros.tipo,
+        params: { query: { pagina: pageParam, tamano, sectorId: filtros.sector, tipo: filtros.tipo,
           desde: filtros.desde, hasta: filtros.hasta } },
         signal,
       }).catch(() => ({ data: undefined, error: undefined, response: null }))
@@ -157,6 +163,28 @@ export function useBitacora(filtros: FiltrosBitacora) {
     getNextPageParam: (ultima) => ultima.paginacion.hayMas ? ultima.paginacion.pagina + 1 : undefined,
     staleTime: 5_000,
   })
+}
+
+/**
+ * Cuántos eventos hay de cada tipo con los demás filtros, para las pestañas (`identidad.md` §4.1). La API no tiene
+ * un conteo por tipo: se pide una página de un elemento por tipo y se lee `X-Total-Count`.
+ */
+export function useConteosBitacora(filtros: Omit<FiltrosBitacora, 'tipo'>, tipos: readonly TipoBitacora[]) {
+  const consultas = useQueries({
+    queries: tipos.map((tipo) => ({
+      queryKey: ['bitacora-conteo', tipo, filtros.sector, filtros.desde, filtros.hasta],
+      queryFn: async ({ signal }: { signal: AbortSignal }) => {
+        const { error, response } = await api.GET('/api/bitacora', {
+          params: { query: { pagina: 0, tamano: 1, tipo, sectorId: filtros.sector, desde: filtros.desde, hasta: filtros.hasta } },
+          signal,
+        }).catch(() => ({ error: undefined, response: null }))
+        if (!response || !response.ok) throw normalizarError(response ?? null, error)
+        return leerPaginacion(response.headers, 0).total
+      },
+      staleTime: 5_000,
+    })),
+  })
+  return Object.fromEntries(tipos.map((tipo, indice) => [tipo, consultas[indice]?.data ?? null])) as Record<TipoBitacora, number | null>
 }
 
 export function useSustento(id: string, abierto: boolean) {

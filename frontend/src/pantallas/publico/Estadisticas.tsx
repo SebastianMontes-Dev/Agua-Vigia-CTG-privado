@@ -2,90 +2,142 @@ import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { useEstadisticas } from '../../app/datos'
 import { formatearNumero } from '../../dominio/formato'
-import { disponibilidadEstadisticas, ordenarDias } from '../../dominio/estadisticas'
+import { diasExtremos, disponibilidadEstadisticas, listaDeDias, ordenarDias, titularEstadisticas } from '../../dominio/estadisticas'
 import { nombreLegible } from '../../dominio/sectores'
 import estilosPagina from './Pagina.module.css'
 import estilos from './Estadisticas.module.css'
 
-interface Fila {
-  clave: string
-  etiqueta: string
-  cantidad: number | null
+const BARRIOS_VISIBLES = 5
+const ABREVIADO: Record<string, string> = {
+  Lunes: 'Lun', Martes: 'Mar', Miércoles: 'Mié', Jueves: 'Jue', Viernes: 'Vie', Sábado: 'Sáb', Domingo: 'Dom',
 }
 
-function GraficoConTabla({ titulo, columna, medida = 'Cortes', filas, tabla, limiteMovil, ampliado, alAmpliar }: {
-  titulo: string
-  columna: string
-  medida?: string
-  filas: readonly Fila[]
-  tabla: string
-  limiteMovil?: number
-  ampliado?: boolean
-  alAmpliar?: () => void
-}) {
-  const maximo = Math.max(1, ...filas.map((fila) => fila.cantidad ?? 0))
-  return <div className={estilos.par}>
-    <figure>
-      <figcaption className={estilos.subtitulo}>{titulo}</figcaption>
-      <ol className={estilos.barras}>{filas.map((fila, indice) => <li key={fila.clave} className={limiteMovil !== undefined && indice >= limiteMovil && !ampliado ? estilos.filaMovilPlegada : undefined}>
-        <span>{fila.etiqueta}</span>
-        <div className={estilos.eje}><span style={{ width: `${(fila.cantidad ?? 0) / maximo * 100}%` }} /></div>
-        <strong>{fila.cantidad === null ? 'Sin dato' : formatearNumero(fila.cantidad)}</strong>
-      </li>)}</ol>
-      {limiteMovil !== undefined && filas.length > limiteMovil && !ampliado && <button type="button" className={estilos.verTodos} onClick={alAmpliar}>Ver todos los barrios ({formatearNumero(filas.length)})</button>}
-    </figure>
-    <details className={estilos.tablaPlegable}>
-      <summary>Ver como tabla</summary>
-      <div className={estilos.tablaContenedor}>
-        <table>
-          <caption>{tabla}</caption>
-          <thead><tr><th scope="col">{columna}</th><th scope="col">{medida}</th></tr></thead>
-          <tbody>{filas.map((fila) => <tr key={fila.clave}><th scope="row">{fila.etiqueta}</th>
-            <td>{fila.cantidad === null ? 'Sin dato' : formatearNumero(fila.cantidad)}</td></tr>)}</tbody>
-        </table>
-      </div>
-    </details>
-  </div>
-}
+const cortes = (cantidad: number) => `${formatearNumero(cantidad)} ${cantidad === 1 ? 'corte' : 'cortes'}`
 
+/** RF023, RF025 · `ADR-079`: el titular es la duración promedio; los días, en un gráfico compacto al lado. */
 export function Estadisticas() {
-  const [mostrarTodosSectores, setMostrarTodosSectores] = useState(false)
+  const [todosLosBarrios, setTodosLosBarrios] = useState(false)
   const consulta = useEstadisticas()
   const datos = consulta.data
-  const sectores = datos?.sectoresMasAfectados ?? []
   const disponibilidad = datos ? disponibilidadEstadisticas(datos) : null
-  const filasSectores = sectores.map((sector) => ({
+  const dias = ordenarDias(datos?.cortesPorDiaDeSemana)
+  const mas = diasExtremos(dias, 'mas')
+  const menos = diasExtremos(dias, 'menos')
+  const maximo = Math.max(1, ...dias.map((dia) => dia.cortes ?? 0))
+  const barrios = (datos?.sectoresMasAfectados ?? []).map((sector) => ({
     clave: sector.sectorId ?? '',
-    etiqueta: sector.nombre && sector.nombre.trim().toLowerCase() !== 'desconocido'
+    nombre: sector.nombre && sector.nombre.trim().toLowerCase() !== 'desconocido'
       ? nombreLegible(sector.nombre) : sector.sectorId ?? 'Barrio sin identificar',
-    cantidad: sector.cantidadCortes ?? null,
+    avisos: sector.cantidadCortes ?? null,
   }))
-  const filasDias = ordenarDias(datos?.cortesPorDiaDeSemana).map(({ dia, cortes }) => ({ clave: dia, etiqueta: dia, cantidad: cortes }))
+  const maximoAvisos = Math.max(1, ...barrios.map((barrio) => barrio.avisos ?? 0))
+  const barriosVisibles = todosLosBarrios ? barrios : barrios.slice(0, BARRIOS_VISIBLES)
 
-  return <div className={`${estilosPagina.pagina} ${estilos.pagina}`}>
-    <header className={estilos.cabecera}>
-      <h1 className={estilosPagina.titular}>Estadísticas</h1>
-      <p className={estilosPagina.entrada}>Qué barrios aparecen en avisos aprobados, qué días ocurren cortes y cuánto duran.</p>
-      <a href="/api/estadisticas/exportar.csv" download className={estilos.descarga}>Descargar estadísticas en CSV</a>
-    </header>
-    {consulta.isPending && <output className={estilos.esqueleto}>Consultando las estadísticas…<span /><span /><span /></output>}
-    {consulta.isError && <p role="alert">No pudimos consultar las estadísticas. Revisa tu conexión e inténtalo otra vez. <button type="button" onClick={() => consulta.refetch()}>Reintentar</button></p>}
-    {disponibilidad?.vacioGeneral && <p className={estilos.vacio}>Todavía no hay datos registrados para resumir.</p>}
-    {datos && disponibilidad && <>
-      <p className={estilos.duracion}>Duración media de los cortes: <strong>{disponibilidad.duracionMedible === null ? 'Aún no hay cortes cerrados para medir' : `${formatearNumero(disponibilidad.duracionMedible, 1)} horas`}</strong></p>
-      <section className={estilos.seccion} aria-labelledby="titulo-sectores">
-        <h2 id="titulo-sectores">Barrios que más aparecen en avisos de corte</h2>
-        <p className={estilos.explicacionAvisos}>Veces que el barrio aparece en un boletín de Acuacar aprobado. No son cortes con duración medida: esos están en <Link to="/cumplimiento">Cumplimiento</Link>.</p>
-        {sectores.length === 0
-          ? <p className={estilos.vacio}>Todavía no hay boletines de Acuacar aprobados que mencionen barrios.</p>
-          : <GraficoConTabla titulo="Barrios" columna="Barrio" medida="Avisos" filas={filasSectores} tabla="Avisos de corte aprobados por barrio" limiteMovil={3} ampliado={mostrarTodosSectores} alAmpliar={() => setMostrarTodosSectores(true)} />}
-      </section>
-      <section className={estilos.seccion} aria-labelledby="titulo-dias">
-        <h2 id="titulo-dias">Cortes por día de la semana</h2>
-        {disponibilidad.totalCortes === 0
-          ? <p className={estilos.vacio}>Todavía no hay cortes registrados.</p>
-          : <GraficoConTabla titulo="Días" columna="Día" filas={filasDias} tabla="Cortes registrados de lunes a domingo" />}
-      </section>
-    </>}
-  </div>
+  return (
+    <div className={`${estilosPagina.pagina} ${estilos.pagina}`}>
+      <header className={estilos.cabecera}>
+        <p className={estilos.rotulo}>Estadísticas · todos los cortes registrados</p>
+        <h1 className={`${estilosPagina.titular} ${estilos.titular}`}>
+          {titularEstadisticas(disponibilidad?.duracionMedible ?? null)}
+        </h1>
+      </header>
+
+      {consulta.isPending && <output className={estilos.esqueleto}>Consultando las estadísticas…<span /><span /><span /></output>}
+      {consulta.isError && (
+        <p role="alert">
+          No pudimos consultar las estadísticas. Revisa tu conexión e inténtalo otra vez.{' '}
+          <button type="button" className={estilos.accion} onClick={() => void consulta.refetch()}>Reintentar</button>
+        </p>
+      )}
+      {disponibilidad?.vacioGeneral && <p className={estilos.vacio}>Todavía no hay datos registrados para resumir.</p>}
+
+      {datos && disponibilidad && !disponibilidad.vacioGeneral && (
+        <div className={estilos.columnas}>
+          <div className={estilos.respuesta}>
+            <dl className={estilos.cifras}>
+              <div><dt>Cortes registrados</dt><dd>{formatearNumero(disponibilidad.totalCortes)}</dd></div>
+              <div><dt>Más cortes</dt><dd>{mas ? listaDeDias(mas.dias) : 'Sin diferencia'}</dd></div>
+              <div><dt>Menos cortes</dt><dd>{menos ? listaDeDias(menos.dias) : 'Sin diferencia'}</dd></div>
+            </dl>
+            <p className={estilos.nota}>
+              {disponibilidad.duracionMedible === null
+                ? 'La duración promedio aparece cuando haya cortes cerrados.'
+                : 'La duración promedio cuenta solo los cortes cerrados.'}{' '}
+              <Link to="/cumplimiento" className={estilos.enlace}>¿Duran lo anunciado?</Link>
+            </p>
+
+            <section className={`${estilos.bloque} ${estilos.barriosBloque}`} aria-labelledby="titulo-barrios">
+              <h2 id="titulo-barrios">Barrios más nombrados en avisos de corte</h2>
+              {barrios.length === 0 ? (
+                <p className={estilos.nota}>Ningún boletín aprobado de Acuacar menciona barrios todavía.</p>
+              ) : (
+                <>
+                  <ol className={estilos.barrios}>
+                    {barriosVisibles.map((barrio) => (
+                      <li key={barrio.clave}>
+                        <span>{barrio.nombre}</span>
+                        <span className={estilos.ejeBarrio} aria-hidden="true">
+                          <span style={{ width: `${(barrio.avisos ?? 0) / maximoAvisos * 100}%` }} />
+                        </span>
+                        <strong>{barrio.avisos === null ? 'Sin dato' : `${formatearNumero(barrio.avisos)} ${barrio.avisos === 1 ? 'aviso' : 'avisos'}`}</strong>
+                      </li>
+                    ))}
+                  </ol>
+                  {barrios.length > BARRIOS_VISIBLES && !todosLosBarrios && (
+                    <button type="button" className={estilos.accion} onClick={() => setTodosLosBarrios(true)}>
+                      Ver los {formatearNumero(barrios.length)} barrios
+                    </button>
+                  )}
+                </>
+              )}
+            </section>
+          </div>
+
+          <section className={estilos.evidencia} aria-labelledby="titulo-dias">
+            <header className={estilos.cabeceraBloque}>
+              <h2 id="titulo-dias">Cortes por día de la semana</h2>
+              <p>{mas ? `Más los ${listaDeDias(mas.dias).toLowerCase()}: ${cortes(mas.cortes)}` : 'Sin diferencias entre días'}</p>
+            </header>
+            {disponibilidad.totalCortes === 0 ? (
+              <p className={estilos.nota}>Todavía no hay cortes registrados.</p>
+            ) : (
+              <ol className={estilos.columnasDias} aria-label="Cortes de lunes a domingo">
+                {dias.map(({ dia, cortes: cantidad }) => (
+                  <li key={dia} className={mas?.dias.includes(dia) ? estilos.destacado : undefined}>
+                    <strong>{cantidad === null ? '–' : formatearNumero(cantidad)}</strong>
+                    <span className={estilos.columna} aria-hidden="true">
+                      <span style={{ height: `${(cantidad ?? 0) / maximo * 100}%` }} />
+                    </span>
+                    <abbr title={dia}>{ABREVIADO[dia] ?? dia}</abbr>
+                  </li>
+                ))}
+              </ol>
+            )}
+            <details className={estilos.datos}>
+              <summary>Ver datos</summary>
+              <div className={estilos.tablaContenedor}>
+                <table>
+                  <caption>Cortes registrados de lunes a domingo</caption>
+                  <thead><tr><th scope="col">Día</th><th scope="col">Cortes</th></tr></thead>
+                  <tbody>{dias.map(({ dia, cortes: cantidad }) => (
+                    <tr key={dia}><th scope="row">{dia}</th><td>{cantidad === null ? 'Sin dato' : formatearNumero(cantidad)}</td></tr>
+                  ))}</tbody>
+                </table>
+                {barrios.length > 0 && (
+                  <table>
+                    <caption>Avisos de corte aprobados por barrio</caption>
+                    <thead><tr><th scope="col">Barrio</th><th scope="col">Avisos</th></tr></thead>
+                    <tbody>{barrios.map((barrio) => (
+                      <tr key={barrio.clave}><th scope="row">{barrio.nombre}</th><td>{barrio.avisos === null ? 'Sin dato' : formatearNumero(barrio.avisos)}</td></tr>
+                    ))}</tbody>
+                  </table>
+                )}
+              </div>
+              <a href="/api/estadisticas/exportar.csv" download className={estilos.csv}>Descargar en CSV</a>
+            </details>
+          </section>
+        </div>
+      )}
+    </div>
+  )
 }

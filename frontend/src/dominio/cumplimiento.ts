@@ -1,5 +1,5 @@
 import type { components } from '../api/generado/esquema'
-import { formatearNumero } from './formato'
+import { formatearNumero, formatearPorcentaje } from './formato'
 
 export type Indice = components['schemas']['IndiceCumplimientoRespuesta']
 export type PuntoSerie = components['schemas']['PuntoSerieRespuesta']
@@ -36,14 +36,88 @@ export function duracionAcumulada(segundos: number): string {
   return partes.length ? partes.join(' y ') : '0 minutos'
 }
 
-export function diferenciaBreve(segundos: number | undefined): string {
-  if (segundos === undefined) return 'Sin dato'
-  if (segundos === 0) return 'Lo anunciado'
+/** Duración de un solo corte, en la forma corta que se lee de un vistazo: «24 h 21 min», «45 min», «3 días 2 h». */
+export function duracionCorta(segundos: number): string {
   const minutos = Math.round(Math.abs(segundos) / 60)
+  if (minutos < 60) return `${formatearNumero(minutos)} min`
   const horas = Math.floor(minutos / 60)
+  if (horas >= 48) {
+    const dias = Math.floor(horas / 24)
+    const resto = horas % 24
+    return resto ? `${formatearNumero(dias)} días ${resto} h` : `${formatearNumero(dias)} días`
+  }
   const resto = minutos % 60
-  const partes = [horas ? `${formatearNumero(horas)} h` : '', resto ? `${formatearNumero(resto)} min` : ''].filter(Boolean)
-  return `${partes.length ? partes.join(' ') : '0 min'} ${segundos > 0 ? 'más' : 'menos'}`
+  return resto ? `${horas} h ${resto} min` : `${horas} h`
+}
+
+/** Por debajo de este margen por corte, la diferencia no cambia el veredicto (`ADR-079`). */
+export const UMBRAL_VEREDICTO_SEGUNDOS = 5 * 60
+
+export type Veredicto = 'antes' | 'a-tiempo' | 'despues'
+
+export function veredicto(diferenciaPorCorte: number): Veredicto {
+  if (diferenciaPorCorte >= UMBRAL_VEREDICTO_SEGUNDOS) return 'despues'
+  if (diferenciaPorCorte <= -UMBRAL_VEREDICTO_SEGUNDOS) return 'antes'
+  return 'a-tiempo'
+}
+
+const FRASE_VEREDICTO: Record<Veredicto, string> = {
+  antes: 'los cortes terminan antes de lo anunciado',
+  'a-tiempo': 'los cortes duran lo anunciado',
+  despues: 'los cortes duran más de lo anunciado',
+}
+
+/** El titular de la página es la respuesta (`identidad.md` §4.1). */
+export function titularVeredicto(diferenciaPorCorte: number, barrio?: string): string {
+  const frase = FRASE_VEREDICTO[veredicto(diferenciaPorCorte)]
+  return barrio ? `En ${barrio}, ${frase}` : frase.charAt(0).toUpperCase() + frase.slice(1)
+}
+
+export function diferenciaEnPalabras(segundos: number): string {
+  if (Math.round(Math.abs(segundos) / 60) === 0) return 'Lo anunciado'
+  return `${duracionCorta(segundos)} ${segundos > 0 ? 'más' : 'menos'}`
+}
+
+/** El índice es `min(100, prometido / real)`: se explica en la misma línea, nunca como puntaje suelto. */
+export function significadoIndice(porcentaje: number): string {
+  return porcentaje >= 100
+    ? 'duraron lo anunciado o menos'
+    : `lo anunciado cubrió el ${formatearPorcentaje(porcentaje)} de lo que duraron`
+}
+
+export interface ResumenCumplimiento {
+  cortes: number
+  prometidoPorCorte: number
+  realPorCorte: number
+  diferenciaPorCorte: number
+  porcentaje: number
+  primerMes?: string
+  ultimoMes?: string
+}
+
+/**
+ * El índice no trae cuántos cortes suma; la serie sin filtros agrupa los mismos cortes cerrados
+ * (`CalcularCumplimientoService`), así que el conteo y el periodo salen de ella (`ADR-079`).
+ */
+export function resumirCumplimiento(indice: Indice | undefined, serie: readonly PuntoSerie[] | undefined): ResumenCumplimiento | null {
+  if (!indiceCompleto(indice) || !serie) return null
+  const ordenada = ordenarSerie(serie)
+  const cortes = ordenada.reduce((total, punto) => total + (punto.cantidadCortes ?? 0), 0)
+  if (cortes <= 0) return null
+  return {
+    cortes,
+    prometidoPorCorte: indice.duracionPrometidaSegundos / cortes,
+    realPorCorte: indice.duracionRealSegundos / cortes,
+    diferenciaPorCorte: indice.desviacionSegundos / cortes,
+    porcentaje: indice.porcentajeCumplimiento,
+    primerMes: ordenada[0]?.periodo,
+    ultimoMes: ordenada.at(-1)?.periodo,
+  }
+}
+
+export function diferenciaMensualPorCorte(punto: PuntoSerie): number | null {
+  if (!punto.cantidadCortes || punto.desviacionSegundos === undefined) return null
+  return punto.desviacionSegundos / punto.cantidadCortes
 }
 
 export function ordenarSerie(serie: readonly PuntoSerie[]): PuntoSerie[] {
@@ -52,26 +126,21 @@ export function ordenarSerie(serie: readonly PuntoSerie[]): PuntoSerie[] {
 
 const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
 
-export function mesEnPalabras(periodo?: string): string {
+function partesMes(periodo?: string): { mes: string; anio: string } | null {
   const partes = /^(\d{4})-(0[1-9]|1[0-2])$/.exec(periodo ?? '')
-  return partes ? `${MESES[Number(partes[2]) - 1]} de ${partes[1]}` : 'Mes sin fecha'
+  return partes?.[1] && partes[2] ? { mes: MESES[Number(partes[2]) - 1] ?? '', anio: partes[1] } : null
 }
 
-function fechaValida(dia: string): boolean {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(dia)) return false
-  const fecha = new Date(`${dia}T00:00:00Z`)
-  return !Number.isNaN(fecha.getTime()) && fecha.toISOString().slice(0, 10) === dia
+export function mesEnPalabras(periodo?: string): string {
+  const partes = partesMes(periodo)
+  return partes ? `${partes.mes} de ${partes.anio}` : 'Mes sin fecha'
 }
 
-/** La serie usa límite superior inclusivo en el backend; se conserva todo el día de Cartagena. */
-export function limiteSerieCartagena(dia: string, final = false): string | null {
-  if (!fechaValida(dia)) return null
-  const inicio = Date.parse(`${dia}T05:00:00Z`)
-  return new Date(inicio + (final ? 86_399_999 : 0)).toISOString()
-}
-
-export function rangoSerieValido(desde?: string, hasta?: string): boolean {
-  if (desde && !fechaValida(desde)) return false
-  if (hasta && !fechaValida(hasta)) return false
-  return !desde || !hasta || desde <= hasta
+/** «mayo a julio de 2026», «diciembre de 2025 a julio de 2026» o un solo mes. */
+export function periodoEnPalabras(primero?: string, ultimo?: string): string | null {
+  const inicio = partesMes(primero)
+  const fin = partesMes(ultimo)
+  if (!inicio || !fin) return null
+  if (primero === ultimo) return `${fin.mes} de ${fin.anio}`
+  return inicio.anio === fin.anio ? `${inicio.mes} a ${fin.mes} de ${fin.anio}` : `${inicio.mes} de ${inicio.anio} a ${fin.mes} de ${fin.anio}`
 }

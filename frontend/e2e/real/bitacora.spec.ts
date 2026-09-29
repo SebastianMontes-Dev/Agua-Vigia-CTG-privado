@@ -6,15 +6,15 @@ test('debeMostrarEventosYFiltrarlosPorTipoConLaApiReal', async ({ page }) => {
     if (peticion.url().includes('/api/') && peticion.method() !== 'GET') escrituras.push(peticion.method())
   })
   await page.goto('/bitacora')
-  await expect(page.getByRole('heading', { name: 'Bitácora' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(/^(El último cambio fue hace|Cada cambio del agua)/)
   const eventos = page.locator('section[aria-label="Eventos de la bitácora"] ol > li')
   await expect(eventos.first()).toBeVisible()
 
-  await page.getByLabel('Tipo de evento').selectOption('CORTE_CONFIRMADO_POR_CIUDADANOS')
+  await page.getByRole('button', { name: /^Confirmados por vecinos \d+$/ }).click()
+  await expect(page.getByRole('button', { name: /^Confirmados por vecinos/ })).toHaveAttribute('aria-pressed', 'true')
   await expect(eventos.first()).toBeVisible()
-  expect(await eventos.count()).toBeGreaterThan(0)
   for (const evento of await eventos.all()) {
-    await expect(evento.getByText('Confirmado por ciudadanos')).toBeVisible()
+    await expect(evento.getByText('Confirmado por ciudadanos', { exact: false })).toBeVisible()
   }
   expect(escrituras).toEqual([])
 })
