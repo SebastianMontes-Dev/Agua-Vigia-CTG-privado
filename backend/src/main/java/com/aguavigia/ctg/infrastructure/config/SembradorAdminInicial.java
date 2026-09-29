@@ -106,14 +106,9 @@ public class SembradorAdminInicial {
                     ContextoDeAccion.delSistema());
 
             if (claveGenerada != null) {
-                log.warn("""
-
-                        ==================== ADMINISTRADOR INICIAL ====================
-                          Correo: {}
-                          Clave:  {}
-                          Se muestra solo esta vez. Al entrar, da de alta el segundo factor.
-                        ===============================================================""",
-                        admin.correo().valor(), claveGenerada);
+                // Una sola línea: en el perfil docker el log sale en JSON, y un salto de línea llegaría como «\n».
+                log.warn("ADMINISTRADOR INICIAL | correo: {} | clave: {} | se muestra solo esta vez; al entrar, "
+                        + "da de alta el segundo factor", admin.correo().valor(), claveGenerada);
             } else {
                 log.info("Administrador inicial creado para {}. Entra al panel y da de alta tu segundo "
                         + "factor: hasta entonces la sesion solo sirve para eso.", admin.correo().valor());

@@ -10,8 +10,8 @@
 // Cada paso de `inicial` tiene su propia puerta, así que repetir `docker compose up` no duplica nada:
 //   sectores       solo si hay menos de 211 (sembrar-sectores.mjs borra y vuelve a insertar)
 //   30 000 cuentas solo si hay menos de 30 000 de demostración
-//   histórico      solo si no hay ningún corte
-//   mapa con vida  solo si no hay ningún reporte (reportes reales por la API hasta que el consenso cambia barrios)
+//   mapa con vida  solo si no hay reportes fuera del histórico (reportes reales por la API hasta que el consenso cambie barrios)
+//   histórico      solo si no hay cortes entre mayo y julio de 2026, el rango que escribe sembrar-historico-cortes.mjs
 
 import { spawn } from 'node:child_process';
 import { MongoClient } from 'mongodb';
@@ -20,6 +20,8 @@ const MONGODB_URI = process.env.MONGODB_URI ?? 'mongodb://localhost:27017/?direc
 const DB_NAME = process.env.MONGODB_DB ?? 'aguavigia';
 const SECTORES_ESPERADOS = 211;
 const MINIMO_USUARIOS = Number(process.env.MINIMO_USUARIOS ?? 30000);
+// Rango de sembrar-historico-cortes.mjs: lo que cae dentro es sintético; lo de fuera lo produjo la aplicación.
+const HISTORICO = { $gte: new Date('2026-05-01T00:00:00Z'), $lte: new Date('2026-07-31T23:59:59Z') };
 const esperar = (ms) => new Promise((resolver) => setTimeout(resolver, ms));
 
 function correr(script, args = []) {
@@ -52,6 +54,8 @@ async function conteos(db) {
     admins: await n('usuarios', { rol: 'ADMIN' }),
     cortes: await n('cortes'),
     reportes: await n('reportes'),
+    cortesHistoricos: await n('cortes', { inicio: HISTORICO }),
+    reportesVivos: await n('reportes', { timestamp: { $not: HISTORICO } }),
   };
 }
 
@@ -89,23 +93,23 @@ async function inicial() {
     }
 
     c = await conteos(db);
-    if (c.cortes === 0) {
-      console.log('\n[3/4] Histórico: sin cortes, se siembra mayo–julio de 2026 (datos sintéticos).');
-      await correr('sembrar-historico-cortes.mjs');
-    } else {
-      console.log(`\n[3/4] Histórico: ya hay ${c.cortes} cortes.`);
-    }
-
-    c = await conteos(db);
-    if (c.reportes === 0) {
-      console.log('\n[4/4] Mapa: sin reportes, se envían reportes reales por la API hasta que el consenso cambie algunos barrios.');
+    if (c.reportesVivos === 0) {
+      console.log('\n[3/4] Mapa: se envían reportes reales por la API hasta que el consenso cambie algunos barrios.');
       try {
         await correr('sembrar-demo.mjs');
       } catch (error) {
         console.warn(`AVISO: el mapa quedó sin barrios afectados (${error.message}). El resto de los datos está listo.`);
       }
     } else {
-      console.log(`\n[4/4] Mapa: ya hay ${c.reportes} reportes.`);
+      console.log(`\n[3/4] Mapa: ya hay ${c.reportesVivos} reportes recientes.`);
+    }
+
+    c = await conteos(db);
+    if (c.cortesHistoricos === 0) {
+      console.log('\n[4/4] Histórico: se siembran cortes y reportes de mayo–julio de 2026 (datos sintéticos).');
+      await correr('sembrar-historico-cortes.mjs');
+    } else {
+      console.log(`\n[4/4] Histórico: ya hay ${c.cortesHistoricos} cortes de mayo–julio.`);
     }
 
     c = await conteos(db);
