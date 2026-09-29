@@ -3273,8 +3273,88 @@ confianza delante que sea el único con acceso al backend.
 
 ---
 
+## ADR-081 — La cuenta guarda el barrio donde vive la persona, como dato opcional validado contra los sectores
+
+- **Fecha:** 2026-09-29
+- **Estado:** Aceptada
+- **Decide:** Dueño del proyecto
+
+### Contexto
+El dueño pidió que las cuentas de la base de demostración estén «completas»: con su barrio, correo, nombre, rol y todos
+los parámetros de Mongo, y que haya al menos 30 000. Hasta ahora `usuarios` no tenía barrio: la cuenta solo dice quién
+es y qué permisos tiene (`ADR-039`), y el reporte ciudadano es anónimo (`ADR-007`). Se descartó cambiar eso.
+
+### Alternativas consideradas
+| Opción | A favor | En contra |
+|---|---|---|
+| Entidad nueva de «vecino» ligada a los reportes | Modela al ciudadano | Rompe `ADR-007` (reporte sin registro) y la privacidad de `ADR-027`; toca dominio, API y todas las pruebas |
+| Solo rellenar el barrio en el script de siembra, sin campo real | Sin cambios de código | Es un dato que la aplicación no conoce: no se valida, no se ve en la API y miente sobre el modelo |
+| **Campo `barrio` opcional en la cuenta, validado contra los sectores** | Cambio pequeño y reversible; el dato es real y consultable; no toca los reportes | Un dato personal más (un barrio, no una dirección) |
+
+### Decisión
+`Usuario` gana `SectorId barrio`, opcional: el ADMIN inicial y las cuentas anteriores no lo tienen. El registro
+(`POST /api/cuentas/registro`) y la invitación aceptan `barrioId` (el slug de un sector); si no existe responden 400,
+**antes** de mirar el correo, para no delatar qué correos tienen cuenta (`RNF024`). `UsuarioRespuesta` devuelve
+`barrioId` y `GET /api/veedor/usuarios` filtra por `barrioId`, con el índice `barrio+creadoEn`. Los reportes siguen siendo anónimos y
+**no** se ligan a la cuenta.
+
+### Consecuencias
+- **Gana:** cuentas con barrio consultables por la API y por Mongo; base de demostración coherente con el modelo.
+- **Pierde:** un dato personal más en `usuarios` (un barrio, no una dirección; opcional). No sirve todavía para nada
+  funcional: es información del perfil.
+- **Queda condicionado:** cambiar el barrio de una cuenta existente no tiene ruta (no se pidió).
+
+### Cómo se revierte
+Quitar el componente de `Usuario`, el campo del documento, los parámetros de la API y el índice; los documentos que ya lo
+tengan lo conservan sin efecto.
+
+---
+
+## ADR-082 — La ingesta tiene un modo local que lee boletines reales de Acuacar guardados, para presentar sin internet
+
+- **Fecha:** 2026-09-29
+- **Estado:** Aceptada
+- **Decide:** Dueño del proyecto
+
+### Contexto
+El proyecto se presenta en un PC (`ADR-057`), quizá sin internet. Con `COLLECTOR_USER_AGENT` puesto, cada 10 minutos el
+backend consulta a Acuacar y a cuatro feeds de prensa; sin red el colector sale caído en `/actuator/health` y no hay
+propuestas nuevas para revisar, justo en la parte de la demo que enseña el pipeline.
+
+### Alternativas consideradas
+| Opción | A favor | En contra |
+|---|---|---|
+| Depender de internet y avisarlo en el guion | Nada que construir | La demo puede fallar por algo ajeno |
+| Propuestas inventadas para la demo | Rápido | Contradice `ADR-006` y el principio del proyecto: un corte inventado destruye la credibilidad |
+| **Modo local con boletines reales guardados** | La demo funciona igual con o sin red; nada inventado; pasa por el mismo pipeline | Los boletines envejecen; hay que renovarlos a mano |
+
+### Decisión
+`aguavigia.ingesta.modo` (variable `INGESTA_MODO`): `en-vivo` por defecto, o `local`. En `local`,
+`ColectorLocalDeBoletines` sustituye a Acuacar y a la prensa y lee `ingesta-local/boletines-acuacar.json`: 13 boletines
+reales de Acuacar tal como los devuelve su API pública (`robots.txt` leído el 2026-09-29: solo excluye `/wp-admin/`),
+con su fecha de captura y sin editar. Siguen el mismo camino que uno en vivo: limpieza, deduplicación por hash, prefiltro,
+extractor y propuesta. Como Acuacar es fuente oficial, sus propuestas **se publican solas**, igual que en vivo
+(`ADR-034`); lo que espera al veedor es la prensa, que en modo local no se lee. Como el hash es el mismo que en vivo,
+volver a `en-vivo` no duplica propuestas.
+
+### Consecuencias
+- **Gana:** la parte de ingesta de la demo no depende de la red. Con esos boletines salen 191 propuestas, 32 con ventana
+  declarada, medido con el extractor real. En una base nueva se publican solas, con las fechas reales de cada boletín,
+  y aparecen en la bitácora como `CORTE_DETECTADO_POR_INGESTA`.
+- **Pierde:** en modo local **la cola de revisión del veedor no recibe nada nuevo** (viene de la prensa) y el colector
+  `rss` no aparece en la salud. Los boletines son de mayo a septiembre de 2026: sus ventanas ya vencieron, así que
+  publicarlos deja los barrios con lo que dice `estadoVigenteEn` (normalmente `CON_SERVICIO`). En una base que ya ingirió
+  Acuacar, la marca de lectura hace que solo entren los publicados en los últimos 2 días.
+- **Queda condicionado:** cambiar de modo exige recrear el backend.
+
+### Cómo se revierte
+Quitar `ColectorLocalDeBoletines`, el parámetro `Optional` del `PipelineOrquestador`, `ingesta-local/` y
+`INGESTA_MODO`.
+
+---
+
 <!--
-Siguiente número disponible: ADR-081 (el ADR-078 lo registra F4)
+Siguiente número disponible: ADR-083 (el ADR-078 lo registra F4)
 Para agregar: usa la skill `registrar-decision`.
 Recuerda: append-only. Las entradas viejas solo cambian de estado, no de contenido.
 -->

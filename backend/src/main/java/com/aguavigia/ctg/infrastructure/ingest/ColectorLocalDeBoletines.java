@@ -24,9 +24,10 @@ import java.util.List;
  * `ingesta-local/boletines-acuacar.json`, tal como los devuelve su API pública. La demo funciona igual con o
  * sin red.
  *
- * Pasa por el mismo camino que un boletín en vivo —limpieza, deduplicación por hash, prefiltro, extractor y
- * propuesta PENDIENTE—, así que sigue valiendo ADR-028: nada llega al mapa sin que el veedor lo apruebe. Y como
- * el hash de un boletín es el mismo en vivo que aquí, volver al modo en vivo no duplica propuestas.
+ * Sigue el mismo camino que un boletín en vivo —limpieza, deduplicación por hash, prefiltro, extractor y
+ * propuesta—. Acuacar es fuente oficial, así que sus propuestas se publican solas (ADR-034), como en vivo; la cola
+ * de revisión del veedor solo se alimenta de la prensa, que en este modo no se lee. Y como el hash de un boletín
+ * es el mismo en vivo que aquí, volver al modo en vivo no duplica propuestas.
  *
  * No inventa nada: el archivo trae la fecha de captura y su origen. Para renovarlo, ver `ingesta-local/README.md`.
  */
