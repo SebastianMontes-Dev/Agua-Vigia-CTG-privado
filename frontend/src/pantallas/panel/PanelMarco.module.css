@@ -1,0 +1,12 @@
+@layer componentes {
+  /* Reutiliza la cabecera del marco público (app/Marco.module.css); aquí solo lo que el panel añade. */
+  .usuario { align-items: center; gap: var(--espacio-4); }
+  .quien { font-size: var(--texto-s); color: var(--tinta-2); }
+  .quien strong { color: var(--tinta); font-weight: 600; }
+
+  .enlace { min-height: var(--objetivo-tactil); padding: 0; border: 0; background: none; color: var(--tinta); font-size: var(--texto-s); text-decoration: underline; text-decoration-color: var(--tinta-3); text-underline-offset: 3px; cursor: pointer; display: inline-flex; align-items: center; }
+  .enlace:hover { text-decoration-color: var(--laton); }
+  .enlace:focus-visible { outline: var(--grosor-foco) solid var(--laton); outline-offset: 2px; }
+
+  .estado { display: grid; gap: var(--espacio-3); justify-items: start; width: 100%; max-width: 1200px; margin: 0 auto; padding: var(--espacio-6) var(--margen-pagina); color: var(--tinta-2); }
+}

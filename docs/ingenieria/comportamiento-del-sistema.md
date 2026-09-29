@@ -1146,6 +1146,14 @@ concederle ningún permiso hasta que verifique el correo y un administrador la a
 - **Cuando** un ADMIN llama a `GET /api/veedor/usuarios?barrioId=manga` (con o sin `estado`)
 - **Entonces** recibe solo las cuentas de ese barrio, las más recientes primero
 
+#### Escenario: Los correos de cuenta llevan al frontend
+
+- **Cuando** el sistema envía la verificación de correo, la invitación o el restablecimiento de clave
+- **Entonces** el enlace apunta a `/cuenta/verificar`, `/cuenta/invitacion` o `/cuenta/restablecer` del frontend, construido con
+  `aguavigia.app.url-frontend` (por defecto `http://localhost:5173`), con el token como parámetro
+- **Y** abrirlo no ejecuta nada: la acción se hace al pulsar el botón, y el token sale de la URL
+- **Y** las páginas HTML de `/api/cuentas/enlaces/*` siguen respondiendo a los correos enviados antes de este cambio
+
 #### Escenario: Correo verificado, aprobación pendiente
 
 - **Cuando** la persona verifica su correo por `POST /api/cuentas/verificacion`

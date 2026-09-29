@@ -1,4 +1,4 @@
-import { createRootRoute, createRoute, createRouter, lazyRouteComponent, Outlet } from '@tanstack/react-router'
+import { createRootRoute, createRoute, createRouter, lazyRouteComponent, Outlet, redirect } from '@tanstack/react-router'
 import { Marco } from './Marco'
 import { ConfirmarReporte } from '../pantallas/publico/ConfirmarReporte'
 import { FichaSector } from '../pantallas/publico/FichaSector'
@@ -11,6 +11,17 @@ import { Bitacora } from '../pantallas/publico/Bitacora'
 import { esTipoBitacora } from '../dominio/historia'
 import { Avisos } from '../pantallas/publico/Avisos'
 import { BajaAvisos, ConfirmarAvisos } from '../pantallas/publico/EnlaceAvisos'
+import { sesion } from '../api/sesion'
+import { Ingreso } from '../pantallas/panel/Ingreso'
+import { PanelMarco } from '../pantallas/panel/PanelMarco'
+import { Reportes } from '../pantallas/panel/Reportes'
+import { Seguridad } from '../pantallas/panel/Seguridad'
+import { SegundoFactor } from '../pantallas/panel/SegundoFactor'
+import { Invitacion } from '../pantallas/cuenta/Invitacion'
+import { Olvide } from '../pantallas/cuenta/Olvide'
+import { Restablecer } from '../pantallas/cuenta/Restablecer'
+import { Solicitar } from '../pantallas/cuenta/Solicitar'
+import { Verificar } from '../pantallas/cuenta/Verificar'
 
 const raiz = createRootRoute({ component: Outlet, notFoundComponent: NoEncontrada })
 
@@ -63,6 +74,45 @@ const bajaAvisos = createRoute({
   component: BajaAvisos,
 })
 
+// Panel del veedor y cuentas (F5). El ingreso, el alta del segundo factor y /cuenta/* van dentro del marco público;
+// el panel tiene su propio marco y solo se abre con una sesión completa.
+const conToken = (busqueda: Record<string, unknown>): { token?: string } =>
+  typeof busqueda.token === 'string' ? { token: busqueda.token } : {}
+const ingreso = createRoute({
+  getParentRoute: () => publico, path: 'panel/ingreso',
+  validateSearch: (busqueda: Record<string, unknown>): { motivo?: string } =>
+    typeof busqueda.motivo === 'string' ? { motivo: busqueda.motivo } : {},
+  beforeLoad: () => {
+    if (sesion.token() === null) return
+    throw redirect({ to: sesion.alcance() === 'COMPLETO' ? '/panel' : '/panel/segundo-factor', replace: true })
+  },
+  component: Ingreso,
+})
+const segundoFactor = createRoute({
+  getParentRoute: () => publico, path: 'panel/segundo-factor',
+  beforeLoad: () => {
+    if (sesion.token() === null) throw redirect({ to: '/panel/ingreso', replace: true })
+    if (sesion.alcance() === 'COMPLETO') throw redirect({ to: '/panel/seguridad', replace: true })
+  },
+  component: SegundoFactor,
+})
+const solicitar = createRoute({ getParentRoute: () => publico, path: 'cuenta/solicitar', component: Solicitar })
+const verificar = createRoute({ getParentRoute: () => publico, path: 'cuenta/verificar', validateSearch: conToken, component: Verificar })
+const invitacion = createRoute({ getParentRoute: () => publico, path: 'cuenta/invitacion', validateSearch: conToken, component: Invitacion })
+const olvide = createRoute({ getParentRoute: () => publico, path: 'cuenta/olvide', component: Olvide })
+const restablecer = createRoute({ getParentRoute: () => publico, path: 'cuenta/restablecer', validateSearch: conToken, component: Restablecer })
+
+const panel = createRoute({
+  getParentRoute: () => raiz, path: 'panel',
+  beforeLoad: () => {
+    if (sesion.token() === null) throw redirect({ to: '/panel/ingreso', replace: true })
+    if (sesion.alcance() !== 'COMPLETO') throw redirect({ to: '/panel/segundo-factor', replace: true })
+  },
+  component: PanelMarco,
+})
+const panelReportes = createRoute({ getParentRoute: () => panel, path: '/', component: Reportes })
+const panelSeguridad = createRoute({ getParentRoute: () => panel, path: 'seguridad', component: Seguridad })
+
 // Provisional de F0–F1: tokens y contraste medidos en pantalla, fuera de la navegación ciudadana.
 const muestrario = createRoute({
   getParentRoute: () => raiz, path: 'muestrario', component: lazyRouteComponent(() => import('./Muestrario'), 'Muestrario'),
@@ -72,7 +122,9 @@ const arbol = raiz.addChildren([
   publico.addChildren([
     mapa.addChildren([inicio, sector]),
     confirmar, historial, cumplimiento, bitacora, estadisticas, avisos, confirmarAvisos, bajaAvisos,
+    ingreso, segundoFactor, solicitar, verificar, invitacion, olvide, restablecer,
   ]),
+  panel.addChildren([panelReportes, panelSeguridad]),
   muestrario,
 ])
 

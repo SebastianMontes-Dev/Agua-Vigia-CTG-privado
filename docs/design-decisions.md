@@ -3482,8 +3482,52 @@ ruta del panel exija un permiso, y solo lo garantizaba la disciplina de quien es
 ### Cómo se revierte
 Quitar las dos reglas y devolver los tipos y los controladores a su forma anterior; no toca datos.
 
+---
+
+## ADR-085 — El panel del veedor guarda la sesión con su alcance, dibuja el QR en el navegador y los correos de cuenta apuntan a la SPA
+
+- **Fecha:** 2026-09-29
+- **Estado:** Aceptada
+- **Decide:** Dueño del proyecto
+
+### Contexto
+F5 construye el ingreso al panel, el alta del segundo factor y las pantallas `/cuenta/*`. Tres cosas no estaban decididas:
+`/api/veedor/yo` responde `403` con el alcance de alta del segundo factor, así que la interfaz no puede preguntarle al
+servidor qué alcance tiene; el alta del TOTP entrega una `uri` `otpauth://` que hay que pintar como QR sin mandar el
+secreto a un tercero (`ADR-057`); y los correos de cuenta (`MailCuentaAdapter`) seguían apuntando a las páginas HTML del
+backend, que se habían dejado como remedio cuando el frontend se retiró (`ADR-048`).
+
+### Alternativas consideradas
+| Opción | A favor | En contra |
+|---|---|---|
+| Decodificar el JWT en el cliente para leer el alcance | Sin estado extra | Acopla la interfaz al formato del token |
+| QR con un servicio externo (Google Charts, api.qrserver.com) | Cero código | El secreto del segundo factor viajaría a un tercero: inaceptable |
+| QR con `qrcode` (npm) | Muy usado | ~30× más grande que `uqr` y arrastra dependencias que no se usan |
+| Dejar los correos hacia `/api/cuentas/enlaces/*` | Nada que tocar | Dos pantallas para lo mismo, una sin la identidad ni las reglas de la guía |
+
+### Decisión
+- **Sesión:** el token y su alcance (`COMPLETO` o `ALTA_SEGUNDO_FACTOR`) se guardan en `sessionStorage` (muere con la pestaña;
+  el panel se abre en equipos compartidos). Con alcance de alta solo se abre `/panel/segundo-factor`; el panel exige sesión
+  completa y `/api/veedor/yo` (cuenta vigente y `permisosEfectivos`) manda sobre lo que se muestra. Un `401` limpia la sesión
+  y devuelve al ingreso con «Tu sesión terminó».
+- **QR:** `uqr` (MIT, 79 KB sin dependencias) genera la matriz en el navegador y se pinta como imagen `data:` SVG; el
+  secreto solo existe en esa respuesta y en la memoria del componente.
+- **Correos de cuenta:** `MailCuentaAdapter` construye `/cuenta/verificar`, `/cuenta/invitacion` y `/cuenta/restablecer` con
+  `aguavigia.app.url-frontend` (la misma propiedad de `ADR-078`). Las páginas HTML del backend quedan para los correos ya
+  enviados.
+
+### Consecuencias
+- **Gana:** una sola interfaz para las cuentas, con el clic previo a la acción y el token fuera de la URL; el secreto del
+  segundo factor no sale del navegador.
+- **Pierde:** una dependencia nueva en el frontend; un token en `sessionStorage` es legible por cualquier script de la página,
+  por lo que el panel no carga scripts de terceros.
+- **Queda condicionado:** cambiar el formato de las rutas `/cuenta/*` exige cambiar el adaptador de correo a la vez.
+
+### Cómo se revierte
+Volver `MailCuentaAdapter` a `url-publica` y `/api/cuentas/enlaces/*`, quitar `uqr` y la rama de alcance de `sesion.ts`.
+
 <!--
-Siguiente número disponible: ADR-085
+Siguiente número disponible: ADR-086
 Para agregar: usa la skill `registrar-decision`.
 Recuerda: append-only. Las entradas viejas solo cambian de estado, no de contenido.
 -->

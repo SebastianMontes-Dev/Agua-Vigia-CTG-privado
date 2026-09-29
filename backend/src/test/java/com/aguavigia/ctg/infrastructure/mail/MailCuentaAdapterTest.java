@@ -25,13 +25,13 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 /**
- * Sin frontend (ADR-048) el enlace de cada correo de cuenta apunta a las pantallas del propio
- * backend. Estas pruebas fijan esa ruta: un enlace que no coincida con
- * {@code EnlacesDeCuentaController} le llegaría roto a quien espera confirmar su correo.
+ * El enlace de cada correo de cuenta apunta a las pantallas de la SPA (`/cuenta/verificar`, `/cuenta/invitacion` y
+ * `/cuenta/restablecer`). Estas pruebas fijan esa ruta: un enlace que no coincida con las rutas de `frontend/` le llegaría
+ * roto a quien espera confirmar su correo.
  */
 class MailCuentaAdapterTest {
 
-    private static final String URL_PUBLICA = "https://aguavigia.example";
+    private static final String URL_FRONTEND = "https://aguavigia.example";
     private static final Instant AHORA = Instant.parse("2026-09-21T15:00:00Z");
 
     private JavaMailSender mailSender;
@@ -42,7 +42,7 @@ class MailCuentaAdapterTest {
         mailSender = mock(JavaMailSender.class);
         given(mailSender.createMimeMessage())
                 .willAnswer(invocacion -> new MimeMessage(Session.getInstance(new Properties())));
-        adaptador = new MailCuentaAdapter(mailSender, "AguaVigía CTG <no-responder@aguavigia.local>", URL_PUBLICA);
+        adaptador = new MailCuentaAdapter(mailSender, "AguaVigía CTG <no-responder@aguavigia.local>", URL_FRONTEND);
     }
 
     private static Usuario usuario(String nombre) {
@@ -61,21 +61,21 @@ class MailCuentaAdapterTest {
     void elCorreoDeVerificacionDebeApuntarALaPantallaDelBackend() throws Exception {
         adaptador.enviarVerificacionDeCorreo(usuario("Ana"), "tok-verif");
 
-        assertThat(cuerpoEnviado()).contains(URL_PUBLICA + "/api/cuentas/enlaces/verificar?token=tok-verif");
+        assertThat(cuerpoEnviado()).contains(URL_FRONTEND + "/cuenta/verificar?token=tok-verif");
     }
 
     @Test
     void elCorreoDeInvitacionDebeApuntarALaPantallaDelBackend() throws Exception {
         adaptador.enviarInvitacion(usuario("Beto"), usuario("Ana"), "tok-invit");
 
-        assertThat(cuerpoEnviado()).contains(URL_PUBLICA + "/api/cuentas/enlaces/invitacion?token=tok-invit");
+        assertThat(cuerpoEnviado()).contains(URL_FRONTEND + "/cuenta/invitacion?token=tok-invit");
     }
 
     @Test
     void elCorreoDeRestablecimientoDebeApuntarALaPantallaDelBackend() throws Exception {
         adaptador.enviarEnlaceDeRestablecimiento(usuario("Ana"), "tok-reset");
 
-        assertThat(cuerpoEnviado()).contains(URL_PUBLICA + "/api/cuentas/enlaces/restablecer?token=tok-reset");
+        assertThat(cuerpoEnviado()).contains(URL_FRONTEND + "/cuenta/restablecer?token=tok-reset");
     }
 
     @Test
@@ -93,14 +93,14 @@ class MailCuentaAdapterTest {
     }
 
     @Test
-    void unaUrlPublicaConBarraFinalNoDebeDuplicarLaBarra() throws Exception {
+    void unaUrlDelFrontendConBarraFinalNoDebeDuplicarLaBarra() throws Exception {
         adaptador = new MailCuentaAdapter(mailSender, "AguaVigía CTG <no-responder@aguavigia.local>",
-                URL_PUBLICA + "/");
+                URL_FRONTEND + "/");
 
         adaptador.enviarVerificacionDeCorreo(usuario("Ana"), "t");
 
-        assertThat(cuerpoEnviado()).contains(URL_PUBLICA + "/api/cuentas/enlaces/verificar")
-                .doesNotContain(".example//api");
+        assertThat(cuerpoEnviado()).contains(URL_FRONTEND + "/cuenta/verificar")
+                .doesNotContain(".example//cuenta");
     }
 
     @Test

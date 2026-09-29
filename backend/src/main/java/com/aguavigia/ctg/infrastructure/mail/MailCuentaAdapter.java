@@ -34,18 +34,16 @@ public class MailCuentaAdapter implements NotificacionCuentaPort {
     private final PlantillaCorreo plantillaConEnlace;
     private final PlantillaCorreo plantillaAviso;
     private final String remitente;
-    private final String urlBasePublica;
+    private final String urlFrontend;
 
     public MailCuentaAdapter(JavaMailSender mailSender,
                              @Value("${aguavigia.correo.remitente:AguaVigía CTG <no-responder@aguavigia.local>}") String remitente,
-                             @Value("${aguavigia.app.url-publica:http://localhost:8080}") String urlBasePublica) {
+                             @Value("${aguavigia.app.url-frontend:http://localhost:5173}") String urlFrontend) {
         this.mailSender = mailSender;
         this.plantillaConEnlace = PlantillaCorreo.desdeClasspath("plantillas-correo/cuenta-con-enlace.html");
         this.plantillaAviso = PlantillaCorreo.desdeClasspath("plantillas-correo/cuenta-aviso.html");
         this.remitente = remitente;
-        this.urlBasePublica = urlBasePublica.endsWith("/")
-                ? urlBasePublica.substring(0, urlBasePublica.length() - 1)
-                : urlBasePublica;
+        this.urlFrontend = urlFrontend.replaceAll("/+$", "");
     }
 
     @Async
@@ -140,12 +138,12 @@ public class MailCuentaAdapter implements NotificacionCuentaPort {
     }
 
     /**
-     * Apunta a las pantallas HTML del propio backend (EnlacesDeCuentaController): la persona
-     * necesita un formulario donde confirmar o escribir su clave, no una respuesta JSON. Desde que
-     * el frontend se retiró (ADR-048) no hay otro sitio que las pinte.
+     * Apunta a las pantallas de la SPA (`/cuenta/verificar`, `/cuenta/invitacion` y `/cuenta/restablecer`), que piden
+     * un clic antes de actuar. Las páginas HTML del backend (EnlacesDeCuentaController) siguen ahí para quien abra
+     * un correo enviado antes de este cambio.
      */
     private String enlace(String ruta, String tokenEnClaro) {
-        return urlBasePublica + "/api/cuentas/enlaces/" + ruta + "?token="
+        return urlFrontend + "/cuenta/" + ruta + "?token="
                 + URLEncoder.encode(tokenEnClaro, StandardCharsets.UTF_8);
     }
 

@@ -1,0 +1,50 @@
+@layer componentes {
+  /* Ingreso, segundo factor, seguridad y /cuenta/*: formulario de una columna, 480 px, sin ilustración (guía §4.2). */
+  .pagina {
+    display: grid;
+    gap: var(--espacio-5);
+    width: 100%;
+    max-width: 480px;
+    margin: 0 auto;
+    padding: var(--espacio-6) var(--margen-pagina) var(--espacio-7);
+  }
+
+  .cabecera { display: grid; gap: var(--espacio-3); }
+  .rotulo { font-size: var(--texto-xs); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--tinta-2); }
+  .titular { font-size: clamp(1.875rem, 4vw, 2.5rem); font-weight: 300; line-height: 1.08; text-wrap: balance; }
+  .entrada { color: var(--tinta-2); max-width: var(--medida-lectura); }
+
+  .formulario { display: grid; gap: var(--espacio-4); padding-top: var(--espacio-4); border-top: 1px solid var(--tinta); }
+
+  .campo { display: grid; gap: var(--espacio-1); font-size: var(--texto-s); font-weight: 600; }
+  .campo input, .campo select { width: 100%; min-height: var(--objetivo-tactil); padding: var(--espacio-2) 0; border: 0; border-bottom: 1px solid var(--tinta-3); border-radius: 0; background: transparent; color: var(--tinta); font: inherit; font-size: var(--texto-m); font-weight: 400; }
+  .campo input:focus-visible, .campo select:focus-visible { outline: none; border-bottom: var(--grosor-foco) solid var(--laton); }
+  .campo input[aria-invalid='true'] { border-bottom-color: var(--tinta); border-bottom-width: 2px; }
+  .ayuda { font-size: var(--texto-s); font-weight: 400; color: var(--tinta-2); }
+  .codigo { font-family: var(--fuente-utilidad); letter-spacing: 0.4em; font-variant-numeric: tabular-nums; }
+
+  .conBoton { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; column-gap: var(--espacio-3); }
+
+  .enlace { min-height: var(--objetivo-tactil); padding: 0; border: 0; background: none; color: var(--tinta); font-size: var(--texto-s); text-decoration: underline; text-decoration-color: var(--tinta-3); text-underline-offset: 3px; cursor: pointer; display: inline-flex; align-items: center; }
+  .enlace:hover { text-decoration-color: var(--laton); }
+  .enlace:focus-visible { outline: var(--grosor-foco) solid var(--laton); outline-offset: 2px; }
+  .enlaces { display: flex; flex-wrap: wrap; gap: var(--espacio-2) var(--espacio-5); }
+
+  /* Mensajes: una regla fina arriba y texto; nada de cajas de color, que quedan reservadas a los cuatro estados. */
+  .aviso { display: block; padding-top: var(--espacio-3); border-top: 1px solid var(--linea); font-size: var(--texto-s); }
+  .aviso[role='alert'] { border-top-color: var(--tinta); font-weight: 600; }
+
+  .secciones { display: grid; gap: var(--espacio-6); }
+  .seccion { display: grid; gap: var(--espacio-3); align-content: start; padding-top: var(--espacio-4); border-top: 1px solid var(--tinta); }
+  .seccion h2 { font-size: var(--texto-l); font-weight: 600; }
+  .nota { color: var(--tinta-2); font-size: var(--texto-s); max-width: var(--medida-lectura); }
+
+  /* Un QR solo se lee con módulos oscuros sobre fondo claro en cualquier tema: es la única excepción a «solo tokens». */
+  .qr { width: 100%; max-width: 240px; height: auto; padding: var(--espacio-3); background: white; color: black; }
+  .secreto { font-family: var(--fuente-utilidad); font-size: var(--texto-m); letter-spacing: 0.08em; word-break: break-all; padding: var(--espacio-3) 0; border-top: 1px solid var(--linea); border-bottom: 1px solid var(--linea); }
+
+  @media (max-width: 599px) {
+    .pagina { gap: var(--espacio-4); padding-top: var(--espacio-4); }
+    .titular { font-size: 1.75rem; }
+  }
+}

@@ -1,8 +1,7 @@
 import { Link, useSearch } from '@tanstack/react-router'
-import { useQuery } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
 import { Button } from 'react-aria-components'
-import { api, normalizarError } from '../../api/cliente'
+import { useBarrios } from '../../app/datos'
 import { MENSAJE_NEUTRO, pedirAvisos, type ResultadoAlta } from '../../api/avisos'
 import { GlifoEstado } from '../../componentes/GlifoEstado'
 import { MarcaRecibido } from '../../componentes/MarcaRecibido'
@@ -13,19 +12,6 @@ import { formatearNumero } from '../../dominio/formato'
 import { nombreLegible, type Sector } from '../../dominio/sectores'
 import pagina from './Pagina.module.css'
 import estilos from './Avisos.module.css'
-
-/** Un GET puntual y no `useListado()`: el listado abriría el canal en vivo en una página que no muestra el mapa. */
-function useBarrios() {
-  return useQuery({
-    queryKey: ['barrios-avisos'],
-    queryFn: async () => {
-      const { data, error, response } = await api.GET('/api/sectores').catch(() => ({ data: undefined, error: undefined, response: null }))
-      if (!response?.ok || !data) throw normalizarError(response ?? null, error)
-      return data.sectores as Sector[]
-    },
-    staleTime: 60_000,
-  })
-}
 
 function mensajeAdicional(resultado: ResultadoAlta): string | null {
   switch (resultado.tipo) {

@@ -443,11 +443,11 @@ cuando su entregable se demuestra funcionando**, no por calendario.
 - [x] E2E con Mailhog (`:8025`): suscribirse, abrir el enlace, confirmar y darse de baja.
 
 ### F5 — Cuentas y panel (M5, M15)
-- [ ] Ingreso con todos los errores de §6.7, alta de TOTP con QR local, `yo`, cierre de sesión y reacción a `401`.
-- [ ] Interfaz densa y orientada a tareas: colas, evidencia junto a cada decisión, cortes (registrar y cerrar), ingesta
+- [x] Ingreso con todos los errores de §6.7, alta de TOTP con QR local, `yo`, cierre de sesión y reacción a `401`. **Hecho el 2026-09-29** (`ADR-085`): `/panel/ingreso`, `/panel/segundo-factor`, `/panel/seguridad` (clave, TOTP y cierre de todas las sesiones) y el marco del panel con navegación por `permisos[]`.
+- [ ] Interfaz densa y orientada a tareas (hecho: la cola de reportes con atajos y confirmación en `/panel`; falta lo demás): colas, evidencia junto a cada decisión, cortes (registrar y cerrar), ingesta
       (cita, fuente y salud), cuentas, permisos, invitaciones y auditoría. Acciones según `permisos[]`; carga, vacío,
       error y confirmación siempre visibles.
-- [ ] Pantallas de `/cuenta/*`. **Backend:** `MailCuentaAdapter` arma hoy `…/api/cuentas/enlaces/{ruta}?token=` y
+- [x] Pantallas de `/cuenta/*` (`solicitar`, `verificar`, `invitacion`, `olvide`, `restablecer`), 2026-09-29. **Backend:** `MailCuentaAdapter` arma hoy `…/api/cuentas/enlaces/{ruta}?token=` y
       hay que apuntarlo a `/cuenta/verificar`, `/cuenta/invitacion` y `/cuenta/restablecer`, con la misma URL pública
       del frontend de F4.
 - [ ] E2E: ingreso de un VEEDOR, primer ingreso de un ADMIN con TOTP, moderar, registrar y cerrar un corte, invitar
