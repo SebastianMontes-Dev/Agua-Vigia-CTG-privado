@@ -1,0 +1,10 @@
+# Añade el perfil `carga` al backend para la demo de carga (ADR-083). No se usa solo: scripts/carga/demo.mjs
+# lo combina con el compose base y, al terminar, vuelve a levantar el backend sin él.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.carga.yml up -d --force-recreate backend
+#
+# Sin este archivo el backend arranca como siempre, con el límite de peticiones por IP y el tope normal de SSE.
+services:
+  backend:
+    environment:
+      SPRING_PROFILES_ACTIVE: docker,carga

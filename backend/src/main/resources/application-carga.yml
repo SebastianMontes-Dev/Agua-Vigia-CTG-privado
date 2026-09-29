@@ -1,0 +1,24 @@
+# Perfil de la demo de carga (ADR-083). Se activa solo desde docker-compose.carga.yml, junto al perfil `docker`
+# (SPRING_PROFILES_ACTIVE=docker,carga); scripts/carga/demo.mjs lo pone y lo quita.
+#
+# Qué cambia y por qué, sin tocar ninguna regla de negocio:
+#  - El límite de peticiones por IP se vacía: el generador de carga sale de una sola IP y mediría el 429 del
+#    limitador, no el backend. Lo que sí se conserva es el cupo por dispositivo de RF006 (cada vecino simulado
+#    usa su propia huella) y el bloqueo por cuenta.
+#  - Más margen de conexiones: la demo abre decenas de miles de SSE a la vez, y el tope normal (20 000 por
+#    instancia) haría que parte de los vecinos reciba 429 antes de llegar a lo que se quiere mostrar.
+#  - Registro en WARN: a 500 peticiones por segundo, una línea JSON por petición es más trabajo de disco y de
+#    CPU que el propio reporte, y taparía lo único que importa durante la demo, los avisos y los errores.
+aguavigia:
+  rate-limit:
+    reglas: []
+  sse:
+    max-conexiones: 45000
+server:
+  tomcat:
+    max-connections: 50000
+    accept-count: 1000
+logging:
+  level:
+    root: WARN
+    com.aguavigia: WARN

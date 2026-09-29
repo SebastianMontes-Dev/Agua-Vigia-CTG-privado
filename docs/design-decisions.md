@@ -3388,6 +3388,62 @@ Quitar `ColectorLocalDeBoletines`, el parámetro `Optional` del `PipelineOrquest
 
 ---
 
+## ADR-083 — La demo de carga es un script que reproduce la ciudad entera reportando, con un perfil `carga` y vuelta atrás garantizada
+
+- **Fecha:** 2026-09-29
+- **Estado:** Aceptada
+- **Decide:** Dueño del proyecto
+
+### Contexto
+`RNF027` pide 50 000 usuarios simultáneos, y `ADR-057`/`ADR-080` dicen que el proyecto corre en un solo PC. Al presentar hay
+que enseñar a los profesores el flujo real —miles de vecinos reportando a la vez, el consenso cambiando el estado de los
+barrios y el mapa moviéndose por SSE— sin que se caiga y sin afirmar más de lo que este equipo demuestra. Las pruebas de
+`scripts/carga/` medían un endpoint cada una; ninguna contaba la historia completa, y todas exigían preparar el backend a mano.
+
+### Alternativas consideradas
+| Opción | A favor | En contra |
+|---|---|---|
+| Solo los scripts sueltos de siempre | Ya existen | No hay flujo completo; el límite por IP hay que vaciarlo a mano y se olvida |
+| Cargar Mongo directamente con reportes y estados ya hechos | Rápido y sin riesgo de caída | Es exactamente el `BUG-122`: estados «confirmados por ciudadanos» sin reportes que los sustenten |
+| **Un script que pasa por la API real (k6 + SSE) con un perfil que solo quita el límite por IP** | Ejercita el sistema entero; nada inventado; se puede repetir | Generador y backend comparten CPU; hay que devolver el sistema a su estado |
+
+### Decisión
+- **Perfil Spring `carga`** (`application-carga.yml`, activado por `docker-compose.carga.yml` con
+  `SPRING_PROFILES_ACTIVE=docker,carga`): vacía `aguavigia.rate-limit.reglas` (k6 sale de una sola IP y mediría el `429`
+  del limitador), sube el tope de SSE a 45 000 y el de conexiones de Tomcat a 50 000, y deja el registro en `WARN`. **No toca**
+  el cupo por dispositivo de `RF006` (cada vecino simulado tiene su huella), el bloqueo por cuenta ni el consenso.
+  `PerfilCargaTest` fija las dos mitades: con el perfil, el límite queda vacío; sin él, todo sigue igual.
+- **`scripts/carga/flujo-ciudadano.js`** (k6): `USUARIOS` reportes en `VENTANA` segundos, cada vecino con huella propia,
+  parte con coordenada dentro de su barrio y parte confirmada después; `FOCOS` barrios con avería masiva que se «encienden»
+  uno tras otro para que el consenso real cambie sus estados mientras se mira; lectores, inicios de sesión de veedores y
+  suscripciones a tasa baja. Umbrales: `RNF002` (p95 < 1 s), menos de 1 % de errores; un `429` no es error y se cuenta aparte.
+- **`scripts/carga/demo.mjs`** orquesta todo: comprueba el stack y las 30 000 cuentas, hace el respaldo de Mongo, reinicia el
+  backend con el perfil, abre las conexiones SSE en contenedores aparte (cada uno agota sus puertos efímeros cerca de los
+  28 000), lanza k6 dentro de la red de Docker con su panel en `localhost:5665` y el informe HTML en `resultados/<fecha>/`,
+  imprime el resumen (reportes, latencias, mapa en vivo, recursos del PC, barrios que cambiaron) y devuelve el backend a su
+  perfil normal. Con `--restaurar` deja además Mongo y Redis como estaban.
+- **Volver atrás = restaurar el respaldo**, no borrar reportes sueltos: dejar la bitácora con eventos de consenso sin sus
+  reportes repetiría el `BUG-122`. Redis guarda el cupo por dispositivo y la ventana del consenso, y también se limpia.
+
+### Consecuencias
+- **Gana:** una demo repetible con un comando, que dice la verdad: cifras medidas (ver `docs/ingenieria/escalabilidad.md`).
+  Desde el mismo punto de partida, 30 000 reportes en 60 s con 30 000 conexiones en vivo dieron p95 de 130 a 164 ms, p99 de
+  300 a 375 ms, máximo de 615 a 846 ms y un solo error en tres corridas (un `503` por espera agotada del pool de Mongo, el
+  «falla rápido» diseñado), y 10 000 con 10 000 conexiones, p95 39 ms.
+- **Pierde / se reconoce:** el generador y el backend comparten un PC de 12 hilos: con 30 000 conexiones el backend llega a
+  ≈ 800 % de CPU y ≈ 6,5 GiB. Las corridas sobre una base ya cargada de reportes y con el mapa saturado dieron p95 de 231 ms y
+  788 ms y 190–249 iteraciones descartadas por el generador (0,6–0,8 %), antes de precargar los VUs de k6: por eso la demo
+  arranca de un punto de partida conocido y el guion recomienda `--restaurar` entre ensayos.
+- **Ojo al repetir la demo:** cada corrida cambia los estados de los barrios; en una segunda seguida quedan pocos
+  barrios que puedan cambiar, y el script avisa.
+- **Queda condicionado:** el perfil `carga` nunca debe activarse fuera de la demo (no hay despliegue, `ADR-080`).
+
+### Cómo se revierte
+Quitar `application-carga.yml`, `docker-compose.carga.yml`, `flujo-ciudadano.js`, `demo.mjs` y `PerfilCargaTest`; los
+scripts sueltos de `scripts/carga/` siguen sirviendo.
+
+---
+
 ## ADR-084 — La capa de API no importa infraestructura: lo que necesita lo declara un puerto de salida
 
 - **Fecha:** 2026-09-29
@@ -3427,7 +3483,7 @@ ruta del panel exija un permiso, y solo lo garantizaba la disciplina de quien es
 Quitar las dos reglas y devolver los tipos y los controladores a su forma anterior; no toca datos.
 
 <!--
-Siguiente número disponible: ADR-085 (el ADR-083 lo registra la demo de carga)
+Siguiente número disponible: ADR-085
 Para agregar: usa la skill `registrar-decision`.
 Recuerda: append-only. Las entradas viejas solo cambian de estado, no de contenido.
 -->
