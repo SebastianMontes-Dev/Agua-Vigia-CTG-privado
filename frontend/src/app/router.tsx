@@ -6,6 +6,7 @@ import { Historial, NoEncontrada, Pendiente } from '../pantallas/publico/Pendien
 import { PantallaMapa } from '../pantallas/publico/PantallaMapa'
 import { ResumenCiudad } from '../pantallas/publico/ResumenCiudad'
 import { Cumplimiento } from '../pantallas/publico/Cumplimiento'
+import { Estadisticas } from '../pantallas/publico/Estadisticas'
 
 const raiz = createRootRoute({ component: Outlet, notFoundComponent: NoEncontrada })
 
@@ -32,7 +33,7 @@ const bitacora = createRoute({
   getParentRoute: () => publico, path: 'bitacora', component: () => <Pendiente titular="Bitácora" fase="fase F3" />,
 })
 const estadisticas = createRoute({
-  getParentRoute: () => publico, path: 'estadisticas', component: () => <Pendiente titular="Estadísticas" fase="fase F3" />,
+  getParentRoute: () => publico, path: 'estadisticas', component: Estadisticas,
 })
 const avisos = createRoute({
   getParentRoute: () => publico,

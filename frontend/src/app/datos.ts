@@ -7,6 +7,7 @@ import { leerPaginacion } from '../api/paginacion'
 import type { Corte } from '../dominio/cortes'
 import type { Sector } from '../dominio/sectores'
 import type { Indice, PuntoSerie } from '../dominio/cumplimiento'
+import type { components } from '../api/generado/esquema'
 
 // Solo GET: TanStack Query no reintenta mutaciones por defecto y aquí no se cambia (plan §6.1).
 export const clienteConsultas = new QueryClient({
@@ -111,6 +112,19 @@ export function useSerieCumplimiento(filtros: FiltrosSerie, habilitado = true) {
       }).catch(() => ({ data: undefined, error: undefined, response: null }))
       if (!response || !response.ok || !data) throw normalizarError(response ?? null, error)
       return data as PuntoSerie[]
+    },
+    staleTime: 5_000,
+  })
+}
+
+export function useEstadisticas() {
+  return useQuery({
+    queryKey: ['estadisticas'],
+    queryFn: async ({ signal }) => {
+      const { data, error, response } = await api.GET('/api/estadisticas', { signal })
+        .catch(() => ({ data: undefined, error: undefined, response: null }))
+      if (!response || !response.ok || !data) throw normalizarError(response ?? null, error)
+      return data as components['schemas']['EstadisticasRespuesta']
     },
     staleTime: 5_000,
   })
