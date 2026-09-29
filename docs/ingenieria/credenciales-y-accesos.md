@@ -5,7 +5,7 @@
 > en un archivo versionado queda en el historial de git para siempre aunque se borre después, y `gitleaks` lo
 > marcaría. Los valores viven en `.env` (ignorado por git) y en tu gestor de contraseñas.
 >
-> **Última actualización:** 2026-09-24
+> **Última actualización:** 2026-09-29
 
 ---
 
@@ -45,7 +45,8 @@ y le pasas al agente solo la salida, sin la clave.
 - **Historia:** la ADMIN anterior (`admin.demo@aguavigia.example`) tenía una clave que ya no se recordaba (el `.env`
   guardaba solo su hash y la documentada dio `401`). Se vació `usuarios` y se resembró: 1 ADMIN + 40 000 cuentas de
   demostración. El respaldo de las 20 001 cuentas anteriores quedó solo en la carpeta temporal de la sesión del agente
-  (no es una copia duradera).
+  (no es una copia duradera). El 2026-09-29 se resembraron como **30 000 cuentas completas** (barrio, segundo factor en parte de
+  los VEEDOR, tokens, auditoría y suscripciones coherentes): `docs/ingenieria/entorno-local.md` §7.
 - **El ADMIN solo se crea si `usuarios` está vacía** al arrancar el backend con esas dos variables. Para cambiar la
   clave de un ADMIN existente, `scripts/restablecer-admin.mjs --clave-del-env` (abajo): ya no hace falta vaciar `usuarios`.
 - **Hash de una clave nueva:** `docs/ingenieria/entorno-local.md` §4 (`GenerarHashVeedor`); cada `$` va como `$$` en el `.env`.
@@ -60,7 +61,7 @@ No son secretos: sirven solo contra una base local de demostración.
 
 | Clave | Dónde está documentada | Sirve para |
 |---|---|---|
-| `DemoAguaVigia-2026` | `scripts/sembrar-usuarios-demo.mjs` | Entrar como `VEEDOR`/`OBSERVADOR` de las cuentas ACTIVAS sembradas. **No hay ADMIN entre ellas** |
+| `DemoAguaVigia-2026` | `scripts/sembrar-usuarios-demo.mjs` | Entrar como `VEEDOR`/`OBSERVADOR` de las 30 000 cuentas sembradas que están ACTIVAS (las que tienen segundo factor piden además el código, calculable con `scripts/codigo-totp.mjs` a partir de su `secretoTotp`). **No hay ADMIN entre ellas** |
 | `AguaVigia-Dev-2026` | `docs/ingenieria/entorno-local.md` | Clave de desarrollo que documenta esa guía; **no es la del ADMIN actual** (dio `401` sobre el anterior) |
 
 Los correos sembrados usan dominios reales (`hotmail.com`, `live.com`…): no los uses con un SMTP real.

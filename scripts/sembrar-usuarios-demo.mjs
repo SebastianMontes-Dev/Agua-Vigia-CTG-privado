@@ -1,13 +1,22 @@
 #!/usr/bin/env node
-// Siembra cuentas de demostración en la colección `usuarios` para presentar el proyecto con una base
-// grande (por defecto 20 000) y variada: nombres y apellidos distintos, correos con estilos y proveedores
-// distintos, los seis estados de cuenta, los roles OBSERVADOR y VEEDOR, permisos sueltos y fechas repartidas
-// en los últimos 18 meses.
+// Siembra cuentas de demostración COMPLETAS para presentar el proyecto con una base grande (por defecto
+// 30 000) y variada. Cada cuenta lleva nombre y apellidos distintos, correo, barrio real (repartido según la
+// población de cada sector), uno de los seis estados, el rol OBSERVADOR o VEEDOR, permisos sueltos y fechas
+// repartidas en los últimos 18 meses; parte de los VEEDOR tiene además el segundo factor (TOTP) dado de alta.
+// Y, para que la base sea coherente y no solo `usuarios`, siembra lo que esas cuentas dejarían en el sistema:
+//   - tokens_cuenta:      enlace de verificación (PENDIENTE_VERIFICACION) o de invitación (INVITADA) vigente.
+//   - auditoria_cuentas:  el rastro del alta, la aprobación, el rechazo, la suspensión y el segundo factor.
+//   - suscripciones:      alertas por correo de las cuentas activas, ligadas a su barrio.
 //
 // Uso:
 //   cd scripts && npm install
-//   node sembrar-usuarios-demo.mjs                       # 20 000 cuentas
-//   node sembrar-usuarios-demo.mjs --cantidad 5000 --semilla 7
+//   node sembrar-usuarios-demo.mjs                       # 30 000 cuentas
+//   node sembrar-usuarios-demo.mjs --cantidad 5000 --semilla 7 --minimo 0
+//
+// Al terminar imprime los conteos por colección, estado, rol y barrio, y sale con error si `usuarios` queda
+// por debajo de --minimo (30 000 por defecto): la entrega exige al menos esa cifra.
+//
+// Requiere los sectores sembrados (`sembrar-sectores.mjs`): el barrio de cada cuenta es uno de ellos.
 //
 // Variables: MONGODB_URI (por defecto mongodb://localhost:27017/?directConnection=true) y
 // MONGODB_DB (por defecto aguavigia).
@@ -17,10 +26,13 @@
 //      se crea si NO existe ninguna cuenta: si siembras estas antes, nunca se crea.
 //   2. Después corre este script.
 //
-// Es determinista (misma semilla, mismas cuentas) e idempotente: antes de insertar borra únicamente las cuentas
-// que él mismo sembró (marca `datosDeDemostracion: true`); jamás toca cuentas reales ni al ADMIN. Si la aplicación
-// vuelve a guardar una cuenta de demostración (por ejemplo, un ADMIN la suspende), pierde esa marca y deja de
-// contarse como sembrada.
+// Es determinista (misma semilla, mismos datos) e idempotente: antes de insertar borra únicamente lo que él mismo
+// sembró (marca `datosDeDemostracion: true`, también en tokens, auditoría y suscripciones); jamás toca cuentas
+// reales ni al ADMIN. Si la aplicación vuelve a guardar una cuenta de demostración (por ejemplo, un ADMIN la
+// suspende), pierde esa marca y deja de contarse como sembrada.
+//
+// Las cuentas con segundo factor (TOTP) guardan su secreto en la base: para iniciar sesión con ellas hace falta
+// el código, que se calcula con `node codigo-totp.mjs <secreto>`. Las pruebas de carga usan las que no lo tienen.
 //
 // Las cuentas ACTIVAS comparten una clave de demostración, DemoAguaVigia-2026 (solo para entrar a probar como un
 // veedor u observador; no hay ADMIN entre ellas). Por eso el script se niega a correr contra una base que no sea
@@ -28,17 +40,20 @@
 // cualquier dato de prueba: no los uses con un SMTP real (el compose de desarrollo envía a Mailhog).
 
 import { MongoClient } from 'mongodb';
+import { createHash } from 'node:crypto';
 import { parseArgs } from 'node:util';
 
 const { values } = parseArgs({
   options: {
-    cantidad: { type: 'string', default: '20000' },
+    cantidad: { type: 'string', default: '30000' },
     semilla: { type: 'string', default: '2026' },
+    minimo: { type: 'string', default: '30000' },
     'permitir-remoto': { type: 'boolean', default: false },
   },
 });
 const CANTIDAD = Number(values.cantidad);
 const SEMILLA = Number(values.semilla);
+const MINIMO = Number(values.minimo);
 // directConnection=true: Mongo local es un replica set de un nodo; sin esto el driver
 // descubre que el miembro se anuncia como `mongo:27017` (nombre solo resoluble dentro de
 // Docker) e intenta reconectarse ahi.
@@ -47,10 +62,18 @@ const DB_NAME = process.env.MONGODB_DB ?? 'aguavigia';
 
 // BCrypt (coste 10) de «DemoAguaVigia-2026», calculado con la misma biblioteca que usa el backend.
 const HASH_CLAVE_DEMO = '$2a$10$9Z7IzVuDwklPgBYmu8noLeYWAUyXtjYWkfdBCYi282zRzSANE/256';
-const CLASE = 'com.aguavigia.ctg.infrastructure.persistence.mongo.UsuarioDocumento';
+const PAQUETE = 'com.aguavigia.ctg.infrastructure.persistence.mongo.';
+const CLASE = `${PAQUETE}UsuarioDocumento`;
+const CLASE_TOKEN = `${PAQUETE}TokenCuentaDocumento`;
+const CLASE_AUDITORIA = `${PAQUETE}EventoAuditoriaDocumento`;
+const CLASE_SUSCRIPCION = `${PAQUETE}SuscripcionDocumento`;
 
 if (!Number.isInteger(CANTIDAD) || CANTIDAD < 1 || CANTIDAD > 500000) {
   console.error('--cantidad debe ser un entero entre 1 y 500000');
+  process.exit(1);
+}
+if (!Number.isInteger(MINIMO) || MINIMO < 0) {
+  console.error('--minimo debe ser un entero mayor o igual que 0');
   process.exit(1);
 }
 if (!/^mongodb:\/\/(localhost|127\.0\.0\.1|\[::1\])([:/]|$)/.test(MONGODB_URI) && !values['permitir-remoto']) {
@@ -141,8 +164,43 @@ function fechaDeCreacion() {
   return new Date(FECHAS.desde + Math.sqrt(azar()) * (AHORA - FECHAS.desde - DIA));
 }
 
+const HORA = 60 * 60 * 1000;
+const MINUTO = 60 * 1000;
+const ALFABETO_BASE32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+const IP_ADMIN = '172.18.0.1';
+
+// 160 bits en Base32, el mismo tamaño y alfabeto que genera el backend (RFC 4648, sin relleno).
+const secretoTotp = () => Array.from({ length: 32 }, () => ALFABETO_BASE32[entero(0, 31)]).join('');
+const hashDeToken = (token) => createHash('sha256').update(token, 'utf8').digest('hex');
+// El token en claro de una cuenta sembrada es `demo-token-<id>`: solo sirve contra esta base local de demostración.
+const tokenDeDemo = (usuarioId) => `demo-token-${usuarioId}`;
+const ipCiudadana = () => `190.${entero(24, 255)}.${entero(0, 255)}.${entero(1, 254)}`;
+
 const usados = new Set();
 const nombresUsados = new Set();
+
+// Barrios reales: el peso de cada uno es su población, con un piso para que los sectores pequeños también aparezcan.
+let barrios = [];
+let pesosAcumulados = [];
+function cargarBarrios(sectores) {
+  barrios = sectores.map((s) => s.slug);
+  let suma = 0;
+  pesosAcumulados = sectores.map((s) => (suma += Math.max(Number(s.poblacion) || 0, 300)));
+}
+function elegirBarrio() {
+  const r = azar() * pesosAcumulados[pesosAcumulados.length - 1];
+  let bajo = 0;
+  let alto = pesosAcumulados.length - 1;
+  while (bajo < alto) {
+    const medio = (bajo + alto) >> 1;
+    if (pesosAcumulados[medio] > r) alto = medio;
+    else bajo = medio + 1;
+  }
+  return barrios[bajo];
+}
+
+let admin = null;
+
 function crearCuenta() {
   // Cada nombre completo es único: dos cuentas nunca comparten persona, solo eso ya las distingue a simple vista.
   let nombre, apellido1, apellido2;
@@ -159,6 +217,7 @@ function crearCuenta() {
   for (let intento = 2; usados.has(correo); intento++) correo = `${base}${intento}@${dominio}`;
   usados.add(correo);
 
+  const id = uuid();
   const estado = elegirPonderado([['ACTIVA', 62], ['PENDIENTE_APROBACION', 12], ['PENDIENTE_VERIFICACION', 9],
     ['INVITADA', 7], ['SUSPENDIDA', 6], ['RECHAZADA', 4]]);
   // Quien se registra solo nace como OBSERVADOR; el rol distinto lo decide quien invita o aprueba.
@@ -174,74 +233,233 @@ function crearCuenta() {
     if (rol === 'VEEDOR' && azar() < 0.04) revocados = [elegir(['MODERAR_REPORTES', 'REVISAR_INGESTA', 'GESTIONAR_CORTES'])];
   }
 
-  const creadoEn = fechaDeCreacion();
-  const margen = Math.max(0, Math.min(AHORA - creadoEn.getTime(), 150 * DIA));
-  const actualizadoEn = estado === 'PENDIENTE_VERIFICACION' ? creadoEn : new Date(creadoEn.getTime() + Math.floor(azar() * margen));
+  // Un enlace vigente solo existe si la cuenta es reciente: el de verificación dura 48 h y el de invitación 7 días.
+  const creadoEn = estado === 'PENDIENTE_VERIFICACION'
+    ? new Date(AHORA - MINUTO - azar() * 46 * HORA)
+    : estado === 'INVITADA'
+      ? new Date(AHORA - MINUTO - azar() * 6.5 * DIA)
+      : fechaDeCreacion();
 
-  return {
-    _id: uuid(),
+  const barrio = elegirBarrio();
+  const conSegundoFactor = rol === 'VEEDOR' && (estado === 'ACTIVA' || estado === 'SUSPENDIDA') && azar() < 0.4;
+  const secreto = conSegundoFactor ? secretoTotp() : null;
+
+  // Rastro de auditoría coherente con el estado: cada evento ocurre después del anterior y nunca en el futuro.
+  const auditoria = [];
+  let instante = creadoEn.getTime();
+  let ultimo = instante;
+  const yo = { id, correo };
+  const registrar = (accion, autor, detalle, ip, minutosMaximos = 2880) => {
+    auditoria.push({
+      _id: uuid(),
+      accion,
+      autorId: autor?.id ?? null,
+      autorCorreo: autor?.correo ?? null,
+      sujetoId: id,
+      sujetoCorreo: correo,
+      detalle,
+      ip,
+      ocurrioEn: new Date(instante),
+      datosDeDemostracion: true,
+      _class: CLASE_AUDITORIA,
+    });
+    ultimo = instante;
+    instante = Math.min(AHORA, instante + entero(5, minutosMaximos) * MINUTO);
+  };
+  const porInvitacion = estado === 'INVITADA'
+    || (rol === 'VEEDOR' && (estado === 'ACTIVA' || estado === 'SUSPENDIDA') && azar() < 0.5);
+  if (porInvitacion) {
+    registrar('CUENTA_INVITADA', admin, `Invitada con el rol ${rol}`, IP_ADMIN);
+    if (estado !== 'INVITADA') registrar('INVITACION_ACEPTADA', yo, 'Aceptó la invitación y fijó su clave', ipCiudadana());
+  } else {
+    registrar('CUENTA_REGISTRADA', null, 'Auto-registro; queda pendiente de verificar correo', ipCiudadana());
+    if (estado !== 'PENDIENTE_VERIFICACION') registrar('CORREO_VERIFICADO', yo, 'Verificó su correo con el enlace recibido', ipCiudadana());
+    if (estado === 'RECHAZADA') registrar('CUENTA_RECHAZADA', admin, 'Solicitud de acceso rechazada', IP_ADMIN, 20000);
+    if (estado === 'ACTIVA' || estado === 'SUSPENDIDA') registrar('CUENTA_APROBADA', admin, 'Solicitud de acceso aprobada', IP_ADMIN, 20000);
+  }
+  if (conSegundoFactor) registrar('SEGUNDO_FACTOR_ACTIVADO', yo, 'Dio de alta la app de autenticación', ipCiudadana());
+  if (estado === 'SUSPENDIDA') registrar('CUENTA_SUSPENDIDA', admin, 'Suspendida por un administrador', IP_ADMIN, 43200);
+
+  const tokens = [];
+  if (estado === 'PENDIENTE_VERIFICACION' || estado === 'INVITADA') {
+    const vigenciaHoras = estado === 'INVITADA' ? 7 * 24 : 48;
+    tokens.push({
+      _id: hashDeToken(tokenDeDemo(id)),
+      tipo: estado === 'INVITADA' ? 'INVITACION' : 'VERIFICACION_CORREO',
+      usuarioId: id,
+      creadoEn,
+      usadoEn: null,
+      expiraEn: new Date(creadoEn.getTime() + vigenciaHoras * HORA),
+      datosDeDemostracion: true,
+      _class: CLASE_TOKEN,
+    });
+  }
+
+  // Alertas por correo: solo quien ya tiene la cuenta activa suscribe su barrio (y, a veces, uno vecino).
+  const suscripciones = [];
+  if (estado === 'ACTIVA') {
+    const sorteo = azar();
+    const estadoSuscripcion = sorteo < 0.35 ? 'CONFIRMADA' : sorteo < 0.39 ? 'PENDIENTE_CONFIRMACION' : sorteo < 0.42 ? 'CANCELADA' : null;
+    if (estadoSuscripcion) {
+      const sectorIds = [barrio];
+      if (azar() < 0.25) {
+        const otro = elegirBarrio();
+        if (otro !== barrio) sectorIds.push(otro);
+      }
+      const idSuscripcion = uuid();
+      suscripciones.push({
+        _id: idSuscripcion,
+        // Al cancelar, el backend anonimiza el correo: se siembra igual para que la colección se vea como la real.
+        correo: estadoSuscripcion === 'CANCELADA' ? `baja-${idSuscripcion}@correo-eliminado.invalid` : correo,
+        sectorIds,
+        estado: estadoSuscripcion,
+        tokenConfirmacion: uuid(),
+        creadaEn: new Date(Math.min(AHORA, creadoEn.getTime() + entero(60, 14 * 24 * 60) * MINUTO)),
+        datosDeDemostracion: true,
+        _class: CLASE_SUSCRIPCION,
+      });
+    }
+  }
+
+  const usuario = {
+    _id: id,
     correo,
     nombre: `${nombre} ${apellido1} ${apellido2}`,
     claveHash: estado === 'INVITADA' ? null : HASH_CLAVE_DEMO,
     estado,
     rol,
+    barrio,
     permisosConcedidos: concedidos,
     permisosRevocados: revocados,
-    secretoTotp: null,
-    segundoFactorConfirmadoEn: null,
+    secretoTotp: secreto,
+    segundoFactorConfirmadoEn: secreto ? new Date(ultimoDelSegundoFactor(auditoria)) : null,
     creadoEn,
-    actualizadoEn,
+    actualizadoEn: new Date(ultimo),
     datosDeDemostracion: true,
     _class: CLASE,
   };
+  return { usuario, tokens, auditoria, suscripciones };
 }
+
+function ultimoDelSegundoFactor(auditoria) {
+  return auditoria.find((e) => e.accion === 'SEGUNDO_FACTOR_ACTIVADO').ocurrioEn.getTime();
+}
+
+const COLECCIONES_SEMBRADAS = ['usuarios', 'tokens_cuenta', 'auditoria_cuentas', 'suscripciones'];
+
+// Cuando la aplicación usa un token o modifica una cuenta sembrada, esa fila pierde la marca `datosDeDemostracion`
+// y la limpieza previa ya no la ve; al sembrar de nuevo su _id (determinista) choca. Se omite y se cuenta en vez de
+// abortar: la fila que la app tocó es la que manda.
+const omitidos = {};
+async function escribir(nombre, coleccion, documentos) {
+  if (documentos.length === 0) return;
+  try {
+    await coleccion.insertMany(documentos, { ordered: false });
+  } catch (error) {
+    const errores = error.writeErrors ?? [];
+    if (errores.length === 0 || !errores.every((e) => e.code === 11000)) throw error;
+    omitidos[nombre] = (omitidos[nombre] ?? 0) + errores.length;
+  }
+}
+
+async function agrupar(coleccion, campo, filtro = { datosDeDemostracion: true }) {
+  return coleccion.aggregate([{ $match: filtro }, { $group: { _id: `$${campo}`, n: { $sum: 1 } } }, { $sort: { n: -1 } }]).toArray();
+}
+const linea = (filas) => filas.map((f) => `${f._id}=${f.n}`).join(' · ');
 
 async function main() {
   const cliente = new MongoClient(MONGODB_URI);
   try {
     await cliente.connect();
-    const coleccion = cliente.db(DB_NAME).collection('usuarios');
-    await coleccion.createIndex({ correo: 1 }, { unique: true });
+    const db = cliente.db(DB_NAME);
+    const [usuarios, tokens, auditoria, suscripciones, sectores] =
+      [...COLECCIONES_SEMBRADAS, 'sectores'].map((nombre) => db.collection(nombre));
+    await usuarios.createIndex({ correo: 1 }, { unique: true });
 
-    const admins = await coleccion.countDocuments({ rol: 'ADMIN' });
-    if (admins === 0) {
+    const listaSectores = await sectores.find({}, { projection: { slug: 1, poblacion: 1 } }).toArray();
+    if (listaSectores.length === 0) {
+      console.error('No hay sectores en la base: el barrio de cada cuenta es uno de ellos. Corre primero sembrar-sectores.mjs.');
+      process.exit(1);
+    }
+    cargarBarrios(listaSectores);
+
+    const adminDoc = await usuarios.findOne({ rol: 'ADMIN' }, { projection: { correo: 1 } });
+    if (!adminDoc) {
       console.warn('AVISO: no hay ninguna cuenta ADMIN. Para poder entrar al panel, arranca el backend con ADMIN_INICIAL_CORREO y '
-        + 'VEEDOR_PASSWORD_HASH ANTES de sembrar (el ADMIN solo se crea si no existe ninguna cuenta).');
+        + 'VEEDOR_PASSWORD_HASH ANTES de sembrar (el ADMIN solo se crea si no existe ninguna cuenta). '
+        + 'La auditoría sembrada quedará sin autor en las acciones de administrador.');
+    } else {
+      admin = { id: adminDoc._id, correo: adminDoc.correo };
     }
 
-    const previas = await coleccion.deleteMany({ datosDeDemostracion: true });
-    if (previas.deletedCount > 0) console.log(`Retiradas ${previas.deletedCount} cuentas de demostración de una siembra anterior.`);
+    for (const [nombre, coleccion] of [['usuarios', usuarios], ['tokens_cuenta', tokens],
+      ['auditoria_cuentas', auditoria], ['suscripciones', suscripciones]]) {
+      const previas = await coleccion.deleteMany({ datosDeDemostracion: true });
+      if (previas.deletedCount > 0) console.log(`Retirados ${previas.deletedCount} documentos de demostración de '${nombre}' de una siembra anterior.`);
+    }
 
     // Los correos de las cuentas reales que ya existan no pueden repetirse.
-    for await (const existente of coleccion.find({}, { projection: { correo: 1 } })) usados.add(existente.correo);
+    for await (const existente of usuarios.find({}, { projection: { correo: 1 } })) usados.add(existente.correo);
 
     const LOTE = 1000;
     let insertadas = 0;
     for (let inicio = 0; inicio < CANTIDAD; inicio += LOTE) {
-      const lote = Array.from({ length: Math.min(LOTE, CANTIDAD - inicio) }, crearCuenta);
-      await coleccion.insertMany(lote, { ordered: false });
-      insertadas += lote.length;
-      process.stdout.write(`\rInsertadas ${insertadas} / ${CANTIDAD}`);
+      const generadas = Array.from({ length: Math.min(LOTE, CANTIDAD - inicio) }, crearCuenta);
+      await Promise.all([
+        escribir('usuarios', usuarios, generadas.map((g) => g.usuario)),
+        escribir('tokens_cuenta', tokens, generadas.flatMap((g) => g.tokens)),
+        escribir('auditoria_cuentas', auditoria, generadas.flatMap((g) => g.auditoria)),
+        escribir('suscripciones', suscripciones, generadas.flatMap((g) => g.suscripciones)),
+      ]);
+      insertadas += generadas.length;
+      process.stdout.write(`\rCuentas insertadas ${insertadas} / ${CANTIDAD}`);
     }
     console.log('\n');
 
-    const porEstado = await coleccion.aggregate([{ $match: { datosDeDemostracion: true } }, { $group: { _id: '$estado', n: { $sum: 1 } } }, { $sort: { n: -1 } }]).toArray();
-    const porRol = await coleccion.aggregate([{ $match: { datosDeDemostracion: true } }, { $group: { _id: '$rol', n: { $sum: 1 } } }, { $sort: { n: -1 } }]).toArray();
-    const porDominio = await coleccion.aggregate([{ $match: { datosDeDemostracion: true } }, { $group: { _id: { $arrayElemAt: [{ $split: ['$correo', '@'] }, 1] }, n: { $sum: 1 } } }, { $sort: { n: -1 } }]).toArray();
-    const distintos = await coleccion.aggregate([{ $match: { datosDeDemostracion: true } }, { $group: { _id: '$nombre' } }, { $count: 'n' }]).toArray();
-    const total = await coleccion.countDocuments({});
+    const demo = { datosDeDemostracion: true };
+    const totalUsuarios = await usuarios.countDocuments({});
+    const slugs = new Set(listaSectores.map((s) => s.slug));
+    const porBarrio = await agrupar(usuarios, 'barrio');
+    const sinBarrio = porBarrio.filter((f) => f._id == null || f._id === '').reduce((suma, f) => suma + f.n, 0);
+    const barriosInexistentes = porBarrio.filter((f) => f._id != null && !slugs.has(f._id));
+    const conSegundoFactor = await usuarios.countDocuments({ ...demo, secretoTotp: { $ne: null } });
+    const distintos = await usuarios.aggregate([{ $match: demo }, { $group: { _id: '$nombre' } }, { $count: 'n' }]).toArray();
 
-    const linea = (filas) => filas.map((f) => `${f._id}=${f.n}`).join(' · ');
-    console.log(`Cuentas de demostración: ${insertadas} (total en la colección: ${total})`);
-    console.log(`Nombres completos distintos: ${distintos[0]?.n ?? 0}`);
-    console.log(`Por estado:  ${linea(porEstado)}`);
-    console.log(`Por rol:     ${linea(porRol)}`);
-    console.log(`Por dominio: ${linea(porDominio)}`);
+    console.log('Conteo por colección (de demostración / total):');
+    for (const [nombre, coleccion] of [['usuarios', usuarios], ['tokens_cuenta', tokens],
+      ['auditoria_cuentas', auditoria], ['suscripciones', suscripciones]]) {
+      console.log(`  ${nombre.padEnd(18)} ${String(await coleccion.countDocuments(demo)).padStart(7)} / ${await coleccion.countDocuments({})}`);
+    }
+    console.log(`\nNombres completos distintos: ${distintos[0]?.n ?? 0}`);
+    console.log(`Por estado:  ${linea(await agrupar(usuarios, 'estado'))}`);
+    console.log(`Por rol:     ${linea(await agrupar(usuarios, 'rol'))}`);
+    console.log(`Por dominio: ${linea((await usuarios.aggregate([{ $match: demo }, { $group: { _id: { $arrayElemAt: [{ $split: ['$correo', '@'] }, 1] }, n: { $sum: 1 } } }, { $sort: { n: -1 } }]).toArray()))}`);
+    console.log(`Barrios: ${porBarrio.length} distintos de ${slugs.size} · sin barrio: ${sinBarrio} · barrio inexistente: ${barriosInexistentes.length}`);
+    console.log(`Los cinco con más cuentas: ${linea(porBarrio.slice(0, 5))}`);
+    console.log(`Con segundo factor (TOTP): ${conSegundoFactor}`);
+    console.log(`Tokens por tipo:        ${linea(await agrupar(tokens, 'tipo'))}`);
+    console.log(`Auditoría por acción:   ${linea(await agrupar(auditoria, 'accion'))}`);
+    console.log(`Suscripciones por estado: ${linea(await agrupar(suscripciones, 'estado'))}`);
     console.log('\nMuestra:');
-    for (const c of await coleccion.find({ datosDeDemostracion: true }).limit(6).toArray()) {
-      console.log(`  ${c.nombre.padEnd(34)} ${c.correo.padEnd(38)} ${c.rol.padEnd(11)} ${c.estado}`);
+    for (const c of await usuarios.find(demo).limit(6).toArray()) {
+      console.log(`  ${c.nombre.padEnd(34)} ${c.correo.padEnd(38)} ${c.rol.padEnd(11)} ${c.estado.padEnd(22)} ${c.barrio}`);
     }
     console.log('\nClave de demostración de las cuentas ACTIVAS: DemoAguaVigia-2026');
+    if (Object.keys(omitidos).length > 0) {
+      console.log('Omitidos porque la aplicación ya había modificado esas filas (perdieron la marca de demostración): '
+        + linea(Object.entries(omitidos).map(([_id, n]) => ({ _id, n }))));
+    }
+
+    const fallos = [];
+    if (totalUsuarios < MINIMO) fallos.push(`'usuarios' tiene ${totalUsuarios} documentos y se exigen al menos ${MINIMO}`);
+    if (sinBarrio > 0) fallos.push(`${sinBarrio} cuentas sembradas quedaron sin barrio`);
+    if (barriosInexistentes.length > 0) fallos.push(`hay cuentas con un barrio que no existe en 'sectores': ${barriosInexistentes.slice(0, 3).map((f) => f._id).join(', ')}`);
+    if (fallos.length > 0) {
+      console.error(`\nFALLA la comprobación final:\n  - ${fallos.join('\n  - ')}`);
+      process.exitCode = 1;
+    } else {
+      console.log(`\nComprobación final: OK (${totalUsuarios} cuentas en 'usuarios', mínimo exigido ${MINIMO}).`);
+    }
   } finally {
     await cliente.close();
   }
