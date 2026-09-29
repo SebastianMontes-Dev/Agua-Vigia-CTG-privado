@@ -81,6 +81,7 @@ services:
       # desarrollo traducía APP_URL_PUBLICA, así que en producción los enlaces de los correos
       # salían a localhost. Sin definirla, el despliegue aborta en vez de mandar enlaces rotos.
       AGUAVIGIA_APP_URL_PUBLICA: ${APP_URL_PUBLICA:?Falta APP_URL_PUBLICA en el .env de produccion}
+      AGUAVIGIA_APP_URL_FRONTEND: ${APP_URL_FRONTEND:?Falta APP_URL_FRONTEND en el .env de produccion}
     # En producción el proxy reverso manejará el tráfico, NO exponemos 8080 directo
     volumes:
       - fotos-data:/app/data/fotos
