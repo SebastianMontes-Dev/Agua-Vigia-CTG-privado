@@ -103,7 +103,7 @@ export function Avisos() {
         <aside className={estilos.explicacion} aria-label="Antes y después de confirmar">
           <h2>Antes y después de confirmar</h2>
           <p><strong>Antes.</strong> Recibes un enlace, no avisos.</p>
-          <p><strong>Después.</strong> Te avisamos si cambia el agua.</p>
+          <p><strong>Después.</strong> Avisos si cambia el agua.</p>
           <details className={estilos.detalles}>
             <summary>Cómo funciona</summary>
             <p>El enlace vence en 48 horas. Cada aviso trae un enlace para darte de baja.</p>

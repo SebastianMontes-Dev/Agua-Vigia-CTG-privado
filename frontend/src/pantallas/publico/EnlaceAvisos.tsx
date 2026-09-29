@@ -67,7 +67,7 @@ function ContenidoEnlace({ accion, token }: { accion: Accion; token: string | un
       <h2>{confirmacion ? 'Al confirmar' : 'Al darte de baja'}</h2>
       <p>{confirmacion
         ? 'Te avisaremos si cambia el agua.'
-        : 'No habrá más avisos y quitaremos tu correo.'}</p>
+        : 'Sin más avisos. Borramos tu correo.'}</p>
       {confirmacion && <details className={estilos.detalles}>
         <summary>Cómo funciona</summary>
         <p>Hasta que confirmes, no recibirás avisos. El enlace vence en 48 horas.</p>
