@@ -5,6 +5,7 @@
 //   docker compose up                                   → corre `inicial` y termina
 //   docker compose run --rm sembrador verificar         → conteo de cada colección contra los mínimos
 //   docker compose run --rm sembrador totp <SECRETO>    → código de 6 dígitos del segundo factor (codigo-totp.mjs)
+//   docker compose run --rm sembrador monitor           → la base en vivo durante la demo de carga (carga/monitor-bd.mjs)
 //   docker compose run --rm sembrador <script> [args]   → cualquier otro script de scripts/, p. ej. agregar-usuarios
 //
 // Cada paso de `inicial` tiene su propia puerta, así que repetir `docker compose up` no duplica nada:
@@ -124,7 +125,7 @@ async function inicial() {
 }
 
 const [comando = 'inicial', ...resto] = process.argv.slice(2);
-const alias = { verificar: 'verificar-datos.mjs', totp: 'codigo-totp.mjs' };
+const alias = { verificar: 'verificar-datos.mjs', totp: 'codigo-totp.mjs', monitor: 'carga/monitor-bd.mjs' };
 
 try {
   if (comando === 'inicial') {

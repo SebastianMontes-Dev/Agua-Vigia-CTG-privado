@@ -9,6 +9,9 @@
  *   - lectores:        gente mirando el mapa (lista de barrios, ficha de un barrio, bitácora).
  *   - veedores:        inicios de sesión de cuentas VEEDOR sembradas y una consulta de su panel.
  *   - suscripciones:   altas de alertas por correo, a tasa baja (cada una manda un correo a MailHog).
+ *   - registros:       REGISTROS personas piden una cuenta del panel por la API real (POST /api/cuentas/registro), a
+ *                      TASA_REGISTROS por segundo: el backend valida, cifra la clave con BCrypt, audita y envía el correo
+ *                      de verificación. Cada alta aparece en `usuarios` en cuanto responde 202 (ADR-088).
  *
  * Todo se controla por variables de entorno:
  *   BASE_URL            http://localhost:8081   (dentro de la red de Docker: http://backend:8080)
@@ -23,6 +26,8 @@
  *   VEEDORES            correos separados por coma de cuentas VEEDOR sin segundo factor
  *   CLAVE_VEEDORES      DemoAguaVigia-2026
  *   SUSCRIPCIONES       1        altas de suscripción por segundo (0 = ninguna)
+ *   REGISTROS           0        cuentas nuevas por la API (0 = ninguna)
+ *   TASA_REGISTROS      50       registros por segundo; el techo medido en un PC de 12 hilos es ≈ 160/s, lo pone el BCrypt
  *
  * PRERREQUISITOS: el backend con el perfil `carga` (docker-compose.carga.yml), que vacía el límite por IP: k6 sale de
  * una sola IP y sin eso mediría el 429 del limitador. `scripts/carga/demo.mjs` lo prepara todo y lanza esto dentro de
@@ -48,6 +53,10 @@ const VEEDORES_TASA = Number(__ENV.VEEDORES_TASA || 2);
 const CLAVE_VEEDORES = __ENV.CLAVE_VEEDORES || 'DemoAguaVigia-2026';
 const SUSCRIPCIONES = Number(__ENV.SUSCRIPCIONES || 1);
 const VEEDORES = (__ENV.VEEDORES || '').split(',').map((c) => c.trim()).filter(Boolean);
+const REGISTROS = Number(__ENV.REGISTROS || 0);
+const TASA_REGISTROS = Number(__ENV.TASA_REGISTROS || 50);
+// Dominio reservado: las cuentas de la carga se cuentan y se borran por él (agregar-usuarios.mjs no lo usa).
+const DOMINIO_REGISTROS = 'carga.aguavigia.local';
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 let avisosDeFallo = 0;
@@ -62,6 +71,8 @@ const reportesFallidos = new Counter('reportes_fallidos');
 const confirmacionesAceptadas = new Counter('confirmaciones_aceptadas');
 const sesionesVeedor = new Counter('sesiones_veedor');
 const suscripcionesCreadas = new Counter('suscripciones_creadas');
+const registrosAceptados = new Counter('registros_aceptados');
+const registrosFallidos = new Counter('registros_fallidos');
 
 const escenarios = {
     reportes: {
@@ -109,12 +120,28 @@ if (SUSCRIPCIONES > 0) {
     };
 }
 
+if (REGISTROS > 0) {
+    escenarios.registros = {
+        executor: 'constant-arrival-rate',
+        rate: TASA_REGISTROS,
+        timeUnit: '1s',
+        // Su propia duración: a ≈ 160/s como techo, 20 000 altas no caben en la ventana de 60 s de los reportes.
+        duration: `${Math.max(1, Math.ceil(REGISTROS / TASA_REGISTROS))}s`,
+        // Cada alta dura al menos 100 ms (RNF024) y bajo carga llega a varios cientos: hacen falta muchos VUs.
+        preAllocatedVUs: Math.min(1500, Math.max(50, TASA_REGISTROS * 2)),
+        maxVUs: 3000,
+        exec: 'registro',
+    };
+}
+
 export const options = {
     scenarios: escenarios,
     thresholds: {
         // RNF002: el 95 % de los reportes se registra en menos de 1 s, también con la avería masiva en marcha.
         'http_req_duration{grupo:reporte}': ['p(95)<1000'],
         'http_req_duration{grupo:lectura}': ['p(95)<1000'],
+        // Un alta cifra la clave con BCrypt y dura al menos 100 ms a propósito: su umbral es más holgado.
+        ...(REGISTROS > 0 ? { 'http_req_duration{grupo:registro}': ['p(95)<2000'] } : {}),
         http_req_failed: ['rate<0.01'],
         checks: ['rate>0.99'],
         // Si el generador no da abasto, las iteraciones se descartan: eso es del banco de pruebas, y se ve aquí.
@@ -301,5 +328,29 @@ export function suscriptor(data) {
         { headers: JSON_HEADERS, tags: { grupo: 'suscripcion' } });
     if (check(respuesta, { 'la suscripción se creó': (r) => r.status >= 200 && r.status < 300 })) {
         suscripcionesCreadas.add(1);
+    }
+}
+
+const NOMBRES_REGISTRO = ['Ana', 'Luis', 'María', 'Carlos', 'Daniela', 'Jorge', 'Valentina', 'Andrés', 'Camila', 'Rafael', 'Yuleidis', 'Keiner'];
+const APELLIDOS_REGISTRO = ['Pérez', 'Gómez', 'Marrugo', 'Julio', 'Padilla', 'Castro', 'Barrios', 'Mercado', 'Herrera', 'Ospino', 'Díaz', 'Arrieta'];
+
+export function registro(data) {
+    const indice = exec.scenario.iterationInTest;
+    if (indice >= REGISTROS) return;
+    const cuerpo = {
+        correo: `r-${data.corrida}-${indice}@${DOMINIO_REGISTROS}`.toLowerCase(),
+        nombre: `${elegir(NOMBRES_REGISTRO)} ${elegir(APELLIDOS_REGISTRO)} ${elegir(APELLIDOS_REGISTRO)}`,
+        clave: CLAVE_VEEDORES,
+        barrioId: elegir(data.ids),
+    };
+    const respuesta = http.post(`${BASE_URL}/api/cuentas/registro`, JSON.stringify(cuerpo), {
+        headers: JSON_HEADERS,
+        tags: { grupo: 'registro' },
+    });
+    if (check(respuesta, { 'el registro se aceptó (202)': (r) => r.status === 202 })) {
+        registrosAceptados.add(1);
+    } else {
+        registrosFallidos.add(1);
+        if (avisosDeFallo++ < 2) console.warn(`registro fallido: status=${respuesta.status} cuerpo=${String(respuesta.body).slice(0, 200)}`);
     }
 }

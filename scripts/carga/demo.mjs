@@ -30,6 +30,10 @@
  *   --lectores 150         lecturas del mapa por segundo
  *   --veedores 2           inicios de sesión de veedores por segundo
  *   --suscripciones 1      altas de suscripción por segundo
+ *   --registros 0          cuentas nuevas por la API real (POST /api/cuentas/registro), en paralelo con los reportes
+ *   --tasa-registros 50    registros por segundo. Con los reportes a la vez, 50/s cumple todos los umbrales; solos, el techo
+ *                          medido es ≈ 160/s en un PC de 12 hilos (lo pone el BCrypt de cada alta)
+ *   --sin-correo           los registros no envían el correo de verificación (no llenan MailHog; ADR-088)
  *   --rampa-sse 1500       conexiones SSE nuevas por segundo, por contenedor
  *   --esperar              esperar Enter antes de disparar la carga
  *   --restaurar            al terminar, volver Mongo y Redis al estado de antes (usa el respaldo del paso 2)
@@ -58,6 +62,9 @@ const { values } = parseArgs({
         lectores: { type: 'string', default: '150' },
         veedores: { type: 'string', default: '2' },
         suscripciones: { type: 'string', default: '1' },
+        registros: { type: 'string', default: '0' },
+        'tasa-registros': { type: 'string', default: '50' },
+        'sin-correo': { type: 'boolean', default: false },
         'rampa-sse': { type: 'string', default: '1500' },
         esperar: { type: 'boolean', default: false },
         'sin-respaldo': { type: 'boolean', default: false },
@@ -73,13 +80,18 @@ const VENTANA = Number(values.ventana);
 const CONECTADOS = Number(values.conectados);
 const FOCOS = Number(values.focos);
 const RAMPA_SSE = Number(values['rampa-sse']);
+const REGISTROS = Number(values.registros);
+const TASA_REGISTROS = Number(values['tasa-registros']);
+// Los registros llevan su propia duración (su techo es ≈ 160/s): la carga dura lo que tarde la más larga de las dos.
+const SEGUNDOS_REGISTROS = REGISTROS > 0 ? Math.ceil(REGISTROS / TASA_REGISTROS) : 0;
+const DURACION = Math.max(Number(values.ventana), SEGUNDOS_REGISTROS);
 const PROYECTO = values.proyecto;
 const RED = `${PROYECTO}_aguavigia`;
 const MINIMO_CUENTAS = 30000;
 const MAX_SSE_POR_CONTENEDOR = 20000;
 
 for (const [nombre, valor, minimo] of [['usuarios', USUARIOS, 1], ['ventana', VENTANA, 5], ['conectados', CONECTADOS, 0],
-    ['focos', FOCOS, 0], ['rampa-sse', RAMPA_SSE, 1]]) {
+    ['focos', FOCOS, 0], ['rampa-sse', RAMPA_SSE, 1], ['registros', REGISTROS, 0], ['tasa-registros', TASA_REGISTROS, 1]]) {
     if (!Number.isInteger(valor) || valor < minimo) {
         console.error(`--${nombre} debe ser un entero mayor o igual que ${minimo}`);
         process.exit(1);
@@ -160,6 +172,7 @@ async function foto(db) {
         eventos: await db.collection('eventos_bitacora').countDocuments({}),
         usuarios: await db.collection('usuarios').countDocuments({}),
         suscripciones: await db.collection('suscripciones').countDocuments({}),
+        registrosDeLaCarga: await db.collection('usuarios').countDocuments({ correo: { $regex: '@carga\\.aguavigia\\.local$' } }),
         estados: Object.fromEntries(sectores.map((s) => [s.slug, s.estadoActual ?? null])),
         nombres: Object.fromEntries(sectores.map((s) => [s.slug, s.nombre])),
         eventosPorTipo: Object.fromEntries(porTipo.map((t) => [t._id, t.n])),
@@ -249,7 +262,8 @@ function leerResumenK6() {
 }
 
 async function main() {
-    console.log(`Demo de carga — ${formato(USUARIOS)} reportes en ${VENTANA} s, ${formato(CONECTADOS)} conexiones en vivo, ${FOCOS} focos.`);
+    console.log(`Demo de carga — ${formato(USUARIOS)} reportes en ${VENTANA} s, ${formato(CONECTADOS)} conexiones en vivo, ${FOCOS} focos`
+        + (REGISTROS > 0 ? `, ${formato(REGISTROS)} registros de cuentas a ${TASA_REGISTROS}/s (${SEGUNDOS_REGISTROS} s)${values['sin-correo'] ? ' sin correo' : ''}.` : '.'));
     fs.mkdirSync(DIR_RESULTADOS, { recursive: true });
 
     paso('Comprobando el stack');
@@ -285,7 +299,8 @@ async function main() {
 
         if (!values['sin-reinicio']) {
             paso('Reiniciando el backend con el perfil de carga');
-            const r = compose(true, ['up', '-d', '--build', '--force-recreate', 'backend'], { stdio: 'ignore' });
+            const entorno = { ...ENV_DOCKER, CORREO_CUENTAS_HABILITADO: values['sin-correo'] ? 'false' : 'true' };
+            const r = compose(true, ['up', '-d', '--build', '--force-recreate', 'backend'], { stdio: 'ignore', env: entorno });
             if (r.status !== 0) fallar('No se pudo levantar el backend con docker-compose.carga.yml.');
             backendConPerfilCarga = true;
         }
@@ -310,7 +325,7 @@ async function main() {
             const cuantos = Math.ceil(CONECTADOS / MAX_SSE_POR_CONTENEDOR);
             const porContenedor = Math.ceil(CONECTADOS / cuantos);
             const segundosRampa = Math.ceil(porContenedor / RAMPA_SSE);
-            const duracion = segundosRampa + 10 + VENTANA + 45;
+            const duracion = segundosRampa + 10 + DURACION + 45;
             paso(`Abriendo ${formato(CONECTADOS)} conexiones en vivo (${cuantos} contenedor${cuantos > 1 ? 'es' : ''}, ${segundosRampa} s de rampa)`);
             for (let i = 1; i <= cuantos; i++) {
                 const nombre = `aguavigia-carga-sse-${i}`;
@@ -333,7 +348,8 @@ async function main() {
         }
 
         // ── k6 ────────────────────────────────────────────────────────────────────────────────────────────
-        paso(`Disparando ${formato(USUARIOS)} reportes en ${VENTANA} s — panel en vivo: http://localhost:5665`);
+        paso(`Disparando ${formato(USUARIOS)} reportes en ${VENTANA} s${REGISTROS > 0 ? ` y ${formato(REGISTROS)} registros en ${SEGUNDOS_REGISTROS} s` : ''} — panel en vivo: http://localhost:5665`);
+        console.log('  Para ver crecer la base en vivo, en otra terminal: docker compose run --rm sembrador monitor');
         const inicioCarga = Date.now();
         const detenerMuestreo = iniciarMuestreo();
         const argumentosK6 = ['run', '--rm', '--name', 'aguavigia-carga-k6', '--network', RED, '-p', '5665:5665',
@@ -342,6 +358,7 @@ async function main() {
             '-e', 'BASE_URL=http://backend:8080', '-e', `USUARIOS=${USUARIOS}`, '-e', `VENTANA=${VENTANA}`,
             '-e', `FOCOS=${FOCOS}`, '-e', `LECTORES=${values.lectores}`, '-e', `VEEDORES_TASA=${values.veedores}`,
             '-e', `SUSCRIPCIONES=${values.suscripciones}`, '-e', `VEEDORES=${veedores.join(',')}`,
+            '-e', `REGISTROS=${REGISTROS}`, '-e', `TASA_REGISTROS=${TASA_REGISTROS}`,
             '-e', `CORRIDA=${sello}`,
             '-v', `${DIR_CARGA}:/carga:ro`, '-v', `${DIR_RESULTADOS}:/resultados`,
             'grafana/k6', 'run', '--summary-export=/resultados/resumen.json', '/carga/flujo-ciudadano.js'];
@@ -378,7 +395,8 @@ async function main() {
         dice('═══════════════════════════════════════════════════════════════════');
         dice(` RESUMEN DE LA DEMO DE CARGA — ${sello}`);
         dice('═══════════════════════════════════════════════════════════════════');
-        dice(` Escala pedida: ${formato(USUARIOS)} reportes en ${VENTANA} s · ${formato(CONECTADOS)} conexiones en vivo · ${FOCOS} focos`);
+        dice(` Escala pedida: ${formato(USUARIOS)} reportes en ${VENTANA} s · ${formato(CONECTADOS)} conexiones en vivo · ${FOCOS} focos`
+            + (REGISTROS > 0 ? ` · ${formato(REGISTROS)} registros a ${TASA_REGISTROS}/s` : ''));
         dice(` Duración real de la carga: ${segundosCarga.toFixed(0)} s · k6 ${codigoK6 === 0 ? 'con todos los umbrales cumplidos' : `terminó con código ${codigoK6} (algún umbral NO se cumplió)`}`);
         dice();
         if (k6) {
@@ -399,6 +417,14 @@ async function main() {
             dice(`   peticiones: ${formato(k6.valor('http_reqs', 'count'))} (${formato(k6.valor('http_reqs', 'rate'))}/s) · con error: ${typeof fallos === 'number' ? (fallos * 100).toFixed(2) : '—'} %`);
             dice(`   sesiones de veedor: ${formato(k6.valor('sesiones_veedor', 'count') ?? 0)} · suscripciones creadas: ${formato(k6.valor('suscripciones_creadas', 'count') ?? 0)}`);
             dice();
+            if (REGISTROS > 0) {
+                const claveRegistro = 'http_req_duration{grupo:registro}';
+                dice(` REGISTRO DE CUENTAS (POST /api/cuentas/registro${values['sin-correo'] ? ', sin correo' : ', con correo a MailHog'})`);
+                dice(`   aceptados (202): ${formato(k6.valor('registros_aceptados', 'count') ?? 0)} de ${formato(REGISTROS)} · con error: ${formato(k6.valor('registros_fallidos', 'count') ?? 0)}`);
+                dice(`   latencia: mediana ${ms(k6.valor(claveRegistro, 'med'))} · p95 ${ms(k6.valor(claveRegistro, 'p(95)'))} · máx ${ms(k6.valor(claveRegistro, 'max'))} (cada alta dura ≥ 100 ms a propósito, RNF024)`);
+                dice(`   en Mongo: ${formato(despues.registrosDeLaCarga)} cuentas con correo @carga.aguavigia.local, en PENDIENTE_VERIFICACION`);
+                dice();
+            }
         } else {
             dice(' (k6 no dejó resumen.json: mira la salida de arriba)');
             dice();

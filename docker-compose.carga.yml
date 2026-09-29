@@ -4,7 +4,9 @@
 #   docker compose -f docker-compose.yml -f docker-compose.carga.yml up -d --force-recreate backend
 #
 # Sin este archivo el backend arranca como siempre, con el límite de peticiones por IP y el tope normal de SSE.
+# CORREO_CUENTAS_HABILITADO=false (demo.mjs --sin-correo) descarta los correos de cuentas del registro masivo (ADR-088).
 services:
   backend:
     environment:
       SPRING_PROFILES_ACTIVE: docker,carga
+      AGUAVIGIA_CORREO_CUENTAS_HABILITADO: ${CORREO_CUENTAS_HABILITADO:-true}

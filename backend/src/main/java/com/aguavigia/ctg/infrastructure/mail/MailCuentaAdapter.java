@@ -7,6 +7,7 @@ import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
@@ -24,8 +25,12 @@ import java.util.Map;
  * Hay una excepción deliberada a "no propagar": si el correo de invitación no sale, quien invita se
  * queda con una cuenta INVITADA que nadie podrá activar nunca, porque el enlace solo existía en ese
  * mensaje. Ese caso sí se avisa (ver enviarInvitacion).
+ *
+ * Con `aguavigia.correo.cuentas-habilitado=false` (solo la demo de carga, ADR-088) lo sustituye
+ * CorreoDeCuentaDescartadoAdapter.
  */
 @Component
+@ConditionalOnProperty(prefix = "aguavigia.correo", name = "cuentas-habilitado", havingValue = "true", matchIfMissing = true)
 public class MailCuentaAdapter implements NotificacionCuentaPort {
 
     private static final Logger log = LoggerFactory.getLogger(MailCuentaAdapter.class);
