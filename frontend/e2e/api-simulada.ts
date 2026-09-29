@@ -1,5 +1,5 @@
 import type { Page, Route } from '@playwright/test'
-import { cumplimientoDeEjemplo, serieDeEjemplo } from '../src/pruebas/datos/historia'
+import { cumplimientoDeEjemplo, estadisticasDeEjemplo, serieDeEjemplo } from '../src/pruebas/datos/historia'
 
 // Datos de prueba: tres barrios con coordenadas aproximadas de Cartagena. No describen su estado real.
 function cuadro(lon: number, lat: number) {
@@ -46,6 +46,7 @@ export function problema(estado: number, tipo: string, detalle: string) {
 
 interface Opciones {
   sectores?: (route: Route) => Promise<void>
+  estadisticas?: (route: Route) => Promise<void>
   reporte?: (route: Route) => Promise<void>
   confirmacion?: (route: Route) => Promise<void>
   cumplimiento?: (route: Route) => Promise<void>
@@ -79,6 +80,8 @@ export async function simularApi(page: Page, opciones: Opciones = {}) {
   })
   await page.route('**/api/sectores', opciones.sectores ?? ((route) =>
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(listado()) })))
+  await page.route('**/api/estadisticas', opciones.estadisticas ?? ((route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(estadisticasDeEjemplo) })))
   await page.route('**/api/reportes', async (route) => {
     reportes.push(route.request().postDataJSON())
     if (opciones.reporte) return opciones.reporte(route)
