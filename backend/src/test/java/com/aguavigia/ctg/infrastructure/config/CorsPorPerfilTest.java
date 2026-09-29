@@ -31,7 +31,7 @@ class CorsPorPerfilTest {
             CorsProperties cors = contexto.getBean(CorsProperties.class);
             assertThat(cors.habilitado()).isTrue();
             assertThat(cors.origenesPermitidos()).containsExactlyInAnyOrder(
-                    "http://localhost:5173", "http://localhost:3000", "http://localhost:4200");
+                    "http://localhost:5173", "http://localhost:4173", "http://localhost:3000", "http://localhost:4200");
         });
     }
 

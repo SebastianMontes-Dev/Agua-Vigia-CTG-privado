@@ -432,15 +432,15 @@ cuando su entregable se demuestra funcionando**, no por calendario.
   contra el backend real en CI. Como F2, queda la revisión visual del dueño en un teléfono real.
 
 ### F4 — Avisos (M4)
-- [ ] Formulario de suscripción y pantallas de confirmar y dar de baja (§6.6), con doble confirmación; abrir un
+- [x] Formulario de suscripción y pantallas de confirmar y dar de baja (§6.6), con doble confirmación; abrir un
       enlace del correo **nunca** ejecuta la acción.
-- [ ] **Backend en el mismo PR:** `MailNotificacionAdapter`
+- [x] **Backend en el mismo PR:** `MailNotificacionAdapter`
       (`backend/src/main/java/com/aguavigia/ctg/infrastructure/mail/`) arma hoy `urlReportar` como
       `urlBasePublica + "/api/sectores/{id}"` y los enlaces de confirmar y dar de baja hacia `/api/suscripciones/…`.
       Hay que apuntarlos a `/sectores/{id}`, `/avisos/confirmar` y `/avisos/baja` con **una URL pública explícita
       del frontend** (propiedad nueva, decidida por el dueño; no se reutiliza `url-publica`, que hoy es la API en
       `:8081`). Se registra en un ADR con su nombre y se actualizan sus pruebas y `comportamiento-del-sistema.md`.
-- [ ] E2E con Mailhog (`:8025`): suscribirse, abrir el enlace, confirmar y darse de baja.
+- [x] E2E con Mailhog (`:8025`): suscribirse, abrir el enlace, confirmar y darse de baja.
 
 ### F5 — Cuentas y panel (M5, M15)
 - [ ] Ingreso con todos los errores de §6.7, alta de TOTP con QR local, `yo`, cierre de sesión y reacción a `401`.

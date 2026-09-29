@@ -1,0 +1,135 @@
+@layer componentes {
+  .pagina {
+    padding-top: var(--espacio-7);
+    padding-bottom: var(--espacio-7);
+  }
+
+  .columnas {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, .8fr);
+    align-items: start;
+    gap: var(--espacio-7);
+  }
+
+  .tarea {
+    display: grid;
+    justify-items: start;
+    gap: var(--espacio-5);
+    min-width: 0;
+  }
+
+  .rotulo {
+    color: var(--tinta-2);
+    font-size: var(--texto-xs);
+    font-weight: 700;
+    letter-spacing: .1em;
+  }
+
+  .formulario {
+    display: grid;
+    gap: var(--espacio-4);
+    width: 100%;
+    max-width: 640px;
+  }
+
+  .campo {
+    display: grid;
+    gap: var(--espacio-1);
+    font-size: var(--texto-s);
+    font-weight: 600;
+  }
+
+  .campo input {
+    width: 100%;
+    min-height: var(--objetivo-tactil);
+    padding: var(--espacio-2) 0;
+    border: 0;
+    border-bottom: 1px solid var(--tinta-2);
+    border-radius: 0;
+    background: transparent;
+    font-size: var(--texto-m);
+    font-weight: 400;
+  }
+
+  .campo input::placeholder { color: var(--tinta-2); }
+
+  .elegidos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--espacio-2);
+    list-style: none;
+    padding: 0;
+  }
+
+  .elegidos button {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--espacio-2);
+    min-height: var(--objetivo-tactil);
+    padding: 0 var(--espacio-3);
+    border: 1px solid var(--tinta-2);
+    border-radius: var(--radio-pastilla);
+    background: transparent;
+    color: var(--tinta);
+    cursor: pointer;
+  }
+
+  .elegidos button span {
+    color: var(--cardenillo);
+    font-size: var(--texto-l);
+    line-height: 1;
+  }
+
+  .enlace {
+    min-height: var(--objetivo-tactil);
+    border: 0;
+    background: transparent;
+    color: var(--cardenillo);
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  .respuesta {
+    display: block;
+    padding-top: var(--espacio-3);
+    border-top: 1px solid var(--tinta);
+  }
+
+  .respuesta p { color: var(--tinta-2); }
+
+  .explicacion {
+    display: grid;
+    justify-items: start;
+    gap: var(--espacio-4);
+    padding-top: var(--espacio-4);
+    border-top: 1px solid var(--tinta);
+    font-size: var(--texto-s);
+  }
+
+  .explicacion h2 { font-size: var(--texto-l); }
+  .explicacion p { color: var(--tinta-2); }
+  .explicacion strong { color: var(--tinta); }
+
+  .detalles { width: 100%; }
+  .detalles summary {
+    display: flex;
+    align-items: center;
+    min-height: var(--objetivo-tactil);
+    color: var(--cardenillo);
+    text-decoration: underline;
+    cursor: pointer;
+  }
+  .detalles[open] { display: grid; gap: var(--espacio-2); }
+  .detalles a { justify-self: start; }
+
+  @media (max-width: 700px) {
+    .pagina {
+      padding-top: var(--espacio-5);
+      padding-bottom: var(--espacio-5);
+    }
+    .columnas { grid-template-columns: 1fr; gap: var(--espacio-5); }
+    .tarea { gap: var(--espacio-4); }
+    .formulario { gap: var(--espacio-3); }
+    .explicacion { gap: var(--espacio-2); }
+  }
+}
