@@ -1,115 +1,113 @@
-import { MongoClient } from 'mongodb';
+#!/usr/bin/env node
+// Deja el mapa de la demo con barrios afectados **por el camino real**: envía reportes ciudadanos a la API
+// (`POST /api/reportes`) con huellas distintas hasta que el consenso del backend cambia el estado del barrio.
+// El evento de la bitácora lo escribe el backend, con sus reportes de sustento (RF011): este script no toca
+// Mongo, no borra la bitácora (RF028) ni marca barrios «con servicio» sin dato (ADR-014).
+//
+// Uso (con el backend levantado y los sectores sembrados):
+//   node scripts/sembrar-demo.mjs
+//   node scripts/sembrar-demo.mjs --sin-agua 3 --presion-baja 2
+//
+// Variables: API_URL (por defecto http://localhost:8081).
+//
+// Elige los barrios de menor población (umbral de consenso más bajo) que aún no están afectados, y deja fuera
+// los que usan las pruebas E2E. El límite por IP de /api/reportes (30 por minuto) se respeta: ante un 429 espera
+// lo que indique Retry-After.
 
-// directConnection=true: Mongo local es un replica set de un nodo; sin esto el driver
-// descubre que el miembro se anuncia como `mongo:27017` (nombre solo resoluble dentro de
-// Docker) e intenta reconectarse ahi.
-const MONGODB_URI = process.env.MONGODB_URI ?? 'mongodb://localhost:27017/?directConnection=true';
-const DB_NAME = process.env.MONGODB_DB ?? 'aguavigia';
+import { parseArgs } from 'node:util';
+import { randomBytes } from 'node:crypto';
 
-async function main() {
-  const client = new MongoClient(MONGODB_URI);
-  try {
-    await client.connect();
-    const db = client.db(DB_NAME);
-    const sectoresCol = db.collection('sectores');
-    const bitacoraCol = db.collection('eventos_bitacora');
-    const cortesCol = db.collection('cortes');
+const { values } = parseArgs({
+  options: {
+    'sin-agua': { type: 'string', default: '2' },
+    'presion-baja': { type: 'string', default: '2' },
+  },
+});
+const API = (process.env.API_URL ?? 'http://localhost:8081').replace(/\/$/, '');
+const RESERVADOS = new Set(['zona-industrial', 'alameda-la-victoria', 'arroyo-grande', 'manga']);
+const ESTADO_POR_TIPO = { SIN_AGUA: 'SIN_SERVICIO', PRESION_BAJA: 'PRESION_BAJA' };
+// Espejo de la estrategia proporcional por defecto (ConsensoConfig): max(3, ceil(poblacion * 0,001)).
+const umbral = (poblacion) => Math.max(3, Math.ceil((poblacion ?? 0) * 0.001));
+const esperar = (ms) => new Promise((resolver) => setTimeout(resolver, ms));
+const huella = () => `demo-${randomBytes(20).toString('hex')}`;
 
-    const sectores = await sectoresCol.find({}).toArray();
-    if (sectores.length === 0) {
-      console.error('No hay sectores. Ejecuta sembrar-sectores primero.');
-      return;
+async function reportar(sectorId, tipo) {
+  for (;;) {
+    const respuesta = await fetch(`${API}/api/reportes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sectorId, tipo, huella: huella() }),
+    });
+    if (respuesta.status === 429) {
+      const segundos = Number(respuesta.headers.get('retry-after') ?? 5);
+      process.stdout.write(`  límite por IP: espero ${segundos} s\n`);
+      await esperar(segundos * 1000);
+      continue;
     }
-
-    console.log(`Actualizando estados dinámicos para ${sectores.length} sectores...`);
-
-    const ahora = new Date();
-    
-    // Asignar distribución realista de estados exclusivamente en el área urbana continental
-    const sinServicioSlugs = ['el-pozon', 'olaya-herrera', 'nelson-mandela', 'san-jose-de-los-campanos', 'ceballos', 'armenia', 'lo-amador', 'el-carmen'];
-    const presionBajaSlugs = ['bocagrande', 'el-laguito', 'castillogrande', 'manga', 'getsemani', 'centro', 'crespo', 'marbella', 'cabrero', 'torices', 'pie-de-la-popa'];
-    const corteProgSlugs = ['zaragocilla', 'la-campiña', 'los-alpes', 'terron-de-azucar', 'providencia', 'santa-monica', 'las-gaviotas'];
-
-    const bitacoraEventos = [];
-
-    for (const s of sectores) {
-      // Ignorar islas ultra remotas para estados de corte
-      const esIslaLejana = ['isla-fuerte', 'san-bernardo', 'islas-del-rosario'].includes(s.slug);
-      let estado = 'CON_SERVICIO';
-      if (!esIslaLejana) {
-        if (sinServicioSlugs.includes(s.slug)) {
-          estado = 'SIN_SERVICIO';
-        } else if (presionBajaSlugs.includes(s.slug)) {
-          estado = 'PRESION_BAJA';
-        } else if (corteProgSlugs.includes(s.slug)) {
-          estado = 'CORTE_PROGRAMADO';
-        } else {
-          const r = Math.random();
-          if (r < 0.03) estado = 'SIN_SERVICIO';
-          else if (r < 0.08) estado = 'PRESION_BAJA';
-          else if (r < 0.12) estado = 'CORTE_PROGRAMADO';
-        }
-      }
-
-      const tiempoActualizado = new Date(ahora.getTime() - Math.floor(Math.random() * 3600 * 1000 * 4));
-      await sectoresCol.updateOne(
-        { _id: s._id },
-        { 
-          $set: { 
-            estadoActual: estado,
-            estadoActualizadoEn: tiempoActualizado
-          } 
-        }
-      );
-
-      // Generar evento de bitácora correspondiente si tiene incidencia
-      if (estado === 'SIN_SERVICIO') {
-        bitacoraEventos.push({
-          tipo: 'CORTE_CONFIRMADO_POR_CIUDADANOS',
-          sectorId: s.slug,
-          timestamp: tiempoActualizado,
-          descripcion: `Masa crítica de reportes ciudadanos confirmó interrupción del suministro de agua en el barrio ${s.nombre}.`
-        });
-      } else if (estado === 'PRESION_BAJA') {
-        bitacoraEventos.push({
-          tipo: 'CORTE_CONFIRMADO_POR_CIUDADANOS',
-          sectorId: s.slug,
-          timestamp: tiempoActualizado,
-          descripcion: `Reportes comunitarios constantes indican caída severa de presión en las redes de ${s.nombre}.`
-        });
-      } else if (estado === 'CORTE_PROGRAMADO') {
-        bitacoraEventos.push({
-          tipo: 'CORTE_ANUNCIADO',
-          sectorId: s.slug,
-          timestamp: tiempoActualizado,
-          descripcion: `Aviso oficial de corte preventivo por mantenimiento de red matriz en ${s.nombre}.`
-        });
-      } else {
-        // Algunos eventos de restablecimiento
-        if (Math.random() < 0.1) {
-          bitacoraEventos.push({
-            tipo: 'CORTE_RESTABLECIDO',
-            sectorId: s.slug,
-            timestamp: tiempoActualizado,
-            descripcion: `Servicio normalizado y presión regular restablecida en el sector ${s.nombre}.`
-          });
-        }
-      }
+    if (respuesta.status !== 201) {
+      throw new Error(`POST /api/reportes (${sectorId}, ${tipo}) respondió ${respuesta.status}: ${await respuesta.text()}`);
     }
-
-    // Ordenar bitácora por fecha descendente
-    bitacoraEventos.sort((a, b) => b.timestamp - a.timestamp);
-
-    await bitacoraCol.deleteMany({});
-    if (bitacoraEventos.length > 0) {
-      await bitacoraCol.insertMany(bitacoraEventos);
-    }
-
-    console.log(`✅ Estados de sectores actualizados.`);
-    console.log(`✅ ${bitacoraEventos.length} eventos registrados en la bitácora pública.`);
-  } finally {
-    await client.close();
+    return;
   }
 }
 
-main().catch(console.error);
+async function estadoDe(sectorId) {
+  const respuesta = await fetch(`${API}/api/sectores/${sectorId}`);
+  if (!respuesta.ok) throw new Error(`GET /api/sectores/${sectorId} respondió ${respuesta.status}`);
+  return (await respuesta.json()).estado;
+}
+
+async function esperarEstado(sectorId, esperado) {
+  // El consenso se evalúa como mucho una vez por segundo y sector, más el barrido (ADR-053).
+  for (let intento = 0; intento < 20; intento++) {
+    if (await estadoDe(sectorId) === esperado) return true;
+    await esperar(500);
+  }
+  return false;
+}
+
+// El backend sirve los sectores desde una caché de Redis de hasta 15 s, y sembrar-sectores.mjs escribe directo en
+// Mongo: justo después de sembrar, la lista puede llegar vacía o vieja. Se espera a que expire antes de rendirse.
+async function leerSectores() {
+  for (let intento = 0; ; intento++) {
+    const respuesta = await fetch(`${API}/api/sectores`);
+    if (!respuesta.ok) throw new Error(`GET /api/sectores respondió ${respuesta.status}: ¿está levantado el backend en ${API}?`);
+    const { sectores } = await respuesta.json();
+    if (sectores.length > 0) return sectores;
+    if (intento >= 8) throw new Error('No hay sectores: corre antes node scripts/sembrar-sectores.mjs');
+    process.stdout.write('  sin sectores todavía (caché del backend): espero 3 s\n');
+    await esperar(3000);
+  }
+}
+
+async function main() {
+  const sectores = await leerSectores();
+
+  const candidatos = sectores
+    .filter((s) => !RESERVADOS.has(s.id) && s.estado !== 'SIN_SERVICIO' && s.estado !== 'PRESION_BAJA' && s.poblacion)
+    .sort((a, b) => a.poblacion - b.poblacion);
+  const plan = [
+    ...Array(Number(values['sin-agua'])).fill('SIN_AGUA'),
+    ...Array(Number(values['presion-baja'])).fill('PRESION_BAJA'),
+  ].map((tipo, i) => ({ tipo, sector: candidatos[i] })).filter((p) => p.sector);
+
+  let fallidos = 0;
+  for (const { tipo, sector } of plan) {
+    const necesarios = umbral(sector.poblacion);
+    process.stdout.write(`${sector.nombre} (${sector.id}): ${necesarios} reportes ${tipo}\n`);
+    for (let i = 0; i < necesarios; i++) await reportar(sector.id, tipo);
+    if (await esperarEstado(sector.id, ESTADO_POR_TIPO[tipo])) {
+      process.stdout.write(`  ✓ el consenso lo pasó a ${ESTADO_POR_TIPO[tipo]}\n`);
+    } else {
+      fallidos++;
+      process.stdout.write(`  ✗ el estado no cambió (¿otra estrategia o umbral de consenso?)\n`);
+    }
+  }
+  process.stdout.write(`Listo: ${plan.length - fallidos} de ${plan.length} barrios cambiaron por consenso real.\n`);
+  if (fallidos > 0) process.exitCode = 1;
+}
+
+main().catch((error) => {
+  console.error(error.message);
+  process.exit(1);
+});

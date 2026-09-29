@@ -207,6 +207,9 @@ resilience4j:
       rss: *cortacircuitosDeColector
 
 springdoc:
+  # Solo los controladores de la API. Sin esto, un controlador de prueba que levante el contexto
+  # (ControladorDePruebaRateLimit) se colaba en el contrato generado (BUG-121).
+  packages-to-scan: com.aguavigia.ctg.api
   api-docs:
     path: /v3/api-docs
     # 3.0.1 y no 3.1: en 3.1 `nullable` deja de ser palabra clave y springdoc la descarta en vez

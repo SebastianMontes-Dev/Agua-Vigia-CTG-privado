@@ -1422,30 +1422,6 @@ paths:
                 $ref: "#/components/schemas/ProblemDetail"
       security:
       - bearerAuth: []
-  /sin-proteger:
-    get:
-      tags:
-      - controlador-de-prueba-rate-limit
-      operationId: sinProteger
-      responses:
-        "200":
-          description: OK
-          content:
-            '*/*':
-              schema:
-                type: string
-  /protegida:
-    get:
-      tags:
-      - controlador-de-prueba-rate-limit
-      operationId: protegida
-      responses:
-        "200":
-          description: OK
-          content:
-            '*/*':
-              schema:
-                type: string
   /api/veedor/yo:
     get:
       tags:

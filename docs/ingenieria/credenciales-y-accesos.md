@@ -30,11 +30,8 @@ y le pasas al agente solo la salida, sin la clave.
 | `ADMIN_INICIAL_CORREO` | Correo de esa cuenta ADMIN | `.env` | No es secreto; lo eliges |
 | `IOT_KEY` | Clave de los sensores IoT (`POST /api/iot/presion`) | `.env` | Vacía = el endpoint responde 503. Inventar otra y ponerla en los sensores |
 | `TELEGRAM_BOT_TOKEN` | Token del bot de Telegram (RF041); lo entrega `@BotFather` | `.env` y tu gestor de contraseñas | Revocarlo con `/revoke` en `@BotFather` y pedir otro. Vacío = el canal queda apagado |
-| `MONGO_ROOT_USERNAME` / `MONGO_ROOT_PASSWORD` | Usuario de Mongo (perfil de producción) | `.env` | En local no se usa: el compose de desarrollo no exige clave |
-| `REDIS_PASSWORD` | Clave de Redis, solo producción | `.env` | Ídem |
-| `MAIL_USERNAME` / `MAIL_PASSWORD` | SMTP real, solo producción | `.env` | En local el correo va a MailHog (`localhost:8025`), sin clave |
 | `GITHUB_PERSONAL_ACCESS_TOKEN` | Lo usa el servidor MCP de GitHub (`.mcp.json` lo lee como `${GITHUB_PERSONAL_ACCESS_TOKEN}`) | `.env` y GitHub | Revocarlo en GitHub y crear otro |
-| **Segundo factor (TOTP) del ADMIN** | Segunda comprobación del login del panel | Autenticador y gestor | Sin verificar cómo se reinicia: mirar `docs/api/cuentas-y-sesion.md` antes de depender de ello |
+| **Segundo factor (TOTP) del ADMIN** | Segunda comprobación del login del panel | Autenticador y gestor | Si se pierde: `scripts/restablecer-admin.mjs` (§3) |
 | Cuentas `VEEDOR`/`OBSERVADOR` sembradas | Cuentas de demostración | Clave pública de demo, ver §4 | Resembrar |
 
 `.env.example` es la plantilla con los nombres y comentarios de cada variable.
@@ -49,11 +46,13 @@ y le pasas al agente solo la salida, sin la clave.
   guardaba solo su hash y la documentada dio `401`). Se vació `usuarios` y se resembró: 1 ADMIN + 40 000 cuentas de
   demostración. El respaldo de las 20 001 cuentas anteriores quedó solo en la carpeta temporal de la sesión del agente
   (no es una copia duradera).
-- **El ADMIN solo se crea si `usuarios` está vacía** al arrancar el backend con esas dos variables. No se cambia la
-  clave de un ADMIN existente desde el entorno: hay que vaciar `usuarios`, poner el hash nuevo, reiniciar el backend y
-  volver a sembrar (`scripts/sembrar-usuarios-demo.mjs --cantidad N`).
+- **El ADMIN solo se crea si `usuarios` está vacía** al arrancar el backend con esas dos variables. Para cambiar la
+  clave de un ADMIN existente, `scripts/restablecer-admin.mjs --clave-del-env` (abajo): ya no hace falta vaciar `usuarios`.
 - **Hash de una clave nueva:** `docs/ingenieria/entorno-local.md` §4 (`GenerarHashVeedor`); cada `$` va como `$$` en el `.env`.
-- **Si se pierde el secreto TOTP:** sin verificar cómo se reinicia (mirar `docs/api/cuentas-y-sesion.md`).
+- **Si se pierde el secreto TOTP o la clave:** `node scripts/restablecer-admin.mjs --correo <correo del ADMIN>` borra el
+  segundo factor; con `--clave-del-env` además fija como clave la de `VEEDOR_PASSWORD_HASH`. La siguiente sesión entra con
+  alcance `ALTA_SEGUNDO_FACTOR` y solo sirve para dar de alta un TOTP nuevo. Solo corre contra una base local y deja el
+  evento en `auditoria_cuentas` (comprobado el 2026-09-29 con una cuenta ADMIN temporal).
 
 ## 4. Claves públicas de demostración (ya están en el repositorio)
 
