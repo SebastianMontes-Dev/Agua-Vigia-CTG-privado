@@ -67,21 +67,6 @@ jobs:
           docker compose run --rm sembrador agregar-usuarios --borrar-lote lote-ci | tail -2
           [ "$(contar)" = "$ANTES" ] || { echo "::error::borrar el lote no devolvió los $ANTES usuarios"; exit 1; }
 
-  scripts:
-    name: Pruebas de los scripts de datos
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: scripts
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version: "22"
-          cache: npm
-          cache-dependency-path: scripts/package-lock.json
-      - run: npm ci
-      - run: npm test
 
       - name: Verificar que los scripts de shell son válidos
         run: |
@@ -121,3 +106,19 @@ jobs:
           severity: HIGH,CRITICAL
           exit-code: "1"
           ignore-unfixed: true
+
+  scripts:
+    name: Pruebas de los scripts de datos
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: scripts
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: scripts/package-lock.json
+      - run: npm ci
+      - run: npm test
