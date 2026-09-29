@@ -5,11 +5,11 @@ sector tiene un estado del servicio de agua, que puede ser desconocido.
 
 ## Rutas
 
-| Método y ruta | Qué devuelve | Caché |
+| Método y ruta | Qué devuelve | Caché del servidor |
 |---|---|---|
-| `GET /api/sectores` | Los 211 sectores con su estado. | 5 s |
-| `GET /api/sectores/{id}` | Un sector. `404` si no existe. | 5 s |
-| `GET /api/sectores/geometria` | Los polígonos (GeoJSON `FeatureCollection`). | 1 día |
+| `GET /api/sectores` | Los 211 sectores con su estado. | Redis, hasta 15 s; se invalida al cambiar un estado |
+| `GET /api/sectores/{id}` | Un sector. `404` si no existe. | — |
+| `GET /api/sectores/geometria` | Los polígonos (GeoJSON `FeatureCollection`). | Navegador, 1 día (`max-age=86400`) |
 | `GET /api/sectores/stream` | Aviso en vivo de que algo cambió (SSE). | — |
 
 Esquemas exactos en [`referencia-de-rutas.md`](referencia-de-rutas.md).
@@ -131,8 +131,8 @@ fuente.addEventListener('sectores', () => {
   es perfectamente válido.
 - **El SSE es opcional.** Una interfaz que solo sondee cada 15 s con `If-None-Match`/caché funciona y cuesta
   menos. Úsalo si la frescura de segundos importa.
-- **Detrás de un proxy**, el SSE necesita que el proxy no acumule la respuesta (`proxy_buffering off`). El
-  nginx del proyecto ya lo hace.
+- **Detrás de un proxy**, el SSE necesita que el proxy no acumule la respuesta (`proxy_buffering off` en nginx).
+  El proyecto no usa uno (`ADR-080`): en desarrollo pasa por el proxy de Vite, que no acumula.
 
 ## Errores
 

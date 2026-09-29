@@ -15,7 +15,7 @@ aguavigia:
   cors:
     # Solo en desarrollo: el frontend nuevo vive en este mismo repositorio (otras ramas) y se sirve con su
     # propio servidor local, en otro origen que el backend. Los puertos habituales: 5173 (Vite), 3000
-    # (React/Next) y 4200 (Angular). En produccion sigue cerrado: todo pasa por el mismo proxy (infra/nginx).
+    # (React/Next) y 4200 (Angular).
     origenes-permitidos:
       - http://localhost:5173
       - http://localhost:3000

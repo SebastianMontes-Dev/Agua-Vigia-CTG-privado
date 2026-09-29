@@ -127,7 +127,7 @@ Todos medibles. Un RNF sin métrica y umbral no es verificable y no cuenta.
 | RNF023 | Suspender una cuenta o cambiar sus permisos debe invalidar sus sesiones vivas de inmediato, sin esperar a que expire el token. | Prueba de integración de revocación |
 | RNF024 | El registro, el ingreso y el restablecimiento de clave no deben revelar qué correos tienen cuenta, ni por el mensaje ni por el tiempo de respuesta. | Pruebas de igualdad de respuesta y de tiempo equivalente |
 | RNF025 | Las cuentas con rol ADMIN deben exigir un segundo factor TOTP conforme al RFC 6238. | Vectores de prueba del propio RFC |
-| RNF026 | Toda comunicación con la API y con el panel del veedor debe viajar sobre HTTPS/TLS 1.2+ en cualquier despliegue accesible fuera de la máquina de desarrollo. Fuera de alcance para el entorno local de aula (`docker-compose.yml` sirve solo `:80`) — obligatorio antes de cualquier despliegue público (`docs/ingenieria/estado-del-backend.md` §7). | Inspección del certificado y de las cabeceras del despliegue real |
+| RNF026 | Toda comunicación con la API y con el panel del veedor debe viajar sobre HTTPS/TLS 1.2+ en cualquier despliegue accesible fuera de la máquina de desarrollo. **Fuera de alcance:** el proyecto corre solo en local y no se despliega (`ADR-057`, `ADR-080`). | Inspección del certificado y de las cabeceras del despliegue real |
 | RNF027 | El backend debe soportar como mínimo **50 000 usuarios simultáneos** en las lecturas públicas (mapa, bitácora, estadísticas, cumplimiento) y en el canal en vivo, sin degradar el registro de reportes (RNF002). | Prueba de carga (`scripts/carga/`); en este proyecto académico (`ADR-057`) solo a escala reducida en local, ver `docs/ingenieria/escalabilidad.md` |
 
 ### Usabilidad y accesibilidad
@@ -180,7 +180,7 @@ A partir de la estabilización del núcleo del sistema, se proponen las siguient
 | ID | Requisito | Prioridad | Actor | Origen |
 |---|---|---|---|---|
 | RF037 | El sistema debe permitir a los ciudadanos adjuntar fotografías a sus reportes (ej. tubo roto). | Debería | Vecino | Propuesta Fase 2 |
-| RNF021 | Las imágenes deben almacenarse en un bucket seguro (ej. AWS S3) con compresión automática y limpieza de metadatos EXIF. | Debe | Sistema | Privacidad / Optimización |
+| RNF021 | Las imágenes deben almacenarse en un almacenamiento seguro con compresión automática y limpieza de metadatos EXIF. En este proyecto, solo local (`ADR-080`), es el volumen `fotos-data`; un bucket (ej. S3) queda fuera de alcance. | Debe | Sistema | Privacidad / Optimización |
 
 ### M11 — Validación Comunitaria Rápida (Inspirado en Pol.is/Waze)
 | ID | Requisito | Prioridad | Actor | Origen |

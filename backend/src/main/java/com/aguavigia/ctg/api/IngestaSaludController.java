@@ -17,8 +17,8 @@ import java.util.List;
 /**
  * RNF007 — detalle de salud de los colectores, para el veedor.
  *
- * Existe además de `/actuator/health` porque `application-prod.yml` fija `show-details: never`: en
- * producción el health público dice si el servicio está degradado, y no cuántos ítems trajo cada
+ * Existe además de `/actuator/health` porque `application.yml` fija `show-details: never` fuera de
+ * `dev`: el health público dice si el servicio está degradado, y no cuántos ítems trajo cada
  * fuente ni con qué error. Ese detalle es operativo y va detrás del token, bajo `/api/veedor/**`.
  *
  * Lee del componente de infraestructura directamente, sin caso de uso intermedio (ADR-015): no hay

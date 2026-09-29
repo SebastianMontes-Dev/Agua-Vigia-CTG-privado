@@ -85,9 +85,6 @@ segundos) y `type: limite-de-peticiones-excedido`.
 | `/api/cuentas/**` | 10 | 10 min |
 | `/api/suscripciones/**` | 10 | 10 min |
 
-Además, el proxy de producción limita a **30 peticiones por segundo por IP** (con ráfaga de 60) en toda la
-API, y a **20 conexiones SSE por IP**.
-
 Hay **tres frenos distintos que dan `429` o `423`**, y no son lo mismo:
 
 1. **Por IP** (la tabla de arriba): protege contra inundaciones.
@@ -125,9 +122,8 @@ leerlas.
 
 ## CORS
 
-**Cerrado en producción**: `aguavigia.cors.origenes-permitidos` está vacío y, vacío, no se emite ninguna cabecera
-CORS. En producción el frontend y la API van **detrás del mismo proxy**, así que el navegador nunca hace una
-petición cruzada.
+**Cerrado por defecto**: `aguavigia.cors.origenes-permitidos` está vacío y, vacío, no se emite ninguna cabecera
+CORS. El frontend de `frontend/` pasa por el proxy de Vite (mismo origen), así que no hace peticiones cruzadas.
 
 **Abierto en local**: los perfiles `dev` (backend desde el IDE) y `docker` (el de `docker compose up`, con la API
 en `http://localhost:8081`) dejan pasar a `http://localhost:5173` (Vite), `http://localhost:3000` (React/Next) y
@@ -139,16 +135,15 @@ Un frontend en **otro origen** (un dev server local, un hosting estático aparte
 1. **Declarar el origen**: en local, `CORS_ORIGENES=http://localhost:8000` en el `.env` (perfil `docker`) o
    `aguavigia.cors.origenes-permitidos` en `application-dev.yml` (o `AGUAVIGIA_CORS_ORIGENES_PERMITIDOS` en el
    entorno).
-2. **Servirlo detrás del mismo proxy** que la API (recomendado en producción).
+2. **Pasar por un proxy del mismo origen**, como hace el de Vite en `frontend/vite.config.ts`.
 
 Si se habilita, **`Retry-After` no se expone** a JavaScript (solo las cabeceras de paginación): quien
 necesite leerlo desde otro origen debe añadirlo a la configuración de CORS.
 
 ## Otras cabeceras
 
-- **`X-Cache-Status`** (solo tras el proxy, en lecturas públicas): `HIT`, `MISS`, `STALE`, `BYPASS`.
-  Depuración; no contar con ella.
-- **`Cache-Control`**: las lecturas públicas llevan `public, max-age=5, stale-while-revalidate=30`; la API
-  privada y las escrituras, `no-store`.
+- **`Cache-Control`**: `no-cache, no-store` en toda la API (valor por defecto de Spring Security), salvo
+  `GET /api/sectores/geometria`, que lleva `public, max-age=86400`. La caché de las lecturas públicas vive en el
+  servidor (Redis); en el cliente, la pone su propia capa de datos (TanStack Query en `frontend/`).
 - **`Retry-After`**: en `429`, en segundos.
 - **`Allow`**: en `405`.

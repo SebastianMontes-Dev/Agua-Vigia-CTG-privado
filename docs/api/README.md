@@ -81,9 +81,9 @@ docker compose up -d --build --wait
 
 ## Qué debe saber ya quien construya la interfaz
 
-1. **CORS está abierto en local y cerrado en producción.** Con `docker compose up` (perfil `docker`) ya pasan
-   `localhost:5173`, `:3000` y `:4200`; otro origen se declara en `CORS_ORIGENES` del `.env`. En producción va
-   todo detrás del mismo proxy. Ver
+1. **CORS está abierto en los perfiles locales.** Con `docker compose up` (perfil `docker`) ya pasan
+   `localhost:5173`, `:3000` y `:4200`; otro origen se declara en `CORS_ORIGENES` del `.env`. El proyecto corre
+   solo en local (`ADR-080`). Ver
    [Errores y límites §CORS](errores-y-limites.md#cors).
 2. **No hay endpoint de refresco de sesión.** El token del panel dura 8 horas; al caducar hay que volver
    a iniciar sesión.

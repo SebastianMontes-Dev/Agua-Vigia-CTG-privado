@@ -143,12 +143,6 @@ cd backend && ./mvnw test -Dtest=ContratoOpenApiTest -Dopenapi.regenerar=true
 node scripts/generar-referencia-api.mjs
 ```
 
-**Comprobar que producción publica solo el puerto 80 del proxy:**
-
-```bash
-docker compose -f docker-compose.prod.yml config | grep -A2 "published"
-```
-
 **Pruebas de carga:** ver [`scripts/carga/README.md`](../../scripts/carga/README.md).
 Mailhog (correos de prueba): `http://localhost:8025` · Swagger: `http://localhost:8081/swagger-ui.html`.
 
@@ -162,7 +156,6 @@ Mailhog (correos de prueba): `http://localhost:8025` · Swagger: `http://localho
 | `docs/ingenieria/comportamiento-del-sistema.md` | Comportamiento por capacidad (Cuando / Entonces) |
 | `docs/ingenieria/matriz-trazabilidad.md` | RF → prueba que lo sostiene |
 | `docs/design-decisions.md` | ADR: qué se decidió y qué se descartó |
-| `infra/nginx/` | Proxy de producción: micro-caché, límites, cabeceras |
 | `scripts/carga/` | Pruebas de carga (k6 y cliente SSE) |
 | `data/geoespacial/` | GeoJSON canónico (213 filas; se siembran 211 sectores) y población |
 

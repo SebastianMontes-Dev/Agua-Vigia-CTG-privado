@@ -1,22 +1,22 @@
 # Consumir la API a escala
 
-El requisito es que el sistema aguante **50 000 personas a la vez**. El servidor hace su parte (caché,
-réplicas, límites: ver [`docs/ingenieria/escalabilidad.md`](../ingenieria/escalabilidad.md)), pero **el
-frontend decide cuánta carga genera**. Estas reglas no son opcionales: un cliente que las ignore puede tumbar
+El requisito (`RNF027`) es que el sistema aguante **decenas de miles de personas a la vez**. El servidor hace su parte
+(caché en Redis, SSE liviano, límites: ver [`docs/ingenieria/escalabilidad.md`](../ingenieria/escalabilidad.md)), pero
+**el frontend decide cuánta carga genera**. Estas reglas no son opcionales: un cliente que las ignore puede tumbar
 un servicio que por lo demás aguanta.
 
 ## La regla de oro
 
 **50 000 personas mirando el mapa deben costar casi lo mismo que 50.** Eso solo pasa si todas piden lo mismo
-y eso se sirve de una caché. Por eso las lecturas públicas son idénticas para todos y llevan
-`Cache-Control: public, max-age=5, stale-while-revalidate=30`.
+y eso se sirve de una caché. Por eso las lecturas públicas son idénticas para todos y el backend las sirve desde su
+caché de Redis; el cliente no debe variar parámetros sin necesidad (cada combinación es otra entrada).
 
 ## Qué pedir, cuándo y cada cuánto
 
 | Dato | Ruta | Frecuencia recomendada | Notas |
 |---|---|---|---|
 | Polígonos | `GET /api/sectores/geometria` | **Una vez** y guardar | Pesa ~0,7 MB sin comprimir; el servidor la cachea un día. Guárdala en `IndexedDB`/caché del navegador; no la pidas en cada visita. |
-| Estado de los sectores | `GET /api/sectores` | Al abrir, y luego **al recibir un aviso del SSE** (o cada 15–30 s si no usas SSE) | Es lo que más se pide. Nunca más de una vez cada 5 s. |
+| Estado de los sectores | `GET /api/sectores` | Al abrir, y luego **al recibir un aviso del SSE** (o cada 15–30 s si no usas SSE) | Es lo que más se pide. Nunca más de una vez cada 5 s por pestaña. |
 | Bitácora, estadísticas, cumplimiento | `GET /api/bitacora`, `/estadisticas`, `/cumplimiento…` | **Al entrar en esa pantalla** | Cambian poco. No los sondees en segundo plano. |
 | Un sector | `GET /api/sectores/{id}` | Al abrir su ficha | Ya tienes su estado del listado; solo la pides si necesitas algo más. |
 
@@ -85,7 +85,7 @@ El servicio tiene que ser útil justo cuando falla la red o el agua. Recomendaci
 
 ## Lo que este documento no garantiza
 
-Estas reglas reducen la carga que **tú** generas. Que el conjunto soporte 50 000 usuarios simultáneos también
-depende de la infraestructura desplegada (réplicas, base de datos, CDN). El estado real de esa verificación,
+Estas reglas reducen la carga que **tú** generas. Que el conjunto soporte miles de usuarios simultáneos también
+depende de la máquina donde corre (el proyecto es solo local, `ADR-080`). El estado real de esa verificación,
 con lo que se midió y lo que no, está en
 [`docs/ingenieria/escalabilidad.md`](../ingenieria/escalabilidad.md).

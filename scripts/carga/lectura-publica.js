@@ -9,15 +9,11 @@
  *       grafana/k6 run - < scripts/carga/lectura-publica.js
  *   o con k6 instalado:  k6 run -e TASA=500 scripts/carga/lectura-publica.js
  *
- * IMPORTANTE — qué se está midiendo según a dónde apuntes:
- *   - Al backend directo (dev, :8081): mide el backend sin el micro-caché de nginx. Es la prueba dura.
- *   - Al proxy de producción (:80): mide el conjunto. Ojo: nginx limita a 30 peticiones/s por IP
- *     (`limit_req` en infra/nginx/nginx.conf) y k6 sale desde UNA sola IP, así que a partir de ahí
- *     verás 429 que no son del backend. Para medir el proxy a tasa alta hay que repartir la carga
- *     entre varias máquinas o subir ese límite en el entorno de prueba (nunca en producción).
+ * Mide el backend directo (no hay proxy delante, ADR-080). En Docker Desktop, para tasas altas
+ * genera la carga dentro de la red del compose (`--network <proyecto>_aguavigia` y
+ * BASE_URL=http://backend:8080): el reenvío de puertos del host se satura antes que el backend.
  *
- * `TASA` es la tasa objetivo en peticiones por segundo. Desde una laptop, 500-2000 es lo realista;
- * los 5 000-10 000 de la meta salen de repartir la generación de carga entre varias máquinas.
+ * `TASA` es la tasa objetivo en peticiones por segundo. Desde una laptop, 500-3000 es lo realista.
  */
 import http from 'k6/http';
 import { check } from 'k6';

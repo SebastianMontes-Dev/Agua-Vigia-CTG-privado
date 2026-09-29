@@ -1,0 +1,75 @@
+name: Contenedores y dependencias
+
+# RNF020 ("levanta con un solo comando") se daba por cumplido sin que nada lo verificara: el CI
+# solo corría `mvnw verify` y únicamente cuando cambiaba `backend/**`. Un Dockerfile roto o un
+# compose mal editado no fallaba la build de nadie hasta que alguien intentaba levantar el entorno.
+# El proyecto corre solo en local (ADR-057, ADR-080): hay un único compose, el de docker-compose.yml.
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+
+jobs:
+  compose:
+    name: Construir la imagen y validar el compose
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # Detecta un YAML inválido o una variable sin definir antes de gastar tiempo construyendo.
+      - name: Validar la sintaxis del compose
+        run: |
+          cp .env.example .env
+          docker compose -f docker-compose.yml config --quiet
+
+      - name: Construir la imagen del backend
+        run: docker compose -f docker-compose.yml build backend
+
+      # BUG-101: sin este directorio en la imagen, el volumen de fotos nacía como root y el usuario sin
+      # privilegios no podía escribir en él (toda subida de foto respondía 500 en una instalación limpia).
+      - name: El directorio de fotos debe existir en la imagen y ser del usuario de la aplicación
+        run: |
+          IMAGEN=$(docker compose -f docker-compose.yml config --images | grep backend | head -1)
+          DUENO=$(docker run --rm --entrypoint stat "$IMAGEN" -c '%U' /app/data/fotos)
+          echo "Dueño de /app/data/fotos en $IMAGEN: $DUENO"
+          [ "$DUENO" = "aguavigia" ] || { echo "::error::/app/data/fotos no es de aguavigia (es de '$DUENO')"; exit 1; }
+
+      - name: Verificar que los scripts de shell son válidos
+        run: |
+          for script in scripts/*.sh; do
+            bash -n "$script" || exit 1
+          done
+
+  dependencias:
+    name: Vulnerabilidades conocidas en dependencias
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Configurar JDK 21
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      # `gitleaks` cubre secretos filtrados; nada cubría un CVE conocido en Spring Boot, jjwt o el
+      # driver de Mongo. Falla solo con severidad alta o crítica: un aviso de severidad media no
+      # debe bloquear a nadie un viernes.
+      # Trivy resuelve cada POM que no encuentre en el caché local, y Maven Central responde 429
+      # tras unas pocas decenas de peticiones. Resolviendo antes, el escaneo lee de ~/.m2.
+      - name: Poblar el caché de Maven
+        working-directory: backend
+        run: ./mvnw -B -q dependency:resolve dependency:resolve-plugins
+
+      # La etiqueta lleva prefijo `v`: sin el, la acción no resuelve y el job falla en "Set up job"
+      # sin llegar a escanear nada.
+      - name: Escanear dependencias del backend
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: backend
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+          ignore-unfixed: true

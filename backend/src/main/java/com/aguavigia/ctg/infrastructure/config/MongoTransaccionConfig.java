@@ -8,8 +8,8 @@ import org.springframework.data.mongodb.MongoTransactionManager;
 /**
  * Único `PlatformTransactionManager` del backend (no hay JPA): habilita transacciones
  * multi-documento sobre el *replica set* local de un nodo (`ADR-063`), prerrequisito de la Fase 3 de
- * `plan-validacion-backend.md`. `docker-compose.prod.yml` sigue sin *replica set* a propósito — este
- * bean solo funciona donde Mongo corre como tal.
+ * `plan-validacion-backend.md`. Este bean solo funciona donde Mongo corre como *replica set*
+ * (`docker-compose.yml` lo inicia con `mongo-init-replica`).
  */
 @Configuration
 public class MongoTransaccionConfig {

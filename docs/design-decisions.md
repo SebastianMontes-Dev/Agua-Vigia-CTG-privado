@@ -2002,7 +2002,7 @@ plantillas de correo usan su paleta).
 ## ADR-049 — El backend escala con micro-caché HTTP, avisos SSE ligeros y ejecución única de jobs, no con más hardware
 
 - **Fecha:** 2026-09-21
-- **Estado:** Aceptada
+- **Estado:** Reemplazada en parte por ADR-080 (micro-caché de nginx y réplicas)
 - **Decide:** Dueño del proyecto
 
 ### Contexto
@@ -2141,7 +2141,7 @@ Lanzar `IllegalArgumentException` en lugar de `EntidadNoEncontradaException` en 
 ## ADR-053 — El consenso se evalúa como mucho una vez por segundo y sector, y la micro-caché de nginx ignora las cabeceras de caché del origen
 
 - **Fecha:** 2026-09-21
-- **Estado:** Aceptada
+- **Estado:** Reemplazada en parte por ADR-080 (la micro-caché de nginx; el consenso acotado sigue)
 - **Decide:** Dueño del proyecto (delegó las decisiones de escalabilidad, «tú decide qué pulir»)
 
 ### Contexto
@@ -3223,8 +3223,58 @@ las páginas desde el commit que fusione este rediseño. Las pruebas de F3 anter
 
 ---
 
+## ADR-080 — Solo local: se retiran el compose de producción, nginx y el perfil `prod`
+
+- **Fecha:** 2026-09-29
+- **Estado:** Aceptada
+- **Decide:** Dueño del proyecto
+
+### Contexto
+`ADR-057` fijó que el proyecto es académico y corre en local, pero dejó en el repo todo lo pensado para un despliegue:
+`docker-compose.prod.yml` (réplicas, Mongo y Redis con clave), `infra/nginx/` (micro-caché, límites por IP,
+cabeceras), el perfil `prod` con `ValidacionDeSecretosProd` y `ValidacionDeUrlPublicaProd`, variables de producción en
+`.env.example` y un job de CI que validaba todo eso. El dueño pidió el 2026-09-29 que el proyecto sea **solo local** y
+sin nada de despliegue. Dos hechos verificados lo hacían además necesario:
+- **El compose de producción ya no arrancaba bien:** levanta Mongo sin *replica set*, y las transacciones del backend
+  (`MongoTransaccionConfig`, `ADR-063`/`ADR-064`) lo exigen.
+- **`server.forward-headers-strategy: framework` sin proxy delante es un agujero:** Spring toma la IP del cliente de un
+  `X-Forwarded-For` que escribe el propio cliente, y cambiarlo en cada petición salta el rate limit por IP (`BUG-120`).
+
+### Alternativas consideradas
+| Opción | A favor | En contra |
+|---|---|---|
+| Dejarlo todo como «referencia futura» | Nada que tocar | Código muerto y roto que hay que mantener en la CI; confunde qué corre de verdad |
+| Archivarlo en una carpeta de referencia | Se ve sin ir a git | Ruido en el repo; sigue desactualizándose |
+| **Eliminarlo, con la etiqueta git `pre-solo-local`** | Un solo entorno, el que se usa; se recupera con `git checkout pre-solo-local -- <ruta>` | Las mediciones con nginx y 3 réplicas dejan de ser reproducibles con el repo actual |
+
+### Decisión
+Se eliminan `docker-compose.prod.yml`, `infra/nginx/`, `application-prod.yml`, `ValidacionDeSecretosProd` y
+`ValidacionDeUrlPublicaProd` (con sus pruebas), las variables de producción de `.env.example`, los scripts de carga que
+dependían de nginx (`escenario-integrado.sh`, `verificar-cache-proxy.mjs`) y `docs/index.html`. El job
+`despliegue-ci.yml` pasa a `contenedores-ci.yml` y valida solo el compose local, la imagen y Trivy. Se quita
+`forward-headers-strategy`: el backend toma siempre `getRemoteAddr()`. Los respaldos pasan a ser manuales y contra
+`docker-compose.yml`. `ADR-049` y `ADR-053` quedan reemplazadas **en parte** (la micro-caché de nginx y las réplicas);
+el resto de `ADR-049` (SSE de aviso, hilos virtuales, pools, rate limit atómico, `EjecucionUnica`, consenso) sigue.
+
+### Consecuencias
+- **Gana:** un solo compose, el que se usa, y una CI que valida lo que corre. Se cierra `BUG-120`.
+- **Pierde:** no hay micro-caché delante: las lecturas públicas llegan todas al backend y solo `/api/sectores` tiene
+  caché de servidor (Redis). El backend responde `no-store` en toda la API. Las mediciones con nginx y 3 réplicas
+  (50 100 SSE) quedan como antecedente, no reproducibles con el repo actual (`escalabilidad.md`).
+- **Sobre otros ADR:** el proxy de portadas de `ADR-038` sigue vivo en `frontend/vite.config.ts`; lo que `ADR-048` decía
+  del proxy (`infra/nginx/` sirve solo la API) deja de aplicar. `RNF026` (TLS) y el bucket de `RNF021` quedan fuera de
+  alcance. El PR #87 (F4) todavía toca `ValidacionDeUrlPublicaProd` y el compose de producción: al actualizarse con
+  `main` debe descartar esos cambios.
+
+### Cómo se revierte
+`git checkout pre-solo-local -- docker-compose.prod.yml infra/ backend/src/main/resources/application-prod.yml` y las
+dos clases `*Prod` con sus pruebas; devolver `forward-headers-strategy: framework` **solo** si vuelve a haber un proxy de
+confianza delante que sea el único con acceso al backend.
+
+---
+
 <!--
-Siguiente número disponible: ADR-080 (el ADR-078 lo registra F4)
+Siguiente número disponible: ADR-081 (el ADR-078 lo registra F4)
 Para agregar: usa la skill `registrar-decision`.
 Recuerda: append-only. Las entradas viejas solo cambian de estado, no de contenido.
 -->

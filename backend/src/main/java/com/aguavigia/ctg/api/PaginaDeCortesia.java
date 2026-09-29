@@ -11,7 +11,7 @@ import java.nio.charset.StandardCharsets;
 /**
  * Las páginas mínimas que abre un navegador desde el enlace de un correo (ADR-030). Sin plantilla
  * externa ni JavaScript: el correo apunta a la propia API porque no hay otro sitio que pinte estas
- * pantallas, y la política de contenido del proxy (infra/nginx) solo permite estilos en línea.
+ * pantallas, y así la página no depende de ningún recurso externo.
  *
  * Todo texto variable se escapa aquí y no en quien llama: el mensaje de una excepción o el token de
  * la URL acaban dentro de HTML y una sola omisión sería un XSS reflejado.

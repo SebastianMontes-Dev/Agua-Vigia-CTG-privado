@@ -10,8 +10,8 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Tiempos y tamaño del pool de MongoDB. Los valores por defecto del driver (2 minutos de espera por
- * una conexión, sin timeout de lectura) dejaban las peticiones encoladas mucho más allá de los 15 s
- * tras los que nginx ya cortaba: el cliente veía un 504 y el servidor seguía trabajando para nadie.
+ * una conexión, sin timeout de lectura) dejaban las peticiones encoladas mucho más allá de lo que
+ * un cliente espera: el cliente ya se había ido y el servidor seguía trabajando para nadie.
  * Va en código y no en la URI para que valga igual con cualquier `MONGODB_URI`.
  */
 @Configuration

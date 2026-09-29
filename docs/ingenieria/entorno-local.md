@@ -38,11 +38,11 @@ Con esto el mapa, los reportes, las suscripciones, la bitácora, las estadístic
 | `JWT_SECRET` | Firma el token de sesión del veedor (RNF011, HS256, mínimo 32 bytes) | `POST /api/veedor/sesion` responde `503` — *"El servidor no tiene configurado JWT_SECRET"* |
 | `VEEDOR_PASSWORD_HASH` | Hash BCrypt de la clave del **primer administrador** — **nunca la clave en texto plano**. Desde `ADR-039` ya no es una credencial compartida: solo siembra esa primera cuenta y deja de usarse en cuanto existe alguna | Sin ella no se siembra ningún administrador y el panel queda sin acceso |
 | `ADMIN_INICIAL_CORREO` | Correo con el que se crea ese primer administrador. En local, `veedor@aguavigia.local` | Sin él tampoco se siembra: el arranque lo dice en el log y sigue |
-| `APP_URL_PUBLICA` | Base desde la que se arman los enlaces que salen por correo. Sin frontend (`ADR-048`) apunta a la propia API: en local, `http://localhost:8081`. En producción es **obligatoria** y no puede ser `localhost` | Los enlaces de los correos salen rotos |
+| `APP_URL_PUBLICA` | Base desde la que se arman los enlaces que salen por correo. Sin frontend (`ADR-048`) apunta a la propia API: en local, `http://localhost:8081` | Los enlaces de los correos salen rotos |
 
 Ambas se leen en `VeedorAuthController.java` (`backend/src/main/java/.../api/VeedorAuthController.java`).
-Son credenciales de **desarrollo local**, no de producción: el perfil `prod` exige las suyas
-propias y aborta el arranque si faltan (`ValidacionDeSecretosProd`).
+Son credenciales de **desarrollo local**: el proyecto corre solo en local (`ADR-057`, `ADR-080`) y no hay
+perfil de producción.
 
 ## 3. La vía rápida — copiar la clave de desarrollo
 

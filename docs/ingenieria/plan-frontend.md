@@ -50,7 +50,7 @@ como marcadores, las tarjetas redondeadas con barrita de color al costado y los 
 | Tema | Decisión | Estado |
 |---|---|---|
 | Framework | **React 19 + Vite + TypeScript estricto** | Decidido por el dueño (2026-09-24) |
-| Mapa base | **PMTiles propio de Cartagena** (extracto de OSM servido por nginx, estilo con la paleta del proyecto) | Decidido por el dueño |
+| Mapa base | **PMTiles propio de Cartagena** (extracto de OSM servido desde el mismo origen que la SPA, estilo con la paleta del proyecto) | Decidido por el dueño |
 | Ejecución | Claude en ramas propias, un PR por fase, con los registros al día | Decidido por el dueño |
 | Registro formal | `ADR-067` en `docs/design-decisions.md`: stack, dirección visual y alternativas descartadas. `ADR-029` queda reemplazado | **Escrito (2026-09-25)** |
 | Sprint 7 | Frontend nuevo por fases F0–F6 | Abierto el 2026-09-25; ver `sprint-7.md` |
@@ -317,7 +317,7 @@ Detalle completo en `docs/api/`. Aquí van las reglas que, si se olvidan, rompen
 3. Estilo propio a partir de las capas de `@protomaps/basemaps`: agua, tierra, vías y edificios pintados con los
    neutros de §5.1, sin colores de estado, en claro y oscuro.
 4. Licencia **ODbL**: atribución visible «© OpenStreetMap». Queda registrado en `ADR-067`.
-5. nginx debe servir `.pmtiles` con *range requests* (`Accept-Ranges: bytes`) y caché larga.
+5. Quien sirva la SPA debe entregar `.pmtiles` con *range requests* (`Accept-Ranges: bytes`); Vite ya lo hace.
 6. **CSP:** MapLibre usa *workers*. Hay que probar si basta `worker-src 'self' blob:` o si se usa la variante CSP de
    MapLibre. Todo es del mismo origen: nada externo en `img-src` ni en `connect-src`.
 
@@ -454,9 +454,9 @@ cuando su entregable se demuestra funcionando**, no por calendario.
       y aceptar la invitación leyendo el correo en Mailhog.
 
 ### F6 — Integración y endurecimiento
-- [ ] `frontend/Dockerfile` multi-etapa. nginx (`infra/nginx/`) sirve la SPA en `/` con `try_files` a `index.html`,
-      *assets* con hash e `immutable`, `.pmtiles` con *range* y CSP estricta, todo del mismo origen. **Esto cambia la
-      condición de `ADR-048`** («el proxy sirve solo la API»), así que se registra en un ADR nuevo.
+- [ ] `frontend/Dockerfile` multi-etapa que sirva la SPA y haga de proxy de `/api`, `/fotos` y `/acuacar-media` hacia el
+      backend, todo del mismo origen, con `.pmtiles` con *range*. Sin nginx del proyecto (`ADR-080`): se elige el
+      servidor (por ejemplo `vite preview` con el mismo proxy) y se registra en un ADR.
 - [ ] SPA, mapa y glifos desde el mismo origen; el mapa sigue funcionando sin internet.
 - [ ] Servicio en `docker-compose.yml`: todo se levanta con un solo comando (`RNF020`).
 - [ ] PWA: muestra el último estado guardado **con su fecha**; un reporte sin conexión pide un nuevo envío manual
@@ -476,7 +476,7 @@ cuando su entregable se demuestra funcionando**, no por calendario.
 | Se fusiona cada PR | `docs/gestion/registro-de-implementaciones.md` | skill `registrar-implementacion` |
 | Aparece un bug, aunque se arregle en el acto | `docs/gestion/registro-de-bugs.md` | skill `registrar-bug` |
 | Se elige entre alternativas (glifos del mapa, versionar PMTiles, URL de los correos…) | `docs/design-decisions.md` | skill `registrar-decision` |
-| Cambia el comportamiento del sistema (enlaces de correo, nginx) | `docs/ingenieria/comportamiento-del-sistema.md`, en el mismo PR | — |
+| Cambia el comportamiento del sistema (enlaces de correo, proxy) | `docs/ingenieria/comportamiento-del-sistema.md`, en el mismo PR | — |
 | Termina una sesión | `docs/gestion/bitacora-sesiones.md` | skill `cerrar-sesion` |
 | Algo que podría hacerse mejor | `docs/gestion/recomendaciones-ia.md` | skill `registrar-recomendacion` |
 

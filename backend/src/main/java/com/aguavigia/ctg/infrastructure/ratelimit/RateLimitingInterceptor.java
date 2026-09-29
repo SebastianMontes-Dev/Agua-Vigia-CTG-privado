@@ -18,11 +18,8 @@ import java.util.List;
  * ruta), asi cada una solo necesita saber su propio limite — no interpreta cual regla aplica.
  *
  * Clave por IP del cliente, no por huella de dispositivo. request.getRemoteAddr() es la fuente
- * correcta aqui — no X-Forwarded-For leido a mano — porque server.forward-headers-strategy:
- * framework (application.yml) ya activa el ForwardedHeaderFilter de Spring, que reescribe
- * getRemoteAddr() con el valor de X-Forwarded-For que pone nginx (infra/nginx/nginx.conf) antes de
- * que la peticion llegue aqui. En produccion el puerto del backend no se expone al host
- * (docker-compose.prod.yml), asi que nginx es el unico que puede setear ese header.
+ * correcta aqui — nunca X-Forwarded-For —: no hay un proxy de confianza delante (ADR-080), asi que
+ * esa cabecera la escribiria el propio cliente y le bastaria cambiarla para estrenar cupo.
  */
 public class RateLimitingInterceptor implements HandlerInterceptor {
 
