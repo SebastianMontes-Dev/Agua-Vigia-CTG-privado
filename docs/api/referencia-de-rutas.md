@@ -6,7 +6,7 @@
 >
 > Las **guías** de esta carpeta explican el porqué y los flujos; esta página es el catálogo exacto.
 
-**66 operaciones** en 60 rutas, más las páginas HTML de cortesía y el SSE.
+**64 operaciones** en 58 rutas, más las páginas HTML de cortesía y el SSE.
 
 Leyenda de **Acceso**: *Público* no exige token · *Sesión + `PERMISO`* exige `Authorization: Bearer <token>` de una
 cuenta que tenga ese permiso · *Sesión (cualquier cuenta)* exige token pero ningún permiso concreto.
@@ -15,7 +15,6 @@ Todo error sale en RFC 7807: ver [Errores y límites](errores-y-limites.md).
 ## Índice
 
 - [Bitácora](#bit-cora) (2)
-- [controlador-de-prueba-rate-limit](#controlador-de-prueba-rate-limit) (2)
 - [Cuentas](#cuentas) (13)
 - [Cumplimiento](#cumplimiento) (5)
 - [Estadisticas](#estadisticas) (2)
@@ -62,26 +61,6 @@ Ids de los reportes ciudadanos que sostuvieron el cambio de estado, para contras
 | **Parámetros** | `id` (path, obligatorio)<br>`pagina` (query)<br>`tamano` (query) |
 | **Cuerpo** | — |
 | **Respuestas** | `200` Ids de la página pedida (vacía si se pasa del final) → lista de string<br>`404` No existe el evento → [ProblemDetail](#esquema-problemdetail) |
-
-## controlador-de-prueba-rate-limit
-
-### `GET /protegida`
-
-| | |
-|---|---|
-| **Acceso** | Público |
-| **Parámetros** | — |
-| **Cuerpo** | — |
-| **Respuestas** | `200` OK → string |
-
-### `GET /sin-proteger`
-
-| | |
-|---|---|
-| **Acceso** | Público |
-| **Parámetros** | — |
-| **Cuerpo** | — |
-| **Respuestas** | `200` OK → string |
 
 ## Cuentas
 

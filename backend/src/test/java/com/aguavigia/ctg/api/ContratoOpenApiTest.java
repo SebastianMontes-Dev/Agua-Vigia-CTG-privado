@@ -119,6 +119,22 @@ class ContratoOpenApiTest {
                 .isEqualTo(rutasVersionadas);
     }
 
+    /** BUG-121: los controladores de prueba no son parte del contrato que consume el frontend. */
+    @Test
+    void elContratoSoloDebeExponerRutasDeLaApi() throws Exception {
+        var rutas = Json.mapper().readTree(mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString())
+                .get("paths").fieldNames();
+
+        List<String> fueraDeLaApi = new ArrayList<>();
+        rutas.forEachRemaining(ruta -> {
+            if (!ruta.startsWith("/api/")) {
+                fueraDeLaApi.add(ruta);
+            }
+        });
+        assertThat(fueraDeLaApi).isEmpty();
+    }
+
     @Test
     void losErroresPublicosDeReporteEHistorialDebenDeclararProblemDetail() throws Exception {
         var contrato = Json.mapper().readTree(mockMvc.perform(get("/v3/api-docs"))
