@@ -18,5 +18,9 @@ public record SolicitudRegistro(
 
         @NotBlank
         @Schema(description = "Minimo 12 caracteres. La politica completa vive en ClaveEnClaro.")
-        String clave) {
+        String clave,
+
+        @Schema(description = "Opcional: slug del barrio donde vives (uno de `GET /api/sectores`). 400 si no existe.",
+                example = "manga", nullable = true)
+        String barrioId) {
 }

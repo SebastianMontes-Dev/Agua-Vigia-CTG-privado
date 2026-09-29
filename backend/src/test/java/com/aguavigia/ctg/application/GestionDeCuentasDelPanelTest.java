@@ -11,6 +11,9 @@ import com.aguavigia.ctg.domain.EventoAuditoria;
 import com.aguavigia.ctg.domain.Pagina;
 import com.aguavigia.ctg.domain.PermisosEfectivos;
 import com.aguavigia.ctg.domain.RolVeedor;
+import com.aguavigia.ctg.domain.port.out.SectorRepository;
+import com.aguavigia.ctg.domain.Sector;
+import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.SecretoTotp;
 import com.aguavigia.ctg.domain.TipoTokenCuenta;
 import com.aguavigia.ctg.domain.TokenCuenta;
@@ -214,7 +217,7 @@ class GestionDeCuentasDelPanelTest {
         given(usuarios.buscarPorId(ID)).willReturn(Optional.of(cuenta(EstadoCuenta.ACTIVA, RolVeedor.ADMIN)));
 
         Usuario invitado = new InvitarUsuarioService(usuarios, emisor(), notificaciones,
-                mock(RegistroDeAuditoria.class), () -> AHORA)
+                mock(RegistroDeAuditoria.class), () -> AHORA, mock(SectorRepository.class))
                 .invitar(new CorreoElectronico("Beto@Ejemplo.ORG"), " Beto ", RolVeedor.OBSERVADOR, CONTEXTO);
 
         assertThat(invitado.estado()).isEqualTo(EstadoCuenta.INVITADA);
@@ -230,9 +233,38 @@ class GestionDeCuentasDelPanelTest {
 
         assertThatIllegalStateException()
                 .isThrownBy(() -> new InvitarUsuarioService(usuarios, emisor(),
-                        mock(NotificacionCuentaPort.class), mock(RegistroDeAuditoria.class), () -> AHORA)
+                        mock(NotificacionCuentaPort.class), mock(RegistroDeAuditoria.class), () -> AHORA,
+                        mock(SectorRepository.class))
                         .invitar(CORREO, "Ana", RolVeedor.VEEDOR, CONTEXTO))
                 .withMessageContaining("Ya existe");
+    }
+
+    @Test
+    void invitarConUnBarrioQueExisteDebeGuardarloEnLaCuenta() {
+        SectorRepository sectores = mock(SectorRepository.class);
+        SectorId manga = new SectorId("manga");
+        given(sectores.buscarPorId(manga)).willReturn(Optional.of(new Sector(manga, "Manga", 1000, null)));
+        given(usuarios.existePorCorreo(any())).willReturn(false);
+        given(usuarios.buscarPorId(ID)).willReturn(Optional.of(cuenta(EstadoCuenta.ACTIVA, RolVeedor.ADMIN)));
+
+        Usuario invitado = new InvitarUsuarioService(usuarios, emisor(), mock(NotificacionCuentaPort.class),
+                mock(RegistroDeAuditoria.class), () -> AHORA, sectores)
+                .invitar(new CorreoElectronico("beto@ejemplo.org"), "Beto", RolVeedor.OBSERVADOR, manga, CONTEXTO);
+
+        assertThat(invitado.barrio()).isEqualTo(manga);
+    }
+
+    @Test
+    void invitarConUnBarrioInexistenteDebeRechazarseSinCrearLaCuenta() {
+        SectorRepository sectores = mock(SectorRepository.class);
+        given(sectores.buscarPorId(any())).willReturn(Optional.empty());
+
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> new InvitarUsuarioService(usuarios, emisor(),
+                        mock(NotificacionCuentaPort.class), mock(RegistroDeAuditoria.class), () -> AHORA, sectores)
+                        .invitar(CORREO, "Ana", RolVeedor.VEEDOR, new SectorId("no-existe"), CONTEXTO))
+                .withMessageContaining("No existe el barrio");
+        verify(usuarios, never()).guardar(any());
     }
 
     // --- Segundo factor ---
@@ -408,12 +440,12 @@ class GestionDeCuentasDelPanelTest {
 
     @Test
     void listarDebeAcotarElTamanoDePaginaQueLlegaDeFuera() {
-        given(usuarios.listar(any(), eq(0), eq(Pagina.TAMANO_MAXIMO)))
+        given(usuarios.listar(any(), any(), eq(0), eq(Pagina.TAMANO_MAXIMO)))
                 .willReturn(new Pagina<>(List.of(), 0, Pagina.TAMANO_MAXIMO, 0));
 
         new ConsultarCuentasService(usuarios, auditoriaRepo).listar(null, -5, 9999);
 
-        verify(usuarios).listar(null, 0, Pagina.TAMANO_MAXIMO);
+        verify(usuarios).listar(null, null, 0, Pagina.TAMANO_MAXIMO);
     }
 
     @Test

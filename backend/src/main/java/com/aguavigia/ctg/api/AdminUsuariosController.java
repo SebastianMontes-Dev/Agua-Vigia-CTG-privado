@@ -4,6 +4,7 @@ import com.aguavigia.ctg.api.dto.EventoAuditoriaRespuesta;
 import com.aguavigia.ctg.api.dto.SolicitudInvitacion;
 import com.aguavigia.ctg.api.dto.SolicitudPermisos;
 import com.aguavigia.ctg.api.dto.UsuarioRespuesta;
+import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.CorreoElectronico;
 import com.aguavigia.ctg.domain.EstadoCuenta;
 import com.aguavigia.ctg.domain.EventoAuditoria;
@@ -68,19 +69,23 @@ public class AdminUsuariosController {
     @Operation(summary = "Listar cuentas, mas recientes primero",
             description = """
                     Paginado, con el total y el enlace a la siguiente pagina en `X-Total-Count` y
-                    `Link`. `estado` filtra por PENDIENTE_APROBACION para ver solo la cola de altas.""")
+                    `Link`. `estado` filtra por PENDIENTE_APROBACION para ver solo la cola de altas y
+                    `barrioId` (slug de un sector) por el barrio donde viven las personas.""")
     @GetMapping("/usuarios")
     public ResponseEntity<List<UsuarioRespuesta>> listar(
             @RequestParam(required = false) String estado,
+            @RequestParam(required = false) String barrioId,
             @RequestParam(required = false) Integer pagina,
             @RequestParam(required = false) Integer tamano) {
 
         EstadoCuenta filtroEstado = aEstado(estado);
+        SectorId filtroBarrio = barrioId == null || barrioId.isBlank() ? null : new SectorId(barrioId.strip());
         Pagina<Usuario> resultado = cuentas.listar(
-                filtroEstado, Pagina.paginaValida(pagina), Pagina.tamanoValido(tamano));
+                filtroEstado, filtroBarrio, Pagina.paginaValida(pagina), Pagina.tamanoValido(tamano));
 
         Map<String, Object> filtros = new HashMap<>();
         filtros.put("estado", filtroEstado);
+        filtros.put("barrioId", filtroBarrio == null ? null : filtroBarrio.valor());
         return CabecerasDePaginacion.respuesta(
                 resultado,
                 resultado.contenido().stream().map(UsuarioRespuesta::de).toList(),
@@ -94,6 +99,7 @@ public class AdminUsuariosController {
                     aceptarlo queda ACTIVA sin necesitar otra aprobacion.""")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Invitacion enviada"),
+            @ApiResponse(responseCode = "400", description = "Datos invalidos o barrio inexistente"),
             @ApiResponse(responseCode = "409", description = "Ya existe una cuenta con ese correo")
     })
     @PostMapping("/usuarios/invitaciones")
@@ -104,6 +110,8 @@ public class AdminUsuariosController {
                 new CorreoElectronico(solicitud.correo()),
                 solicitud.nombre(),
                 solicitud.rolDominio(),
+                solicitud.barrioId() == null || solicitud.barrioId().isBlank()
+                        ? null : new SectorId(solicitud.barrioId().strip()),
                 ContextoHttp.de(peticion)));
     }
 

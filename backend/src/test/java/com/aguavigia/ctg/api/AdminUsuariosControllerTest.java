@@ -8,6 +8,7 @@ import com.aguavigia.ctg.domain.Permiso;
 import com.aguavigia.ctg.domain.ClaveHash;
 import com.aguavigia.ctg.domain.PermisosEfectivos;
 import com.aguavigia.ctg.domain.RolVeedor;
+import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.Usuario;
 import com.aguavigia.ctg.domain.UsuarioId;
 import com.aguavigia.ctg.domain.port.in.AdministrarCuentaUseCase;
@@ -35,6 +36,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -109,7 +111,7 @@ class AdminUsuariosControllerTest {
                 AHORA,
                 AHORA);
 
-        given(cuentas.listar(any(), anyInt(), anyInt()))
+        given(cuentas.listar(any(), any(), anyInt(), anyInt()))
                 .willReturn(new Pagina<>(List.of(usuario), 0, 20, 1));
 
         mockMvc.perform(get("/api/veedor/usuarios")
@@ -125,7 +127,7 @@ class AdminUsuariosControllerTest {
         given(jwtProvider.validar(TOKEN))
                 .willReturn(Optional.of(AutenticacionDePrueba.sesionCon(Permiso.GESTIONAR_USUARIOS)));
         given(revocacion.revocadasAntesDe(any())).willReturn(Optional.empty());
-        given(cuentas.listar(EstadoCuenta.PENDIENTE_APROBACION, 0, 2))
+        given(cuentas.listar(EstadoCuenta.PENDIENTE_APROBACION, null, 0, 2))
                 .willReturn(new Pagina<>(List.of(), 0, 2, 5));
 
         mockMvc.perform(get("/api/veedor/usuarios").param("estado", "pendiente_aprobacion").param("tamano", "2")
@@ -133,5 +135,38 @@ class AdminUsuariosControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(header().string("Link",
                         "</api/veedor/usuarios?pagina=1&tamano=2&estado=PENDIENTE_APROBACION>; rel=\"next\""));
+    }
+
+    @Test
+    void debeFiltrarLasCuentasPorBarrioYMostrarElBarrioDeCadaUna() throws Exception {
+        given(jwtProvider.validar(TOKEN))
+                .willReturn(Optional.of(AutenticacionDePrueba.sesionCon(Permiso.GESTIONAR_USUARIOS)));
+        given(revocacion.revocadasAntesDe(any())).willReturn(Optional.empty());
+        Usuario vecino = new Usuario(new UsuarioId("33333333-3333-3333-3333-333333333333"),
+                new CorreoElectronico("vecina@ejemplo.org"), "Vecina de Manga",
+                new ClaveHash("$2a$10$abcdefghijklmnopqrstuu"), EstadoCuenta.ACTIVA,
+                PermisosEfectivos.deRol(RolVeedor.OBSERVADOR), null, AHORA, AHORA, new SectorId("manga"));
+        given(cuentas.listar(null, new SectorId("manga"), 0, Pagina.TAMANO_POR_DEFECTO))
+                .willReturn(new Pagina<>(List.of(vecino), 0, Pagina.TAMANO_POR_DEFECTO, 1));
+
+        mockMvc.perform(get("/api/veedor/usuarios").param("barrioId", "manga")
+                        .header("Authorization", "Bearer " + TOKEN))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].barrioId").value("manga"));
+    }
+
+    @Test
+    void invitarConUnBarrioInexistenteDebeResponder400() throws Exception {
+        given(jwtProvider.validar(TOKEN))
+                .willReturn(Optional.of(AutenticacionDePrueba.sesionCon(Permiso.GESTIONAR_USUARIOS)));
+        given(revocacion.revocadasAntesDe(any())).willReturn(Optional.empty());
+        given(invitar.invitar(any(), any(), any(), any(), any()))
+                .willThrow(new IllegalArgumentException("No existe el barrio 'no-existe'"));
+
+        mockMvc.perform(post("/api/veedor/usuarios/invitaciones")
+                        .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                        .content("{\"correo\":\"beto@ejemplo.org\",\"nombre\":\"Beto\",\"rol\":\"OBSERVADOR\",\"barrioId\":\"no-existe\"}")
+                        .header("Authorization", "Bearer " + TOKEN))
+                .andExpect(status().isBadRequest());
     }
 }

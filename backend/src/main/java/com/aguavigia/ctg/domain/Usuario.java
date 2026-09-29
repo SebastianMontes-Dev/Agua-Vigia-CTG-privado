@@ -20,7 +20,15 @@ public record Usuario(
         PermisosEfectivos permisos,
         SegundoFactor segundoFactor,
         Instant creadoEn,
-        Instant actualizadoEn) {
+        Instant actualizadoEn,
+        SectorId barrio) {
+
+    /** Sin barrio: el ADMIN inicial y las cuentas anteriores a ADR-081 no lo tienen. */
+    public Usuario(UsuarioId id, CorreoElectronico correo, String nombre, ClaveHash claveHash,
+                   EstadoCuenta estado, PermisosEfectivos permisos, SegundoFactor segundoFactor,
+                   Instant creadoEn, Instant actualizadoEn) {
+        this(id, correo, nombre, claveHash, estado, permisos, segundoFactor, creadoEn, actualizadoEn, null);
+    }
 
     public Usuario {
         if (id == null) {
@@ -49,11 +57,17 @@ public record Usuario(
     /** Auto-registro: nace sin permisos útiles y sin poder entrar hasta verificar y ser aprobada. */
     public static Usuario registrado(UsuarioId id, CorreoElectronico correo, String nombre,
                                      ClaveHash claveHash, Instant momento) {
+        return registrado(id, correo, nombre, claveHash, null, momento);
+    }
+
+    /** `barrio` es opcional: el barrio donde vive quien se registra (ADR-081). */
+    public static Usuario registrado(UsuarioId id, CorreoElectronico correo, String nombre,
+                                     ClaveHash claveHash, SectorId barrio, Instant momento) {
         if (claveHash == null) {
             throw new IllegalArgumentException("Quien se registra debe fijar una clave");
         }
         return new Usuario(id, correo, nombre, claveHash, EstadoCuenta.PENDIENTE_VERIFICACION,
-                PermisosEfectivos.deRol(RolVeedor.OBSERVADOR), null, momento, momento);
+                PermisosEfectivos.deRol(RolVeedor.OBSERVADOR), null, momento, momento, barrio);
     }
 
     /**
@@ -62,8 +76,13 @@ public record Usuario(
      */
     public static Usuario invitado(UsuarioId id, CorreoElectronico correo, String nombre,
                                    RolVeedor rol, Instant momento) {
+        return invitado(id, correo, nombre, rol, null, momento);
+    }
+
+    public static Usuario invitado(UsuarioId id, CorreoElectronico correo, String nombre,
+                                   RolVeedor rol, SectorId barrio, Instant momento) {
         return new Usuario(id, correo, nombre, null, EstadoCuenta.INVITADA,
-                PermisosEfectivos.deRol(rol), null, momento, momento);
+                PermisosEfectivos.deRol(rol), null, momento, momento, barrio);
     }
 
     public Usuario verificarCorreo(Instant momento) {
@@ -177,6 +196,6 @@ public record Usuario(
             throw new IllegalArgumentException("Todo cambio en la cuenta necesita un instante");
         }
         return new Usuario(id, correo, nombre, nuevaClave, nuevoEstado, nuevosPermisos,
-                nuevoSegundoFactor, creadoEn, momento);
+                nuevoSegundoFactor, creadoEn, momento, barrio);
     }
 }

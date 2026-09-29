@@ -80,7 +80,7 @@ public class IngestaRevisionController {
             @ApiResponse(responseCode = "404", description = "La propuesta no existe",
                     content = @Content(mediaType = "application/problem+json",
                             schema = @Schema(implementation = ProblemDetail.class))),
-            @ApiResponse(responseCode = "409", description = "El sector de la propuesta ya no existe",
+            @ApiResponse(responseCode = "409", description = "El sector de la propuesta ya no existe, o la propuesta ya estaba descartada",
                     content = @Content(mediaType = "application/problem+json",
                             schema = @Schema(implementation = ProblemDetail.class)))
     })
@@ -91,10 +91,13 @@ public class IngestaRevisionController {
     }
 
     @Operation(summary = "Descartar una propuesta",
-            description = "No toca el sector. La propuesta se archiva como descartada, no se borra.")
+            description = "No toca el sector. La propuesta se archiva como descartada, no se borra. Descartar una ya aprobada responde 409.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Propuesta descartada"),
             @ApiResponse(responseCode = "404", description = "La propuesta no existe",
+                    content = @Content(mediaType = "application/problem+json",
+                            schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "409", description = "La propuesta ya estaba aprobada",
                     content = @Content(mediaType = "application/problem+json",
                             schema = @Schema(implementation = ProblemDetail.class)))
     })

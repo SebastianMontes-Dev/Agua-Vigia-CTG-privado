@@ -1,6 +1,7 @@
 package com.aguavigia.ctg.api;
 
 import com.aguavigia.ctg.api.error.ManejadorGlobalDeErrores;
+import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.port.in.AceptarInvitacionUseCase;
 import com.aguavigia.ctg.domain.port.in.RegistrarUsuarioUseCase;
 import com.aguavigia.ctg.domain.port.in.RestablecerClaveUseCase;
@@ -20,6 +21,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -70,7 +72,37 @@ class CuentaPublicaControllerTest {
                         .content(json))
                 .andExpect(status().isAccepted());
 
-        verify(registrar).registrar(any(), eq("Ciudadano Ejemplar"), any(), any());
+        verify(registrar).registrar(any(), eq("Ciudadano Ejemplar"), any(), isNull(), any());
+    }
+
+    @Test
+    void registrarseConBarrioDebePasarloAlCasoDeUso() throws Exception {
+        String json = """
+                {
+                    "correo": "vecina@ejemplo.com",
+                    "nombre": "Vecina de Manga",
+                    "clave": "ClaveSegura123#!",
+                    "barrioId": "manga"
+                }
+                """;
+
+        mockMvc.perform(post("/api/cuentas/registro")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isAccepted());
+
+        verify(registrar).registrar(any(), eq("Vecina de Manga"), any(), eq(new SectorId("manga")), any());
+    }
+
+    @Test
+    void registrarseConUnBarrioInexistenteDebeResponder400() throws Exception {
+        org.mockito.BDDMockito.willThrow(new IllegalArgumentException("No existe el barrio 'no-existe'"))
+                .given(registrar).registrar(any(), any(), any(), any(), any());
+
+        mockMvc.perform(post("/api/cuentas/registro")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"correo\":\"v@ejemplo.com\",\"nombre\":\"Vecina\",\"clave\":\"ClaveSegura123#!\",\"barrioId\":\"no-existe\"}"))
+                .andExpect(status().isBadRequest());
     }
 
     @Test

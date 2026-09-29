@@ -158,12 +158,23 @@ public record PropuestaIngesta(
         return inicioDeclarado != null || estadoPropuesto == EstadoServicio.CON_SERVICIO;
     }
 
-    /** Idempotente, igual que {@link ReporteCiudadano#aprobar()}. */
+    /**
+     * Idempotente sobre una ya aprobada. A diferencia de {@link ReporteCiudadano#aprobar()}, una propuesta
+     * descartada no se puede aprobar: aprobar mueve el mapa y anexa a la bitácora (RF028), y una decisión del
+     * veedor que ya se cerró no debe revertirse por una segunda petición.
+     */
     public PropuestaIngesta aprobar() {
+        if (estadoRevision == EstadoRevision.DESCARTADA) {
+            throw new IllegalStateException("La propuesta ya fue descartada y no se puede aprobar");
+        }
         return conRevision(EstadoRevision.APROBADA);
     }
 
+    /** Idempotente sobre una ya descartada; una aprobada no se puede descartar porque ya afectó al mapa. */
     public PropuestaIngesta descartar() {
+        if (estadoRevision == EstadoRevision.APROBADA) {
+            throw new IllegalStateException("La propuesta ya fue aprobada y no se puede descartar");
+        }
         return conRevision(EstadoRevision.DESCARTADA);
     }
 

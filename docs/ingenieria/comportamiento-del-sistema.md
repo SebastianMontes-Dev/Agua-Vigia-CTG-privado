@@ -800,6 +800,18 @@ que queda es una heurística que **propone** a una cola de revisión del veedor 
 cuenta (ADR-028), salvo el boletín oficial del propio operador. Cubre M9 (RF029–RF031); RF032–RF036
 quedaron fuera de alcance.
 
+### Requisito: La ingesta funciona sin internet en modo local
+
+Con `INGESTA_MODO=local` (`ADR-082`), el sistema debe leer boletines reales de Acuacar guardados en el repositorio en
+lugar de consultar a Acuacar y a la prensa, para poder presentar sin red.
+
+#### Escenario: Ciclo de ingesta en modo local
+
+- **Cuando** corre el ciclo con `INGESTA_MODO=local`
+- **Entonces** no se hace ninguna petición a Acuacar ni a los feeds de prensa
+- **Y** los boletines guardados siguen el mismo camino que uno en vivo, y el colector `acuacar` figura como sano
+- **Y** al volver a `en-vivo` no se duplican propuestas, porque el hash del boletín es el mismo
+
 ### Requisito: Consumo periódico de la fuente oficial
 
 El sistema debe consumir periódicamente la API oficial del operador y detectar publicaciones
@@ -902,6 +914,18 @@ su origen ya es la autoridad del dato.
 
 - **Cuando** el veedor llama a `PATCH /api/veedor/ingesta/propuestas/{id}/descartar`
 - **Entonces** la propuesta se cierra sin publicar nada
+
+#### Escenario: Una propuesta ya resuelta no se resuelve al revés
+
+- **Cuando** el veedor descarta una propuesta ya aprobada, o aprueba una ya descartada
+- **Entonces** la API responde 409 (`Conflicto de estado`) y no toca el mapa, la bitácora ni la propuesta
+- **Y** repetir la misma acción (aprobar una aprobada, descartar una descartada) no falla ni duplica el evento
+
+#### Escenario: Aprobar una propuesta que no dice cuándo ocurre el corte
+
+- **Cuando** el veedor aprueba una propuesta sin ventana declarada que no afirma que hay servicio
+- **Entonces** responde 200 y la propuesta queda aprobada, pero el mapa no cambia (un boletín sin fecha no permite saber
+  si el corte sigue vigente)
 
 ### Requisito: Un sector tiene una sola transición de estado, sin importar cuántas fuentes opinen a la vez
 
@@ -1102,6 +1126,23 @@ concederle ningún permiso hasta que verifique el correo y un administrador la a
 - **Cuando** alguien envía `POST /api/cuentas/registro` con su correo
 - **Entonces** la cuenta queda en `PENDIENTE_VERIFICACION` y no puede entrar al panel
 
+#### Escenario: Registro con el barrio donde vive la persona
+
+- **Cuando** la solicitud (o una invitación) incluye `barrioId`, el slug de un sector de `GET /api/sectores`
+- **Entonces** la cuenta guarda ese barrio y un ADMIN lo ve como `barrioId` en `GET /api/veedor/usuarios`
+- **Y** el barrio es opcional: sin él la cuenta nace igual (`ADR-081`)
+
+#### Escenario: Barrio inexistente
+
+- **Cuando** la solicitud o la invitación trae un `barrioId` que no existe
+- **Entonces** la API responde 400 y no crea la cuenta
+- **Y** la respuesta es la misma tenga o no cuenta ese correo (`RNF024`)
+
+#### Escenario: Listar las cuentas de un barrio
+
+- **Cuando** un ADMIN llama a `GET /api/veedor/usuarios?barrioId=manga` (con o sin `estado`)
+- **Entonces** recibe solo las cuentas de ese barrio, las más recientes primero
+
 #### Escenario: Correo verificado, aprobación pendiente
 
 - **Cuando** la persona verifica su correo por `POST /api/cuentas/verificacion`
@@ -1261,11 +1302,21 @@ y ese cambio debe cerrar todas las sesiones abiertas de la cuenta.
 El registro, el ingreso y el restablecimiento de clave no deben revelar qué correos tienen cuenta,
 ni por el mensaje ni por el tiempo de respuesta (RNF024).
 
+#### Escenario: Registro con un correo que ya tiene cuenta
+
+- **Cuando** alguien se registra con un correo que ya tiene cuenta
+- **Entonces** la respuesta es la misma 202 que la de un alta nueva y no se crea nada
+- **Y** tarda lo mismo que un alta nueva: se gasta el mismo tiempo de cifrado y, además, toda
+  solicitud de registro dura al menos `aguavigia.seguridad.duracion-minima-solicitud-ms` (100 ms por
+  defecto). El cifrado solo no bastaba: medido, un correo existente respondía en ~49 ms y uno nuevo
+  en ~71 ms (`BUG-123`, `RNF024`)
+
 #### Escenario: Restablecimiento sobre un correo desconocido
 
 - **Cuando** se pide restablecer la clave de un correo que no tiene cuenta
 - **Entonces** la respuesta es indistinguible —en cuerpo y en tiempo— de la de un correo que sí la
-  tiene
+  tiene: la solicitud dura al menos `aguavigia.seguridad.duracion-minima-solicitud-ms` en los dos
+  casos (medido tras la corrección: ~107 ms con cuenta y ~107 ms sin ella; antes, ~18 ms contra ~7 ms)
 
 #### Escenario: Ingreso con correo inexistente
 

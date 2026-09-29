@@ -173,4 +173,16 @@ class IngestaRevisionControllerTest {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.title").value("Conflicto de estado"));
     }
+
+    @Test
+    void debeResponder409SiSeDescartaUnaPropuestaYaAprobada() throws Exception {
+        autenticarComoVeedor();
+        given(revisarPropuesta.descartar(any()))
+                .willThrow(new IllegalStateException("La propuesta ya fue aprobada y no se puede descartar"));
+
+        mockMvc.perform(patch("/api/veedor/ingesta/propuestas/p-1/descartar").header("Authorization", TOKEN))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.title").value("Conflicto de estado"))
+                .andExpect(jsonPath("$.detail").value("La propuesta ya fue aprobada y no se puede descartar"));
+    }
 }

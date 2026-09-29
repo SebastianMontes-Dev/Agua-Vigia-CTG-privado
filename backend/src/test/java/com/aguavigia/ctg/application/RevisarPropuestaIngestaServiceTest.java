@@ -252,6 +252,29 @@ class RevisarPropuestaIngestaServiceTest {
     }
 
     @Test
+    void aprobarUnaPropuestaYaDescartadaNoDebeTocarElMapaNiLaBitacora() {
+        given(propuestas.buscarPorId(ID)).willReturn(Optional.of(propuestaPendiente().descartar()));
+        sectorEsta(EstadoServicio.CON_SERVICIO);
+
+        assertThatThrownBy(() -> servicio.aprobar(ID)).isInstanceOf(IllegalStateException.class);
+
+        verify(sectores, never()).guardar(any());
+        verify(sectores, never()).confirmarEstado(any(), any());
+        verify(registrarEvento, never()).registrar(any());
+        verify(cortes, never()).anexarSectorAlCorte(any(), any(), any(), any(), any(), any(), any());
+        verify(propuestas, never()).guardar(any());
+    }
+
+    @Test
+    void descartarUnaPropuestaYaAprobadaNoDebeGuardarNada() {
+        given(propuestas.buscarPorId(ID)).willReturn(Optional.of(propuestaPendiente().aprobar()));
+
+        assertThatThrownBy(() -> servicio.descartar(ID)).isInstanceOf(IllegalStateException.class);
+
+        verify(propuestas, never()).guardar(any());
+    }
+
+    @Test
     void debeRechazarRevisarUnaPropuestaQueNoExiste() {
         given(propuestas.buscarPorId(any())).willReturn(Optional.empty());
 

@@ -13,6 +13,7 @@ import com.aguavigia.ctg.domain.port.out.ControlIntentosPort;
 import com.aguavigia.ctg.domain.port.out.NotificacionCuentaPort;
 import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.RevocacionSesionPort;
+import com.aguavigia.ctg.domain.port.out.TiempoConstantePort;
 import com.aguavigia.ctg.domain.port.out.UsuarioRepository;
 
 /**
@@ -34,6 +35,7 @@ public class RestablecerClaveService implements RestablecerClaveUseCase {
     private final NotificacionCuentaPort notificaciones;
     private final RegistroDeAuditoria auditoria;
     private final RelojPort reloj;
+    private final TiempoConstantePort tiempoConstante;
 
     public RestablecerClaveService(UsuarioRepository usuarios,
                                    EmisorDeTokensDeCuenta emisorDeTokens,
@@ -42,7 +44,8 @@ public class RestablecerClaveService implements RestablecerClaveUseCase {
                                    ControlIntentosPort intentos,
                                    NotificacionCuentaPort notificaciones,
                                    RegistroDeAuditoria auditoria,
-                                   RelojPort reloj) {
+                                   RelojPort reloj,
+                                   TiempoConstantePort tiempoConstante) {
         this.usuarios = usuarios;
         this.emisorDeTokens = emisorDeTokens;
         this.cifrador = cifrador;
@@ -51,18 +54,21 @@ public class RestablecerClaveService implements RestablecerClaveUseCase {
         this.notificaciones = notificaciones;
         this.auditoria = auditoria;
         this.reloj = reloj;
+        this.tiempoConstante = tiempoConstante;
     }
 
     @Override
     public void solicitar(CorreoElectronico correo, ContextoDeAccion contexto) {
-        usuarios.buscarPorCorreo(correo.normalizado())
+        // RNF024: emitir el token y mandar el correo cuesta más que no hacer nada, y esa diferencia
+        // (medida: ~18 ms contra ~7 ms) delata qué correos tienen cuenta aunque la respuesta sea idéntica.
+        tiempoConstante.ejecutar(() -> usuarios.buscarPorCorreo(correo.normalizado())
                 // Una cuenta rechazada o aún sin aceptar su invitación no tiene clave que
                 // restablecer, y mandarle el enlace le daría un camino para activarse saltándose
                 // la aprobación.
                 .filter(usuario -> usuario.estado() != EstadoCuenta.RECHAZADA
                         && usuario.estado() != EstadoCuenta.INVITADA)
                 .ifPresent(usuario -> notificaciones.enviarEnlaceDeRestablecimiento(usuario,
-                        emisorDeTokens.emitir(usuario.id(), TipoTokenCuenta.RESTABLECER_CLAVE)));
+                        emisorDeTokens.emitir(usuario.id(), TipoTokenCuenta.RESTABLECER_CLAVE))));
     }
 
     @Override

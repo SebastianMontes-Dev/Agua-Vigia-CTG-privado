@@ -160,7 +160,8 @@ node scripts/verificar-flujos.mjs
 |---|---|
 | **50 000 usuarios simultáneos** (`RNF027`) | No se demuestra en local (`ADR-057`). Se muestra la arquitectura preparada y las mediciones locales de `scripts/carga/`, dichas como banco local, no producción. |
 | **`RF041`** alertas por Telegram | Construido y armado, pero **apagado**: falta el bot real (`TELEGRAM_BOT_TOKEN`, ver `telegram.md`). No se muestra en vivo hasta conectarlo. WhatsApp no existe. |
-| **IoT (`RF040`)** | Solución que se implementaría en físico: el endpoint `POST /api/iot/presion` existe y está probado, pero no hay sensores instalados. |
+| **IoT (`RF040`)** | Solución que se implementaría en físico: el endpoint `POST /api/iot/presion` existe y está probado, pero no hay sensores instalados. Para probarlo en local hay que dar valor a `IOT_KEY` en `.env` y mandarlo en `X-IoT-Key`; vacía, responde 503. |
+| **Confirmar un reporte (`RF038`) no mueve el mapa** | Decisión mantenida (`BUG-114`): la confirmación suma al conteo `confirmaciones` del reporte, una vez por dispositivo, pero no entra al consenso; solo los reportes originales cuentan. |
 | **TLS, dominio, CDN, hosting** | No existen por decisión del proyecto (`ADR-057`). |
 | **Interfaz web** | No hay frontend en `main` (`ADR-048`); se demuestra la API con Swagger y `curl`. |
 | **Datos históricos reales** | Los de mayo–julio son sintéticos. |

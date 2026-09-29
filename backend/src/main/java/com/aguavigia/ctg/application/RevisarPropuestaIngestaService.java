@@ -54,6 +54,8 @@ public class RevisarPropuestaIngestaService implements RevisarPropuestaIngestaUs
     @Override
     public PropuestaIngesta aprobar(PropuestaId id) {
         PropuestaIngesta propuesta = buscarOLanzar(id);
+        // Antes de tocar el mapa: una propuesta ya descartada lanza aquí y no llega a cambiar nada.
+        PropuestaIngesta aprobada = propuesta.aprobar();
 
         Sector sector = sectores.buscarPorId(propuesta.sectorId())
                 .orElseThrow(() -> new IllegalStateException(
@@ -87,7 +89,7 @@ public class RevisarPropuestaIngestaService implements RevisarPropuestaIngestaUs
 
         registrarCorteDelBoletin(propuesta);
 
-        return propuestas.guardar(propuesta.aprobar());
+        return propuestas.guardar(aprobada);
     }
 
     /**

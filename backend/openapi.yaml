@@ -113,6 +113,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/UsuarioRespuesta"
+        "400":
+          description: Datos invalidos o barrio inexistente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UsuarioRespuesta"
         "409":
           description: Ya existe una cuenta con ese correo
           content:
@@ -825,7 +831,8 @@ paths:
         "202":
           description: Solicitud recibida; revisa tu correo
         "400":
-          description: Correo mal formado o clave que no cumple la politica
+          description: "Correo mal formado, clave que no cumple la politica o barrio\
+            \ inexistente"
   /api/cuentas/invitacion:
     post:
       tags:
@@ -1288,7 +1295,7 @@ paths:
       - Veedor - Ingesta
       summary: Descartar una propuesta
       description: "No toca el sector. La propuesta se archiva como descartada, no\
-        \ se borra."
+        \ se borra. Descartar una ya aprobada responde 409."
       operationId: descartar_1
       parameters:
       - name: id
@@ -1305,6 +1312,12 @@ paths:
                 $ref: "#/components/schemas/PropuestaIngestaRespuesta"
         "404":
           description: La propuesta no existe
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: La propuesta ya estaba aprobada
           content:
             application/problem+json:
               schema:
@@ -1352,7 +1365,8 @@ paths:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
         "409":
-          description: El sector de la propuesta ya no existe
+          description: "El sector de la propuesta ya no existe, o la propuesta ya\
+            \ estaba descartada"
           content:
             application/problem+json:
               schema:
@@ -1459,10 +1473,16 @@ paths:
       summary: "Listar cuentas, mas recientes primero"
       description: |-
         Paginado, con el total y el enlace a la siguiente pagina en `X-Total-Count` y
-        `Link`. `estado` filtra por PENDIENTE_APROBACION para ver solo la cola de altas.
+        `Link`. `estado` filtra por PENDIENTE_APROBACION para ver solo la cola de altas y
+        `barrioId` (slug de un sector) por el barrio donde viven las personas.
       operationId: listar
       parameters:
       - name: estado
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: barrioId
         in: query
         required: false
         schema:
@@ -2195,6 +2215,10 @@ components:
         rol:
           type: string
           description: "ADMIN, VEEDOR u OBSERVADOR"
+        barrioId:
+          type: string
+          description: "Opcional: slug del barrio de la persona. 400 si no existe."
+          nullable: true
       description: "Invitacion emitida por un ADMIN: crea la cuenta con su rol y manda\
         \ el enlace"
     UsuarioRespuesta:
@@ -2212,6 +2236,10 @@ components:
             \ SUSPENDIDA o RECHAZADA"
         rol:
           type: string
+        barrioId:
+          type: string
+          description: Slug del barrio donde vive la persona; nulo si no lo dio (ADR-081)
+          nullable: true
         permisosEfectivos:
           type: array
           items:
@@ -2583,6 +2611,12 @@ components:
           minLength: 1
           type: string
           description: Minimo 12 caracteres. La politica completa vive en ClaveEnClaro.
+        barrioId:
+          type: string
+          description: "Opcional: slug del barrio donde vives (uno de `GET /api/sectores`).\
+            \ 400 si no existe."
+          nullable: true
+          example: manga
       description: "Solicitud de acceso al panel. No concede nada: exige verificar\
         \ el correo y que un ADMIN apruebe."
     SolicitudFijarClave:

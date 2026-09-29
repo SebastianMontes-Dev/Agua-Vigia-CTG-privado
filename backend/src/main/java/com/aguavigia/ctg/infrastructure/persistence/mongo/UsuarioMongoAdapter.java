@@ -8,6 +8,7 @@ import com.aguavigia.ctg.domain.Permiso;
 import com.aguavigia.ctg.domain.PermisosEfectivos;
 import com.aguavigia.ctg.domain.RolVeedor;
 import com.aguavigia.ctg.domain.SecretoTotp;
+import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.SegundoFactor;
 import com.aguavigia.ctg.domain.Usuario;
 import com.aguavigia.ctg.domain.UsuarioId;
@@ -40,6 +41,7 @@ public class UsuarioMongoAdapter implements UsuarioRepository {
         documento.setClaveHash(usuario.claveHash() == null ? null : usuario.claveHash().valor());
         documento.setEstado(usuario.estado().name());
         documento.setRol(usuario.permisos().rol().name());
+        documento.setBarrio(usuario.barrio() == null ? null : usuario.barrio().valor());
         documento.setPermisosConcedidos(aNombres(usuario.permisos().concedidos()));
         documento.setPermisosRevocados(aNombres(usuario.permisos().revocados()));
         documento.setSecretoTotp(usuario.segundoFactor() == null
@@ -70,11 +72,19 @@ public class UsuarioMongoAdapter implements UsuarioRepository {
 
     /** Más recientes primero: el panel abre por lo que acaba de llegar, que es lo que hay que atender. */
     @Override
-    public Pagina<Usuario> listar(EstadoCuenta filtroEstado, int pagina, int tamano) {
+    public Pagina<Usuario> listar(EstadoCuenta filtroEstado, SectorId filtroBarrio, int pagina, int tamano) {
         PageRequest peticion = PageRequest.of(pagina, tamano, Sort.by(Sort.Direction.DESC, "creadoEn"));
-        Page<UsuarioDocumento> resultado = filtroEstado == null
-                ? repositorio.findAll(peticion)
-                : repositorio.findByEstado(filtroEstado.name(), peticion);
+        String barrio = filtroBarrio == null ? null : filtroBarrio.valor();
+        Page<UsuarioDocumento> resultado;
+        if (filtroEstado == null && barrio == null) {
+            resultado = repositorio.findAll(peticion);
+        } else if (barrio == null) {
+            resultado = repositorio.findByEstado(filtroEstado.name(), peticion);
+        } else if (filtroEstado == null) {
+            resultado = repositorio.findByBarrio(barrio, peticion);
+        } else {
+            resultado = repositorio.findByEstadoAndBarrio(filtroEstado.name(), barrio, peticion);
+        }
 
         return new Pagina<>(
                 resultado.getContent().stream().map(UsuarioMongoAdapter::aDominio).toList(),
@@ -131,6 +141,7 @@ public class UsuarioMongoAdapter implements UsuarioRepository {
                         aPermisos(documento.getPermisosRevocados())),
                 segundoFactor,
                 documento.getCreadoEn(),
-                documento.getActualizadoEn());
+                documento.getActualizadoEn(),
+                documento.getBarrio() == null ? null : new SectorId(documento.getBarrio()));
     }
 }

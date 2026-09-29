@@ -3,6 +3,7 @@ package com.aguavigia.ctg.api;
 import com.aguavigia.ctg.api.dto.SolicitudFijarClave;
 import com.aguavigia.ctg.api.dto.SolicitudRegistro;
 import com.aguavigia.ctg.api.dto.SolicitudRestablecer;
+import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.ClaveEnClaro;
 import com.aguavigia.ctg.domain.CorreoElectronico;
 import com.aguavigia.ctg.domain.port.in.AceptarInvitacionUseCase;
@@ -60,7 +61,7 @@ public class CuentaPublicaController {
                     que direcciones estan registradas.""")
     @ApiResponses({
             @ApiResponse(responseCode = "202", description = "Solicitud recibida; revisa tu correo"),
-            @ApiResponse(responseCode = "400", description = "Correo mal formado o clave que no cumple la politica")
+            @ApiResponse(responseCode = "400", description = "Correo mal formado, clave que no cumple la politica o barrio inexistente")
     })
     @PostMapping("/registro")
     @ResponseStatus(HttpStatus.ACCEPTED)
@@ -69,7 +70,12 @@ public class CuentaPublicaController {
                 new CorreoElectronico(solicitud.correo()),
                 solicitud.nombre(),
                 new ClaveEnClaro(solicitud.clave()),
+                barrio(solicitud.barrioId()),
                 ContextoHttp.de(peticion));
+    }
+
+    private static SectorId barrio(String barrioId) {
+        return barrioId == null || barrioId.isBlank() ? null : new SectorId(barrioId.strip());
     }
 
     @Operation(summary = "Confirmar el correo con el token del enlace",

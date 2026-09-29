@@ -17,7 +17,10 @@ public record SolicitudInvitacion(
 
         @NotNull
         @Schema(description = "ADMIN, VEEDOR u OBSERVADOR")
-        String rol) {
+        String rol,
+
+        @Schema(description = "Opcional: slug del barrio de la persona. 400 si no existe.", nullable = true)
+        String barrioId) {
 
     /** Delega en SolicitudPermisos para que un rol mal escrito de el mismo error en los dos sitios. */
     public com.aguavigia.ctg.domain.RolVeedor rolDominio() {

@@ -69,7 +69,7 @@ public class SembradorAdminInicial {
             // Basta con saber si existe alguna cuenta, sea cual sea su estado: sembrar por segunda
             // vez sobre un sistema que ya tuvo administradores volveria a abrir una credencial que
             // se pudo haber retirado a proposito.
-            if (usuarios.listar(null, 0, 1).totalElementos() > 0) {
+            if (usuarios.listar(null, null, 0, 1).totalElementos() > 0) {
                 return;
             }
 

@@ -32,6 +32,9 @@ public class UsuarioDocumento {
 
     private String estado;
     private String rol;
+
+    /** Slug del sector donde vive la persona (ADR-081). Nulo para el ADMIN inicial y las cuentas anteriores. */
+    private String barrio;
     private List<String> permisosConcedidos;
     private List<String> permisosRevocados;
 

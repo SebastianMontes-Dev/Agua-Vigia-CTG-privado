@@ -7,6 +7,9 @@ import com.aguavigia.ctg.domain.CorreoElectronico;
 import com.aguavigia.ctg.domain.EstadoCuenta;
 import com.aguavigia.ctg.domain.PermisosEfectivos;
 import com.aguavigia.ctg.domain.RolVeedor;
+import com.aguavigia.ctg.domain.port.out.SectorRepository;
+import com.aguavigia.ctg.domain.Sector;
+import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.TipoTokenCuenta;
 import com.aguavigia.ctg.domain.Usuario;
 import com.aguavigia.ctg.domain.UsuarioId;
@@ -14,6 +17,7 @@ import com.aguavigia.ctg.domain.port.out.CifradorClavePort;
 import com.aguavigia.ctg.domain.port.out.ControlIntentosPort;
 import com.aguavigia.ctg.domain.port.out.NotificacionCuentaPort;
 import com.aguavigia.ctg.domain.port.out.RevocacionSesionPort;
+import com.aguavigia.ctg.domain.port.out.TiempoConstantePort;
 import com.aguavigia.ctg.domain.port.out.UsuarioRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,12 +27,15 @@ import java.time.Instant;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 /**
@@ -52,6 +59,8 @@ class AltaYRecuperacionDeCuentaTest {
     private RegistroDeAuditoria auditoria;
     private RevocacionSesionPort revocacion;
     private ControlIntentosPort intentos;
+    private SectorRepository sectores;
+    private TiempoConstantePort tiempoConstante;
 
     @BeforeEach
     void montar() {
@@ -62,6 +71,12 @@ class AltaYRecuperacionDeCuentaTest {
         auditoria = mock(RegistroDeAuditoria.class);
         revocacion = mock(RevocacionSesionPort.class);
         intentos = mock(ControlIntentosPort.class);
+        sectores = mock(SectorRepository.class);
+        tiempoConstante = mock(TiempoConstantePort.class);
+        doAnswer(invocacion -> {
+            ((Runnable) invocacion.getArgument(0)).run();
+            return null;
+        }).when(tiempoConstante).ejecutar(any());
 
         given(usuarios.guardar(any())).willAnswer(invocacion -> invocacion.getArgument(0));
         given(cifrador.cifrar(anyString())).willReturn(HASH);
@@ -70,12 +85,13 @@ class AltaYRecuperacionDeCuentaTest {
 
     private RegistrarUsuarioService registro() {
         return new RegistrarUsuarioService(
-                usuarios, cifrador, emisorDeTokens, notificaciones, auditoria, () -> AHORA);
+                usuarios, cifrador, emisorDeTokens, notificaciones, auditoria, () -> AHORA, sectores,
+                tiempoConstante);
     }
 
     private RestablecerClaveService restablecimiento() {
         return new RestablecerClaveService(usuarios, emisorDeTokens, cifrador, revocacion,
-                intentos, notificaciones, auditoria, () -> AHORA);
+                intentos, notificaciones, auditoria, () -> AHORA, tiempoConstante);
     }
 
     private static Usuario cuenta(EstadoCuenta estado) {
@@ -120,6 +136,75 @@ class AltaYRecuperacionDeCuentaTest {
         verify(usuarios, never()).guardar(any());
         verify(notificaciones, never()).enviarVerificacionDeCorreo(any(), anyString());
         verify(notificaciones).avisarCambioDeAcceso(any(), anyString(), anyString());
+    }
+
+    /** RNF024: la rama de un correo existente no cifra nada, y sin esto responde mucho más rápido que un alta nueva. */
+    @Test
+    void registrarseConUnCorreoYaRegistradoDebeGastarElMismoTiempoQueUnAltaNueva() {
+        given(usuarios.buscarPorCorreo(any())).willReturn(Optional.of(cuenta(EstadoCuenta.ACTIVA)));
+
+        registro().registrar(CORREO, "Ana", CLAVE, CONTEXTO);
+
+        verify(cifrador).gastarTiempoEquivalente();
+    }
+
+    /** RNF024: el cifrado no iguala guardar, emitir el token y auditar; la espera mínima sí. */
+    @Test
+    void registrarseDebeIgualarLaDuracionExistaONoElCorreo() {
+        given(usuarios.buscarPorCorreo(any())).willReturn(Optional.empty());
+        registro().registrar(CORREO, "Ana", CLAVE, CONTEXTO);
+
+        given(usuarios.buscarPorCorreo(any())).willReturn(Optional.of(cuenta(EstadoCuenta.ACTIVA)));
+        registro().registrar(CORREO, "Ana", CLAVE, CONTEXTO);
+
+        verify(tiempoConstante, times(2)).ejecutar(any());
+    }
+
+    @Test
+    void registrarseConUnBarrioQueExisteDebeGuardarloEnLaCuenta() {
+        SectorId manga = new SectorId("manga");
+        given(sectores.buscarPorId(manga)).willReturn(Optional.of(new Sector(manga, "Manga", 1000, null)));
+        given(usuarios.buscarPorCorreo(any())).willReturn(Optional.empty());
+
+        registro().registrar(CORREO, "Ana", CLAVE, manga, CONTEXTO);
+
+        ArgumentCaptor<Usuario> guardado = ArgumentCaptor.forClass(Usuario.class);
+        verify(usuarios).guardar(guardado.capture());
+        assertThat(guardado.getValue().barrio()).isEqualTo(manga);
+    }
+
+    /** RNF024: el 400 por barrio inexistente sale antes de mirar el correo, así que no delata cuentas. */
+    @Test
+    void registrarseConUnBarrioInexistenteDebeRechazarseIgualExistaONoElCorreo() {
+        given(sectores.buscarPorId(any())).willReturn(Optional.empty());
+        given(usuarios.buscarPorCorreo(any())).willReturn(Optional.of(cuenta(EstadoCuenta.ACTIVA)));
+
+        assertThatThrownBy(() -> registro().registrar(CORREO, "Ana", CLAVE, new SectorId("no-existe"), CONTEXTO))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("No existe el barrio");
+        verify(usuarios, never()).buscarPorCorreo(any());
+        verify(notificaciones, never()).avisarCambioDeAcceso(any(), anyString(), anyString());
+    }
+
+    @Test
+    void registrarseConUnCorreoNuevoNoDebeGastarTiempoDeMas() {
+        given(usuarios.buscarPorCorreo(any())).willReturn(Optional.empty());
+
+        registro().registrar(CORREO, "Ana", CLAVE, CONTEXTO);
+
+        verify(cifrador, never()).gastarTiempoEquivalente();
+    }
+
+    /** RNF024: con o sin cuenta la petición pasa por la espera mínima, así que dura lo mismo. */
+    @Test
+    void pedirRestablecimientoDebeIgualarLaDuracionExistaONoLaCuenta() {
+        given(usuarios.buscarPorCorreo(any())).willReturn(Optional.empty());
+        restablecimiento().solicitar(CORREO, CONTEXTO);
+
+        given(usuarios.buscarPorCorreo(any())).willReturn(Optional.of(cuenta(EstadoCuenta.ACTIVA)));
+        restablecimiento().solicitar(CORREO, CONTEXTO);
+
+        verify(tiempoConstante, times(2)).ejecutar(any());
     }
 
     @Test

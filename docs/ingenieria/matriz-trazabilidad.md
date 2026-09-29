@@ -135,7 +135,7 @@
 
 | RF | Historia | Caso de prueba | Obj. | Sprint | Estado |
 |---|---|---|---|---|---|
-| RF038 Confirmar reporte con un solo clic | HU038 | CP038 | 3 | Fase 2 | ✅ |
+| RF038 Confirmar reporte con un solo clic | HU038 | CP038 | 3 | Fase 2 | ✅ (suma al conteo `confirmaciones`; no cuenta para el consenso, `BUG-114`) |
 
 ### M12 — API Abierta Open311 (Fase 2)
 

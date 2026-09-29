@@ -699,7 +699,7 @@ export interface paths {
         head?: never;
         /**
          * Descartar una propuesta
-         * @description No toca el sector. La propuesta se archiva como descartada, no se borra.
+         * @description No toca el sector. La propuesta se archiva como descartada, no se borra. Descartar una ya aprobada responde 409.
          */
         patch: operations["descartar_1"];
         trace?: never;
@@ -773,7 +773,8 @@ export interface paths {
         /**
          * Listar cuentas, mas recientes primero
          * @description Paginado, con el total y el enlace a la siguiente pagina en `X-Total-Count` y
-         *     `Link`. `estado` filtra por PENDIENTE_APROBACION para ver solo la cola de altas.
+         *     `Link`. `estado` filtra por PENDIENTE_APROBACION para ver solo la cola de altas y
+         *     `barrioId` (slug de un sector) por el barrio donde viven las personas.
          */
         get: operations["listar"];
         put?: never;
@@ -1230,6 +1231,8 @@ export interface components {
             nombre: string;
             /** @description ADMIN, VEEDOR u OBSERVADOR */
             rol: string;
+            /** @description Opcional: slug del barrio de la persona. 400 si no existe. */
+            barrioId?: string | null;
         };
         /** @description Cuenta del panel, tal como la ve un ADMIN */
         UsuarioRespuesta: {
@@ -1239,6 +1242,8 @@ export interface components {
             /** @description PENDIENTE_VERIFICACION, PENDIENTE_APROBACION, INVITADA, ACTIVA, SUSPENDIDA o RECHAZADA */
             estado?: string;
             rol?: string;
+            /** @description Slug del barrio donde vive la persona; nulo si no lo dio (ADR-081) */
+            barrioId?: string | null;
             permisosEfectivos?: string[];
             permisosConcedidos?: string[];
             permisosRevocados?: string[];
@@ -1447,6 +1452,11 @@ export interface components {
             nombre: string;
             /** @description Minimo 12 caracteres. La politica completa vive en ClaveEnClaro. */
             clave: string;
+            /**
+             * @description Opcional: slug del barrio donde vives (uno de `GET /api/sectores`). 400 si no existe.
+             * @example manga
+             */
+            barrioId?: string | null;
         };
         /** @description Fijar clave desde un enlace de un solo uso (invitacion o restablecimiento) */
         SolicitudFijarClave: {
@@ -1828,6 +1838,15 @@ export interface operations {
         responses: {
             /** @description Invitacion enviada */
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UsuarioRespuesta"];
+                };
+            };
+            /** @description Datos invalidos o barrio inexistente */
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2679,7 +2698,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Correo mal formado o clave que no cumple la politica */
+            /** @description Correo mal formado, clave que no cumple la politica o barrio inexistente */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -3272,6 +3291,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetail"];
                 };
             };
+            /** @description La propuesta ya estaba aprobada */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
         };
     };
     aprobar_2: {
@@ -3321,7 +3349,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetail"];
                 };
             };
-            /** @description El sector de la propuesta ya no existe */
+            /** @description El sector de la propuesta ya no existe, o la propuesta ya estaba descartada */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -3436,6 +3464,7 @@ export interface operations {
         parameters: {
             query?: {
                 estado?: string;
+                barrioId?: string;
                 pagina?: number;
                 tamano?: number;
             };
