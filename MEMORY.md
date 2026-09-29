@@ -135,9 +135,8 @@ que no cede desde este entorno. Pendiente: otra red, u contacto sugerido por la 
 - Buscar RSS de El Universal en rutas estándar (`/rss.xml`, `/feed/`, `/seccion/local/rss.xml`) →
   404 o conexión cerrada. Usa Arc Publishing y su API `/pf/api/v3/*` está deshabilitada en
   `robots.txt`. **Además el sitio bloquea agentes de IA: no insistir.**
-- **Servidor MCP de git en npm**: `@modelcontextprotocol/server-git` **no existe** (npm devuelve E404,
-  verificado 2026-08-07). El oficial es de Python (`uvx mcp-server-git`). No se agrega: el historial
-  ya está disponible vía `Bash(git log/diff/show)`, permitidos en `.claude/settings.json`.
+- **Servidor MCP de git en npm**: `@modelcontextprotocol/server-git` **no existe** (E404, 2026-08-07); el oficial es de Python.
+  No se agrega: el historial ya sale con `Bash(git log/diff/show)`.
 - `datos.gov.co`: el endpoint `/api/views/metadata/v1` agota el tiempo de espera. **Usar en su lugar
   la API de catálogo de Socrata:** `https://api.us.socrata.com/api/catalog/v1?q=...` (responde bien).
   La búsqueda genérica por "acueducto" da 322 datasets nacionales, ninguno específico de
@@ -147,3 +146,5 @@ que no cede desde este entorno. Pendiente: otra red, u contacto sugerido por la 
   el backend (`http://backend:8080`). Detalle: `docs/ingenieria/escalabilidad.md`.
 - **Entorno local con la imagen al día**: tras traer cambios de `main`, `docker compose up -d --build backend`; con la imagen vieja fallaban CORS, la foto y el cierre de sesión (2026-09-24).
   Sin `.env` junto al compose el backend arranca sin ADMIN (`--env-file` no alimenta el `env_file` del servicio). «Cerrar sesión» falla a veces por diseño: margen de 1 s del filtro JWT (`plan-de-pruebas.md` §8).
+- **Demo de carga** (`ADR-083`): `node scripts/carga/demo.mjs --usuarios 30000 --ventana 60 --conectados 30000 --restaurar`. Medido: 30 000 reportes con
+  30 000 SSE, p95 130–164 ms. Los 50 000 de `RNF027` no se demuestran en un PC. Sin `--restaurar` una segunda corrida seguida ya no encuentra focos.

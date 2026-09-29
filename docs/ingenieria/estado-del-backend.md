@@ -29,7 +29,7 @@ veedor (plan: [`plan-frontend.md`](plan-frontend.md)). El proyecto corre solo en
 
 | Qué | Valor | Cómo se comprobó |
 |---|---|---|
-| Pruebas de backend | **1 100** (1 solo corre a petición: regenerar el contrato) · 0 fallos | `./mvnw verify` con Docker en la máquina del dueño, 2026-09-29 (rama `test/cobertura-y-reglas-arquitectura`) |
+| Pruebas de backend | **1 104** (1 solo corre a petición: regenerar el contrato) · 0 fallos | `./mvnw verify` con Docker en la máquina del dueño, 2026-09-29 (`main` con #101 y la rama `docs/cierre-final-backend`) |
 | Cobertura | JaCoCo ≥ 85 % en `domain/` y `application/`; real **91,1 %** en `domain/`, **97,7 %** en `application/` y **94,1 %** en todo el backend (instrucciones) | El propio `verify` lo exige; cifras de `target/site/jacoco/jacoco.csv`, 2026-09-29 |
 | Arquitectura | 10 reglas ArchUnit en verde, incluidas «`api` no depende de `infrastructure`» y «toda ruta de `/api/veedor/**` lleva `@PreAuthorize`» | `ReglaDeOroArchitectureTest` |
 | API | **64 operaciones** en 21 controladores, 37 esquemas | `backend/openapi.yaml` (generado) |

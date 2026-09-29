@@ -1164,7 +1164,7 @@ Al fijar su clave desde el enlace, la cuenta debe quedar activa sin otra aprobac
 #### Escenario: Invitación aceptada
 
 - **Cuando** el administrador crea la invitación por `POST /api/veedor/usuarios/invitaciones` y la
-  persona fija su clave por `POST /api/cuentas/clave`
+  persona fija su clave por `POST /api/cuentas/invitacion`
 - **Entonces** la cuenta queda `ACTIVA` con el rol de la invitación, sin pasar por aprobación
 
 ### Requisito: Roles como paquetes de permisos, con ajustes por persona
