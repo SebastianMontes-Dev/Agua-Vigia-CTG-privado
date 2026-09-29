@@ -26,6 +26,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
@@ -334,6 +335,17 @@ public class ManejadorGlobalDeErrores {
         problema.setTitle("Servicio no disponible");
         problema.setType(URI.create(BASE_TIPO + "base-de-datos-no-disponible"));
         return problema;
+    }
+
+    /**
+     * El cliente cerró la conexión mientras el servidor le escribía: en el canal en vivo (SSE) pasa cada vez
+     * que alguien cierra la pestaña o cambia de red. No hay a quién responder, y devolver un
+     * {@code ProblemDetail} sobre una respuesta {@code text/event-stream} solo provocaba un segundo error
+     * («No converter for ProblemDetail»). Con miles de conexiones eso llenaba el registro de trazas ERROR.
+     */
+    @ExceptionHandler(AsyncRequestNotUsableException.class)
+    public void clienteDesconectado(AsyncRequestNotUsableException e) {
+        log.debug("Cliente desconectado antes de terminar la respuesta: {}", e.getMessage());
     }
 
     @ExceptionHandler(Exception.class)
