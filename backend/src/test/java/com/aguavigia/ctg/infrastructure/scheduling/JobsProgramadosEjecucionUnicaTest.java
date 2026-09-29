@@ -38,7 +38,7 @@ class JobsProgramadosEjecucionUnicaTest {
 
     @Test
     void laIngestaDebeEjecutarseEnUnaSolaReplica() {
-        var orquestador = new PipelineOrquestador(mock(AcuacarApiCollector.class), mock(RssCollector.class),
+        var orquestador = new PipelineOrquestador(mock(AcuacarApiCollector.class), mock(RssCollector.class), java.util.Optional.empty(),
                 mock(DeduplicadorReciente.class), mock(HeuristicaExtractor.class), mock(SectorRepository.class),
                 mock(RegistrarPropuestaIngestaUseCase.class), mock(EstadoColectorRegistry.class),
                 mock(MarcaDeIngestaMongoRepository.class), mock(DocumentoFallidoMongoRepository.class),

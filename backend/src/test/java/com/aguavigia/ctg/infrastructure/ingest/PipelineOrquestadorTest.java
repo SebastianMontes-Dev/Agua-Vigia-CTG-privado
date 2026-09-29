@@ -70,7 +70,7 @@ class PipelineOrquestadorTest {
         given(registrarPropuesta.registrar(any(), any(), anyString(), any(), any(), anyDouble(), any(), any(), any(), any(), any()))
                 .willReturn(Optional.empty());
 
-        orquestador = new PipelineOrquestador(acuacar, rss, deduplicador, extractor, sectores,
+        orquestador = new PipelineOrquestador(acuacar, rss, Optional.empty(), deduplicador, extractor, sectores,
                 registrarPropuesta, estadoColectores, marcas, fallidos, reloj, (nombre, maximo, minimo, tarea) -> tarea.run());
     }
 
@@ -124,6 +124,29 @@ class PipelineOrquestadorTest {
         orquestador.ejecutarCiclo();
 
         verify(registrarPropuesta, never()).registrar(any(), any(), anyString(), any(), any(), anyDouble(), any(), any(), any(), any(), any());
+    }
+
+    // --- Modo local, sin internet (ADR-082) ---
+
+    @Test
+    void enModoLocalNoDebeTocarLaRedAunqueAcuacarEstuvieraCaido() {
+        ColectorLocalDeBoletines local = mock(ColectorLocalDeBoletines.class);
+        given(local.obtenerDesde(any())).willReturn(List.of(documento("Corte en Manga por daño en la red")));
+        given(extractor.extraer(any())).willReturn(eventoParaSectores(List.of("Manga")));
+        given(sectores.listarTodos()).willReturn(
+                List.of(new Sector(new SectorId("manga"), "Manga", 1000, EstadoServicio.CON_SERVICIO)));
+        var orquestadorLocal = new PipelineOrquestador(acuacar, rss, Optional.of(local), deduplicador, extractor,
+                sectores, registrarPropuesta, estadoColectores, marcas, fallidos, reloj,
+                (nombre, maximo, minimo, tarea) -> tarea.run());
+
+        orquestadorLocal.ejecutarCiclo();
+
+        verify(acuacar, never()).obtenerDesde(any());
+        verify(rss, never()).obtenerDesde(any());
+        verify(registrarPropuesta).registrar(eq(new SectorId("manga")), any(), eq("acuacar"), any(), any(),
+                anyDouble(), any(), any(), any(), any(), any());
+        assertThat(estadoColectores.hayAlgunColectorCaido()).isFalse();
+        assertThat(estadoColectores.estados()).extracting(EstadoColector::nombre).containsExactly("acuacar");
     }
 
     // --- Aislamiento de fallos (RNF004) ---

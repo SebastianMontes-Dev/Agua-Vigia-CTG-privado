@@ -165,6 +165,9 @@ aguavigia:
     lectura-timeout-ms: 15000
     # Cada cuanto corre PipelineOrquestador.ejecutarCiclo() (M9). 10 minutos por defecto.
     intervalo-ms: ${INGESTA_INTERVALO_MS:600000}
+    # en-vivo (por defecto): consulta a Acuacar y a los feeds de prensa. local: lee boletines reales de Acuacar
+    # guardados en ingesta-local/ y no toca la red, para presentar sin internet (ADR-082).
+    modo: ${INGESTA_MODO:en-vivo}
     acuacar:
       base-url: https://www.acuacar.com/wp-json/wp/v2
       tamanio-pagina: 100

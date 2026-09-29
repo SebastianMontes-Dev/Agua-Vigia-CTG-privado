@@ -20,6 +20,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Orquestador principal del pipeline de Ingesta Automatizada (M9).
@@ -56,6 +57,8 @@ public class PipelineOrquestador {
 
     private final AcuacarApiCollector acuacarApiCollector;
     private final RssCollector rssCollector;
+    /** Solo existe con `aguavigia.ingesta.modo=local` (ADR-082): sustituye a Acuacar y a la prensa. */
+    private final Optional<ColectorLocalDeBoletines> colectorLocal;
     private final DeduplicadorReciente deduplicador;
     private final HeuristicaExtractor extractor;
     private final SectorRepository sectorRepository;
@@ -68,6 +71,7 @@ public class PipelineOrquestador {
 
     public PipelineOrquestador(AcuacarApiCollector acuacarApiCollector,
                                RssCollector rssCollector,
+                               Optional<ColectorLocalDeBoletines> colectorLocal,
                                DeduplicadorReciente deduplicador,
                                HeuristicaExtractor extractor,
                                SectorRepository sectorRepository,
@@ -79,6 +83,7 @@ public class PipelineOrquestador {
                                EjecucionUnica ejecucionUnica) {
         this.acuacarApiCollector = acuacarApiCollector;
         this.rssCollector = rssCollector;
+        this.colectorLocal = colectorLocal;
         this.deduplicador = deduplicador;
         this.extractor = extractor;
         this.sectorRepository = sectorRepository;
@@ -104,8 +109,13 @@ public class PipelineOrquestador {
      * se ingirieron.
      */
     public void ejecutarCiclo() {
-        List<DocumentoCrudo> deAcuacar = recolectar("acuacar", () -> acuacarApiCollector.obtenerDesde(desdeDondeLeer("acuacar")));
-        List<DocumentoCrudo> deRss = recolectar("rss", () -> rssCollector.obtenerDesde(desdeDondeLeer("rss")));
+        // Modo local: los boletines guardados ocupan el lugar de Acuacar y no se toca la red ni la prensa.
+        List<DocumentoCrudo> deAcuacar = recolectar("acuacar", () -> colectorLocal.isPresent()
+                ? colectorLocal.get().obtenerDesde(desdeDondeLeer("acuacar"))
+                : acuacarApiCollector.obtenerDesde(desdeDondeLeer("acuacar")));
+        List<DocumentoCrudo> deRss = colectorLocal.isPresent()
+                ? List.of()
+                : recolectar("rss", () -> rssCollector.obtenerDesde(desdeDondeLeer("rss")));
 
         List<DocumentoCrudo> documentos = new ArrayList<>();
         documentos.addAll(deAcuacar);
