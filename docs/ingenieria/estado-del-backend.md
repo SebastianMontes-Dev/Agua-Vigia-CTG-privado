@@ -28,7 +28,7 @@ juntarlo todo después. Lo que hay en `main` es **backend + datos + infraestruct
 
 | Qué | Valor | Cómo se comprobó |
 |---|---|---|
-| Pruebas de backend | **967** (1 solo corre a petición: regenerar el contrato) · 0 fallos | `./mvnw verify` con Docker en la máquina del dueño, 2026-09-26 (issue #66) |
+| Pruebas de backend | **970** (1 solo corre a petición: regenerar el contrato) · 0 fallos | `./mvnw verify` con Docker en la máquina del dueño, 2026-09-29 (rama `fix/estabilidad-bajo-carga`) |
 | Cobertura | JaCoCo ≥ 85 % en `domain/` y `application/` | El propio `verify` lo exige |
 | Arquitectura | 5+ reglas ArchUnit en verde | `ReglaDeOroArchitectureTest` |
 | API | **66 operaciones** en 21 controladores, 37 esquemas | `backend/openapi.yaml` (generado) |

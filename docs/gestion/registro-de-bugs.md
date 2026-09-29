@@ -135,6 +135,9 @@ Tres razones concretas, no burocráticas:
 | BUG-114 | 2026-09-27 | S3 | — (docs) | `comportamiento-del-sistema.md` dice que una confirmación de RF038 «se suma al reporte y cuenta para el consenso», y el backend no la cuenta | Cerrado — reproducción: leer el escenario «Vecino confirma un reporte abierto» y compararlo con el Javadoc de `ConfirmarReporteService`, que no llama a `ContadorReportesPort.registrar()` ni reevalúa el consenso; causa: el escenario se escribió con la intención de la propuesta de fase 2 y no se actualizó cuando la implementación decidió no contar; corrección: el escenario describe lo que hace el código (suma al conteo `confirmaciones`, una vez por huella, sin mover el consenso), y la interfaz no promete que confirmar cambie el mapa. Si se quiere que cuente, es un cambio del backend y un ADR |
 | BUG-115 | 2026-09-27 | S3 | M1 | Con 3G simulado y caché vacía, el mapa no pinta los estados de los barrios hasta 7,5–11 s, lejos de los 3 s que exige el criterio de terminado de F2 (`RNF001`, retirado hasta F6) | Abierto — medido, sin corregir; ver detalle |
 | BUG-116 | 2026-09-28 | S2 | — (CI) | El check «Vulnerabilidades conocidas en dependencias» pasó a rojo en `main` sin que cambiaran las dependencias, y el PR #89 se fusionó con ese check en rojo | Cerrado — reproducción: la corrida del 2026-09-28 (run 36514862367) marca `Total: 1 (HIGH: 1)` sobre `backend/pom.xml`: `CVE-2026-68497` en `jackson-databind` 2.21.4, denegación de servicio por CPU al leer números sin límite; la corrida anterior del mismo código pasaba, así que la alerta es nueva en la base de Trivy. Causa raíz: Spring Boot 3.5.16 fija Jackson 2.21.4 y el parche es 2.21.6. Además, Claude encadenó en un mismo comando la lectura del resultado de la CI y `gh pr merge`, y fusionó #89 sin mirar que un check había fallado: la regla de `CONTRIBUTING.md` (CI en verde antes de fusionar) no tiene refuerzo mecánico en la rama `main`. Corrección: `jackson-bom.version` 2.21.6 en `backend/pom.xml` (`dependency:tree` resuelve `jackson-databind` y `jackson-core` 2.21.6); a partir de ahora, la fusión se ordena solo después de leer los checks y en un comando aparte. Comprobación: el escaneo Trivy del PR de la corrección en verde |
+| BUG-117 | 2026-09-29 | S3 | — (canal en vivo) | Cada cliente SSE que se desconecta deja un `ERROR` con traza completa en el registro y un segundo error («No converter for class ProblemDetail with preset Content-Type 'text/event-stream'») | Cerrado — reproducción: 2 000 clientes SSE conectados que cortan de golpe mientras hay avisos en marcha, contra la imagen anterior: 2 000 `ERROR` (2 000 «disconnected client» y 2 000 «No converter»); causa raíz: `AsyncRequestNotUsableException` (el contenedor avisa de que el cliente ya no está) no tenía manejador y caía en `ManejadorGlobalDeErrores.errorInesperado`, que la registraba como fallo y trataba de escribir un `ProblemDetail` sobre una respuesta `text/event-stream`, sin conversor; con miles de conexiones y cambios de red de celulares eso inundaría el registro. Corregido con un manejador propio que no responde y registra en `DEBUG`; pruebas `ManejadorGlobalDeErroresTest#noDebeRegistrarComoErrorLaDesconexionDeUnClienteSse` y `#debeSeguirRegistrandoComoErrorUnFalloInesperado`; medido con la misma prueba: 0 `ERROR` de ese tipo (queda ruido aparte de timeouts del pool de Mongo en una réplica recién arrancada, ver `escalabilidad.md`) |
+| BUG-118 | 2026-09-29 | S2 | — (infraestructura) | Con 50 100 conexiones SSE por nginx solo se abrían 34 679: el resto fallaba sin código de estado, y nginx registraba `16384 worker_connections are not enough` | Cerrado — reproducción: 3 clientes × 16 700 SSE (rampa de 500/s cada uno) por un nginx con la configuración de `infra/nginx/` delante de 3 réplicas; 15 421 fallos y avisos solo en dos workers; causa raíz: `listen 80;` deja que todos los workers se disputen un único socket de escucha, el reparto es muy desigual y un worker llegaba a su tope de 16 384 conexiones (cada SSE ocupa dos) mientras los demás estaban casi vacíos, y nginx cerraba conexiones vivas para reutilizar. Corregido con `listen 80 reuseport;` (un socket por worker, el kernel reparte); no hay prueba automatizada (es configuración de infraestructura): se comprobó con `nginx -t` y con la misma carga, **50 100 abiertas, 0 fallos, 0 avisos**; `scripts/carga/escenario-integrado.sh` la repite |
+| BUG-119 | 2026-09-29 | S3 | M8 | `GET /api/bitacora` sin filtro o solo con `tipo` recorre toda la colección para contar: 95–115 ms con 300 000 eventos y crece de forma lineal | Cerrado — reproducción: sembrar 300 000 eventos sintéticos y pedir la página 0; `explain` del conteo por `tipo` examinó 302 417 documentos (82 ms); causa raíz: `EventoBitacoraMongoAdapter.listar` usa `count(consulta)` (`countDocuments`) también sin filtro, y no había índice que empiece por `tipo`. Corregido con contador estimado cuando no hay filtro y un índice `tipo+timestamp` (`IndicesMongo`); pruebas `IndicesMongoTest#debeAsegurarLosIndicesDeReportesSuscripcionesYBitacora` (roja sin el índice, comprobado) y `EventoBitacoraMongoAdapterTest#sinFiltroElTotalDebeSerElDeTodosLosEventos`; medido: sin filtro 14 ms, `tipo` raro 15 ms, `tipo` común 48 ms, y `X-Total-Count` exacto (302 417) |
 
 **Severidad:** `S1` bloquea el uso o publica dato falso · `S2` funcionalidad rota con rodeo posible ·
 `S3` molesto pero no impide · `S4` cosmético
@@ -173,7 +176,7 @@ la carga del chunk del mapa, que hoy es diferida (`ADR-075`), y medir con Lighth
 ### BUG-095 — Reactivar una cuenta atribuye la acción al usuario reactivado
 
 - **Fecha:** 2026-09-22 · **Severidad:** S3 · **Módulo:** M15
-- **Estado:** Abierto
+- **Estado:** Cerrado (lo dice la tabla de arriba; este detalle quedó sin actualizar y sigue en esta sección por error)
 
 **Síntoma:** `AdministrarCuentaService.java:103` pasa `reactivado` como autor y sujeto a `registrarConAutor`, aunque el método ya obtuvo al administrador que ejecuta la acción en `autor`.
 **Reproducción:** por ejecutar: reactivar una cuenta distinta de la administradora y consultar el evento de auditoría `CUENTA_REACTIVADA`. El error de argumentos está verificado en código; falta probar el evento persistido.
@@ -580,7 +583,7 @@ servicio" tras el arreglo.
 ### BUG-046 — Los sub-sectores de "Olaya Herrera" nunca cruzan por un prefijo que el boletín no repite
 
 - **Fecha:** 2026-08-11 · **Severidad:** S2 · **Módulo:** M1/M9
-- **Estado:** Abierto — necesita decisión de diseño, no se corrigió a ciegas
+- **Estado:** Cerrado (lo dice la tabla de arriba; este detalle quedó sin actualizar y sigue en esta sección por error)
 
 **Síntoma:** el boletín **#2849** lista sub-sectores de Olaya Herrera por su nombre corto:
 "...Rafael Núñez, Castillete, Costa Linda, La Villa Olímpica, República de Venezuela, Ricaurte,
@@ -626,7 +629,7 @@ en sectores` y `no marca Olaya/Ricaurte cuando el boletín usa el canal como lin
 ### BUG-047 — Boletines reales nombran zonas sin polígono equivalente en el GeoJSON
 
 - **Fecha:** 2026-08-11 · **Severidad:** S2 · **Módulo:** — (geoespacial)
-- **Estado:** Abierto — necesita verificación, no se corrigió con una suposición
+- **Estado:** Cerrado (lo dice la tabla de arriba; este detalle quedó sin actualizar y sigue en esta sección por error)
 
 **Síntoma:** el boletín #2849 también menciona "María Auxiliadora" y "Salim Bechara" como zonas
 afectadas. Ninguno de los 211 nombres únicos de `barrios-cartagena.geojson` se parece a esos dos
@@ -670,7 +673,7 @@ no tiene, sin polígono`.
 ### BUG-048 — El proxy de Acuacar envía un `User-Agent` que se hace pasar por Chrome/Windows
 
 - **Fecha:** 2026-08-11 · **Severidad:** S2 · **Módulo:** — (infraestructura)
-- **Estado:** Abierto — necesita definir el correo de contacto antes de corregirse
+- **Estado:** Cerrado (lo dice la tabla de arriba; este detalle quedó sin actualizar y sigue en esta sección por error)
 
 **Síntoma:** `frontend/vite.config.ts`, proxy `/acuacar-api` (línea ~103), envía
 `'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)
@@ -1912,5 +1915,5 @@ Plantilla de bug abierto — copiar a la sección "Bugs abiertos — detalle".
 **Causa raíz:** se llena al diagnosticar. Si el origen es un requisito ambiguo, corrige también el requisito.
 **Corrección:** qué se cambió + `archivo:línea` + prueba que lo cubre. Sin prueba, el bug vuelve.
 
-Siguiente número disponible: BUG-117
+Siguiente número disponible: BUG-120
 -->
