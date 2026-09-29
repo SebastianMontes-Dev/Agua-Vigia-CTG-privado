@@ -57,8 +57,9 @@ abierto), `causa`, `origen` (quién lo creó: un veedor o la ingesta) y `estado`
 
 `GET /api/veedor/cortes?sectorId=…` — el `sectorId` es **obligatorio**. Lista los cortes de ese sector.
 
-> Los cortes creados por la **ingesta** (detectados en un boletín) nacen en estado anunciado y hoy **no
-> hay ruta para cerrarlos**; por eso no entran al Índice de Cumplimiento. Es una limitación conocida.
+> Los cortes creados por la **ingesta** (detectados en un boletín) nacen en estado anunciado y **también se cierran
+> con `PATCH …/cierre`**: el servicio los busca por id sin mirar su origen (`GestionarCorteOficialServiceTest`). Al cerrarse
+> cuentan para el Índice de Cumplimiento como cualquier otro.
 
 ## Moderación de reportes
 
@@ -84,10 +85,10 @@ de qué fuente, el enlace al original, la **`citaTextual`** exacta que la respal
 - `PATCH …/propuestas/{id}/aprobar` aplica el cambio y anexa el evento a la bitácora.
 - `PATCH …/propuestas/{id}/descartar` la rechaza.
 - `404` si la propuesta no existe. `409` si el sector de la propuesta ya no existe.
-- **Limitación conocida:** el servidor no impide aprobar una propuesta ya descartada ni resolverla dos veces,
-  y aprobar una propuesta de prensa **sin ventana horaria declarada** responde `200` pero **no cambia el
-  estado del sector**. La interfaz debe deshabilitar los botones de una propuesta ya resuelta y no fiarse de
-  que un `200` implique que el mapa cambió: vuelve a pedir `GET /api/sectores`.
+- Repetir la misma decisión sobre una propuesta es idempotente (`200`); contradecirla responde `409`: aprobar una
+  descartada o descartar una aprobada (#96). Aprobar una propuesta de prensa **sin ventana horaria
+  declarada** responde `200` pero **no cambia el estado del sector**: la interfaz debe deshabilitar los botones de
+  una propuesta ya resuelta y no fiarse de que un `200` implique que el mapa cambió; vuelve a pedir `GET /api/sectores`.
 
 **Regla ética del proyecto (`ADR-006`): nada llega al mapa sin verificación.** Si la propuesta no puede citar
 la frase exacta del boletín que la respalda, no debe aprobarse. La interfaz de revisión debe mostrar la
