@@ -10,7 +10,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Fase 5 de plan-validacion-backend.md: el frontend se sirve desde su propio dev server, así que el
  * perfil que corre dentro de docker-compose (el que usa quien levanta el entorno local) tiene que
- * dejarlo pasar; y producción, que va detrás del mismo proxy, no.
+ * dejarlo pasar; un perfil que no declara orígenes, no.
  *
  * El perfil se elige con SPRING_PROFILES_ACTIVE y no con @ActiveProfiles porque application.yml lo
  * fija con `spring.profiles.active: ${SPRING_PROFILES_ACTIVE:dev}` y ese valor gana.
@@ -43,8 +43,8 @@ class CorsPorPerfilTest {
     }
 
     @Test
-    void produccionDebeSeguirCerrado() {
-        conPerfil("prod").run(contexto ->
+    void unPerfilSinOrigenesDeclaradosDebeQuedarCerrado() {
+        conPerfil("test").run(contexto ->
                 assertThat(contexto.getBean(CorsProperties.class).habilitado()).isFalse());
     }
 

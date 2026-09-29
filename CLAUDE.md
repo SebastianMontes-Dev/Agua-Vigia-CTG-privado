@@ -40,7 +40,7 @@ cierra por calendario: cierra cuando su entregable se demuestra funcionando.** L
 
 **Backend** Spring Boot 3.5.16 · Java 21 · Maven · MongoDB (documentos + geoespacial `2dsphere`) ·
 Redis (caché, rate limiting, ventana de consenso, pub/sub). **Sin SDK de IA**: se descartó en `ADR-025`
-**Infraestructura** Docker multi-etapa + docker compose · nginx (proxy y micro-caché, `infra/nginx/`) · GitHub Actions
+**Infraestructura** Docker multi-etapa + docker compose (solo local, `ADR-080`) · GitHub Actions
 
 **Frontend** (en construcción, `ADR-067`) React 19 · Vite · TS estricto · CSS propio. Contrato: `backend/openapi.yaml`; guía: `docs/api/`.
 Identidad visual: `docs/diseno/identidad.md` (`ADR-070`). **Antes de tocar la interfaz, skill `disenar-frontend`; antes del PR, `revisar-diseno`.**
@@ -143,7 +143,7 @@ docs/                   brief.md · product-requirements.md (46 RF, 27 RNF) · d
 docs/api/               Guía para construir el frontend: flujos, rutas, errores, escala (referencia generada)
 docs/ingenieria/        Pipeline de datos, auditoría de fuentes, matriz de trazabilidad, comportamiento del sistema, escalabilidad
 docs/gestion/           Sprints, bitácora, bugs e implementaciones
-backend/ · frontend/ · infra/   Spring Boot · SPA en construcción · nginx del proxy
+backend/ · frontend/          Spring Boot · SPA en construcción
 scripts/                Siembra de datos, pruebas de carga (`carga/`), generador de la referencia de la API
 ```
 

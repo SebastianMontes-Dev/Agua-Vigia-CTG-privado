@@ -1,6 +1,6 @@
 # Diagrama de Componentes de la Arquitectura
 
-Este documento describe la arquitectura final del sistema **Agua-Vigía**, ilustrando los diferentes componentes y cómo interactúan entre sí.
+Este documento describe la arquitectura del sistema **Agua-Vigía**, que corre completo en un solo PC (`ADR-057`, `ADR-080`), y cómo interactúan sus componentes.
 
 ## Diagrama
 
@@ -19,8 +19,7 @@ graph TD
 
     %% Capa de Presentación
     subgraph "Capa de Presentación"
-        FE["🖥️ Frontend (por construir)<br/>guía en docs/api"]:::frontend
-        PROXY["🛡️ Proxy nginx<br/>(caché de lectura, límites)"]:::tools
+        FE["🖥️ Frontend<br/>(React 19 · Vite, frontend/)"]:::frontend
     end
 
     %% Capa de Lógica y Servicios
@@ -32,9 +31,8 @@ graph TD
     end
 
     %% Relaciones
-    Client -->|Navegador HTTP/HTTPS| FE
-    FE -->|Peticiones HTTP/REST| PROXY
-    PROXY -->|Lecturas cacheadas y resto de la API| API
+    Client -->|Navegador HTTP| FE
+    FE -->|/api y SSE por el proxy de Vite| API
     
     API -->|Driver MongoDB (TCP)| DB
     API -->|Lectura/Escritura (TCP)| Cache
@@ -45,8 +43,7 @@ graph TD
 
 ## Descripción de los Componentes
 
-* **Frontend**: **no está en `main`** (`ADR-048`): se rehace en otras ramas de este repositorio a partir de `docs/api/`. Habla con el sistema solo por HTTP hacia el proxy.
-* **Proxy (nginx)**: único servicio que publica un puerto en producción. Micro-cachea las lecturas públicas, limita por IP y sirve las fotos (`infra/nginx/`, `ADR-049`).
+* **Frontend**: SPA en `frontend/` (React 19 + Vite, `ADR-067`), en construcción por fases (`docs/ingenieria/plan-frontend.md`). Habla con el backend solo por HTTP, a través del proxy de desarrollo de Vite.
 * **Backend**: API RESTful desarrollada con Spring Boot 3.5 y Java 21, en Arquitectura Limpia. Centraliza la lógica de negocio, maneja la seguridad, valida los datos y coordina las peticiones de entrada y salida con los distintos servicios.
 * **MongoDB (Base de Datos)**: Sistema de base de datos NoSQL orientado a documentos utilizado para la persistencia de datos principal (ej. usuarios, reportes, configuraciones).
 * **Redis (Caché y Sesiones)**: Almacén de estructura de datos en memoria. Se emplea principalmente para la gestión de sesiones de usuario y el almacenamiento en caché de respuestas frecuentes para reducir la carga de la base de datos y acelerar las respuestas de la API.

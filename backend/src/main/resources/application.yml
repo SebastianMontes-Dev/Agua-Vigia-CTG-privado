@@ -30,16 +30,13 @@ server:
     accept-count: 500
     connection-timeout: 10s
   compression:
-    # Tambien sin proxy delante (desarrollo, o un despliegue sin nginx). nginx no recomprime lo que
-    # ya llega comprimido.
+    # El backend responde directo al cliente (no hay proxy delante, ADR-080): comprime el mismo.
     enabled: true
     min-response-size: 1024
     mime-types: application/json,application/problem+json,application/geo+json,text/csv
-  # nginx (infra/nginx/nginx.conf) ya pone X-Forwarded-For; esto hace que Spring reescriba
-  # request.getRemoteAddr() con ese valor en vez de dejarlo en la IP del contenedor de nginx
-  # (docker-compose.yml pasa todo el trafico por ese proxy). Sin esto, RateLimitingInterceptor
-  # limita por IP del proxy, no del cliente: un solo contador global en vez de uno por IP real.
-  forward-headers-strategy: framework
+  # Sin forward-headers-strategy a proposito (ADR-080): no hay un proxy de confianza delante, asi
+  # que un X-Forwarded-For lo pondria el propio cliente y le bastaria cambiarlo para saltarse el
+  # rate limit por IP.
 
 aguavigia:
   telegram:
@@ -50,7 +47,7 @@ aguavigia:
     intervalo-ms: 3000
   mongo:
     # Los defaults del driver (100 conexiones, 2 minutos de espera) dejaban las peticiones
-    # encoladas mucho mas alla de los 15 s tras los que nginx ya cortaba. Falla rapido.
+    # encoladas mucho mas alla de lo que un cliente espera. Falla rapido.
     max-pool: 100
     espera-conexion-ms: 2000
     timeout-lectura-ms: 5000
@@ -231,10 +228,10 @@ management:
       probes:
         enabled: true
       group:
-        # Lo que Docker y un balanceador usan para decidir si la instancia vive y si recibe trafico:
-        # solo lo que ella necesita para servir. Las fuentes externas (colectores) quedan fuera a
-        # proposito: acuacar.com caido es un problema de la ingesta, no del proceso, y no debe sacar
-        # de rotacion a la replica. RNF007 sigue cumplido: /actuator/health (global) las refleja.
+        # Lo que Docker usa para decidir si el contenedor vive y esta listo: solo lo que el proceso
+        # necesita para servir. Las fuentes externas (colectores) quedan fuera a proposito:
+        # acuacar.com caido es un problema de la ingesta, no del proceso. RNF007 sigue cumplido:
+        # /actuator/health (global) las refleja.
         liveness:
           include: livenessState
         readiness:
@@ -249,7 +246,7 @@ management:
 logging:
   structured:
     format:
-      # Diagnosticar en produccion era leer texto plano sin correlationId (estado-del-backend.md
+      # Diagnosticar era leer texto plano sin correlationId (estado-del-backend.md
       # #6.1). ECS es soporte nativo de Spring Boot 3.4+, sin dependencia nueva; CorrelationIdFilter
       # pone `correlationId` en MDC y este formato lo incluye en cada linea JSON.
       console: ecs

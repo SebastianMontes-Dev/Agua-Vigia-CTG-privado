@@ -20,8 +20,7 @@
  * LÍMITES DE LA PRUEBA LOCAL: cada conexión gasta un puerto efímero del cliente (~28 000 en Windows,
  * ~28 000 en Linux por defecto) y un descriptor de archivo. Superar unos 20 000 desde una sola máquina
  * exige subir esos límites o repartir el cliente entre varias; el resultado se reporta como "hasta
- * donde llegó el cliente", no como el techo del servidor. `nginx` además limita a 20 conexiones SSE
- * por IP (`limit_conn`), así que contra el proxy un solo cliente verá 429 a partir de la 21.
+ * donde llegó el cliente", no como el techo del servidor.
  */
 import http from 'node:http';
 import { parseArgs } from 'node:util';

@@ -6,15 +6,14 @@ set -euo pipefail
 # nombrar el volumen Docker directamente: el nombre real depende de COMPOSE_PROJECT_NAME, y esto
 # funciona igual sin importar como se llame.
 #
-# Uso: ./scripts/backup-fotos.sh [directorio-de-respaldos] [dias-de-retencion]
+# Uso: ./scripts/backup-fotos.sh [directorio-de-respaldos]
 
-COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.prod.yml}"
+COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.yml}"
 DIRECTORIO_RESPALDOS="${1:-./respaldos-fotos}"
-DIAS_RETENCION="${2:-30}"
 
 mkdir -p "$DIRECTORIO_RESPALDOS"
 
-MARCA_DE_TIEMPO="$(date -u +%Y%m%dT%H%M%SZ)"
+MARCA_DE_TIEMPO="$(date +%Y%m%dT%H%M%S)"
 ARCHIVO="$DIRECTORIO_RESPALDOS/aguavigia-fotos-${MARCA_DE_TIEMPO}.tar.gz"
 
 docker compose -f "$COMPOSE_FILE" exec -T backend \
@@ -22,4 +21,3 @@ docker compose -f "$COMPOSE_FILE" exec -T backend \
 
 echo "Respaldo de fotos escrito en $ARCHIVO ($(du -h "$ARCHIVO" | cut -f1))"
 
-find "$DIRECTORIO_RESPALDOS" -name 'aguavigia-fotos-*.tar.gz' -mtime "+${DIAS_RETENCION}" -print -delete

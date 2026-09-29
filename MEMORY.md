@@ -111,6 +111,7 @@ que no cede desde este entorno. Pendiente: otra red, u contacto sugerido por la 
 | 2026-08-07 | El Sprint 0 admite **andamiaje** (estructura, configuración, rutas vacías), no funcionalidad. Criterio: si el código implementa un `RF`, no va en el Sprint 0. Ver `ADR-009`. |
 | 2026-08-07 | **No hay branch protection en GitHub.** El PR es recomendado para cambios no triviales, no obligatorio, y se sostiene por disciplina. Ver `ADR-010`. |
 | 2026-08-07 | Las fechas del proyecto se escriben en **hora local de Cartagena (UTC-5)**. Los agentes venían escribiendo la fecha UTC y adelantaban un día cada noche. Ver `protocolo-de-contexto.md` §3. |
+| 2026-09-29 | **Solo local, sin nada de despliegue**: un único `docker-compose.yml`, sin nginx, perfil `prod` ni réplicas. No proponer hosting, CDN, TLS ni S3. Lo retirado está en la etiqueta `pre-solo-local`. Ver `ADR-057` y `ADR-080`. |
 
 ---
 
@@ -143,7 +144,6 @@ que no cede desde este entorno. Pendiente: otra red, u contacto sugerido por la 
   Cartagena/Acuacar — falta refinar con términos de Bolívar.
 - **Pruebas de carga en Windows con Docker Desktop**: k6 contra un puerto publicado o `host.docker.internal`
   se satura en ~1 200 req/s y da p95 de segundos que **no son del sistema**; correr k6 en la misma red de Docker que
-  nginx. La micro-caché de nginx solo se prueba **contra el backend real** (el de Spring responde `no-store`;
-  un backend de mentira ocultó `BUG-085`). Detalle: `docs/ingenieria/escalabilidad.md`.
+  el backend (`http://backend:8080`). Detalle: `docs/ingenieria/escalabilidad.md`.
 - **Entorno local con la imagen al día**: tras traer cambios de `main`, `docker compose up -d --build backend`; con la imagen vieja fallaban CORS, la foto y el cierre de sesión (2026-09-24).
   Sin `.env` junto al compose el backend arranca sin ADMIN (`--env-file` no alimenta el `env_file` del servicio). «Cerrar sesión» falla a veces por diseño: margen de 1 s del filtro JWT (`plan-de-pruebas.md` §8).

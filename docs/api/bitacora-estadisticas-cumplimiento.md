@@ -5,15 +5,15 @@ que promete**. Todo público, sin sesión.
 
 ## Rutas
 
-| Método y ruta | Qué devuelve | Caché |
+| Método y ruta | Qué devuelve | Caché del servidor |
 |---|---|---|
-| `GET /api/bitacora?pagina&tamano&sectorId&tipo&desde&hasta` | Eventos, más recientes primero. Paginado y filtrable. | 5 s |
-| `GET /api/estadisticas` | Sectores más afectados, cortes por día de la semana, duración media. | 5 s |
+| `GET /api/bitacora?pagina&tamano&sectorId&tipo&desde&hasta` | Eventos, más recientes primero. Paginado y filtrable. | — |
+| `GET /api/estadisticas` | Sectores más afectados, cortes por día de la semana, duración media. | — |
 | `GET /api/estadisticas/exportar.csv` | Lo mismo en CSV. | — |
-| `GET /api/cumplimiento` | Índice de Cumplimiento **global**. | 5 s |
-| `GET /api/cumplimiento/sectores/{id}` | El de un sector. | 5 s |
-| `GET /api/cumplimiento/cortes/{id}` | El de **un corte** concreto. | 5 s |
-| `GET /api/cumplimiento/serie?sectorId&desde&hasta` | Evolución **mensual**. | 5 s |
+| `GET /api/cumplimiento` | Índice de Cumplimiento **global**. | — |
+| `GET /api/cumplimiento/sectores/{id}` | El de un sector. | — |
+| `GET /api/cumplimiento/cortes/{id}` | El de **un corte** concreto. | — |
+| `GET /api/cumplimiento/serie?sectorId&desde&hasta` | Evolución **mensual**. | — |
 | `GET /api/cumplimiento/serie.csv` | La serie en CSV. | — |
 
 Esquemas en [`referencia-de-rutas.md`](referencia-de-rutas.md).

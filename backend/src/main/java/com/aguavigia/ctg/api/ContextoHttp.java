@@ -38,9 +38,8 @@ final class ContextoHttp {
     }
 
     /**
-     * `getRemoteAddr()` y no la cabecera X-Forwarded-For a mano: `server.forward-headers-strategy`
-     * ya hace que Spring reescriba este valor con la IP real detras de nginx (ver application.yml).
-     * Leer la cabecera aqui ademas permitiria falsificar la IP de la auditoria desde el cliente.
+     * `getRemoteAddr()` y nunca la cabecera X-Forwarded-For: sin un proxy de confianza delante
+     * (ADR-080) esa cabecera la escribe el cliente, y leerla permitiria falsificar la IP de la auditoria.
      */
     private static String ip(HttpServletRequest peticion) {
         return peticion.getRemoteAddr();

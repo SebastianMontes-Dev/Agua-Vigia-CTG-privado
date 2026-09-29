@@ -6,8 +6,7 @@
 > Las referencias a `npm`, Vite y `src/api/generated/schema.ts` describen el estado anterior al retiro.
 
 El frontend consume siempre la API real del backend en `/api` — no hay modo simulación.
-En desarrollo, Vite hace de proxy hacia el backend local (ver `vite.config.ts`); en
-producción, Nginx lo hace bajo el mismo origen (ver `nginx.conf`).
+Vite hace de proxy hacia el backend local (ver `vite.config.ts`); el proyecto corre solo en local (`ADR-080`).
 
 ## Arrancar contra un backend local
 

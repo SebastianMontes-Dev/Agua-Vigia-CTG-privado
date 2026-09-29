@@ -7,7 +7,7 @@ set -euo pipefail
 #
 # Uso: ./scripts/restore-mongo.sh <archivo.archive.gz>
 
-COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.prod.yml}"
+COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.yml}"
 ARCHIVO="${1:?Uso: restore-mongo.sh <archivo.archive.gz>}"
 BASE_DE_DATOS="${MONGO_INITDB_DATABASE:-aguavigia}"
 
@@ -23,13 +23,7 @@ if [ "$CONFIRMACION" != "restaurar" ]; then
   exit 1
 fi
 
-# Las credenciales se leen dentro del contenedor (ver backup-mongo.sh): en produccion Mongo exige usuario.
-docker compose -f "$COMPOSE_FILE" exec -T mongo sh -c '
-  if [ -n "${MONGO_INITDB_ROOT_USERNAME:-}" ]; then
-    exec mongorestore --username "$MONGO_INITDB_ROOT_USERNAME" --password "$MONGO_INITDB_ROOT_PASSWORD" \
-      --authenticationDatabase admin --nsInclude "$1.*" --archive --gzip --drop
-  fi
-  exec mongorestore --nsInclude "$1.*" --archive --gzip --drop
-' sh "$BASE_DE_DATOS" < "$ARCHIVO"
+docker compose -f "$COMPOSE_FILE" exec -T mongo \
+  mongorestore --nsInclude "$BASE_DE_DATOS.*" --archive --gzip --drop < "$ARCHIVO"
 
 echo "Restauracion de Mongo completa."

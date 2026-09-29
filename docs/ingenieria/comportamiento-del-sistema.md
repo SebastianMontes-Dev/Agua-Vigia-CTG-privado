@@ -207,7 +207,7 @@ simulada (RNF001). El mapa debe cargar primero el estado y después la geometrí
 
 ### Requisito: Un frontend en su propio dev server puede llamar a la API en local
 
-En el entorno local (perfiles `dev` y `docker`) la API deja pasar, por CORS, a los orígenes de los dev servers habituales (`5173`, `3000`, `4200`) o a los que declare `CORS_ORIGENES`. En producción sigue cerrado: todo va detrás del mismo proxy.
+En el entorno local (perfiles `dev` y `docker`) la API deja pasar, por CORS, a los orígenes de los dev servers habituales (`5173`, `3000`, `4200`) o a los que declare `CORS_ORIGENES`. Fuera de esos perfiles sigue cerrado. El proyecto corre solo en local (`ADR-080`).
 
 #### Escenario: Preflight desde un origen permitido
 
@@ -581,6 +581,12 @@ alguien recuerde declararlo.
 
 - **Cuando** una misma IP falla el inicio de sesión más de 5 veces en 5 minutos
 - **Entonces** las peticiones siguientes se rechazan con 429 durante lo que resta de la ventana
+
+#### Escenario: Cambiar la cabecera X-Forwarded-For no estrena cupo
+
+- **Cuando** un cliente envía cada petición con un `X-Forwarded-For` distinto
+- **Entonces** el límite por IP se sigue contando por la dirección de la conexión, no por la cabecera (`BUG-120`)
+- **Y** la IP que queda en la auditoría es también la de la conexión
 
 ---
 

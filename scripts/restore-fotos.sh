@@ -6,7 +6,7 @@ set -euo pipefail
 #
 # Uso: ./scripts/restore-fotos.sh <archivo.tar.gz>
 
-COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.prod.yml}"
+COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.yml}"
 ARCHIVO="${1:?Uso: restore-fotos.sh <archivo.tar.gz>}"
 
 if [ ! -f "$ARCHIVO" ]; then

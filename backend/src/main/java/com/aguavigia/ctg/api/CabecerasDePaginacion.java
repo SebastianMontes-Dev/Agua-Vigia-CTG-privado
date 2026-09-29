@@ -53,8 +53,8 @@ final class CabecerasDePaginacion {
         }
 
         // Sin esto, un navegador no deja que el JavaScript del frontend lea las cabeceras: son
-        // personalizadas y CORS las oculta por defecto. Aquí no hay CORS (nginx sirve todo bajo el
-        // mismo origen), pero declararlo evita una sorpresa el día que alguien sirva la API aparte.
+        // personalizadas y CORS las oculta por defecto. El frontend de Vite pasa por su proxy (mismo
+        // origen), pero un dev server en otro origen (perfiles dev y docker) las necesita expuestas.
         cabeceras.add(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS,
                 "X-Total-Count, X-Total-Pages, X-Page, X-Page-Size, Link");
 

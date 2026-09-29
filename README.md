@@ -32,9 +32,8 @@ El proyecto está construido bajo una estricta **Arquitectura Limpia (Puertos y 
 - **Backend:** Spring Boot 3.5 · Java 21 · Maven
 - **Base de Datos Principal:** MongoDB (Consultas Geoespaciales `2dsphere`)
 - **Caché y Seguridad:** Redis (Rate Limiting y Deduplicación)
-- **Proxy y caché de lectura:** nginx (`infra/nginx/`)
 - **Pruebas de Integración:** Testcontainers (Bases de datos efímeras reales)
-- **CI/CD & DevOps:** Docker · GitHub Actions (pruebas + ArchUnit, construcción de imágenes, escaneo de secretos y de vulnerabilidades)
+- **Entorno:** Docker Compose, solo local (sin despliegue, `ADR-057` y `ADR-080`) · GitHub Actions (pruebas + ArchUnit, construcción de la imagen, escaneo de secretos y de vulnerabilidades)
 
 ---
 
@@ -94,10 +93,10 @@ El proyecto está completamente contenerizado. Solo necesitas tener un motor de 
 
 ## 🔀 CORS y desarrollo del frontend
 
-El backend **no emite cabeceras CORS por defecto** (`aguavigia.cors.origenes-permitidos` vacío). En
-producción, el frontend y la API van detrás del mismo proxy (`infra/nginx/`), así que el navegador nunca hace
-una petición cruzada. Quien desarrolle un frontend en otro origen (un dev server local) debe declarar ese
-origen en `application-dev.yml` o servirlo detrás del mismo proxy. Detalle en
+El backend **no emite cabeceras CORS por defecto** (`aguavigia.cors.origenes-permitidos` vacío). Los perfiles
+locales `dev` y `docker` sí los abren para los dev servers habituales (5173, 3000 y 4200; `CORS_ORIGENES` los
+reemplaza). El frontend de `frontend/` además pasa por el proxy de Vite, así que en desarrollo no hace peticiones
+cruzadas. Detalle en
 [`docs/api/errores-y-limites.md`](docs/api/errores-y-limites.md#cors).
 
 ---
