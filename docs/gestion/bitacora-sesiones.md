@@ -26,6 +26,10 @@ Referencias cruzadas: `ADR-NNN` · `BUG-NNN` · `RF0NN` · `archivo:línea`.
 ## Sprint 7 — Frontend nuevo
 
 ### 2026-09-28 · `feat/f4-avisos`
+**Qué:** PR #87 adaptado a la prueba de 5 segundos para las tres pantallas de avisos, con fichas de barrios, dos columnas y capturas completas en ambos temas; 248 unitarias y 102 E2E pasaron.
+**Sigue:** El dueño revisa el PR #87 y sus capturas antes de fusionarlo; incorporar ADR-079 cuando llegue a `main`.
+
+### 2026-09-28 · `feat/f4-avisos`
 **Qué:** F4 quedó en el PR #87 con ADR-078 y BUG-120–122; frontend, backend, Mailhog real y CI completo pasaron. Se revisaron capturas en ambos temas y tamaños.
 **Sigue:** El dueño revisa el PR #87 y las capturas antes de fusionarlo; después registra la implementación.
 

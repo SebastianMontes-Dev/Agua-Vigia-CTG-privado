@@ -65,46 +65,51 @@ export function Avisos() {
 
   return (
     <div className={`${pagina.pagina} ${estilos.pagina}`}>
-      <div className={estilos.encabezado}>
-        <span className={estilos.rotulo}>AVISOS POR CORREO</span>
-        <h1 className={pagina.titular}>Recibe avisos de tus barrios</h1>
-        <p className={pagina.entrada}>Te escribimos cuando cambie el servicio de agua en los barrios que elijas.</p>
-      </div>
       <div className={estilos.columnas}>
-        <form className={estilos.formulario} onSubmit={(evento) => void enviar(evento)}>
-          <label className={estilos.campo}>
-            <span>Correo electrónico</span>
-            <input type="email" autoComplete="email" required value={correo} onChange={(evento) => setCorreo(evento.target.value)} placeholder="tu@correo.com" />
-          </label>
-          {barrios.isLoading ? <output>Cargando barrios…</output> : barrios.isError ? (
-            <p role="alert">No pudimos cargar los barrios. <button type="button" className={estilos.enlace} onClick={() => void barrios.refetch()}>Volver a intentar</button></p>
-          ) : <>
-            <SelectorBarrio key={elegidosValidos.join(',')} sectores={disponibles.filter((barrio) => !elegidosValidos.includes(barrio.id ?? ''))}
-              etiqueta="Busca un barrio para recibir avisos" alCambiar={(id) => {
-                if (id && !elegidos.includes(id)) setElegidos([...elegidosValidos, id])
-              }} />
-            {elegidosValidos.length > 0 && <ul className={estilos.elegidos} aria-label="Barrios elegidos">
-              {elegidosValidos.map((id) => <li key={id}>
-                <span>{nombreLegible(disponibles.find((barrio) => barrio.id === id)?.nombre)}</span>
-                <button type="button" aria-label={`Quitar ${nombreLegible(disponibles.find((barrio) => barrio.id === id)?.nombre)}`} onClick={() => setElegidos(elegidosValidos.filter((elegido) => elegido !== id))}>Quitar</button>
-              </li>)}
-            </ul>}
-            {barrioDesconocido && <p role="alert">El barrio del enlace no está disponible. Elige uno de la lista.</p>}
-          </>}
-          {errorLocal && <p role="alert">{errorLocal}</p>}
-          <button type="submit" className={botones.principal} disabled={enviando || !barrios.isSuccess}>
-            {enviando ? 'Enviando…' : <>Enviar enlace de confirmación <span className={botones.flecha} aria-hidden="true">→</span></>}
-          </button>
-          {resultado && <output className={estilos.respuesta}>
-            <strong>{MENSAJE_NEUTRO}</strong>
-            {mensajeAdicional(resultado) && <p>{mensajeAdicional(resultado)}</p>}
-          </output>}
-        </form>
-        <aside className={estilos.explicacion} aria-label="Cómo funcionan los avisos">
-          <p><strong>Antes de confirmar.</strong> Te enviamos un enlace al correo. Todavía no recibes avisos.</p>
-          <p><strong>Después de confirmar.</strong> Recibes un correo cuando cambie el servicio. Cada correo trae un enlace para darte de baja.</p>
-          {botValido && <a href={`https://t.me/${botValido}`} target="_blank" rel="noreferrer">También puedes recibir avisos por Telegram</a>}
-          <Link to="/" className={pagina.enlace}>Ver el mapa de barrios</Link>
+        <section className={estilos.tarea} aria-labelledby="titulo-avisos">
+          <span className={estilos.rotulo}>AVISOS POR CORREO</span>
+          <h1 id="titulo-avisos" className={pagina.titular}>Recibe avisos del agua en tus barrios</h1>
+          <form className={estilos.formulario} onSubmit={(evento) => void enviar(evento)}>
+            <label className={estilos.campo}>
+              <span>Correo electrónico</span>
+              <input type="email" autoComplete="email" required value={correo} onChange={(evento) => setCorreo(evento.target.value)} placeholder="tu@correo.com" />
+            </label>
+            {barrios.isLoading ? <output>Cargando barrios…</output> : barrios.isError ? (
+              <p role="alert">No pudimos cargar los barrios. <button type="button" className={estilos.enlace} onClick={() => void barrios.refetch()}>Volver a intentar</button></p>
+            ) : <>
+              <SelectorBarrio key={elegidosValidos.join(',')} sectores={disponibles.filter((barrio) => !elegidosValidos.includes(barrio.id ?? ''))}
+                etiqueta="Busca un barrio para recibir avisos" alCambiar={(id) => {
+                  if (id && !elegidos.includes(id)) setElegidos([...elegidosValidos, id])
+                }} />
+              {elegidosValidos.length > 0 && <ul className={estilos.elegidos} aria-label="Barrios elegidos">
+                {elegidosValidos.map((id) => <li key={id}>
+                  <button type="button" aria-label={`Quitar ${nombreLegible(disponibles.find((barrio) => barrio.id === id)?.nombre)}`} onClick={() => setElegidos(elegidosValidos.filter((elegido) => elegido !== id))}>
+                    {nombreLegible(disponibles.find((barrio) => barrio.id === id)?.nombre)} <span aria-hidden="true">×</span>
+                  </button>
+                </li>)}
+              </ul>}
+              {barrioDesconocido && <p role="alert">El barrio del enlace no está disponible. Elige uno de la lista.</p>}
+            </>}
+            {errorLocal && <p role="alert">{errorLocal}</p>}
+            <button type="submit" className={botones.principal} disabled={enviando || !barrios.isSuccess}>
+              {enviando ? 'Enviando…' : <>Enviar enlace de confirmación <span className={botones.flecha} aria-hidden="true">→</span></>}
+            </button>
+            {resultado && <output className={estilos.respuesta}>
+              <strong>{MENSAJE_NEUTRO}</strong>
+              {mensajeAdicional(resultado) && <p>{mensajeAdicional(resultado)}</p>}
+            </output>}
+          </form>
+        </section>
+        <aside className={estilos.explicacion} aria-label="Antes y después de confirmar">
+          <h2>Antes y después de confirmar</h2>
+          <p><strong>Antes.</strong> Recibes un enlace, no avisos.</p>
+          <p><strong>Después.</strong> Te avisamos si cambia el agua.</p>
+          <details className={estilos.detalles}>
+            <summary>Cómo funciona</summary>
+            <p>El enlace vence en 48 horas. Cada aviso trae un enlace para darte de baja.</p>
+            {botValido && <a href={`https://t.me/${botValido}`} target="_blank" rel="noreferrer">Recibir avisos por Telegram</a>}
+            <Link to="/" className={pagina.enlace}>Ver el mapa</Link>
+          </details>
         </aside>
       </div>
     </div>

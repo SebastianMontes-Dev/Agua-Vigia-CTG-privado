@@ -41,27 +41,38 @@ function ContenidoEnlace({ accion, token }: { accion: Accion; token: string | un
     setEnviando(false)
   }
 
-  return <div className={`${pagina.pagina} ${estilos.enlacePagina}`}>
-    <span className={estilos.rotulo}>AVISOS POR CORREO</span>
-    <h1 className={pagina.titular}>{confirmacion ? 'Confirma tus avisos' : 'Dejar de recibir avisos'}</h1>
-    {!tokenInicial ? <>
-      <p role="alert">Falta el enlace completo. Abre el que llegó a tu correo.</p>
-      <Link to="/avisos" className={pagina.enlace}>Pedir avisos</Link>
-    </> : resultado?.tipo === 'completado' ? <>
-      <output className={pagina.entrada}>{confirmacion
-        ? 'Avisos confirmados. Te escribiremos cuando cambie el servicio en tus barrios.'
-        : 'Ya no recibirás estos avisos.'}</output>
-      <Link to="/" className={botones.secundario}>Ver el mapa</Link>
-    </> : <>
-      <p className={pagina.entrada}>{confirmacion
-        ? 'Hasta que confirmes, no recibirás avisos. El enlace vence 48 horas después de solicitarlo.'
-        : 'Al darte de baja, dejaremos de enviarte avisos y eliminaremos tu correo de la suscripción.'}</p>
-      <Button className={botones.principal} isDisabled={enviando} onPress={() => void actuar()}>
-        {enviando ? 'Enviando…' : confirmacion ? 'Confirmar avisos' : 'Dejar de recibir avisos'}
-      </Button>
-      {resultado && <p role="alert">{mensajeError(resultado, accion)}</p>}
-      {resultado?.tipo === 'invalido' && <Link to="/avisos" className={pagina.enlace}>Pedir un enlace nuevo</Link>}
-    </>}
+  return <div className={`${pagina.pagina} ${estilos.pagina} ${estilos.columnas}`}>
+    <section className={estilos.tarea} aria-labelledby="titulo-enlace">
+      <span className={estilos.rotulo}>AVISOS POR CORREO</span>
+      <h1 id="titulo-enlace" className={pagina.titular}>{confirmacion
+        ? 'Confirma para empezar a recibir avisos'
+        : 'Deja de recibir correos sobre tus barrios'}</h1>
+      {!tokenInicial ? <>
+        <p role="alert">Falta el enlace completo. Abre el que llegó a tu correo.</p>
+        <Link to="/avisos" className={botones.principal}>Pedir avisos</Link>
+      </> : resultado?.tipo === 'completado' ? <>
+        <output className={estilos.respuesta}>{confirmacion
+          ? 'Avisos confirmados. Te escribiremos cuando cambie el servicio en tus barrios.'
+          : 'Ya no recibirás estos avisos.'}</output>
+        <Link to="/" className={botones.secundario}>Ver el mapa</Link>
+      </> : <>
+        <Button className={botones.principal} isDisabled={enviando} onPress={() => void actuar()}>
+          {enviando ? 'Enviando…' : confirmacion ? 'Confirmar avisos' : 'Dejar de recibir avisos'}
+        </Button>
+        {resultado && <p role="alert">{mensajeError(resultado, accion)}</p>}
+        {resultado?.tipo === 'invalido' && <Link to="/avisos" className={pagina.enlace}>Pedir un enlace nuevo</Link>}
+      </>}
+    </section>
+    <aside className={estilos.explicacion} aria-label="Qué pasa al pulsar">
+      <h2>{confirmacion ? 'Al confirmar' : 'Al darte de baja'}</h2>
+      <p>{confirmacion
+        ? 'Te avisaremos si cambia el agua.'
+        : 'No habrá más avisos y quitaremos tu correo.'}</p>
+      {confirmacion && <details className={estilos.detalles}>
+        <summary>Cómo funciona</summary>
+        <p>Hasta que confirmes, no recibirás avisos. El enlace vence en 48 horas.</p>
+      </details>}
+    </aside>
   </div>
 }
 

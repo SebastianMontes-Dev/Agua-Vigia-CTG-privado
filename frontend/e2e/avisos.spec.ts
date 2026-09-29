@@ -16,6 +16,8 @@ test('debeElegirVariosBarriosYMostrarSiempreLaRespuestaNeutra', async ({ page })
   await page.getByRole('button', { name: /Enviar enlace de confirmación/ }).click()
   await expect(page.getByRole('status')).toContainText('Si la dirección es válida, te enviamos un correo. El enlace vence en 48 horas')
   expect(enviados).toEqual([{ correo: 'vecina@example.com', sectorIds: ['manga', 'armenia'] }])
+  await page.getByRole('button', { name: 'Quitar Armenia' }).click()
+  await expect(page.getByRole('list', { name: 'Barrios elegidos' })).not.toContainText('Armenia')
 })
 
 test('debeMostrarValidacionLimiteYFalloDeRedSinReintentoAutomatico', async ({ page }) => {
@@ -73,11 +75,31 @@ test('debeExplicarTokenAusenteOInvalido', async ({ page }) => {
   await expect(page.getByRole('alert')).toContainText('no es válido o venció')
 })
 
-test('debeResponderEnLaPrimeraVistaYMedirMenosDeDosPantallasAMovil', async ({ page }) => {
+test('debeMostrarLaAccionEnLaPrimeraVistaYMedirHastaPantallaYMediaAMovil', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await simularApi(page)
-  await page.goto('/avisos')
-  await expect(page.getByRole('button', { name: /Enviar enlace de confirmación/ })).toBeInViewport()
-  const alto = await page.locator('main').evaluate((nodo) => nodo.scrollHeight)
-  expect(alto).toBeLessThanOrEqual(1688)
+  for (const [ruta, boton] of [
+    ['/avisos', /Enviar enlace de confirmación/],
+    ['/avisos/confirmar?token=secreto', 'Confirmar avisos'],
+    ['/avisos/baja?token=secreto', 'Dejar de recibir avisos'],
+  ] as const) {
+    await page.goto(ruta)
+    await expect(page.getByRole('button', { name: boton })).toBeInViewport()
+    const alto = await page.evaluate(() => document.documentElement.scrollHeight)
+    expect(alto, ruta).toBeLessThanOrEqual(1266)
+  }
+})
+
+test('debeUsarDosColumnasEnElPrimerPliegueDeEscritorio', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await simularApi(page)
+  for (const ruta of ['/avisos', '/avisos/confirmar?token=secreto', '/avisos/baja?token=secreto']) {
+    await page.goto(ruta)
+    const tarea = await page.locator('main section').first().boundingBox()
+    const contexto = await page.locator('main aside').first().boundingBox()
+    expect(tarea).not.toBeNull()
+    expect(contexto).not.toBeNull()
+    expect(contexto!.x).toBeGreaterThan(tarea!.x + tarea!.width)
+    expect(contexto!.y).toBeLessThan(900)
+  }
 })
