@@ -97,7 +97,7 @@ el token solo sirve para configurarlo).
 | Vigencia de enlaces | verificar cuenta 48 h · invitación 7 d · restablecer clave 30 min · confirmar suscripción 48 h |
 | Clave de una cuenta | 12 a 128 caracteres |
 | Bloqueo de cuenta | 5 fallos en 15 min → bloqueada 15 min |
-| Retención de fotos | 365 días en producción (se borra el binario, no el reporte) |
+| Retención de fotos | **Desactivada por defecto** (`aguavigia.mantenimiento.retencion-evidencia.habilitada: false`, `application.yml:132`; `ADR-027`, `ADR-085`). Si se activa, borra el binario de las fotos de más de 365 días, no el reporte |
 | Retención de reportes | **12 meses**: Mongo los borra solos (`ADR-058`). Los eventos de la bitácora son permanentes |
 
 ## De dónde salen los datos
@@ -106,8 +106,8 @@ el token solo sirve para configurarlo).
 |---|---|
 | Reportes ciudadanos | `POST /api/reportes` |
 | Cortes oficiales | Registrados por un veedor (`POST /api/veedor/cortes`) |
-| **Acuacar** (API REST de WordPress + RSS) | Colector automático cada 10 min → propuestas que revisa un veedor |
-| **Google News RSS**, **Zona Cero RSS** | Ídem |
+| **Acuacar** (solo API REST de WordPress, `application.yml:175-177`) | Colector automático cada 10 min → propuestas; las de Acuacar se aplican solas, ver [Panel del veedor §Ingesta](panel-veedor.md#revisión-de-la-ingesta) |
+| Prensa por RSS: **Google News**, **Zona Cero**, **Caracol Radio**, **W Radio** (`application.yml:180-188`) | Mismo ciclo → propuestas que esperan siempre a un veedor |
 | Sensores de presión | `POST /api/iot/presion` (autenticado por clave) |
 
 **No se scrapea Facebook, Instagram ni X, y se respeta siempre `robots.txt`** (`ADR-005`, `ADR-006`). El
@@ -118,7 +118,6 @@ colector se identifica siempre con un `User-Agent` con el nombre del proyecto y 
 Lo que el frontend **no** puede pedir hoy, para no buscarlo:
 
 - **Listar reportes ciudadanos públicamente.** Solo existe la cola de moderación (con sesión).
-- **Cerrar un corte detectado por la ingesta.**
 - **Refrescar el token del panel.**
 - **Avisos por Telegram** (RF041): el bot existe en el backend (sin endpoint HTTP: recibe por sondeo) y está apagado hasta
   que haya `TELEGRAM_BOT_TOKEN`; el frontend no participa. WhatsApp no está implementado.

@@ -90,7 +90,7 @@ puede mostrar, el sprint cierra aunque hayan pasado tres días.
 | **2** | Reporte ciudadano y consenso | Un vecino reporta en 2 toques y el consenso cambia el estado |
 | **3** | Administración y alertas | El veedor registra un corte y el suscriptor recibe el correo |
 | **4** | Ingesta y Cumplimiento ⭐ | Un boletín real de Acuacar entra solo y se calcula su índice |
-| **5** | Calidad del backend | Cobertura ≥ 70% en `domain/` y `application/` (`RNF017`), exigida en cada build — la parte de interfaz de este foco original (WCAG, PWA, E2E) queda retirada por alcance hasta el frontend nuevo (`ADR-048`), no es entregable de ningún sprint numerado hoy |
+| **5** | Calidad del backend | Cobertura ≥ 70% en `domain/` y `application/` (`RNF017`), exigida en cada build — la parte de interfaz de este foco original (WCAG, PWA, E2E) pasó al Sprint 7: E2E desde F2; WCAG, Lighthouse y PWA en F6 ([`sprint-7.md`](sprint-7.md)) |
 | **6** | Entrega final | Demo corriendo en local con `docker compose` (`ADR-057`) y dataset histórico cargado — [`sprint-6.md`](sprint-6.md): la demo es contra el backend, sin esperar al frontend (`REC-018`, aceptada); cerrado el 2026-09-24 con `RNF027` parcial |
 | **7** | Frontend nuevo | La SPA se levanta con el mismo `docker compose` y responde «¿tengo agua?» en menos de 5 s en 3G — [`sprint-7.md`](sprint-7.md), fases F0–F6 de `plan-frontend.md` |
 

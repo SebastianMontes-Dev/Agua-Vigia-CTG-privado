@@ -1,6 +1,6 @@
 # Correos y enlaces
 
-El backend envía correo en cinco situaciones. Los enlaces de suscripción llevan a las pantallas propias del
+El backend envía correo en seis situaciones. Los enlaces de suscripción llevan a las pantallas propias del
 frontend; los enlaces de cuenta siguen en el backend hasta F5.
 
 ## De dónde sale la URL de los enlaces
@@ -19,8 +19,14 @@ en local (`ADR-080`).
 | Verificar cuenta | `POST /api/cuentas/registro` | `…/api/cuentas/enlaces/verificar?token=…` | 48 h |
 | Aceptar invitación | Un ADMIN invita | `…/api/cuentas/enlaces/invitacion?token=…` | 7 días |
 | Restablecer clave | `POST /api/cuentas/restablecimiento` | `…/api/cuentas/enlaces/restablecer?token=…` | 30 min |
+| Aviso de cambio de acceso | Un ADMIN aprueba, rechaza, suspende, reactiva o cambia permisos; cambia la clave; alguien intenta registrarse con un correo que ya tiene cuenta (`MailCuentaAdapter.avisarCambioDeAcceso`, llamado desde `AdministrarCuentaService`, `CambiarClaveService`, `RestablecerClaveService` y `RegistrarUsuarioService.java:79`) | Sin enlace: solo informa | — |
 
 Los enlaces de cuentas son **de un solo uso**, y pedir uno nuevo **invalida los anteriores**.
+
+En la demo de carga con `--sin-correo` (`scripts/carga/demo.mjs`, `docker-compose.carga.yml:12`) el backend arranca con
+`aguavigia.correo.cuentas-habilitado=false` y los **cuatro correos de cuentas** (verificar, invitación, restablecer y aviso de cambio de acceso) **se descartan** (`CorreoDeCuentaDescartadoAdapter`,
+`ADR-088`): las cuentas se crean igual, pero una invitación hecha así no se puede aceptar. Los correos de suscripción no
+pasan por ahí.
 
 `urlReportar` de `MailNotificacionAdapter` lleva a la ficha del sector en la SPA.
 

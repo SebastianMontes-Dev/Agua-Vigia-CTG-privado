@@ -583,7 +583,7 @@ alguien recuerde declararlo.
 
 #### Escenario: Fuerza bruta contra el inicio de sesión
 
-- **Cuando** una misma IP falla el inicio de sesión más de 5 veces en 5 minutos
+- **Cuando** una misma IP hace más de 5 intentos de inicio de sesión en 5 minutos (se cuentan todos, acierten o fallen)
 - **Entonces** las peticiones siguientes se rechazan con 429 durante lo que resta de la ventana
 
 #### Escenario: Cambiar la cabecera X-Forwarded-For no estrena cupo

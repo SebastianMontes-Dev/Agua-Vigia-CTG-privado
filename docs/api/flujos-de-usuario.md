@@ -70,16 +70,17 @@ Detalle: [Bitácora, estadísticas y cumplimiento](bitacora-estadisticas-cumplim
 
 ```
 1. POST /api/suscripciones             { correo, sectorIds[] }   → 201, estado PENDIENTE_CONFIRMACION
-2. (el usuario abre el enlace del correo)  GET  /api/suscripciones/confirmar?token=…   → página con un botón
+2. (el usuario abre el enlace del correo)  SPA /avisos/confirmar?token=…            → pantalla con un botón
    (el usuario pulsa el botón)               POST /api/suscripciones/confirmar?token=…   → 200
 3. (cada cambio de estado del sector)      el backend envía un correo con enlace de baja
-4. (baja)  GET → página con un botón · POST /api/suscripciones/cancelar?token=…  → 200
+4. (baja)  SPA /avisos/baja?token=… → pantalla con un botón · POST /api/suscripciones/cancelar?token=…  → 200
 ```
 
 Doble confirmación (*doble opt-in*): hasta que el usuario confirme, no se le envía nada más. **Todo
 correo lleva un enlace de baja en un clic**, y la baja elimina el correo del registro. Los enlaces del
-correo son rutas del propio backend que responden una página HTML sencilla; un frontend propio puede
-sustituirlas (ver [Correos y enlaces](correos-y-enlaces.md)).
+correo llevan a la SPA (`/avisos/confirmar`, `/avisos/baja`, bajo `APP_URL_FRONTEND`); las páginas `GET` del backend
+en las mismas rutas de `/api/suscripciones` siguen existiendo como alternativa sin frontend (ver
+[Correos y enlaces](correos-y-enlaces.md)).
 
 Detalle: [Suscripciones](suscripciones.md).
 

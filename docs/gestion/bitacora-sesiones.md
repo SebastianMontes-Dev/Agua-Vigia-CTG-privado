@@ -29,6 +29,10 @@ Referencias cruzadas: `ADR-NNN` · `BUG-NNN` · `RF0NN` · `archivo:línea`.
 **Qué:** Cierre funcional del backend fusionado (#90–#101: barrio en la cuenta, ingesta local, RNF024, 30 000 cuentas, demo de carga `ADR-083`, pruebas de adaptadores y reglas de capas `ADR-084`); docs conciliadas con el código (anexos HU/CP recuperados, RF032–RF036 reclasificados, `estado-del-backend`); `verify` 1 104 pruebas en verde.
 **Sigue:** Del dueño: decidir si rota `JWT_SECRET` y quita las credenciales de desarrollo de `docs/ingenieria/entorno-local.md`, y confirmar Google News (`Disallow: /`); F5 (panel del veedor) sigue sin hacerse.
 
+### 2026-09-29 · `fix/estabilidad-bajo-carga`
+**Qué:** Backend de `main` revisado con los cambios del compañero (`./mvnw verify`: 970 pruebas, 0 fallos) y `RNF027` medido de nuevo con la carga dentro de la red de Docker y 3 réplicas: 50 100 SSE sostenidas, lecturas a 6 000 req/s, escrituras a 900/s de pico, todo junto dentro de umbrales hasta 25 000 SSE (`escalabilidad.md`). Corregidos `BUG-117`, `BUG-118`, `BUG-119` y cerrado el hallazgo del puerto publicado (era Docker Desktop); `scripts/carga/escenario-integrado.sh` repite el escenario. Base de la demo restaurada de una copia tras las pruebas.
+**Sigue:** Revisar y fusionar el PR de esta rama y registrarlo en `registro-de-implementaciones.md`. Fusionar `fix/jackson-cve-2026-68497` (CVE alto en `main`; ocupa `BUG-116`, por eso el siguiente libre aquí es 120). Con 50 000 SSE y todo el tráfico la latencia se sale de umbrales: solo una prueba con varias máquinas dice de quién es el límite. Sin probar: estampida de lecturas tras un aviso SSE, cerrojos de tareas con réplicas. La bitácora pasa de 30 entradas y no se rotó.
+
 ### 2026-09-28 · `feat/f4-avisos`
 **Qué:** PR #87 adaptado a la prueba de 5 segundos para las tres pantallas de avisos, con fichas de barrios, dos columnas y capturas completas en ambos temas; 248 unitarias y 102 E2E pasaron.
 **Sigue:** El dueño revisa el PR #87 y sus capturas antes de fusionarlo; incorporar ADR-079 cuando llegue a `main`.
@@ -75,9 +79,6 @@ Referencias cruzadas: `ADR-NNN` · `BUG-NNN` · `RF0NN` · `archivo:línea`.
 
 ## Preparación del backend
 
-### 2026-09-29 · `fix/estabilidad-bajo-carga`
-**Qué:** Backend de `main` revisado con los cambios del compañero (`./mvnw verify`: 970 pruebas, 0 fallos) y `RNF027` medido de nuevo con la carga dentro de la red de Docker y 3 réplicas: 50 100 SSE sostenidas, lecturas a 6 000 req/s, escrituras a 900/s de pico, todo junto dentro de umbrales hasta 25 000 SSE (`escalabilidad.md`). Corregidos `BUG-117`, `BUG-118`, `BUG-119` y cerrado el hallazgo del puerto publicado (era Docker Desktop); `scripts/carga/escenario-integrado.sh` repite el escenario. Base de la demo restaurada de una copia tras las pruebas.
-**Sigue:** Revisar y fusionar el PR de esta rama y registrarlo en `registro-de-implementaciones.md`. Fusionar `fix/jackson-cve-2026-68497` (CVE alto en `main`; ocupa `BUG-116`, por eso el siguiente libre aquí es 120). Con 50 000 SSE y todo el tráfico la latencia se sale de umbrales: solo una prueba con varias máquinas dice de quién es el límite. Sin probar: estampida de lecturas tras un aviso SSE, cerrojos de tareas con réplicas. La bitácora pasa de 30 entradas y no se rotó.
 ### 2026-09-24 · `docs/entregables-bd2`
 **Qué:** Entrega de Base de Datos 2 (ER → NoSQL): `docs/ingenieria/transformacion-er-a-nosql-bd2.docx` y `.pdf` (14 tablas → 10 colecciones, índices tomados de `IndicesMongo.java`) y `modelo-nosql-moon-modeler.dmm` con el diagrama de las 10 colecciones. No hay `.sql` en el repo; el documento no lo cubre. Los diagramas omiten `suscripciones_telegram`, `bloqueos_administracion` y `documentos_fallidos`.
 **Sigue:** El `.docx` y el `.pdf` se versionan el 2026-09-29. El `.dmm` queda fuera de git: gitleaks toma por claves los UUID de sus relaciones (`parent_key`) y exceptuarlo exige que el dueño decida la allowlist. El PDF no se revisó renderizado.

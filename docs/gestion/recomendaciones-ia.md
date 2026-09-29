@@ -15,7 +15,7 @@
 
 | ID | Fecha | Título | Estado |
 |---|---|---|---|
-| REC-004 | 2026-08-08 | La cobertura de pruebas del frontend está muy por debajo de la del backend | Cerrada — obsoleta |
+| REC-004 | 2026-08-08 | La cobertura de pruebas del frontend está muy por debajo de la del backend | Descartada |
 | REC-006 | 2026-08-09 | `RateLimitConfig` se cuela en cualquier `@WebMvcTest` aunque no se importe, y rompe pruebas en silencio al activar reglas reales | Resuelta |
 | REC-007 | 2026-08-28 | Las ramas fusionadas se acumulan en GitHub porque falta activar el borrado automático | Resuelta |
 | REC-008 | 2026-08-30 | El fuente de `index.css` está semi-minificado: el breakpoint móvil completo vive en una sola línea de 2.509 caracteres | Resuelta |
@@ -41,7 +41,7 @@ ella)
 
 ### REC-004 — La cobertura de pruebas del frontend está muy por debajo de la del backend
 
-- **Fecha:** 2026-08-08 · **Estado:** Cerrada — obsoleta
+- **Fecha:** 2026-08-08 · **Estado:** Descartada — dejó de aplicar al retirarse el frontend (`ADR-048`); motivo abajo
 
 **Cerrada el 2026-09-21:** el frontend se retiró de `main` (`ADR-048`; su código sigue en la etiqueta `pre-retiro-frontend`) y se rehace en otras ramas de este repositorio. La recomendación no se resuelve: deja de aplicar aquí. La cobertura del frontend nuevo será asunto de esas ramas.
 

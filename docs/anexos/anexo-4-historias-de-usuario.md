@@ -10,7 +10,7 @@
 | Trazabilidad | **Una historia por cada requisito funcional**, numeración pareja `RF0NN → HU0NN` (ver [`../ingenieria/matriz-trazabilidad.md`](../ingenieria/matriz-trazabilidad.md)) |
 | Actor | El de `docs/product-requirements.md`: vecino, veedor, ciudadanía, periodista, sistema, administrador, aspirante a veedor o sensor IoT |
 | Alcance vigente | Proyecto académico que corre **solo en local** (`ADR-057`, `ADR-080`): sin hosting, dominio, CDN ni TLS. **Sin SDK de IA** (`ADR-025`): la ingesta la hace una heurística determinista. Interfaz: el frontend nuevo de `frontend/` (React 19 + Vite, `ADR-067`) |
-| Estado de la interfaz | Construidas F2 (núcleo ciudadano), F3 (historia pública) y F4 (avisos); **F5 (cuentas y panel del veedor) y F6 (integración) siguen pendientes** (`docs/gestion/sprint-7.md`). Hasta entonces, las historias del panel (HU016–HU019) y de las cuentas (HU042–HU046) se ejercen por la API, con Swagger (`http://localhost:8081/swagger-ui.html`) |
+| Estado de la interfaz | Construidas F2 (núcleo ciudadano), F3 (historia pública) y F4 (avisos); **F5 (cuentas y panel del veedor; avance en la rama `feat/f5-ingreso-panel`, sin fusionar) y F6 (integración) siguen pendientes** (`docs/gestion/sprint-7.md`). Hasta entonces, las historias del panel (HU016–HU019) y de las cuentas (HU042–HU046) se ejercen por la API, con Swagger (`http://localhost:8081/swagger-ui.html`) |
 | Estado de cada requisito | **No se repite aquí**: vive en la matriz de trazabilidad (un dato, un archivo). Solo se anota en la historia cuando el requisito no se cumple tal como está escrito (HU032–HU036, HU041) |
 | Estado de este documento | Cubre RF001–RF046 (M1–M15, incluida la Fase 2 de `product-requirements.md` §5). Revisado el 2026-09-29 contra `product-requirements.md`, la matriz y `comportamiento-del-sistema.md`. Se actualiza si cambia un requisito, no aparte |
 
@@ -434,8 +434,8 @@ Y el registro original permanece íntegro
 > la ingesta usa un **prefiltro determinista** (9 palabras clave) y un **extractor por expresiones regulares**
 > (`HeuristicaExtractor`) que emite una confianza graduada por la evidencia y la cita textual del boletín, y **propone**
 > a una cola de revisión del veedor (`ADR-028`). Solo el boletín oficial de Acuacar se publica sin revisión (`ADR-034`).
-> La matriz marca RF032–RF036 como «Descartado»; las notas de cada historia dicen qué parte se cumple de forma
-> heurística y cuál no.
+> La matriz los da reformulados sin IA: RF033 y RF035 ✅, RF032, RF034 y RF036 🟡 (`matriz-trazabilidad.md` §M9); las
+> notas de cada historia dicen qué parte se cumple de forma heurística y cuál no.
 
 ### HU029 — Consumo periódico de la API oficial *(RF029)*
 
@@ -496,7 +496,7 @@ Y lo que no logra leer lo declara como campo faltante, sin inventarlo
 ```
 
 > **Nota de alcance.** RF032 pide hacerlo «mediante IA con salida estructurada». Eso **no se cumple** (`ADR-025`; la matriz
-> lo marca ❌ Descartado). Se cumple la capacidad de clasificar y extraer con una heurística determinista, más tosca que
+> lo marca 🟡 parcial). Se cumple la capacidad de clasificar y extraer con una heurística determinista, más tosca que
 > un modelo: sin clasificación semántica y con reglas que asumen la plantilla de los boletines de Acuacar.
 
 ### HU033 — Confianza y cita textual *(RF033)*
@@ -571,7 +571,7 @@ Y su cobertura llega, si llega, de forma indirecta por Google News
 > **Nota de alcance.** La regla se cumple **por curación de las fuentes** (auditoría con petición real,
 > `docs/ingenieria/auditoria-fuentes-de-datos.md`), y sigue siendo de obligado cumplimiento (`ADR-005`, `CLAUDE.md`
 > § Ética de datos) aunque el proyecto no use IA. **No hay** en el backend un lector de `robots.txt` que lo consulte al
-> ejecutar; la matriz marca el RF como ❌ Descartado.
+> ejecutar; la matriz marca el RF como 🟡 parcial (política cumplida por auditoría, no por código).
 
 ---
 

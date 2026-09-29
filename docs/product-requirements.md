@@ -79,18 +79,22 @@
 | RF027 | La bitácora debe ser consultable públicamente sin autenticación. | Debe | Ciudadanía | Transparencia |
 | RF028 | Ningún evento de la bitácora puede editarse ni eliminarse una vez registrado. | Debe | Sistema | Valor probatorio |
 
-### M9 — Ingesta automática con IA
+### M9 — Ingesta automática (sin IA, `ADR-025`)
+
+RF032–RF036 se escribieron para una ingesta con IA. Se conservan con su texto original y se cumplen **reformulados sin
+IA**, con un extractor heurístico y una cola de revisión del veedor (`ADR-028`); la columna *Prioridad* de esas filas dice
+su estado, y qué parte de cada uno se cumple, la [matriz](ingenieria/matriz-trazabilidad.md) §M9.
 
 | ID | Requisito | Prioridad | Actor | Origen |
 |---|---|---|---|---|
 | RF029 | El sistema debe consumir periódicamente la API oficial del operador y detectar publicaciones nuevas o modificadas. | Debe | Sistema | Auditoría de fuentes |
 | RF030 | El sistema debe consumir fuentes de prensa vía RSS de agregadores públicos. | Debería | Sistema | Auditoría de fuentes |
 | RF031 | El sistema debe descartar automáticamente contenido duplicado mediante hash del contenido normalizado. | Debe | Sistema | Robustez |
-| RF032 | El sistema debe clasificar cada documento (¿habla de una interrupción del acueducto en Cartagena?) y extraer sectores, fechas, horas y causa mediante IA con salida estructurada. | No esta vez | Sistema | Automatización |
-| RF033 | Toda extracción debe incluir un puntaje de confianza y la cita textual del fragmento que la sustenta. | No esta vez | Sistema | **Anti-alucinación** |
-| RF034 | El sistema debe rechazar automáticamente cualquier extracción cuya cita textual no aparezca literalmente en el documento origen. | No esta vez | Sistema | **Anti-alucinación** |
-| RF035 | Las extracciones con confianza intermedia deben enviarse a una cola de revisión humana en vez de publicarse. | No esta vez | Veedor | Precisión sobre exhaustividad |
-| RF036 | El sistema **no debe** acceder a fuentes cuyo `robots.txt` bloquee agentes de IA. | No esta vez | Sistema | Política ética del proyecto |
+| RF032 | El sistema debe clasificar cada documento (¿habla de una interrupción del acueducto en Cartagena?) y extraer sectores, fechas, horas y causa mediante IA con salida estructurada. | Reformulado sin IA · 🟡 parcial | Sistema | Automatización |
+| RF033 | Toda extracción debe incluir un puntaje de confianza y la cita textual del fragmento que la sustenta. | Reformulado sin IA · ✅ | Sistema | **Anti-alucinación** |
+| RF034 | El sistema debe rechazar automáticamente cualquier extracción cuya cita textual no aparezca literalmente en el documento origen. | Reformulado sin IA · 🟡 parcial | Sistema | **Anti-alucinación** |
+| RF035 | Las extracciones con confianza intermedia deben enviarse a una cola de revisión humana en vez de publicarse. | Reformulado sin IA · ✅ | Veedor | Precisión sobre exhaustividad |
+| RF036 | El sistema **no debe** acceder a fuentes cuyo `robots.txt` bloquee agentes de IA. | Reformulado sin IA · 🟡 parcial | Sistema | Política ética del proyecto |
 
 ---
 
@@ -149,19 +153,31 @@ Todos medibles. Un RNF sin métrica y umbral no es verificable y no cuenta.
 | RNF019 | La precisión del clasificador de IA sobre el conjunto dorado debe ser **≥ 90%**. | Descartado (No esta vez) |
 | RNF020 | El sistema completo debe levantarse en una máquina limpia con **un solo comando**. | `docker compose up` |
 
+### Condiciones de la entrega académica
+
+No son requisitos nuevos (no llevan ID): son condiciones que la entrega exige y que se cumplen con requisitos y decisiones ya
+registrados.
+
+| Condición | Dónde se cumple |
+|---|---|
+| Levantar todo con un solo comando | `RNF020`: `docker compose up` sin `.env` (`ADR-086`) |
+| MongoDB como base principal | `ADR-003`; Redis solo para estado efímero |
+| Al menos 30 000 registros en Mongo | El servicio `sembrador` deja 30 000 cuentas de demostración completas (`ADR-086`); se amplían en vivo con `agregar-usuarios` (`ADR-087`) |
+| Demo de carga con un flujo real de muchos usuarios a la vez | `RNF027`: reportes, conexiones en vivo y registro de cuentas por la API real (`ADR-083`, `ADR-088`) |
+
 ---
 
 ## 3. Fuera de alcance (declarado)
 
 | Qué | Por qué |
 |---|---|
-| App móvil nativa | El frontend es responsive y PWA; una app nativa duplica el esfuerzo sin valor adicional |
+| App móvil nativa | El frontend es responsive y la PWA está prevista en F6 (`docs/gestion/sprint-7.md`); una app nativa duplica el esfuerzo sin valor adicional |
 | Integración con sistemas internos del operador | No existe API pública ni convenio |
 | Scraping de Facebook, Instagram o X | Viola sus términos; la vía legítima (Meta Content Library) requiere aprobación externa |
 | Scraping de medios que bloquean agentes de IA | Política ética del proyecto — se respeta `robots.txt` sin excepción |
 | Predicción de cortes futuros | Requiere datos operativos que no tenemos; sería especulación presentada como dato |
 | Reparación o intervención en la infraestructura hidráulica | No es un problema de software |
-| Clasificación e Ingesta con IA (RF032-RF036, RNF019) | Descartado por la eliminación de la dependencia del SDK de Anthropic para desbloquear M9 |
+| Clasificación e ingesta **con IA** (RNF019 y la parte de IA de RF032–RF036) | Descartado al eliminar la dependencia del SDK de Anthropic para desbloquear M9 (`ADR-025`). RF032–RF036 siguen vigentes, reformulados sin IA (§1, M9) |
 
 ---
 
@@ -172,9 +188,10 @@ La matriz completa `RF → historia de usuario → caso de prueba` se mantiene e
 
 ---
 
-## 5. Fase 2: Expansión Cívica y Estándares Abiertos (Propuestos)
+## 5. Fase 2: Expansión Cívica y Estándares Abiertos
 
-A partir de la estabilización del núcleo del sistema, se proponen las siguientes características inspiradas en plataformas globales de tecnología cívica (Civic Tech):
+A partir de la estabilización del núcleo del sistema se agregaron las siguientes características (construidas en el backend;
+estado en la [matriz](ingenieria/matriz-trazabilidad.md)) inspiradas en plataformas globales de tecnología cívica (Civic Tech):
 
 ### M10 — Evidencia Multimedia (Inspirado en Ushahidi)
 | ID | Requisito | Prioridad | Actor | Origen |

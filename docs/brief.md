@@ -95,7 +95,7 @@ fricción, y por qué el Índice de Cumplimiento es el corazón y no un extra.
 
 ---
 
-## Los 9 módulos
+## Los 15 módulos
 
 | # | Módulo | Qué resuelve |
 |---|---|---|
@@ -109,6 +109,17 @@ fricción, y por qué el Índice de Cumplimiento es el corazón y no un extra.
 | M8 | Bitácora pública | Dejar constancia inmutable |
 | M9 | Ingesta automática | Que nadie tenga que copiar y pegar boletines |
 
+Fase 2, ya construida en el backend (`product-requirements.md` §5):
+
+| # | Módulo | Qué resuelve |
+|---|---|---|
+| M10 | Evidencia multimedia | Que el reporte pueda llevar una foto |
+| M11 | Validación comunitaria | Que otro vecino confirme un reporte con un toque |
+| M12 | API abierta Open311 | Que terceros consuman el estado por sector con un estándar |
+| M13 | Integración IoT pasiva | Que un sensor de presión pueda reportar solo (no hay sensores instalados) |
+| M14 | Alertas por Telegram | Que el aviso llegue también por chat |
+| M15 | Cuentas y permisos del panel | Que cada veedor tenga su cuenta, su rol y su rastro de auditoría |
+
 ---
 
 ## Qué NO es
@@ -121,7 +132,7 @@ Restricciones deliberadas. Si algo de esta lista se propone, se rechaza citando 
 - **No recolecta datos personales.** Reportar no requiere cuenta; suscribirse solo pide un correo,
   con baja en un clic.
 - **No scrapea redes sociales ni medios que lo prohíban.** Ver la política en `CLAUDE.md`.
-- **No es una app móvil nativa.** Web responsive y PWA.
+- **No es una app móvil nativa.** Web responsive; la PWA está prevista en F6 del frontend (`docs/gestion/sprint-7.md`).
 
 ---
 
