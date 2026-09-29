@@ -25,6 +25,14 @@ Referencias cruzadas: `ADR-NNN` · `BUG-NNN` · `RF0NN` · `archivo:línea`.
 
 ## Sprint 7 — Frontend nuevo
 
+### 2026-09-28 · `feat/f4-avisos`
+**Qué:** PR #87 adaptado a la prueba de 5 segundos para las tres pantallas de avisos, con fichas de barrios, dos columnas y capturas completas en ambos temas; 248 unitarias y 102 E2E pasaron.
+**Sigue:** El dueño revisa el PR #87 y sus capturas antes de fusionarlo; incorporar ADR-079 cuando llegue a `main`.
+
+### 2026-09-28 · `feat/f4-avisos`
+**Qué:** F4 quedó en el PR #87 con ADR-078 y BUG-124–126 (registrados como BUG-120–122 en #87); frontend, backend, Mailhog real y CI completo pasaron. Se revisaron capturas en ambos temas y tamaños.
+**Sigue:** El dueño revisa el PR #87 y las capturas antes de fusionarlo; después registra la implementación.
+
 ### 2026-09-27 · `docs/cerrar-f2-tecnico`
 **Qué:** Se delegaron a Codex las E2E de F2 contra el backend real (PR #79, 5 casos en CI; se amplió el filtro de rutas del workflow) y F3. Se fusionaron #76 (cifras `es-CO`, sin las fechas que repetían `tiempo.ts`), #77 y #79, se registraron #74/#76/#77/#79 y se cerraron #65, #75 y el issue #70. Una medición con 3G y caché vacía encontró que el mapa pinta a 7,5–11 s (`BUG-115`).
 **Sigue:** El dueño revisa F2 en un teléfono real y decide si `BUG-115` se corrige en F2 o en F6; Codex construye F3 en tres PR. `git-lfs` no está instalado en esta máquina: el `.pmtiles` local es solo el puntero.
@@ -155,33 +163,7 @@ en `settings.json`). `docker-compose.prod.yml` sigue sin *replica set*, a propó
 
 ## Sprint 2
 
-### 2026-09-22 · `chore/cerrar-dependabot-testcontainers`
-**Qué:** Se decidió el #2 de Dependabot, delegado por el dueño: el fallo no es transitorio (el BOM de Testcontainers 2.0.5 ya no fija la versión de `testcontainers-junit-jupiter` ni `testcontainers-mongodb`, confirmado en el log del `Backend CI`), así que se cerró con el mismo criterio que `ADR-059` y se registró `ADR-060`. Dependabot ya no propone ese salto. Fusionado como #32 con `gitleaks` en rojo solo por `BUG-089`; no queda ningún PR abierto en el repositorio.
-**Sigue:** Del dueño: `permissions` en `secret-scan.yml` (`BUG-089`, `REC-016`) y la hoja de ruta de los Sprints 3–6 (`REC-017`).
-
-### 2026-09-21 · `chore/registrar-dependabot-26-a-29`
-**Qué:** Se fusionó el #25 y el #30 (quitan el pendiente de `frontend/`, ya borrado del disco). Se cerraron #7 y #11 por `ADR-059`. De cuatro PR nuevos de Dependabot (#26–#29: resilience4j, jacoco, Maven wrapper, springdoc 2.9.1), todos menores, se actualizaron sus ramas y se fusionaron con `Backend CI` en verde; `main` quedó en verde en sus tres workflows (`2c6d6f7`). El #2 (Testcontainers 2.0) se reverificó y sigue roto de verdad: queda abierto.
-**Sigue:** Del dueño: añadir `permissions` a `secret-scan.yml` (`BUG-089`, `REC-016`), decidir el #2 y la hoja de ruta de los Sprints 3–6 (`REC-017`).
-
-### 2026-09-21 · `chore/ordenar-dependabot-y-documentos`
-**Qué:** Se fusionó el #23 y, de Dependabot, #1, #4, #24, #8, #5 y #9 con el CI verde sobre el `main` nuevo (`Backend CI` completo en los dos de `pom.xml`); `main` quedó en verde en sus cuatro workflows. Se decidió no migrar a Spring Boot 4 (`ADR-059`) y Dependabot ya no propone ese salto ni el de springdoc. Se corrigieron contradicciones entre documentos: línea 1 corrupta de la matriz, RNF012–016 sin marcar como retirados, cobertura del registro (28/36 → 40/46 RF, 17/27 RNF), tabla de recomendaciones, plan de pruebas con staging inexistente y sprint 2 con filas 🟡 ya entregadas. Se registró `BUG-089` (`gitleaks` por PR falla con 403) y las `REC-016`/`REC-017`.
-**Sigue:** Del dueño: añadir `permissions` a `secret-scan.yml` (bloqueado por la regla `Read(**/*secret*)`, `REC-016`), decidir el #2 (Testcontainers 2.0) y la hoja de ruta de los Sprints 3–6 (`REC-017`). `frontend/` ya se borró del disco (2026-09-21).
-
-### 2026-09-21 · `feat/datos-de-demostracion`
-**Qué:** Se publicaron 6 PR encadenados (#16 a #21) y se respondieron las decisiones del dueño: proyecto académico local sin hosting ni CDN (`ADR-057`), reportes 12 meses y eventos permanentes con índice TTL (`ADR-058`), Sprint 2 cerrado (`REC-014`), `aviso-corte.html` borrado, CORS abierto solo en `dev` para el frontend. Sembrador de 20 000 cuentas de demostración (nombres únicos, seis estados, dos roles), comprobado por la API: `X-Total-Count: 20001`, páginas y filtros en 17–58 ms. El CI encontró dos fallos de la rama 1 (`MAIL_USERNAME` sin definir en la validación del compose) y del workflow de secretos.
-**Sigue:** Fusionar los PR en orden con squash, `@dependabot rebase` y fusionar #1, #4, #5, #8, #9. Pendiente del dueño: añadir `permissions: contents: read, pull-requests: read` a `secret-scan.yml` (no puedo abrirlo por tu regla sobre archivos «secret»), el token de Telegram (RF041) y borrar `frontend/` del disco.
-
-### 2026-09-21 · `feat/ajustes-de-contrato-frontend`
-**Qué:** Se tomaron las decisiones delegadas: confirmar/cancelar suscripción por POST (`ADR-054`), bitácora con conteo de sustento y detalle aparte (`ADR-055`), histórico público de cortes, población, cambio de clave con sesión y reenvío de verificación/invitación (`ADR-056`); 406 en vez de 500 (`BUG-087`); respaldo y restauración de Mongo corregidos y probados con autenticación (`BUG-088`). Contrato en 65 rutas; `./mvnw verify`: 823 pruebas en verde. Dependabot revisado, sin tocar.
-**Sigue:** Commitear esta rama (nada commiteado) y publicar las 6 ramas. Sin hacer y solo del dueño: programar el respaldo, hosting/dominio/CDN, HA de Mongo y Redis, política de retención, cerrar el Sprint 2 (`REC-014`), `@dependabot rebase` y fusión de #1/#4/#5/#8/#9, RF041 y los 20 000 datos (falta saber de qué).
-
-### 2026-09-21 · `chore/retirar-frontend`
-**Qué:** Se retiró el frontend (`ADR-048`) y se pulió el backend para RNF027 (50 000 usuarios): `ADR-049`–`ADR-053`, `BUG-076`–`BUG-086`, `docs/api/` + `openapi.yaml` para el frontend nuevo y `docs/ingenieria/escalabilidad.md`. `./mvnw verify`: 782 pruebas en verde. Medido a escala reducida (nginx ~3 700 req/s con el backend al ~6 % de un núcleo, 10 000 SSE, escritura 63 001 peticiones a p95 36 ms); la medición destapó `BUG-085` y `BUG-086`. **50 000 NO está demostrado.**
-**Sigue:** Hacer los commits (nada está commiteado; ramas sugeridas en el plan), borrar `frontend/` del disco a mano (`rm -rf` está denegado en `settings.json`), decidir cerrar el Sprint 2 (`REC-014`) y luego la prueba distribuida con ≥ 3 réplicas. Quedaron sin hacer: confirmar/cancelar suscripción sigue por GET, reenvío de verificación/invitación, cambio de clave con sesión, adaptador de fotos S3, Mongo/Redis con alta disponibilidad, RF041.
-
-### 2026-09-20 · `main`
-**Qué:** Se retiró OpenSpec (`ADR-047`): las 13 capacidades pasaron a `docs/ingenieria/comportamiento-del-sistema.md` (54 requisitos, 93 escenarios) y se borraron `openspec/`, las 12 copias de skills y los comandos `opsx`.
-**Sigue:** Aprobar el diseño del rotulado de barrios (`BUG-073`) y hacer el commit de todo lo pendiente.
+Rotado a [`historico/bitacora-sprint-2.md`](historico/bitacora-sprint-2.md).
 
 ## Sprints 0 y 1
 

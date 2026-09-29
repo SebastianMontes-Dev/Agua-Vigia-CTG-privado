@@ -440,6 +440,8 @@ electrónico.
 - **Cuando** alguien envía `POST /api/suscripciones` con su correo y uno o más sectores
 - **Entonces** la suscripción queda creada en estado pendiente de confirmación
 - **Y** no se envía ninguna alerta todavía
+- **Y** el correo lleva enlaces del frontend construidos con `aguavigia.app.url-frontend` (por defecto
+  `http://localhost:5173`), independiente de `aguavigia.app.url-publica` de la API
 
 ### Requisito: Doble opt-in antes de cualquier alerta
 
@@ -452,9 +454,9 @@ El sistema debe confirmar la suscripción mediante doble opt-in antes de enviar 
 
 #### Escenario: Confirmación desde el enlace del correo
 
-- **Cuando** el suscriptor abre el enlace de `GET /api/suscripciones/confirmar` con su token
-- **Entonces** ve una página con un botón y la suscripción **no cambia** (un antivirus o una vista previa de enlaces
-  abre los GET sin que nadie los pida, `ADR-054`)
+- **Cuando** el suscriptor abre `/avisos/confirmar?token=…`
+- **Entonces** la SPA retira el token de la URL, muestra un botón y la suscripción **no cambia** (un antivirus
+  o una vista previa puede abrir el enlace, `ADR-054`)
 - **Y** al pulsar el botón, `POST /api/suscripciones/confirmar` la pasa a confirmada; la respuesta es HTML o
   JSON según la cabecera `Accept`, sin rutas separadas (ADR-030)
 
@@ -472,6 +474,7 @@ anunciado, confirmado o restablecido.
 
 - **Cuando** un sector con suscriptores confirmados pasa a `SIN_SERVICIO`
 - **Entonces** cada suscriptor confirmado recibe un correo con el cambio
+- **Y** el enlace para ver el sector lleva a `/sectores/{id}` en el frontend
 
 #### Escenario: Fallo del servidor de correo
 
@@ -485,8 +488,8 @@ Al darse de baja, el correo debe eliminarse (RNF009).
 
 #### Escenario: Baja desde el enlace
 
-- **Cuando** el suscriptor abre el enlace de `GET /api/suscripciones/cancelar` con su token
-- **Entonces** ve una página con un botón «Darme de baja» y la suscripción **no cambia**
+- **Cuando** el suscriptor abre `/avisos/baja?token=…`
+- **Entonces** la SPA retira el token de la URL, muestra un botón «Dejar de recibir avisos» y la suscripción **no cambia**
 - **Y** al pulsarlo, `POST /api/suscripciones/cancelar` la cancela sin pedirle contraseña ni datos adicionales
 - **Y** su correo deja de estar almacenado (se sustituye por una dirección `.invalid`)
 

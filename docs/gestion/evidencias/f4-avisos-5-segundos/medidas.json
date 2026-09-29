@@ -1,0 +1,170 @@
+[
+  {
+    "ruta": "avisos",
+    "tamano": "1440x900",
+    "tema": "claro",
+    "alto": 900,
+    "botonInferior": 599
+  },
+  {
+    "ruta": "confirmar",
+    "tamano": "1440x900",
+    "tema": "claro",
+    "alto": 900,
+    "botonInferior": 366
+  },
+  {
+    "ruta": "baja",
+    "tamano": "1440x900",
+    "tema": "claro",
+    "alto": 900,
+    "botonInferior": 366
+  },
+  {
+    "ruta": "avisos",
+    "tamano": "1440x900",
+    "tema": "oscuro",
+    "alto": 900,
+    "botonInferior": 599
+  },
+  {
+    "ruta": "confirmar",
+    "tamano": "1440x900",
+    "tema": "oscuro",
+    "alto": 900,
+    "botonInferior": 366
+  },
+  {
+    "ruta": "baja",
+    "tamano": "1440x900",
+    "tema": "oscuro",
+    "alto": 900,
+    "botonInferior": 366
+  },
+  {
+    "ruta": "avisos",
+    "tamano": "1024x768",
+    "tema": "claro",
+    "alto": 768,
+    "botonInferior": 566
+  },
+  {
+    "ruta": "confirmar",
+    "tamano": "1024x768",
+    "tema": "claro",
+    "alto": 768,
+    "botonInferior": 333
+  },
+  {
+    "ruta": "baja",
+    "tamano": "1024x768",
+    "tema": "claro",
+    "alto": 768,
+    "botonInferior": 333
+  },
+  {
+    "ruta": "avisos",
+    "tamano": "1024x768",
+    "tema": "oscuro",
+    "alto": 768,
+    "botonInferior": 566
+  },
+  {
+    "ruta": "confirmar",
+    "tamano": "1024x768",
+    "tema": "oscuro",
+    "alto": 768,
+    "botonInferior": 333
+  },
+  {
+    "ruta": "baja",
+    "tamano": "1024x768",
+    "tema": "oscuro",
+    "alto": 768,
+    "botonInferior": 333
+  },
+  {
+    "ruta": "avisos",
+    "tamano": "768x1024",
+    "tema": "claro",
+    "alto": 1024,
+    "botonInferior": 542
+  },
+  {
+    "ruta": "confirmar",
+    "tamano": "768x1024",
+    "tema": "claro",
+    "alto": 1024,
+    "botonInferior": 309
+  },
+  {
+    "ruta": "baja",
+    "tamano": "768x1024",
+    "tema": "claro",
+    "alto": 1024,
+    "botonInferior": 309
+  },
+  {
+    "ruta": "avisos",
+    "tamano": "768x1024",
+    "tema": "oscuro",
+    "alto": 1024,
+    "botonInferior": 542
+  },
+  {
+    "ruta": "confirmar",
+    "tamano": "768x1024",
+    "tema": "oscuro",
+    "alto": 1024,
+    "botonInferior": 309
+  },
+  {
+    "ruta": "baja",
+    "tamano": "768x1024",
+    "tema": "oscuro",
+    "alto": 1024,
+    "botonInferior": 309
+  },
+  {
+    "ruta": "avisos",
+    "tamano": "390x844",
+    "tema": "claro",
+    "alto": 844,
+    "botonInferior": 468
+  },
+  {
+    "ruta": "confirmar",
+    "tamano": "390x844",
+    "tema": "claro",
+    "alto": 844,
+    "botonInferior": 247
+  },
+  {
+    "ruta": "baja",
+    "tamano": "390x844",
+    "tema": "claro",
+    "alto": 844,
+    "botonInferior": 247
+  },
+  {
+    "ruta": "avisos",
+    "tamano": "390x844",
+    "tema": "oscuro",
+    "alto": 844,
+    "botonInferior": 468
+  },
+  {
+    "ruta": "confirmar",
+    "tamano": "390x844",
+    "tema": "oscuro",
+    "alto": 844,
+    "botonInferior": 247
+  },
+  {
+    "ruta": "baja",
+    "tamano": "390x844",
+    "tema": "oscuro",
+    "alto": 844,
+    "botonInferior": 247
+  }
+]
