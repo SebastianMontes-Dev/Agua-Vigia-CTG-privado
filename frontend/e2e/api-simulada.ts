@@ -1,4 +1,5 @@
 import type { Page, Route } from '@playwright/test'
+import { cumplimientoDeEjemplo, serieDeEjemplo } from '../src/pruebas/datos/historia'
 
 // Datos de prueba: tres barrios con coordenadas aproximadas de Cartagena. No describen su estado real.
 function cuadro(lon: number, lat: number) {
@@ -47,6 +48,8 @@ interface Opciones {
   sectores?: (route: Route) => Promise<void>
   reporte?: (route: Route) => Promise<void>
   confirmacion?: (route: Route) => Promise<void>
+  cumplimiento?: (route: Route) => Promise<void>
+  serie?: (route: Route) => Promise<void>
 }
 
 /** Simula la API pública para las E2E que corren sin backend (CI). Devuelve los cuerpos de los reportes y confirmaciones. */
@@ -57,6 +60,15 @@ export async function simularApi(page: Page, opciones: Opciones = {}) {
     route.fulfill({ status: 200, contentType: 'text/event-stream', body: 'retry:60000\nevent:sectores\ndata:{}\n\n' }))
   await page.route('**/api/sectores/geometria', (route) =>
     route.fulfill({ status: 200, contentType: 'application/geo+json', body: JSON.stringify(GEOMETRIA) }))
+  await page.route(/\/api\/cumplimiento\/serie\.csv(?:\?|$)/, (route) => route.fulfill({
+    status: 200, contentType: 'text/csv', body: 'periodo;porcentaje_cumplimiento\n2026-04;100',
+  }))
+  await page.route(/\/api\/cumplimiento\/serie(?:\?|$)/, opciones.serie ?? ((route) => route.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify(serieDeEjemplo),
+  })))
+  await page.route(/\/api\/cumplimiento(?:\/sectores\/[^/?]+)?(?:\?|$)/, opciones.cumplimiento ?? ((route) => route.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify(cumplimientoDeEjemplo),
+  })))
   await page.route(/\/api\/sectores\/[^/]+\/cortes/, (route) => {
     const id = new URL(route.request().url()).pathname.split('/')[3] ?? ''
     const lista = cortes()[id] ?? []

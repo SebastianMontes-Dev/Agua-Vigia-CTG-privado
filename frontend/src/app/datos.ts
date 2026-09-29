@@ -6,6 +6,7 @@ import { almacenIndexedDb, cargarGeometria } from '../api/geometria'
 import { leerPaginacion } from '../api/paginacion'
 import type { Corte } from '../dominio/cortes'
 import type { Sector } from '../dominio/sectores'
+import type { Indice, PuntoSerie } from '../dominio/cumplimiento'
 
 // Solo GET: TanStack Query no reintenta mutaciones por defecto y aquí no se cambia (plan §6.1).
 export const clienteConsultas = new QueryClient({
@@ -74,5 +75,43 @@ export function useCortes(id: string) {
     },
     getNextPageParam: (ultima) => (ultima.paginacion.hayMas ? ultima.paginacion.pagina + 1 : undefined),
     staleTime: 60_000,
+  })
+}
+
+export function useIndiceCumplimiento(sectorId?: string) {
+  return useQuery({
+    queryKey: ['cumplimiento', sectorId ?? 'global'],
+    queryFn: async ({ signal }) => {
+      const resultado = sectorId
+        ? await api.GET('/api/cumplimiento/sectores/{sectorId}', { params: { path: { sectorId } }, signal })
+          .catch(() => ({ data: undefined, error: undefined, response: null }))
+        : await api.GET('/api/cumplimiento', { signal })
+          .catch(() => ({ data: undefined, error: undefined, response: null }))
+      const { data, error, response } = resultado
+      if (!response || !response.ok || !data) throw normalizarError(response ?? null, error)
+      return data as Indice
+    },
+    staleTime: 5_000,
+  })
+}
+
+export interface FiltrosSerie {
+  sectorId?: string
+  desde?: string
+  hasta?: string
+}
+
+export function useSerieCumplimiento(filtros: FiltrosSerie, habilitado = true) {
+  return useQuery({
+    queryKey: ['cumplimiento-serie', filtros.sectorId, filtros.desde, filtros.hasta],
+    enabled: habilitado,
+    queryFn: async ({ signal }) => {
+      const { data, error, response } = await api.GET('/api/cumplimiento/serie', {
+        params: { query: { sectorId: filtros.sectorId, desde: filtros.desde, hasta: filtros.hasta } }, signal,
+      }).catch(() => ({ data: undefined, error: undefined, response: null }))
+      if (!response || !response.ok || !data) throw normalizarError(response ?? null, error)
+      return data as PuntoSerie[]
+    },
+    staleTime: 5_000,
   })
 }
