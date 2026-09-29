@@ -21,10 +21,6 @@ public interface UsuarioRepository {
 
     boolean existePorCorreo(CorreoElectronico correo);
 
-    default Pagina<Usuario> listar(EstadoCuenta filtroEstado, int pagina, int tamano) {
-        return listar(filtroEstado, null, pagina, tamano);
-    }
-
     Pagina<Usuario> listar(EstadoCuenta filtroEstado, SectorId filtroBarrio, int pagina, int tamano);
 
     /**
