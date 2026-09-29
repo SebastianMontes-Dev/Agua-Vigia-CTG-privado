@@ -183,13 +183,11 @@ la carga del chunk del mapa, que hoy es diferida (`ADR-075`), y medir con Lighth
 ### BUG-095 — Reactivar una cuenta atribuye la acción al usuario reactivado
 
 - **Fecha:** 2026-09-22 · **Severidad:** S3 · **Módulo:** M15
-- **Estado:** Cerrado (lo dice la tabla de arriba; este detalle quedó sin actualizar y sigue en esta sección por error)
+- **Estado:** Cerrado (detalle comprimido el 2026-09-29)
 
-**Síntoma:** `AdministrarCuentaService.java:103` pasa `reactivado` como autor y sujeto a `registrarConAutor`, aunque el método ya obtuvo al administrador que ejecuta la acción en `autor`.
-**Reproducción:** por ejecutar: reactivar una cuenta distinta de la administradora y consultar el evento de auditoría `CUENTA_REACTIVADA`. El error de argumentos está verificado en código; falta probar el evento persistido.
-**Esperado:** el autor es el administrador autenticado y el sujeto es la cuenta reactivada, como en `suspender` y `cambiarPermisos`.
-**Causa raíz:** se pasa `reactivado` en lugar de `autor` al primer argumento de `registrarConAutor`.
-**Corrección:** pendiente.
+**Síntoma y causa raíz:** `AdministrarCuentaService` pasaba `reactivado` en lugar de `autor` a `registrarConAutor`, así que el evento `CUENTA_REACTIVADA` registraba a la cuenta reactivada como quien ejecutó la acción.
+**Corrección:** el autor es el administrador autenticado y el sujeto la cuenta reactivada, como en `suspender` y `cambiarPermisos`. Las pruebas de auditoría existentes usaban `any()` para ambos y por eso no lo detectaban; la nueva usa `ArgumentCaptor`.
+**Prueba:** `AdministrarCuentaServiceTest#reactivarDebeRegistrarAlAdministradorComoAutorYAlReactivadoComoSujeto`.
 
 ### BUG-089 — En todo PR, el escaneo de secretos falla con un 403 que no tiene que ver con secretos
 
@@ -590,125 +588,32 @@ servicio" tras el arreglo.
 ### BUG-046 — Los sub-sectores de "Olaya Herrera" nunca cruzan por un prefijo que el boletín no repite
 
 - **Fecha:** 2026-08-11 · **Severidad:** S2 · **Módulo:** M1/M9
-- **Estado:** Cerrado (lo dice la tabla de arriba; este detalle quedó sin actualizar y sigue en esta sección por error)
+- **Estado:** Cerrado el 2026-08-16 (detalle comprimido el 2026-09-29; el texto completo está en el historial de git)
 
-**Síntoma:** el boletín **#2849** lista sub-sectores de Olaya Herrera por su nombre corto:
-"...Rafael Núñez, Castillete, Costa Linda, La Villa Olímpica, República de Venezuela, Ricaurte,
-Central, Progreso, La Magdalena, Playa Blanca, Zarabanda...". El GeoJSON tiene esos mismos barrios
-como `"OLAYA ST. RAFAEL NUÑEZ"`, `"OLAYA ST. RICAURTE"`, `"OLAYA ST. CENTRAL"`, `"OLAYA VILLA
-OLIMPICA"`, etc. (~10 nombres con el prefijo `"OLAYA "` / `"OLAYA ST. "`). Por comparación de
-subcadena, ninguno cruza: el nombre completo del barrio nunca aparece literal en el texto.
-
-**Reproducción:** confirmado contra el boletín #2849 real — ninguno de los ~10 `"OLAYA ST. *"`
-aparece en el resultado de `extraerBarriosDeTexto`, aunque el texto sí menciona sus nombres cortos.
-
-**Esperado:** esos ~10 sub-sectores deberían poder detectarse cuando el boletín los menciona dentro
-del párrafo que empieza con "Olaya Herrera, sectores: ...".
-
-**Por qué no se corrigió en el acto (2026-08-11):** la opción obvia — quitar el prefijo `"OLAYA ST. "`
-y buscar el resto como alias — es peligrosa: nombres como `"Central"`, `"Progreso"` o `"Playa Blanca"`
-son palabras genéricas que podrían aparecer en boletines sin relación con Olaya Herrera.
-
-**Causa raíz:** el cruce buscaba el nombre completo del polígono dentro del texto, en una sola
-dirección. El GeoJSON es catastral y Acuacar escribe en prosa: ningún boletín repite el prefijo
-`OLAYA ST.`, así que los once sub-sectores eran inalcanzables por construcción. Olaya Herrera es el
-barrio **más mencionado de todo el corpus** (68 veces en 150 boletines) y era invisible en el mapa.
-
-**Corrección (2026-08-16):** tabla de alias explícita en `frontend/src/data/barriosAcuacar.ts`
-(`ALIAS_DE_BARRIO`), donde un alias puede resolver a varios polígonos: `"Olaya Herrera"` marca los
-once sectores de una vez, y cada sector con nombre propio inequívoco (`Stella`, `Zarabanda`,
-`La Magdalena`, `Playa Blanca`, `La Puntilla`, `Rafael Nuñez`, `Villa Olímpica`) tiene el suyo.
-
-**La advertencia de 2026-08-11 era correcta y se respetó**: se auditaron los diez nombres contra los
-150 boletines reales antes de aliasarlos, y tres se dejaron **deliberadamente fuera** porque el corpus
-confirma el falso positivo — `"Ricaurte"` aparece como *"San Fernando, las viviendas entre la avenida
-El Consulado y el **canal Ricaurte**"* (linde de otro barrio); `"Progreso"` como *"Nelson Mandela,
-sectores … **sector El Progreso**"* y *"Zaragocilla … **sector El Progreso**"* (hay varios "El
-Progreso" en barrios distintos); `"Central"` choca con `"La Central"`. No se pierde cobertura: esas
-enumeraciones siempre van encabezadas por "Olaya Herrera, sectores:", y ese alias ya marca los once.
-
-**Prueba que lo cubre:** `src/api/acuacar.test.ts` → `reconoce a Olaya Herrera, que el GeoJSON parte
-en sectores` y `no marca Olaya/Ricaurte cuando el boletín usa el canal como linde de otro barrio
-(BUG-046)`.
+**Síntoma y causa raíz:** el boletín #2849 nombra los sub-sectores de Olaya Herrera por su nombre corto y el GeoJSON los llama `OLAYA ST. …`; el cruce buscaba el nombre completo del polígono dentro del texto, así que ninguno cruzaba. Olaya Herrera es el barrio más mencionado del corpus (68 veces en 150 boletines) y era invisible en el mapa.
+**Corrección:** tabla de alias explícita en el frontend anterior (`ALIAS_DE_BARRIO`), donde un alias puede resolver a varios polígonos. Se auditaron los diez nombres contra los 150 boletines y se dejaron fuera `Ricaurte`, `Progreso` y `Central` porque el corpus confirma el falso positivo (son linderos u homónimos de otros barrios). El backend cruza hoy con `AliasDeBarrios` y `alias-barrios.csv`.
+**Prueba:** `acuacar.test.ts` del frontend anterior (etiqueta `pre-retiro-frontend`); `AliasDeBarriosTest` en el backend.
 
 ---
 
 ### BUG-047 — Boletines reales nombran zonas sin polígono equivalente en el GeoJSON
 
 - **Fecha:** 2026-08-11 · **Severidad:** S2 · **Módulo:** — (geoespacial)
-- **Estado:** Cerrado (lo dice la tabla de arriba; este detalle quedó sin actualizar y sigue en esta sección por error)
+- **Estado:** Cerrado el 2026-08-16 (detalle comprimido el 2026-09-29)
 
-**Síntoma:** el boletín #2849 también menciona "María Auxiliadora" y "Salim Bechara" como zonas
-afectadas. Ninguno de los 211 nombres únicos de `barrios-cartagena.geojson` se parece a esos dos
-("El Líbano", que el mismo boletín también nombra, podría corresponder a `"REPUBLICA DEL LIBANO"`
-del GeoJSON, pero no hay forma de confirmarlo sin revisarlo).
-
-**Reproducción:** confirmado — `barrios-cartagena.geojson` no tiene ningún `NOMBRE` que contenga
-"maria auxiliadora" ni "salim bechara" (verificado listando los 211 nombres y buscando substring).
-
-**Esperado:** toda zona que Acuacar reporta como afectada debería tener un polígono en el GeoJSON
-para poder mostrarse en el mapa.
-
-**Nota de efecto colateral (relacionado con BUG-044):** antes de este arreglo, "María Auxiliadora"
-sí aparecía en la app —como sector huérfano, sin polígono, porque `acuacar.ts` tenía una lista fija
-propia (`BARRIOS_CONOCIDOS`) que la incluía—. Ahora que la extracción usa solo los 211 nombres reales
-del GeoJSON (`BUG-044`), esa información deja de mostrarse en cualquier parte de la app: se ganó
-cobertura real (211 barrios clicables/buscables en vez de ~30) pero se perdió la visibilidad de estos
-2-3 nombres que Acuacar sí reporta y el GeoJSON no tiene mapeados. No se inventó una correspondencia para no
-arriesgar un cruce falso (misma razón que `BUG-046`).
-
-**Causa raíz:** el universo de nombres reconocibles era exactamente el del GeoJSON, y el GeoJSON es
-catastral: no contiene urbanizaciones ni sectores internos. Acuacar sí los nombra. Auditando 150
-boletines reales (2025-12-03 → 2026-08-14) aparecen **324 lugares** que el GeoJSON no tiene, no dos.
-
-**Corrección (2026-08-16):** se separa "reconocer" de "dibujar". `BARRIOS_SIN_POLIGONO` en
-`frontend/src/data/barriosAcuacar.ts` lista los nombres que Acuacar reporta y el GeoJSON no tiene mapeados
-(los ~100 con presencia real en el corpus, incluidos "María Auxiliadora" y "Salim Bechara"). Se
-reconocen en el texto, se listan y se buscan, y viajan con la marca `sinPoligono: true` para que el
-mapa **no** los pinte. Así se recupera la información sin inventar geometría que nadie levantó —
-que es justo lo que este bug pedía sin poder resolver.
-
-**Queda como mejora, ya no como bug:** si alguno de esos nombres sí corresponde a un polígono
-existente con otra grafía, mover esa fila de `BARRIOS_SIN_POLIGONO` a `ALIAS_DE_BARRIO` lo hace
-dibujable. Es trabajo de datos, no un defecto.
-
-**Prueba que lo cubre:** `src/api/acuacar.test.ts` → `reconoce barrios que Acuacar nombra y el GeoJSON
-no tiene, sin polígono`.
+**Síntoma y causa raíz:** el boletín #2849 menciona "María Auxiliadora" y "Salim Bechara", que no están entre los 211 nombres del GeoJSON, porque este es catastral y Acuacar nombra urbanizaciones y sectores internos: en 150 boletines aparecen 324 lugares que el GeoJSON no tiene.
+**Corrección:** se separó "reconocer" de "dibujar": la lista `BARRIOS_SIN_POLIGONO` del frontend anterior reconoce esos nombres y los marca `sinPoligono: true` para que el mapa no los pinte; no se inventó geometría. Si uno de ellos corresponde a un polígono con otra grafía, pasarlo a alias lo hace dibujable (trabajo de datos, no defecto).
+**Prueba:** `acuacar.test.ts` del frontend anterior (etiqueta `pre-retiro-frontend`).
 
 ---
 
 ### BUG-048 — El proxy de Acuacar envía un `User-Agent` que se hace pasar por Chrome/Windows
 
 - **Fecha:** 2026-08-11 · **Severidad:** S2 · **Módulo:** — (infraestructura)
-- **Estado:** Cerrado (lo dice la tabla de arriba; este detalle quedó sin actualizar y sigue en esta sección por error)
+- **Estado:** Cerrado el 2026-08-16 (detalle comprimido el 2026-09-29)
 
-**Síntoma:** `frontend/vite.config.ts`, proxy `/acuacar-api` (línea ~103), envía
-`'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)
-Chrome/120.0.0.0 Safari/537.36'` — un `User-Agent` de navegador real, no uno que identifique al
-proyecto.
-
-**Reproducción:** consistente, visible leyendo el archivo — se activa en cada petición que el
-frontend hace a Acuacar durante desarrollo.
-
-**Esperado:** `CLAUDE.md` fija la regla como no negociable: *"El colector se identifica siempre:
-`User-Agent` con nombre del proyecto y correo de contacto"* y *"no se disfraza el `User-Agent`, no se
-discute"*. `docs/design-decisions.md` ya fija el principio del identificador (`AguaVigiaCTG/0.1`),
-pero sin correo de contacto no hay una cadena completa y verificada que usar.
-
-**Causa raíz:** el proxy de desarrollo se configuró copiando un `User-Agent` de navegador genérico
-(probablemente para evitar un bloqueo por API vacía) sin que nadie note que contradice la política de
-identificación del proyecto — la fuente en sí ya está verificada y permitida (ver
-`docs/ingenieria/auditoria-fuentes-de-datos.md`), así que camuflar el origen no era ni siquiera
-necesario para que la petición funcione.
-
-**Corrección (2026-08-16):** el correo de contacto ya no estaba pendiente — se definió el
-2026-08-08, y `.env.example` ya lo usa en `COLLECTOR_USER_AGENT`.
-Se aplicó la misma identidad al proxy: `vite.config.ts` envía ahora
-`AguaVigiaCTG-Bot/1.0 (+<correo de contacto>)`.
-
-**Verificado, no supuesto:** se probó contra la API real antes de cambiarlo —
-`curl -A "AguaVigiaCTG-Bot/1.0 (+<correo de contacto>)" https://www.acuacar.com/wp-json/wp/v2/posts`
-responde **HTTP 200** con los 20 boletines. El camuflaje no era necesario ni para que funcionara.
+**Síntoma y causa raíz:** el proxy de desarrollo del frontend anterior enviaba un `User-Agent` de navegador copiado sin pensar, contra la regla no negociable de `CLAUDE.md` («el colector se identifica siempre»); la petición funcionaba igual sin el camuflaje.
+**Corrección y verificación:** el proxy pasó a enviar `AguaVigiaCTG-Bot/1.0 (+<correo de contacto>)`, la misma identidad de `COLLECTOR_USER_AGENT`. Se probó antes con `curl` contra la API real de Acuacar: HTTP 200 con los 20 boletines.
 
 ---
 

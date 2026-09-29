@@ -263,14 +263,14 @@ matriz, no desde lo que los PR afirman en su descripción.
 | M6 Índice de Cumplimiento ⭐ | 3 | 3 (RF020–RF022) | 100% — `CalcularCumplimientoService`, `ADR-022` (PR #118) |
 | M7 Estadísticas | 3 | 3 (RF023–RF025) | 100% — `EstadisticasMongoAdapterTest`, serie del índice y exportación CSV en el backend |
 | M8 Bitácora pública | 3 | 3 (RF026–RF028) | 100% — `GET /api/bitacora` público (PR #120), eventos de todo el ciclo de vida del corte anexados (PR #119), inmutable por diseño del puerto (sin editar ni eliminar) |
-| M9 Ingesta con IA ⭐ | 8 | 3 (RF029–RF031) | 38% — colectores y deduplicación reales (PR #59, #98); RF032–RF036 descartados (`ADR-025`) |
+| M9 Ingesta (sin IA) ⭐ | 8 | 5 (RF029–RF031, RF033, RF035) | 63% — colectores y deduplicación reales (PR #59, #98); sin IA (`ADR-025`) RF032, RF034 y RF036 quedan parciales y se cuentan aparte (reclasificados el 2026-09-29 en la matriz) |
 | M10 Evidencia multimedia | 1 | 1 (RF037) | 100% |
 | M11 Validación comunitaria | 1 | 1 (RF038) | 100% |
 | M12 API abierta Open311 | 1 | 1 (RF039) | 100% |
 | M13 Integración IoT pasiva | 1 | 1 (RF040) | 100% |
 | M14 Alertas push | 1 | 0 | 0% — RF041 armado (PR #52, `ADR-066`): Telegram construido y probado contra un servidor falso, apagado hasta tener `TELEGRAM_BOT_TOKEN`; cuenta como implementado cuando se pruebe contra el bot real |
 | M15 Cuentas y permisos | 5 | 5 (RF042–RF046) | 100% |
-| **Total funcionales** | **46** | **40** | **87%** |
+| **Total funcionales** | **46** | **42** | **91%** |
 | **No funcionales** | **27** | **17** | **63%** |
 
 Los 17 RNF verificados: RNF002–RNF011, RNF017, RNF018, RNF020 y RNF022–RNF025. `RNF006` bajó de

@@ -26,7 +26,7 @@ su panel.**
 | RF011, RF020–RF028 | ✅ F3 — Historia pública: bitácora, cumplimiento y estadísticas. Fusionado el 2026-09-28 en #81 (cumplimiento y serie mensual), #83 (estadísticas) y #85 (bitácora con filtros y sustento), con E2E simuladas y contra el backend real. Queda, como en F2, la revisión visual del dueño en un teléfono real | F2 |
 | RF012–RF015, RF041 | ✅ F4 — Avisos, con los enlaces de los correos apuntando a la SPA (`ADR-078`). Fusionado el 2026-09-29 en #98, con la vista de `ADR-079` y las E2E con Mailhog en CI; reemplaza a #87. El 2026-09-28 se rediseñaron también las páginas de F3 (#89) | F2 · URL de los correos decidida (`plan-frontend.md` §13.3) |
 | RF016–RF019, RF042–RF046 | F5 — Cuentas y panel del veedor | F2 |
-| RNF001, RNF012–RNF016, RNF020 | F6 — Integración: nginx sirve la SPA, un solo `docker compose`, Lighthouse y axe | F2–F5 |
+| RNF001, RNF012–RNF016, RNF020 | F6 — Integración: un solo `docker compose` en local (nginx se retiró con `ADR-080`), Lighthouse y axe | F2–F5 |
 | RF029–RF031, RF042–RF046, RNF024, RNF027 | 🟡 Cierre funcional del backend, en paralelo a F4–F6 (decisión del dueño del 2026-09-29: solo local, `ADR-080`). Hecho: #90–#97 (Jackson, estabilidad bajo carga, solo local, contrato sin rutas de prueba, barrio en la cuenta, ingesta sin internet, `RNF024` medido, 30 000 cuentas completas), #100 (demo de carga con cifras medidas de `RNF027`, `ADR-083`) y #101 (pruebas de adaptadores y reglas ArchUnit, `ADR-084`). Falta: conciliación de la documentación (Fase 7) | Backend de los Sprints 1–6 |
 
 ---
