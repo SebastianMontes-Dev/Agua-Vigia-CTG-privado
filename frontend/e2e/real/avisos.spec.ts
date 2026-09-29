@@ -38,7 +38,7 @@ test('debeSuscribirseConfirmarYDarseDeBajaSoloDespuesDePulsarCadaBoton', async (
 
   await page.goto('/avisos?sector=manga')
   await expect(page.getByRole('list', { name: 'Barrios elegidos' })).toContainText('Manga')
-  await page.getByRole('textbox', { name: 'Correo electrónico' }).fill(correo)
+  await page.getByRole('textbox', { name: 'Tu correo' }).fill(correo)
   const alta = page.waitForResponse((respuesta) => respuesta.url().endsWith('/api/suscripciones') && respuesta.request().method() === 'POST')
   await page.getByRole('button', { name: /Enviar enlace de confirmación/ }).click()
   expect((await alta).status()).toBe(201)
