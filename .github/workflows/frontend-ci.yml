@@ -112,13 +112,14 @@ jobs:
         working-directory: frontend
       - run: npx playwright install --with-deps chromium
         working-directory: frontend
-      - run: npm run test:e2e:real
+      - name: E2E reales de mapa, reportes y avisos con Mailhog
+        run: npm run test:e2e:real
         working-directory: frontend
       - name: Conservar trazas
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: f2-backend-real
+          name: nucleo-ciudadano-backend-real
           path: frontend/test-results/
           retention-days: 14
       - name: Detener entorno efímero

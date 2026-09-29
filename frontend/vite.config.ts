@@ -6,7 +6,14 @@ const backend = process.env.AGUAVIGIA_BACKEND ?? 'http://localhost:8081'
 
 // El proxy hace que la SPA y la API compartan origen en desarrollo, igual que detrás de nginx.
 const proxy: Record<string, ProxyOptions> = Object.fromEntries(
-  ['/api', '/fotos'].map((ruta) => [ruta, { target: backend, changeOrigin: true }]),
+  ['/api', '/fotos'].map((ruta) => [ruta, {
+    target: backend,
+    changeOrigin: true,
+    configure: (servidor: import('vite').HttpProxy.ProxyServer) => {
+      // Para el navegador es el mismo origen; la petición interna al backend no necesita CORS.
+      servidor.on('proxyReq', (peticion) => peticion.removeHeader('origin'))
+    },
+  }]),
 )
 // Spring no sirve portadas: este bloque reproduce el proxy acotado de infra/nginx/nginx.conf.
 proxy['/acuacar-media'] = {
