@@ -42,6 +42,7 @@ const agente = new http.Agent({ keepAlive: true, maxSockets: Infinity });
 const primerEventoMs = [];
 const estados = new Map();
 let abiertas = 0;
+let pico = 0;
 let eventos = 0;
 let latidos = 0;
 
@@ -55,6 +56,7 @@ function abrir() {
             return;
         }
         abiertas += 1;
+        pico = Math.max(pico, abiertas);
         respuesta.setEncoding('utf8');
         respuesta.on('data', (trozo) => {
             if (sinPrimerEvento && trozo.includes('event:')) {
@@ -94,11 +96,17 @@ setTimeout(() => {
     clearInterval(rampaTimer);
     clearInterval(progreso);
     console.log('\n=== Resultado ===');
-    console.log(`objetivo=${objetivo} lanzadas=${lanzadas} abiertas_al_cierre=${abiertas}`);
+    console.log(`objetivo=${objetivo} lanzadas=${lanzadas} pico_abiertas=${pico} abiertas_al_cierre=${abiertas}`);
     console.log('respuestas por estado:', Object.fromEntries(estados));
     console.log(`primer evento: p50=${percentil(primerEventoMs, 50).toFixed(0)}ms `
         + `p95=${percentil(primerEventoMs, 95).toFixed(0)}ms max=${Math.max(...primerEventoMs, 0).toFixed(0)}ms`);
     console.log(`eventos recibidos=${eventos} latidos recibidos=${latidos}`);
+    // Una línea que demo.mjs puede sumar entre varios clientes (cada uno agota sus puertos efímeros por separado).
+    console.log(`RESUMEN_JSON ${JSON.stringify({
+        objetivo, lanzadas, pico, abiertasAlCierre: abiertas, eventos, latidos,
+        estados: Object.fromEntries(estados),
+        primerEventoMs: { p50: percentil(primerEventoMs, 50), p95: percentil(primerEventoMs, 95), max: Math.max(...primerEventoMs, 0) },
+    })}`);
     agente.destroy();
     process.exit(0);
 }, duracionMs);

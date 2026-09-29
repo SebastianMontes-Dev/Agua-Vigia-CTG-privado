@@ -3,14 +3,43 @@
 Scripts para medir cuánta carga aguanta el backend en el banco local (un solo PC, `ADR-080`). Contexto y resultados en
 [`docs/ingenieria/escalabilidad.md`](../../docs/ingenieria/escalabilidad.md).
 
+**Para la presentación:** `demo.mjs` lo hace todo con un comando (ver abajo). Los demás miden una sola cosa.
+
 | Script | Qué mide | Herramienta |
 |---|---|---|
+| `demo.mjs` | La ciudad entera a la vez: orquesta `flujo-ciudadano.js` y `sse-conexiones.mjs`, con respaldo, perfil `carga`, resumen y vuelta atrás. | Node + Docker |
+| `flujo-ciudadano.js` | Reportes de miles de vecinos (con coordenada y confirmaciones), averías masivas en varios barrios, lecturas, inicios de sesión de veedores y suscripciones, todo a la vez. | k6 |
 | `lectura-publica.js` | Lecturas públicas (`/api/sectores`, `/estadisticas`, `/cumplimiento`, `/bitacora`) a tasa creciente. | k6 |
 | `escritura-reportes.js` | `POST /api/reportes` repartido y un pico concentrado en un sector (avería masiva). | k6 |
 | `rnf002-registrar-reporte.js` | RNF002: confirmar un reporte en menos de 1 s. | k6 |
 | `sse-conexiones.mjs` | Conexiones SSE simultáneas, latencia al primer evento, latidos. | Node |
 
 k6 no hace falta instalarlo: se usa la imagen `grafana/k6`.
+
+## La demo de carga (`demo.mjs`, `ADR-083`)
+
+```bash
+node scripts/carga/demo.mjs --usuarios 30000 --ventana 60 --conectados 30000 --restaurar
+```
+
+Requiere el stack levantado (`docker compose up -d --build --wait`), los sectores sembrados y, si no hay 30 000 cuentas, las siembra
+sola (`scripts/sembrar-usuarios-demo.mjs`). Deja el informe HTML de k6, el `resumen.json` y el `resumen.txt` en
+`resultados/<fecha>/` (ignorado por git) y muestra el panel en vivo de k6 en `http://localhost:5665`.
+
+| Opción | Por defecto | Qué hace |
+|---|---|---|
+| `--usuarios` | 30000 | Reportes en total, uno por vecino |
+| `--ventana` | 60 | Segundos en que llegan |
+| `--conectados` | 30000 | Conexiones SSE simultáneas (0 = sin SSE); se reparten en contenedores de hasta 20 000 |
+| `--focos` | 12 | Barrios con avería masiva que se encienden uno tras otro |
+| `--lectores` / `--veedores` / `--suscripciones` | 150 / 2 / 1 | Por segundo |
+| `--restaurar` | no | Al terminar, vuelve Mongo y Redis al estado de antes |
+| `--esperar` | no | Se detiene antes de disparar para abrir el mapa y el panel de k6 |
+| `--sin-respaldo` / `--sin-reinicio` / `--dejar-perfil` | no | Omiten el respaldo, el reinicio del backend o su vuelta al perfil normal |
+
+El perfil `carga` (`docker-compose.carga.yml` + `application-carga.yml`) solo vacía el límite de peticiones por IP y sube los
+topes de conexiones; el cupo por dispositivo de `RF006` y el consenso son los de siempre. Cifras medidas y sus límites en
+[`docs/ingenieria/escalabilidad.md`](../../docs/ingenieria/escalabilidad.md).
 
 ## Antes de medir
 

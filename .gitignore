@@ -73,3 +73,6 @@ dist-dashboard/
 *.bak
 
 # El mapa base se versiona con Git LFS (ADR-072).
+
+# Informes de la demo de carga (scripts/carga/demo.mjs): HTML de k6 y resúmenes de cada corrida.
+resultados/
