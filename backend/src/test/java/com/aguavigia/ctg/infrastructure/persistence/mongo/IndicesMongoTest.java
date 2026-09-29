@@ -67,7 +67,7 @@ class IndicesMongoTest {
         assertThat(indicesSuscripciones).contains("tokenConfirmacion_1", "sectorIds_1");
 
         Set<String> indicesBitacora = nombresDeIndices(mongoTemplate.indexOps(EventoBitacoraDocumento.class).getIndexInfo());
-        assertThat(indicesBitacora).contains("timestamp_-1", "sectorId_1_timestamp_-1");
+        assertThat(indicesBitacora).contains("timestamp_-1", "sectorId_1_timestamp_-1", "tipo_1_timestamp_-1");
     }
     /**
      * La cola de moderación pide PENDIENTE (o sin campo) ordenada por antigüedad: con `estadoModeracion+timestamp`

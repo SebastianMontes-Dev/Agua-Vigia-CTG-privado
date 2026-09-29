@@ -86,7 +86,11 @@ public class IndicesMongo {
             // La bitacora de un sector: sin esto recorria todos los eventos y filtraba por sector.
             indicesBitacora.ensureIndex(new CompoundIndexDefinition(
                     new Document("sectorId", 1).append("timestamp", -1)));
-            log.info("Indices de `eventos_bitacora` asegurados: timestamp y sectorId+timestamp");
+            // El filtro por tipo sin barrio: con 300 000 eventos el total y la pagina recorrian toda la coleccion
+            // (~100 ms y creciendo). Con este compuesto Mongo cuenta y ordena sobre el indice.
+            indicesBitacora.ensureIndex(new CompoundIndexDefinition(
+                    new Document("tipo", 1).append("timestamp", -1)));
+            log.info("Indices de `eventos_bitacora` asegurados: timestamp, sectorId+timestamp y tipo+timestamp");
 
             // La cola del veedor se lee filtrando por estadoRevision y ordenando por detectadaEn, y
             // el pipeline pregunta existePendiente(sector, estado) por cada documento de cada ciclo.
