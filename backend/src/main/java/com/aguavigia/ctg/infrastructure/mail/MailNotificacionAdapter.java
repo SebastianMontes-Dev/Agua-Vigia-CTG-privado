@@ -42,18 +42,18 @@ public class MailNotificacionAdapter implements NotificacionPort {
     private final PlantillaCorreo plantillaConfirmacion;
     private final PlantillaCorreo plantillaCambioDeEstado;
     private final String remitente;
-    private final String urlBasePublica;
+    private final String urlFrontend;
     private final int horasVigenciaToken;
 
     public MailNotificacionAdapter(JavaMailSender mailSender,
                                     @Value("${aguavigia.correo.remitente:AguaVigía CTG <no-responder@aguavigia.local>}") String remitente,
-                                    @Value("${aguavigia.app.url-publica:http://localhost:8080}") String urlBasePublica,
+                                    @Value("${aguavigia.app.url-frontend:http://localhost:5173}") String urlFrontend,
                                     @Value("${aguavigia.suscripcion.horas-vigencia-token:48}") int horasVigenciaToken) {
         this.mailSender = mailSender;
         this.plantillaConfirmacion = PlantillaCorreo.desdeClasspath("plantillas-correo/confirmar-suscripcion.html");
         this.plantillaCambioDeEstado = PlantillaCorreo.desdeClasspath("plantillas-correo/cambio-de-estado.html");
         this.remitente = remitente;
-        this.urlBasePublica = urlBasePublica;
+        this.urlFrontend = urlFrontend.replaceAll("/+$", "");
         this.horasVigenciaToken = horasVigenciaToken;
     }
 
@@ -63,12 +63,12 @@ public class MailNotificacionAdapter implements NotificacionPort {
         String nombresSectores = sectoresSuscritos.stream()
                 .map(Sector::nombre)
                 .collect(Collectors.joining(", "));
-        String urlConfirmacion = urlBasePublica + "/api/suscripciones/confirmar?token=" + suscripcion.tokenConfirmacion();
+        String urlConfirmacion = urlFrontend + "/avisos/confirmar?token=" + suscripcion.tokenConfirmacion();
 
         String html = plantillaConfirmacion.renderizar(java.util.Map.of(
                 "nombreSector", nombresSectores,
                 "urlConfirmacion", urlConfirmacion,
-                "urlBaja", urlBasePublica + "/api/suscripciones/cancelar?token=" + suscripcion.tokenConfirmacion(),
+                "urlBaja", urlFrontend + "/avisos/baja?token=" + suscripcion.tokenConfirmacion(),
                 "horasVigencia", String.valueOf(horasVigenciaToken)));
 
         try {
@@ -107,9 +107,9 @@ public class MailNotificacionAdapter implements NotificacionPort {
                 Map.entry("estadoColorFondo", estado.colorFondo()),
                 Map.entry("estadoColorBorde", estado.colorBorde()),
                 Map.entry("actualizadoLegible", fechaLegible(sector.estadoActualizadoEn())),
-                Map.entry("urlReportar", urlBasePublica + "/api/sectores/" + sector.id().valor()),
+                Map.entry("urlReportar", urlFrontend + "/sectores/" + sector.id().valor()),
                 // RF015 — baja en 1 clic en cada correo, no solo en el de confirmación.
-                Map.entry("urlBaja", urlBasePublica + "/api/suscripciones/cancelar?token="
+                Map.entry("urlBaja", urlFrontend + "/avisos/baja?token="
                         + suscripcion.tokenConfirmacion())));
 
         try {

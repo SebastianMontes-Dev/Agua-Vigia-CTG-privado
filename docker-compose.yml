@@ -94,9 +94,10 @@ services:
       SPRING_DATA_REDIS_PORT: ${REDIS_PORT:-6379}
       SPRING_MAIL_HOST: ${MAIL_HOST:-mailhog}
       SPRING_MAIL_PORT: ${MAIL_PORT:-1025}
-      # Base de los enlaces de los correos. Sin frontend (ADR-048) apuntan a la propia API; en local
-      # es el 8081 que publica este servicio.
+      CORS_ORIGENES: ${CORS_ORIGENES:-http://localhost:5173,http://localhost:4173,http://localhost:3000,http://localhost:4200}
+      # La API y las pantallas de avisos tienen bases públicas independientes (ADR-078).
       AGUAVIGIA_APP_URL_PUBLICA: ${APP_URL_PUBLICA:-http://localhost:8081}
+      AGUAVIGIA_APP_URL_FRONTEND: ${APP_URL_FRONTEND:-http://localhost:5173}
       AGUAVIGIA_CUENTAS_ADMIN_INICIAL_CORREO: ${ADMIN_INICIAL_CORREO:-}
     ports:
       - "8081:8080"

@@ -1,0 +1,55 @@
+@layer componentes {
+  /* identidad.md §4.1: el mismo encabezado que las páginas de historia; la tarea a la izquierda, cómo funciona a la derecha. */
+  .pagina { gap: var(--espacio-6); padding-top: var(--espacio-6); }
+
+  .cabecera { display: grid; gap: var(--espacio-3); }
+  .rotulo { font-size: var(--texto-xs); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--tinta-2); }
+  .titular { max-width: 22ch; font-size: clamp(2rem, 3.6vw, 3rem); line-height: 1.08; text-wrap: balance; }
+
+  .columnas { display: grid; gap: var(--espacio-6); align-items: start; }
+
+  .tarea { display: grid; gap: var(--espacio-4); align-content: start; justify-items: stretch; min-width: 0; padding-top: var(--espacio-4); border-top: 1px solid var(--tinta); }
+  .tarea > :global(a), .tarea > output { justify-self: start; }
+
+  .grupo { display: grid; gap: var(--espacio-3); min-width: 0; margin: 0; padding: 0; border: 0; }
+  .grupo legend { padding: 0; margin-bottom: var(--espacio-2); font-size: var(--texto-s); font-weight: 600; }
+
+  /* Cada barrio elegido dice cómo está ahora: la persona ve a qué se suscribe. */
+  .elegidos { display: grid; padding: 0; list-style: none; border-top: 1px solid var(--linea); }
+  .elegidos li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: var(--espacio-3); min-height: 44px; border-bottom: 1px solid var(--linea); }
+  .barrio { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .estado { display: inline-flex; align-items: center; gap: var(--espacio-1); font-size: var(--texto-s); color: var(--tinta-2); white-space: nowrap; }
+
+  .campo { display: grid; gap: var(--espacio-1); font-size: var(--texto-s); font-weight: 600; }
+  .campo input { width: 100%; min-height: var(--objetivo-tactil); padding: var(--espacio-2) 0; border: 0; border-bottom: 1px solid var(--tinta-3); border-radius: 0; background: transparent; color: var(--tinta); font-size: var(--texto-m); font-weight: 400; }
+  .campo input:focus-visible { outline: none; border-bottom: var(--grosor-foco) solid var(--laton); }
+
+  .quitar, .enlace { min-height: var(--objetivo-tactil); padding: 0; border: 0; background: none; color: var(--tinta); font-size: var(--texto-s); text-decoration: underline; text-decoration-color: var(--tinta-3); text-underline-offset: 3px; cursor: pointer; }
+  .quitar:hover, .enlace:hover { text-decoration-color: var(--laton); }
+  .quitar:focus-visible, .enlace:focus-visible { outline: var(--grosor-foco) solid var(--laton); outline-offset: 2px; }
+  .acciones { display: flex; flex-wrap: wrap; gap: var(--espacio-5); }
+
+  .subtitulo { font-size: var(--texto-l); font-weight: 600; }
+  .respuesta { font-size: var(--texto-m); }
+  .nota { color: var(--tinta-2); font-size: var(--texto-s); max-width: var(--medida-lectura); }
+  .alerta { display: block; padding-top: var(--espacio-3); border-top: 1px solid var(--linea); font-size: var(--texto-s); }
+
+  .explicacion { display: grid; gap: var(--espacio-3); align-content: start; padding-top: var(--espacio-4); border-top: 1px solid var(--tinta); }
+  .explicacion h2 { font-size: var(--texto-l); font-weight: 600; }
+  .pasos { display: grid; padding: 0; list-style: none; counter-reset: paso; }
+  .pasos li { display: grid; grid-template-columns: 2rem minmax(0, 1fr); column-gap: var(--espacio-2); padding: var(--espacio-3) 0; border-bottom: 1px solid var(--linea-suave); counter-increment: paso; }
+  .pasos li::before { content: counter(paso); grid-row: span 2; font-size: var(--texto-l); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--cardenillo); line-height: 1.2; }
+  .pasos strong { font-weight: 600; }
+  .pasos span { color: var(--tinta-2); font-size: var(--texto-s); }
+
+  @media (min-width: 1100px) {
+    .columnas { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: var(--espacio-7); }
+  }
+
+  @media (max-width: 599px) {
+    .pagina { gap: var(--espacio-4); padding-top: var(--espacio-4); padding-bottom: var(--espacio-5); }
+    .titular { font-size: 1.75rem; }
+    .columnas { gap: var(--espacio-5); }
+    .pasos li { padding: var(--espacio-2) 0; }
+  }
+}
