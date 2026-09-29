@@ -1,0 +1,16 @@
+@layer componentes {
+  .qr {
+    display: block;
+    width: min(240px, 100%);
+    height: auto;
+    border: 1px solid var(--linea);
+  }
+
+  .fondo {
+    fill: var(--qr-fondo);
+  }
+
+  .modulo {
+    fill: var(--qr-modulo);
+  }
+}

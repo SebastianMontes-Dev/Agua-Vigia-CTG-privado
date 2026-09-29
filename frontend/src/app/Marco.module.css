@@ -162,6 +162,30 @@
     display: grid;
   }
 
+  /* Guía §4: el acceso al panel queda al final del menú, discreto; no compite con los destinos del vecino. */
+  .accesoPanel {
+    display: flex;
+    align-items: center;
+    min-height: var(--objetivo-tactil);
+    padding-top: var(--espacio-2);
+    border-top: 1px solid var(--linea);
+    font-size: var(--texto-s);
+    color: var(--tinta-2);
+    text-decoration: underline;
+    text-decoration-color: var(--tinta-3);
+    text-underline-offset: 3px;
+  }
+
+  .temaEscritorio .accesoPanel {
+    padding-top: 0;
+    border-top: 0;
+  }
+
+  .accesoPanel:hover {
+    color: var(--tinta);
+    text-decoration-color: var(--laton);
+  }
+
   .menuDestino {
     display: flex;
     align-items: center;
@@ -228,6 +252,11 @@
     .navegacion,
     .temaEscritorio {
       display: flex;
+    }
+
+    .temaEscritorio {
+      align-items: center;
+      gap: var(--espacio-4);
     }
 
     .menu {

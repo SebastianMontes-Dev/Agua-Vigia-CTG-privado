@@ -8,6 +8,7 @@ import { ResumenCiudad } from '../pantallas/publico/ResumenCiudad'
 import { Cumplimiento } from '../pantallas/publico/Cumplimiento'
 import { Estadisticas } from '../pantallas/publico/Estadisticas'
 import { Bitacora } from '../pantallas/publico/Bitacora'
+import { PendientePanel } from '../pantallas/panel/PendientePanel'
 import { esTipoBitacora } from '../dominio/historia'
 
 const raiz = createRootRoute({ component: Outlet, notFoundComponent: NoEncontrada })
@@ -57,11 +58,40 @@ const muestrario = createRoute({
   getParentRoute: () => raiz, path: 'muestrario', component: lazyRouteComponent(() => import('./Muestrario'), 'Muestrario'),
 })
 
+// Panel del veedor (F5): cada pantalla se carga aparte para que no pese en la carga del mapa (plan §3).
+const panelIngreso = createRoute({
+  getParentRoute: () => raiz,
+  path: 'panel/ingreso',
+  validateSearch: (busqueda: Record<string, unknown>): { motivo?: 'vencida' | 'cerrada' } =>
+    busqueda.motivo === 'vencida' || busqueda.motivo === 'cerrada' ? { motivo: busqueda.motivo } : {},
+  component: lazyRouteComponent(() => import('../pantallas/panel/Ingreso'), 'Ingreso'),
+})
+const panelSegundoFactor = createRoute({
+  getParentRoute: () => raiz,
+  path: 'panel/segundo-factor',
+  component: lazyRouteComponent(() => import('../pantallas/panel/SegundoFactor'), 'SegundoFactor'),
+})
+const panel = createRoute({
+  getParentRoute: () => raiz, path: 'panel', component: lazyRouteComponent(() => import('../pantallas/panel/MarcoPanel'), 'MarcoPanel'),
+})
+const seccionPanel = <Ruta extends string>(path: Ruta, titular: string) => createRoute({
+  getParentRoute: () => panel, path, component: () => <PendientePanel titular={titular} />,
+})
+const panelModeracion = seccionPanel('/', 'Moderación')
+const panelCortes = seccionPanel('cortes', 'Cortes')
+const panelIngesta = seccionPanel('ingesta', 'Ingesta')
+const panelCuentas = seccionPanel('cuentas', 'Cuentas')
+const panelAuditoria = seccionPanel('auditoria', 'Auditoría')
+const panelSeguridad = seccionPanel('seguridad', 'Seguridad')
+
 const arbol = raiz.addChildren([
   publico.addChildren([
     mapa.addChildren([inicio, sector]),
     confirmar, historial, cumplimiento, bitacora, estadisticas, avisos,
   ]),
+  panelIngreso,
+  panelSegundoFactor,
+  panel.addChildren([panelModeracion, panelCortes, panelIngesta, panelCuentas, panelAuditoria, panelSeguridad]),
   muestrario,
 ])
 

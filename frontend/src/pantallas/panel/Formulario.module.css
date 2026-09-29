@@ -1,0 +1,134 @@
+@layer componentes {
+  /* Guía §4.2: formulario de una columna de 480 px, sin nada que compita con la tarea. */
+  .columna {
+    max-width: calc(480px + 2 * var(--margen-pagina));
+    align-content: start;
+  }
+
+  .formulario {
+    display: grid;
+    gap: var(--espacio-5);
+    padding-top: var(--espacio-5);
+    border-top: 1px solid var(--tinta);
+  }
+
+  .campo {
+    display: grid;
+    gap: var(--espacio-1);
+    font-size: var(--texto-s);
+    font-weight: 600;
+  }
+
+  /* identidad.md §4: el campo es una línea inferior, sin caja. */
+  .entrada {
+    width: 100%;
+    min-height: var(--objetivo-tactil);
+    padding: var(--espacio-2) 0;
+    border: 0;
+    border-bottom: 1px solid var(--tinta-3);
+    border-radius: 0;
+    background: transparent;
+    color: var(--tinta);
+    font-size: var(--texto-m);
+    font-weight: 400;
+  }
+
+  .entrada:focus-visible {
+    outline: none;
+    border-bottom: var(--grosor-foco) solid var(--laton);
+  }
+
+  .codigo {
+    font-family: var(--fuente-utilidad);
+    font-size: var(--texto-l);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.3em;
+  }
+
+  .ayuda {
+    font-size: var(--texto-s);
+    font-weight: 400;
+    color: var(--tinta-2);
+  }
+
+  .aviso {
+    display: block;
+    padding-top: var(--espacio-3);
+    border-top: 1px solid var(--linea);
+    color: var(--tinta-2);
+  }
+
+  .alerta {
+    padding-top: var(--espacio-3);
+    border-top: 1px solid var(--tinta);
+  }
+
+  .acciones {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--espacio-4);
+  }
+
+  .enlaceBoton {
+    min-height: var(--objetivo-tactil);
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--tinta);
+    font-size: var(--texto-s);
+    text-decoration: underline;
+    text-decoration-color: var(--tinta-3);
+    text-underline-offset: 3px;
+    cursor: pointer;
+  }
+
+  .enlaceBoton:hover {
+    text-decoration-color: var(--laton);
+  }
+
+  .enlaceBoton:focus-visible {
+    outline: var(--grosor-foco) solid var(--laton);
+    outline-offset: 3px;
+  }
+
+  .pasos {
+    display: grid;
+    gap: var(--espacio-5);
+    padding: 0;
+    list-style: none;
+    counter-reset: paso;
+  }
+
+  .paso {
+    display: grid;
+    gap: var(--espacio-3);
+    padding-top: var(--espacio-4);
+    border-top: 1px solid var(--linea);
+    counter-increment: paso;
+  }
+
+  .paso > h2 {
+    font-size: var(--texto-m);
+  }
+
+  .paso > h2::before {
+    content: counter(paso) '. ';
+    font-variant-numeric: tabular-nums;
+    color: var(--tinta-2);
+  }
+
+  .secreto {
+    font-family: var(--fuente-utilidad);
+    font-size: var(--texto-m);
+    word-spacing: 0.4em;
+    overflow-wrap: anywhere;
+  }
+
+  @media (max-width: 599px) {
+    .formulario > button,
+    .paso > button {
+      justify-self: stretch;
+    }
+  }
+}
