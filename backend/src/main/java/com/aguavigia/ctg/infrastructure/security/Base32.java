@@ -1,7 +1,5 @@
 package com.aguavigia.ctg.infrastructure.security;
 
-import java.nio.charset.StandardCharsets;
-
 /**
  * Base32 de RFC 4648, que es el alfabeto que las apps de autenticación esperan en un `otpauth://`.
  *
@@ -63,9 +61,5 @@ final class Base32 {
             }
         }
         return salida;
-    }
-
-    static byte[] bytesUtf8(String texto) {
-        return texto.getBytes(StandardCharsets.UTF_8);
     }
 }

@@ -3482,8 +3482,40 @@ ruta del panel exija un permiso, y solo lo garantizaba la disciplina de quien es
 ### Cómo se revierte
 Quitar las dos reglas y devolver los tipos y los controladores a su forma anterior; no toca datos.
 
+## ADR-085 — Se conservan Open311, IoT y la purga de evidencia: la auditoría de código a la deriva no encontró nada que borrar
+
+- **Fecha:** 2026-09-29
+- **Estado:** Aceptada
+- **Decide:** Dueño del proyecto (Sebastian)
+
+### Contexto
+Antes de la sustentación se auditó el backend buscando código construido que nunca se usa. Resultado verificado: los 35
+casos de uso tienen quien los llame, todo puerto tiene implementación, no hay `@Disabled`, `@Deprecated` ni `TODO`, y las
+cuatro plantillas de correo se cargan. Solo `Base32.bytesUtf8` estaba muerto (se retira). Lo que queda sin uso en la demo lo
+está por decisión: Open311 (`Open311Controller`, `RF039`, `ADR-026`) no tiene cliente; IoT (`IotController`, `RF040`) no
+tiene sensores y responde 503 sin `IOT_KEY`; `PurgaEvidenciaAntiguaJob` está apagado (`habilitada: false`, `ADR-027`).
+
+### Alternativas consideradas
+| Opción | A favor | En contra |
+|---|---|---|
+| Borrar Open311 e IoT | Menos código que explicar | RF039 y RF040 figuran como cumplidos en el PRD y la matriz; IoT está entrelazado con el cupo de reportes (`esSensor`, `HuellaDispositivo.deSensor`); cambia el contrato y el `esquema.ts` del frontend |
+| **Conservar y marcar en la documentación qué está apagado a propósito** | Cero riesgo sobre el núcleo; los requisitos siguen cumpliéndose | Un profesor puede probar algo apagado si la guía no lo avisa |
+
+### Decisión
+Se conservan Open311, IoT, la purga de evidencia, `FiltroBitacora.sinFiltro` y `SseSectoresBroadcaster.conexionesActivas` (los
+usan las pruebas) y `scripts/limpiar-puertos.sh` (la utilidad para Linux y macOS que documenta el anexo 5).
+
+### Consecuencias
+- **Gana:** el contrato de la API y el trabajo del frontend no cambian; los requisitos siguen trazados.
+- **Pierde:** la guía de demo debe decir qué no se puede demostrar en local (Telegram, IoT, purga).
+- **Queda condicionado:** no volver a proponer borrar estas piezas sin retirar antes su requisito.
+
+### Cómo se revierte
+Retirar `RF039`/`RF040` del PRD y de la matriz, borrar sus controladores, casos de uso y pruebas, regenerar `openapi.yaml` y
+avisar al frontend para regenerar su esquema.
+
 <!--
-Siguiente número disponible: ADR-085
+Siguiente número disponible: ADR-086
 Para agregar: usa la skill `registrar-decision`.
 Recuerda: append-only. Las entradas viejas solo cambian de estado, no de contenido.
 -->
