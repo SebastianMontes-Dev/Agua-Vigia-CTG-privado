@@ -26,8 +26,8 @@ Referencias cruzadas: `ADR-NNN` · `BUG-NNN` · `RF0NN` · `archivo:línea`.
 ## Sprint 7 — Frontend nuevo
 
 ### 2026-09-28 · `feat/f4-avisos`
-**Qué:** F4 quedó en el PR #87 con ADR-078 y BUG-120–122; frontend, backend y caso real de avisos con Mailhog pasaron. Se revisaron capturas en ambos temas y tamaños.
-**Sigue:** Ver pasar el CI del PR #87 y revisar el caso previo de consenso F3 si falla en servicios nuevos; no fusionar antes de la revisión.
+**Qué:** F4 quedó en el PR #87 con ADR-078 y BUG-120–122; frontend, backend, Mailhog real y CI completo pasaron. Se revisaron capturas en ambos temas y tamaños.
+**Sigue:** El dueño revisa el PR #87 y las capturas antes de fusionarlo; después registra la implementación.
 
 ### 2026-09-27 · `docs/cerrar-f2-tecnico`
 **Qué:** Se delegaron a Codex las E2E de F2 contra el backend real (PR #79, 5 casos en CI; se amplió el filtro de rutas del workflow) y F3. Se fusionaron #76 (cifras `es-CO`, sin las fechas que repetían `tiempo.ts`), #77 y #79, se registraron #74/#76/#77/#79 y se cerraron #65, #75 y el issue #70. Una medición con 3G y caché vacía encontró que el mapa pinta a 7,5–11 s (`BUG-115`).
