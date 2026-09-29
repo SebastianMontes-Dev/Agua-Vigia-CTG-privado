@@ -80,6 +80,46 @@ paginar con `skip`, no del índice.
 Resuelto desde entonces: la bitácora pública entrega solo el conteo de sustento (`ADR-055`); los reportes caducan a los
 12 meses con un índice TTL (`ADR-058`); el respaldo manual (`scripts/backup-mongo.sh`) está comprobado.
 
+## La ciudad entera reportando a la vez (demo de carga, 2026-09-29)
+
+`scripts/carga/demo.mjs` (`ADR-083`) reproduce el flujo completo contra el backend real, no un endpoint aislado: N vecinos
+reportan una vez cada uno (una parte con coordenada dentro de su barrio y una parte confirmada después), 12 barrios sufren una
+avería masiva y el consenso real cambia sus estados, 150 lecturas por segundo del mapa, dos inicios de sesión de veedor por
+segundo, una suscripción por segundo y, en paralelo, las conexiones SSE del mapa en vivo. Cada corrida arrancó del **mismo
+punto de partida** (724 reportes, 141 eventos, 205 barrios sin datos, 30 004 cuentas) y se restauró al terminar.
+
+| Escala | Reportes aceptados | p95 · p99 · máx de un reporte | Errores | Descartados por el generador | SSE abiertas | Backend (pico) |
+|---|---|---|---|---|---|---|
+| 10 000 reportes en 30 s + 10 000 conexiones | 10 000 | **39 ms** · 99 ms · 254 ms | 0 | 0 | 10 000 / 10 000 | 669 % CPU · 2,5 GiB |
+| 30 000 reportes en 60 s + 30 000 conexiones (corrida 1) | 29 996 | **130 ms** · 323 ms · 614 ms | 0 | 0 | 30 000 / 30 000 | 779 % CPU · 6,3 GiB |
+| 30 000 reportes en 60 s + 30 000 conexiones (corrida 2) | 30 000 | **131 ms** · 299 ms · 619 ms | 0 | 2 | 30 000 / 30 000 | 815 % CPU · 6,4 GiB |
+| 30 000 reportes en 60 s + 30 000 conexiones (corrida 3, con `demo.mjs --restaurar` completo) | 29 999 | **164 ms** · 375 ms · 846 ms | 1 (`503`) | 0 | 30 000 / 30 000 | 845 % CPU · 6,3 GiB |
+
+Con 30 000 conexiones abiertas, mientras hay cambios de estado se difunde un aviso por segundo a cada una: ≈ 1,6 millones de
+avisos entregados en la ventana, el primer evento a las conexiones nuevas en p95 ≈ 1 s. `RNF002` (p95 < 1 s) se cumple con
+holgura en todas las corridas.
+
+El único error de las corridas a punto de partida conocido es un `503` («base de datos no disponible») en la corrida 3: una
+petición de 30 000 esperó más de los 2 s que se da al pool de Mongo y el backend respondió rápido con el error, que es lo
+diseñado (`aguavigia.mongo.espera-conexion-ms`, «falla rápido» en vez de encolar). El cliente reintenta; no se perdió ningún dato.
+
+**Lo que hay que decir junto a estas cifras:**
+
+- El generador de carga (k6 y los clientes SSE) y el backend comparten un PC de 12 hilos. El backend llega a ≈ 8 núcleos
+  y ≈ 6,4 GiB con 30 000 conexiones: **es el techo de este equipo, no del diseño**, y no se probó más allá de 30 000
+  conexiones con reportes a la vez. Los 50 000 de `RNF027` no se demuestran aquí.
+- **No siempre da tan bien.** Antes de fijar el punto de partida, las mismas 30 000 sobre una base que ya acumulaba de 12 000 a
+  42 000 reportes de corridas anteriores y con el mapa ya cambiado por esas corridas dieron p95 de 231 ms y de 788 ms (p99 hasta 1,5 s,
+  máximo 3,2 s), con 190–249 iteraciones descartadas por el generador (0,6–0,8 %) y 2 errores en una de ellas. El
+  descarte se atribuye a k6 y no al backend: solo había creado 343 de sus 6 000 VUs posibles (los crea bajo demanda y descarta
+  lo que llega mientras tanto) y, al precargar 1,2 VUs por cada reporte por segundo, bajó a 0–2 descartadas.
+  No se aisló la causa de la diferencia; coincide con más datos acumulados y otro estado del mapa, y por eso la demo se
+  ensaya con `--restaurar`.
+- La CPU no la gasta solo el canal en vivo: la misma carga de 30 000 reportes **sin** conexiones abiertas (sobre una base ya
+  cargada, así que no es comparable al milímetro) también llevó al backend a ≈ 860 % de CPU, con p95 de 39 ms.
+- La memoria del backend con 30 000 conexiones (≈ 6,4 GiB) no se desglosó entre memoria viva y heap sin recoger
+  (`-XX:MaxRAMPercentage=75`); en la prueba de SSE de antes, 10 000 conexiones midieron ≈ 1,2 GB (≈ 100 KB cada una).
+
 ## Lo que no se probó
 
 - **Resiliencia bajo carga** (Mongo o Redis caídos durante la prueba). El comportamiento con Redis caído está cubierto por
@@ -90,6 +130,12 @@ Resuelto desde entonces: la bitácora pública entrega solo el conteo de sustent
 
 ## Cómo repetir las mediciones
 
-Guía y trampas del banco local en [`scripts/carga/README.md`](../../scripts/carga/README.md). Resumen: vaciar
-`aguavigia.rate-limit.reglas` en el backend de prueba (k6 sale desde una sola IP), generar la carga **dentro de la red de
-Docker** y hacer una copia de Mongo antes (`scripts/backup-mongo.sh`): las escrituras dejan decenas de miles de reportes.
+**La ciudad entera, con un comando** (respaldo, perfil `carga`, SSE, k6 con su panel en `localhost:5665`, resumen y vuelta atrás):
+
+```bash
+node scripts/carga/demo.mjs --usuarios 30000 --ventana 60 --conectados 30000 --restaurar
+```
+
+Guía y trampas del banco local en [`scripts/carga/README.md`](../../scripts/carga/README.md). Para las pruebas sueltas: vaciar
+`aguavigia.rate-limit.reglas` en el backend de prueba (k6 sale desde una sola IP; el perfil `carga` lo hace), generar la carga
+**dentro de la red de Docker** y hacer una copia de Mongo antes (`scripts/backup-mongo.sh`): las escrituras dejan decenas de miles de reportes.

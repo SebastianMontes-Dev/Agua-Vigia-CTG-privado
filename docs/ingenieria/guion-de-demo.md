@@ -152,13 +152,47 @@ node scripts/verificar-flujos.mjs
 - **Para mostrarlo en vivo** usa Swagger con el token de `POST /api/veedor/sesion` (con el segundo factor ya dado de alta, el cuerpo del login lleva
   además `codigoTotp`; la primera vez, sin alta, devuelve `alcance: ALTA_SEGUNDO_FACTOR`).
 
+## 7. La ciudad entera reportando a la vez (demo de carga)
+
+Es la parte que responde «¿y si lo usa toda la ciudad?». Un solo comando abre 30 000 conexiones en vivo, dispara 30 000
+reportes en un minuto y deja ver tres cosas a la vez (`ADR-083`):
+
+| Qué se ve | Dónde |
+|---|---|
+| El mapa cambiando de color barrio por barrio, por SSE, a medida que el consenso real decide | `http://localhost:5173`: `cd frontend && npm run dev` |
+| El panel en vivo de k6: peticiones por segundo, latencia, errores | `http://localhost:5665` (aparece al arrancar la prueba) |
+| El resumen final en la consola: reportes, latencia, conexiones, CPU y memoria, barrios que cambiaron | la terminal donde se lanzó |
+
+```bash
+node scripts/carga/demo.mjs --usuarios 30000 --ventana 60 --conectados 30000 --restaurar --esperar
+```
+
+- **Qué hace:** comprueba el stack y las 30 000 cuentas (si faltan, las siembra), hace un respaldo de Mongo, reinicia el backend
+  con el perfil `carga` (sin límite de peticiones por IP: todo el tráfico sale de este PC), abre las conexiones, lanza k6 dentro
+  de la red de Docker y, al terminar, devuelve el backend a su perfil normal. **`--restaurar`** deja además Mongo y Redis como
+  estaban, para poder repetirlo; **`--esperar`** se detiene antes de disparar, para abrir el mapa y el panel de k6.
+- **Todo es parametrizable:** `--usuarios 10000`, `--ventana 30`, `--conectados 10000`, `--focos 12` (barrios con avería masiva
+  que se encienden uno tras otro) y `--lectores`, `--veedores`, `--suscripciones` por segundo. Con `--conectados 0` no abre el
+  canal en vivo. El informe HTML de k6 queda en `resultados/<fecha>/`.
+- **Qué dijo la corrida de referencia (2026-09-29, tres veces, desde el mismo punto de partida):** 30 000 reportes aceptados,
+  p95 de un reporte entre 130 y 164 ms (el umbral de `RNF002` es 1 s), como mucho un `503` suelto por espera de Mongo, 30 000 conexiones abiertas, ≈ 1,6 millones de avisos
+  entregados. **Lee las cifras reales en pantalla, no las cites de este archivo.**
+- **Dilo antes de que pregunten:** el generador de carga y el backend comparten este PC (12 hilos); el backend llegó a ≈ 8
+  núcleos y ≈ 6,4 GiB. Son cifras de un banco local, no de un servidor. Los 50 000 de `RNF027` no se demuestran aquí
+  (`docs/ingenieria/escalabilidad.md`).
+- **Ensayar sin ensuciar:** cada corrida cambia el estado de los barrios y deja decenas de miles de reportes. Con `--restaurar`
+  todo vuelve a como estaba. Sin él, una segunda corrida seguida encuentra pocos barrios que puedan cambiar y el script lo
+  avisa; para volver atrás a mano, `./scripts/restore-mongo.sh` con el archivo que imprimió al empezar.
+- **Si algo se queda a medias** (Ctrl+C, Docker reiniciado): `docker rm -f $(docker ps -aq --filter name=aguavigia-carga-)` y
+  `docker compose up -d --force-recreate backend` para volver al perfil normal.
+
 ---
 
 ## Lo que NO se puede mostrar (decirlo antes de que pregunten)
 
 | Tema | Estado |
 |---|---|
-| **50 000 usuarios simultáneos** (`RNF027`) | No se demuestra en local (`ADR-057`). Se muestra la arquitectura preparada y las mediciones locales de `scripts/carga/`, dichas como banco local, no producción. |
+| **50 000 usuarios simultáneos** (`RNF027`) | No se demuestran en un PC (`ADR-057`). Sí se demuestran **30 000** a la vez con la demo de la sección 7, dicho como banco local compartido con el generador, no producción. |
 | **`RF041`** alertas por Telegram | Construido y armado, pero **apagado**: falta el bot real (`TELEGRAM_BOT_TOKEN`, ver `telegram.md`). No se muestra en vivo hasta conectarlo. WhatsApp no existe. |
 | **IoT (`RF040`)** | Solución que se implementaría en físico: el endpoint `POST /api/iot/presion` existe y está probado, pero no hay sensores instalados. Para probarlo en local hay que dar valor a `IOT_KEY` en `.env` y mandarlo en `X-IoT-Key`; vacía, responde 503. |
 | **Confirmar un reporte (`RF038`) no mueve el mapa** | Decisión mantenida (`BUG-114`): la confirmación suma al conteo `confirmaciones` del reporte, una vez por dispositivo, pero no entra al consenso; solo los reportes originales cuentan. |
