@@ -66,11 +66,22 @@ async function esperarEstado(sectorId, esperado) {
   return false;
 }
 
+// El backend sirve los sectores desde una caché de Redis de hasta 15 s, y sembrar-sectores.mjs escribe directo en
+// Mongo: justo después de sembrar, la lista puede llegar vacía o vieja. Se espera a que expire antes de rendirse.
+async function leerSectores() {
+  for (let intento = 0; ; intento++) {
+    const respuesta = await fetch(`${API}/api/sectores`);
+    if (!respuesta.ok) throw new Error(`GET /api/sectores respondió ${respuesta.status}: ¿está levantado el backend en ${API}?`);
+    const { sectores } = await respuesta.json();
+    if (sectores.length > 0) return sectores;
+    if (intento >= 8) throw new Error('No hay sectores: corre antes node scripts/sembrar-sectores.mjs');
+    process.stdout.write('  sin sectores todavía (caché del backend): espero 3 s\n');
+    await esperar(3000);
+  }
+}
+
 async function main() {
-  const respuesta = await fetch(`${API}/api/sectores`);
-  if (!respuesta.ok) throw new Error(`GET /api/sectores respondió ${respuesta.status}: ¿está levantado el backend en ${API}?`);
-  const { sectores } = await respuesta.json();
-  if (sectores.length === 0) throw new Error('No hay sectores: corre antes node scripts/sembrar-sectores.mjs');
+  const sectores = await leerSectores();
 
   const candidatos = sectores
     .filter((s) => !RESERVADOS.has(s.id) && s.estado !== 'SIN_SERVICIO' && s.estado !== 'PRESION_BAJA' && s.poblacion)
