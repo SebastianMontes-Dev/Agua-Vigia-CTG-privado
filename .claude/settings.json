@@ -9,7 +9,7 @@
     "includeCoAuthoredBy en false: el agente NO se firma como coautor en los commits",
     "ni en los Pull Requests. La autoria del repositorio es del unico desarrollador.",
     "La IA es una herramienta y se documenta como tal, no como colaborador.",
-    "Ver CLAUDE.md, seccion Convenciones de Git."
+    "Ver CLAUDE.md, seccion Git y autoria."
   ],
   "includeCoAuthoredBy": false,
 
@@ -75,6 +75,6 @@
     "explicitamente a anthropic-ai / Claude-Web / GPTBot en su robots.txt.",
     "Bloquearlos aqui hace que la regla etica del proyecto sea imposible de violar",
     "por accidente, en vez de depender de que alguien la recuerde.",
-    "Ver docs/ingenieria/auditoria-fuentes-de-datos.md"
+    "Ver docs/06-etica-de-datos.md"
   ]
 }

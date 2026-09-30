@@ -3,17 +3,16 @@ title = "AguaVigía CTG — configuración de gitleaks"
 [extend]
 useDefault = true
 
-# Ver ADR-031 (docs/design-decisions.md): docs/ingenieria/entorno-local.md documenta a propósito
-# una clave de desarrollo (JWT_SECRET) para levantar el entorno LOCAL con docker compose. No es un
-# secreto de producción — el perfil `prod` exige las suyas propias y aborta el arranque si faltan
-# (ValidacionDeSecretosProd). Sin este allowlist, el job "Escaneo de secretos" queda en rojo de
-# forma permanente por un hallazgo ya evaluado y aceptado, no por uno real sin revisar.
+# ADR-031: hasta el 2026-09-29 un documento del repo publicó una clave de desarrollo (JWT_SECRET). Ya no está en
+# ningún archivo vigente, pero sigue en el historial de git, que gitleaks también escanea: por eso el valor exacto
+# sigue exento aquí. Se trata como EXPUESTO: no debe usarse en ningún `.env`. El perfil `prod` exige un secreto propio
+# y aborta el arranque si falta (ValidacionDeSecretos).
 #
 # Ver ADR-043: GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ es la semilla de prueba oficial de TOTP del
 # RFC 4226/6238 (Base32 de "12345678901234567890"), usada en TotpAdapterTest.java para verificar
 # el formato de la URI otpauth://. No es un secreto real — la regla es sobre el valor exacto, no
 # sobre una ruta, para no eximir de escaneo ningún archivo completo.
-[allowlist]
+[[allowlists]]
 description = "Excepciones evaluadas y aceptadas: clave de desarrollo local (ADR-031) y semilla TOTP del RFC (ADR-043)"
 regexes = [
   '''GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ''',
@@ -23,3 +22,14 @@ regexes = [
   # sigue escaneado.
   '''jHZczrMtY\+dNWbYoCFZe3ZOvDUl8j7rWqVDeEeLMfIQ=''',
 ]
+
+# El modelo NoSQL de Moon Modeler guarda cada relación entre colecciones con un UUID en `parent_key`; la regla
+# `generic-api-key` lo toma por una clave (10 hallazgos, todos de este campo). No es un secreto: identifica una
+# relación del diagrama. La excepción exige las dos cosas a la vez, este archivo y este campo con forma de UUID, así
+# que cualquier otro valor del archivo, o un `parent_key` que no sea un UUID, sigue escaneándose.
+[[allowlists]]
+description = "UUID de relaciones (parent_key) del modelo NoSQL de Moon Modeler"
+condition = "AND"
+paths = ['''docs/modelo-nosql-moon-modeler\.dmm''']
+regexTarget = "match"
+regexes = ['''parent_key"\s*:\s*"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"''']

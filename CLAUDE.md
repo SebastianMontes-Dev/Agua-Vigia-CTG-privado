@@ -1,186 +1,59 @@
 # AguaVigía CTG — Instrucciones del proyecto
 
-> Este archivo lo lee el agente automáticamente al abrir el proyecto. Es la fuente de verdad sobre
-> **cómo se trabaja aquí**. Si algo de este archivo contradice una suposición, gana este archivo.
+Plataforma web ciudadana de monitoreo del acueducto de **Cartagena de Indias**. Cruza los avisos oficiales de Acuacar con
+reportes ciudadanos georreferenciados y publica un **Índice de Cumplimiento** (duración prometida vs. real de cada corte).
+Proyecto académico de dos personas que corre **en local**. Resuelve un vacío de información, no un problema hidráulico.
 
----
+## Reparto y alcance
 
-## Qué es este proyecto
-
-Plataforma web ciudadana de monitoreo y trazabilidad del acueducto en **Cartagena de Indias,
-Colombia**. Cruza los avisos oficiales de Acuacar con reportes ciudadanos georreferenciados y publica
-un **Índice de Cumplimiento** que compara la duración prometida de cada corte con la real.
-**Proyecto académico de dos personas** (reparto en § Cómo colaborar conmigo). Detalle en `docs/brief.md`.
-
-**El problema que resuelve no es hidráulico, es informativo.** No reparamos tuberías; cerramos el
-vacío de información que multiplica el daño. Toda decisión de alcance se juzga contra eso.
-
----
-
-## Estado actual
-
-**Sprints 0 a 6 cerrados** (el 6, «entrega final», el 2026-09-24, con `RNF027` parcial: `docs/gestion/sprint-6.md`). M1–M15 están construidos en el backend. **El frontend anterior se retiró
-(`ADR-048`; etiqueta git `pre-retiro-frontend`) y el nuevo se rehace en `frontend/`, ya en `main`**, con el stack de
-`ADR-067`, por fases (F0–F6): plan en `docs/ingenieria/plan-frontend.md`, avance en `docs/gestion/sprint-7.md`. **Es un proyecto académico que corre en local**
-(`ADR-057`): sin hosting, dominio ni CDN; se levanta y siembra con un solo `docker compose up`, sin `.env` (`ADR-086`,
-`docs/ingenieria/entorno-local.md`). Requisito de escalabilidad: **50 000 usuarios simultáneos** (`ADR-049`,
-`docs/ingenieria/escalabilidad.md`), que en local solo puede medirse a escala reducida.
-`RF041` (alertas por Telegram) está construido y armado (`ADR-066`), apagado hasta tener `TELEGRAM_BOT_TOKEN`; sin probar contra Telegram real.
-Cifra de pruebas de backend y su última corrida: `docs/ingenieria/estado-del-backend.md` §2 (las de integración exigen Docker y no corren sin él).
-
-⚠️ **`sprint-3.md` a `sprint-5.md` se reconstruyeron retroactivamente el 2026-09-22** (`REC-017`): el código ya
-entregaba lo que prometían, sin que nadie lo hubiera escrito. `sprint-6.md` se abrió y cerró el 2026-09-24: la demo es local
-y contra el backend, sin esperar al frontend (`ADR-057`, `REC-018` resuelta).
-
-**8 sprints: Sprint 0 (preparación) + Sprints 1–6 + Sprint 7 (frontend nuevo, abierto el 2026-09-25). Un sprint no
-cierra por calendario: cierra cuando su entregable se demuestra funcionando.** Los 8 entregables, en `docs/gestion/README.md`.
-
----
+- **Backend: Sebastian. Frontend: Yordy Pardo (`Jordy-Lv`).** No se crea ni edita nada en `frontend/` salvo que Yordy lo pida.
+  Si el backend cambia el contrato (`backend/openapi.yaml`, rutas, correos), se avisa qué debe adaptar el frontend.
+- Las ramas remotas activas son `feat/f4-avisos` y `feat/f5-ingreso-panel` (de Yordy). No se borran ni se tocan.
 
 ## Stack
 
-**Backend** Spring Boot 3.5.16 · Java 21 · Maven · MongoDB (documentos + geoespacial `2dsphere`) ·
-Redis (caché, rate limiting, ventana de consenso, pub/sub). **Sin SDK de IA**: se descartó en `ADR-025`
-**Infraestructura** Docker multi-etapa + docker compose (solo local, `ADR-080`) · GitHub Actions
+Spring Boot 3.5 · Java 21 · Maven (`backend/mvnw`) · MongoDB 7 con réplica de un nodo (documentos + `2dsphere`) · Redis 7
+(caché, rate limiting, ventana de consenso, pub/sub) · Mailhog (SMTP de pruebas) · Docker Compose. Sin SDK de IA.
+Frontend: React 19 + Vite (contrato: `backend/openapi.yaml`; guía en `docs/api/`).
 
-**Frontend** (en construcción, `ADR-067`) React 19 · Vite · TS estricto · CSS propio. Contrato: `backend/openapi.yaml`; guía: `docs/api/`.
-Identidad visual: `docs/diseno/identidad.md` (`ADR-070`). **Antes de tocar la interfaz, skill `disenar-frontend`; antes de subir a `main`, `revisar-diseno`.**
+## Comandos
 
----
-
-## Arquitectura — reglas no negociables
-
-Arquitectura Limpia (puertos y adaptadores). Las dependencias apuntan **siempre hacia adentro**.
-
-```
-com.aguavigia.ctg
-├── domain/          ← Java puro. CERO imports de framework.
-├── application/     ← Casos de uso. Depende solo de domain/port/out.
-├── infrastructure/  ← Toda la tecnología: Mongo, Redis, correo, JWT, HTTP saliente.
-└── api/             ← Controladores REST, DTOs, mappers.
+```bash
+cd backend && ./mvnw verify            # compila, pruebas unitarias + ArchUnit; las de integración exigen Docker
+docker compose up -d mongo             # servicio por servicio; ver docs/01-levantar-a-mano.md
+docker compose up -d --build backend   # levanta también sus dependencias; API en http://localhost:8081
+node scripts/generar-referencia-api.mjs  # regenera docs/api/referencia-de-rutas.md desde el contrato
 ```
 
-### Regla de oro
+## Arquitectura (no negociable)
 
-**Si `domain/` importa algo que empiece por `org.springframework` o `com.mongodb`, la arquitectura
-está rota.** No es criterio de nadie: hay un test de ArchUnit que lo verifica y la build falla.
-Al proponer código, verifica mentalmente esta regla antes de escribir el import.
+Arquitectura Limpia (puertos y adaptadores), dependencias siempre hacia adentro:
+`domain/` (Java puro) ← `application/` (casos de uso) ← `infrastructure/` (Mongo, Redis, correo, JWT, HTTP saliente) y `api/` (REST, DTO, mappers).
 
-### Otras reglas estructurales
+- **Regla de oro:** `domain/` no importa nada de `org.springframework` ni `com.mongodb`. Lo verifica un test ArchUnit y la build falla.
+- Controladores sin lógica de negocio; nunca se exponen entidades de dominio (DTO + MapStruct).
+- Un caso de uso = una clase = una acción. Objetos de valor como `record` que validan al construir.
+- Errores de API en RFC 7807 desde un único `@RestControllerAdvice`. Inyección por constructor. Sin Lombok en `domain/`.
+- Identificadores del dominio en español (`CorteAgua`); términos técnicos universales en inglés (`Repository`, `Adapter`).
+- Comentarios solo cuando el *porqué* no es obvio. Tests con nombre descriptivo en español (`debeRechazarCorteConFinAnteriorAlInicio()`).
 
-- Los controladores **no** contienen lógica de negocio. Traducen HTTP ↔ caso de uso y nada más.
-- Nunca exponer entidades de dominio en la API. Siempre DTOs, mapeados con MapStruct.
-- Un caso de uso = una clase = una acción. Si un servicio hace dos cosas, son dos servicios.
-- Objetos de valor (`Coordenada`, `VentanaTiempo`, `EstadoServicio`): `record` que valida al construir.
-- Errores de API en formato RFC 7807, centralizados en un `@RestControllerAdvice`.
+## Ética de datos (no negociable)
 
----
+1. Se respeta `robots.txt` siempre; no se disfraza el `User-Agent`.
+2. No se scrapea Facebook, Instagram ni X.
+3. El colector se identifica siempre (`User-Agent` con nombre del proyecto y correo de contacto).
+4. Nada llega al mapa público sin verificación: sin la frase exacta del boletín que respalde la extracción, no se publica.
+5. Antes de afirmar que una fuente está bloqueada o disponible, se prueba con una petición real (skill `verificar-fuente`).
 
-## Convenciones de código
+## Git y autoría
 
-- **Idioma**: lo del dominio en **español** (`CorteAgua`, `calcularCumplimiento`); términos técnicos
-  universales en inglés (`Repository`, `Controller`, `Adapter`). No mezclar en un mismo identificador.
-- **Inyección de dependencias por constructor**, nunca `@Autowired` en campos.
-- **Sin Lombok en `domain/`** — el dominio es Java puro y explícito. Lombok sí en `infrastructure/`.
-- **Comentarios**: por defecto ninguno. Solo cuando el *porqué* no es obvio (una restricción oculta,
-  un workaround con motivo). Nunca comentarios que expliquen *qué* hace el código.
-- **Tests**: nombre descriptivo en español — `debeRechazarCorteConFinAnteriorAlInicio()`.
+- Todo va **directo a `main`**, sin ramas ni PR. Conventional Commits en español (`tipo(scope): descripción`), un commit por unidad de trabajo.
+- Commit y push solo cuando el dueño lo pide. Verificar en local antes de empujar y revisar el CI después.
+- **El agente nunca figura como colaborador**: sin `Co-Authored-By` ni firmas de IA en commits o PR (lo refuerzan `includeCoAuthoredBy: false` y `.github/workflows/autoria.yml`).
+- Fechas en hora de Cartagena (UTC-5). Sin secretos versionados: van en `.env` (ignorado por git); `.env.example` es la plantilla.
 
----
+## Documentación
 
-## Convenciones de Git
-
-Repo **público** en GitHub pese al nombre `-privado` (nada sensible se versiona), de dos personas. **Todo va directo a `main`: no se crean ramas ni PR** (decisión del dueño, 2026-09-29). Un commit por
-unidad de trabajo, Conventional Commits en español ([`CONTRIBUTING.md`](CONTRIBUTING.md)), con la verificación local
-antes de cada push y el CI en verde después.
-
-Las fechas del proyecto se escriben en **hora local de Cartagena (UTC-5)**, no UTC.
-
-### Autoría — regla no negociable
-
-**El agente nunca figura como colaborador del repositorio**: ni un trailer `Co-Authored-By`, ni una
-firma *"Generated with Claude Code"*, ni como autor o revisor de un PR, issue o comentario. Refuerzo
-mecánico: `includeCoAuthoredBy: false` en `.claude/settings.json` y el workflow `autoria.yml`, que falla si un
-commit del PR lo firma la IA (`BUG-104`); si aun así ves un trailer de coautoría en un mensaje que vas a
-escribir, quítalo.
-
-**Por qué:** la autoría del proyecto es mía. La IA es una herramienta, y que firme los commits
-enturbiaría el registro de lo que realmente escribí yo. Esto **no** oculta el uso de IA: está
-declarado abiertamente en este mismo archivo y en la bitácora de sesiones.
-
----
-
-## Ética de datos — no negociable
-
-Es la coherencia del proyecto, no una preferencia de estilo. Detalle en `ADR-005` y `ADR-006`.
-
-1. **Se respeta `robots.txt` siempre**, aunque pudiéramos evadirlo: **no se disfraza el
-   `User-Agent`, no se discute.** Qué medio bloquea a qué agente: `MEMORY.md`.
-2. **No se scrapea Facebook, Instagram ni X.** Vía legítima y su estado: `MEMORY.md` § Restricciones.
-3. **El colector se identifica siempre**: `User-Agent` con nombre del proyecto y correo de contacto.
-4. **Nada llega al mapa público sin verificación.** Si la IA no puede citar la frase exacta del
-   boletín que respalda su extracción, no se publica. Un corte inventado destruiría la credibilidad.
-
----
-
-## Fuentes de datos
-
-En uso y verificadas: **Acuacar** (API REST de WordPress) y, por RSS, **Google News**, **Zona Cero**,
-**Caracol Radio** y **W Radio** (lista en `application.yml`). Las 18 evaluadas, con veredicto:
-`docs/ingenieria/auditoria-fuentes-de-datos.md`. **Antes de afirmar que una fuente está bloqueada o disponible,
-verifícalo con una petición real** (skill `verificar-fuente`): aquí ya costó caro asumir un `robots.txt` sin leerlo.
-
----
-
-## Dónde está cada cosa
-
-```
-/                       CLAUDE.md · DESIGN.md · MEMORY.md · README.md · .mcp.json
-.claude/                skills/ · agents/ · settings.json
-docs/                   brief.md · product-requirements.md (46 RF, 27 RNF) · design-decisions.md (ADR)
-docs/api/               Guía para construir el frontend: flujos, rutas, errores, escala (referencia generada)
-docs/ingenieria/        Pipeline de datos, auditoría de fuentes, matriz de trazabilidad, comportamiento del sistema, escalabilidad
-docs/gestion/           Sprints, bitácora, bugs e implementaciones
-backend/ · frontend/          Spring Boot · SPA en construcción
-scripts/                Siembra de datos, pruebas de carga (`carga/`), generador de la referencia de la API
-```
-
----
-
-## Qué se registra siempre — regla del proyecto
-
-No es opcional: es parte de la definición de terminado.
-
-| Ocurre | Se registra en | Con la skill |
-|---|---|---|
-| Se termina y se sube a `main` una unidad de trabajo | `docs/gestion/registro-de-implementaciones.md` | `registrar-implementacion` |
-| Se encuentra un bug (aunque se arregle en el acto) | `docs/gestion/registro-de-bugs.md` | `registrar-bug` |
-| Termina una sesión de trabajo con IA | `docs/gestion/bitacora-sesiones.md` | `cerrar-sesion` |
-| Se elige entre alternativas técnicas | `docs/design-decisions.md` | `registrar-decision` |
-| Cambia el comportamiento del sistema | `docs/ingenieria/comportamiento-del-sistema.md`, en el mismo commit | — |
-| Se verifica una fuente de datos | `docs/ingenieria/auditoria-fuentes-de-datos.md` | `verificar-fuente` |
-| Avanza un compromiso del sprint (entregado o a medias) | `docs/gestion/sprint-N.md` §2 — `✅`/`🟡` al inicio del Entregable | — |
-
-**Quien avanza, actualiza el registro — yo o la IA, sin excepción.** La Sala de control
-(`dist-dashboard/index.html`, ignorado por git) **se genera sola de estas filas y nadie edita su HTML**: lo que no se registre
-aquí, allá no existe. Se regenera a mano con `node scripts/generar-dashboard.mjs` y se abre en local;
-ya no se publica. Detalle: `docs/gestion/README.md`.
-
----
-
-## Cómo colaborar conmigo
-
-- **Reparto del trabajo: backend de Sebastian, frontend de Yordy Pardo (`Jordy-Lv`).** El agente **no crea ni edita nada
-  en `frontend/`** (ni las fases F0–F6 de `plan-frontend.md`) salvo que el dueño del frontend lo pida en la conversación.
-  Si el backend cambia el contrato (`openapi.yaml`, correos, rutas), se avisa qué debe adaptar el frontend en vez de hacerlo.
-  Antes de tocar algo ambiguo: `git log --format=%an -- <ruta>` y las ramas `origin/*`.
-- **Antes de tu primera sesión, lee `docs/gestion/protocolo-de-contexto.md`**: dónde vive cada dato y
-  el presupuesto de líneas de los archivos permanentes. Cada línea que agregues aquí se paga en cada
-  sesión de trabajo.
-- **Un dato vive en un solo archivo.** Si lo encuentras duplicado, es un defecto: detalle en uno,
-  puntero en el otro.
-- **No repitas contexto**: lo decidido está en `docs/design-decisions.md`. Léelo antes de proponer una
-  alternativa ya descartada.
-- **No generes código de producción en fase de documentación** sin confirmarlo.
-- **Verifica antes de afirmar.** Si dices que un endpoint funciona, pruébalo.
-- Si un documento contradice a otro, **dilo en vez de elegir en silencio**.
+Vive en `docs/`, una guía por tema (índice en `docs/README.md`). `docs/api/` y `docs/diseno/` son referencia para el frontend.
+La documentación anterior sigue en el historial: `git show pre-limpieza-docs:<ruta>`. Un dato vive en un solo archivo.
+Verificar antes de afirmar: si se dice que un endpoint funciona, se prueba.

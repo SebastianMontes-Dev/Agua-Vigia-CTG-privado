@@ -85,7 +85,7 @@ Haz la petición y registra el resultado literal:
 
 ## Al terminar
 
-1. Añade el resultado a `docs/ingenieria/auditoria-fuentes-de-datos.md` (tabla resumen incluida).
-2. Si es un hallazgo relevante, añade una línea a `MEMORY.md`.
+1. Informa el resultado en la conversación, con su tabla resumen; si pasa a ser fuente en uso, anótala en `docs/06-etica-de-datos.md`.
+2. Si es un hallazgo relevante, dilo explícitamente al usuario.
 3. Si la fuente queda descartada por bloqueo de IA, **agrégala a la lista `deny` de
    `.claude/settings.json`** para que la regla sea imposible de violar por accidente.

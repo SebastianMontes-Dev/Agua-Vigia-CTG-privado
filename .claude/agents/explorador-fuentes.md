@@ -54,7 +54,7 @@ una "descartada" es una puerta cerrada.
 
 ## Al terminar
 
-1. Añade el resultado a `docs/ingenieria/auditoria-fuentes-de-datos.md`, incluida la tabla resumen.
-2. Si es relevante, añade una línea a `MEMORY.md`.
+1. Informa el resultado en la conversación, con su tabla resumen; si pasa a ser fuente en uso, anótala en `docs/06-etica-de-datos.md`.
+2. Si es un hallazgo relevante, dilo explícitamente al usuario.
 3. Si quedó descartada por bloqueo de IA, **agrega el dominio a la lista `deny` de
    `.claude/settings.json`** — así la regla deja de depender de que alguien la recuerde.
