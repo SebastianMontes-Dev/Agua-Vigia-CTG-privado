@@ -34,7 +34,7 @@
 // Las cuentas con segundo factor (TOTP) guardan su secreto en la base: para iniciar sesión con ellas hace falta
 // el código, que se calcula con `node codigo-totp.mjs <secreto>`. Las pruebas de carga usan las que no lo tienen.
 //
-// Las cuentas ACTIVAS comparten una clave de demostración, DemoAguaVigia-2026 (solo para entrar a probar como un
+// Las cuentas ACTIVAS comparten una clave de demostración que se genera al azar en cada ejecución (o la que pases en CLAVE_DEMO) y se imprime al final (solo para entrar a probar como un
 // veedor u observador; no hay ADMIN entre ellas). Por eso el script se niega a correr contra una base que no sea
 // local, salvo que pases --permitir-remoto. Los correos usan dominios reales de proveedores como los genera
 // cualquier dato de prueba: no los uses con un SMTP real (el compose de desarrollo envía a Mailhog).
@@ -42,6 +42,7 @@
 import { MongoClient } from 'mongodb';
 import { parseArgs } from 'node:util';
 import { CLAVE_DEMO, COLECCIONES_SEMBRADAS, crearFabricaDeCuentas } from './lib/cuentas-demo.mjs';
+import { esBaseLocal } from './lib/base-local.mjs';
 
 const { values } = parseArgs({
   options: {
@@ -69,7 +70,7 @@ if (!Number.isInteger(MINIMO) || MINIMO < 0) {
   process.exit(1);
 }
 // `mongo` es el servicio de docker-compose.yml: el sembrador corre dentro de esa red (ADR-086).
-if (!/^mongodb:\/\/(localhost|127\.0\.0\.1|\[::1\]|mongo)([:/]|$)/.test(MONGODB_URI) && !values['permitir-remoto']) {
+if (!esBaseLocal(MONGODB_URI) && !values['permitir-remoto']) {
   console.error(`Me niego a sembrar cuentas de demostración en ${MONGODB_URI.replace(/\/\/.*@/, '//***@')}: no es local.\n`
     + 'Si de verdad es lo que quieres, repite con --permitir-remoto.');
   process.exit(1);

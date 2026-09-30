@@ -18,6 +18,7 @@ import { MongoClient } from 'mongodb';
 import { parseArgs } from 'node:util';
 import { randomUUID } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
+import { esBaseLocal } from './lib/base-local.mjs';
 
 const { values } = parseArgs({
   options: {
@@ -49,7 +50,7 @@ function hashDelEntorno() {
 }
 
 if (!values.correo) falla('Falta --correo del ADMIN a restablecer.');
-if (!/^mongodb:\/\/(localhost|127\.0\.0\.1|\[::1\])([:/]|$)/.test(MONGODB_URI)) {
+if (!esBaseLocal(MONGODB_URI, { permitirServicioMongo: false })) {
   falla('Me niego a tocar una base que no es local.');
 }
 

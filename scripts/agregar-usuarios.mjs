@@ -22,6 +22,7 @@ import { MongoClient } from 'mongodb';
 import { parseArgs } from 'node:util';
 import { CLAVE_DEMO, COLECCIONES_SEMBRADAS, crearFabricaDeCuentas, sinAcentos } from './lib/cuentas-demo.mjs';
 import { crearFuenteFaker } from './lib/fuente-faker.mjs';
+import { esBaseLocal } from './lib/base-local.mjs';
 
 const { values } = parseArgs({
   options: {
@@ -46,7 +47,7 @@ const LOTE = values.lote ?? `lote-${marcaDeTiempo}`;
 // Las cuentas del modo api no llevan campos propios (las crea el backend): se reconocen por este dominio reservado.
 const dominioDelLote = (lote) => `${sinAcentos(lote)}.registro.aguavigia.local`;
 
-if (!/^mongodb:\/\/(localhost|127\.0\.0\.1|\[::1\]|mongo)([:/]|$)/.test(MONGODB_URI) && !values['permitir-remoto']) {
+if (!esBaseLocal(MONGODB_URI) && !values['permitir-remoto']) {
   console.error('Me niego a escribir cuentas de demostración en una base que no es local. Repite con --permitir-remoto.');
   process.exit(1);
 }

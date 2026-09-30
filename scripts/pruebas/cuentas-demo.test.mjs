@@ -58,3 +58,24 @@ test('cada cuenta vive en un barrio conocido y nunca con fechas futuras', () => 
     assert.ok(auditoria.every((e) => e.ocurrioEn.getTime() <= ahora));
   }
 });
+
+test('la clave de demostración ya no es la publicada en el historial', async () => {
+  const { CLAVE_DEMO, HASH_CLAVE_DEMO } = await import('../lib/cuentas-demo.mjs');
+  assert.notEqual(CLAVE_DEMO, 'DemoAguaVigia-2026');
+  assert.match(HASH_CLAVE_DEMO, /^\$2[aby]\$10\$/);
+});
+
+test('el token de una cuenta invitada o pendiente no se puede calcular desde su id', async () => {
+  const { createHash } = await import('node:crypto');
+  const fabrica = fabricaFaker();
+  let comprobadas = 0;
+  for (let i = 0; i < 400 && comprobadas < 5; i++) {
+    const { usuario, tokens } = fabrica.crearCuenta();
+    for (const token of tokens) {
+      const adivinado = createHash('sha256').update(`demo-token-${usuario._id}`, 'utf8').digest('hex');
+      assert.notEqual(token._id, adivinado);
+      comprobadas++;
+    }
+  }
+  assert.ok(comprobadas > 0, 'la muestra no produjo ninguna cuenta con token');
+});

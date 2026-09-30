@@ -23,7 +23,7 @@ k6 no hace falta instalarlo: se usa la imagen `grafana/k6`.
 node scripts/carga/demo.mjs --usuarios 30000 --ventana 60 --conectados 30000 --restaurar
 ```
 
-Requiere el stack levantado con `docker compose up` (que ya siembra sectores y cuentas, `ADR-086`) y Node en el equipo con
+Requiere el stack levantado con `docker compose --profile siembra up` (que siembra sectores y cuentas, `ADR-086`) y Node en el equipo con
 `cd scripts && npm install` hecho una vez: el script maneja Docker desde fuera. Deja el informe HTML de k6, el `resumen.json` y el `resumen.txt` en
 `resultados/<fecha>/` (ignorado por git) y muestra el panel en vivo de k6 en `http://localhost:5665`.
 
@@ -63,7 +63,7 @@ en `mongo-express` (`docker compose --profile demo up -d mongo-express`, `http:/
 
 ## Antes de medir
 
-1. Levantar el stack con `docker compose up` (siembra sectores y cuentas; `ADR-086`).
+1. Levantar el stack con `docker compose --profile siembra up` (siembra sectores y cuentas; `ADR-086`).
 2. **Hacer una copia de Mongo** (`scripts/backup-mongo.sh`): las escrituras dejan decenas de miles de reportes.
 3. **Vaciar el rate limit por IP** para las pruebas de escritura (`aguavigia.rate-limit.reglas` vacío): k6 sale desde una
    sola IP y mediría el `429` del limitador, no la latencia.

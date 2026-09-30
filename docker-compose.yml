@@ -1,10 +1,14 @@
-# Todo el proyecto se levanta con un solo comando (ADR-086):
+# Dos formas de levantar el proyecto (sin .env: el backend genera su secreto de sesión y la clave del primer ADMIN,
+# que se imprime una sola vez en el log del backend):
 #
-#   docker compose up
+#   docker compose up -d --build            → solo los servicios (Mongo, réplica, Redis, Mailhog, backend): base vacía,
+#                                             con un ADMIN. Es lo que se usa para levantar y sembrar a mano, paso a paso.
+#   docker compose --profile siembra up     → además corre el `sembrador`: 211 barrios, 30 000 cuentas de demostración, el
+#                                             histórico de cortes y algunos barrios afectados. Repetir no duplica datos.
 #
-# No hace falta .env: el backend genera su secreto de sesión y la clave del primer ADMIN (se imprime una sola vez en el log
-# del backend), y el servicio `sembrador` deja la base con los 211 barrios, 30 000 cuentas de demostración, el histórico
-# de cortes y algunos barrios afectados. Repetir `up` no duplica datos. Visor web de la base (opcional):
+# Los pasos del sembrador también se piden uno a uno: docker compose run --rm sembrador sembrar-sectores
+#
+# Visor web de la base (opcional):
 #
 #   docker compose --profile demo up
 #
@@ -17,6 +21,8 @@ services:
     image: mongo:7.0
     container_name: aguavigia-mongo
     restart: unless-stopped
+    # --bind_ip_all es para que los otros contenedores lleguen a Mongo por la red interna de compose; hacia el
+    # equipo solo se publica en 127.0.0.1 (abajo), así que nadie de la red del aula ve la base.
     command: ["--replSet", "rs0", "--bind_ip_all"]
     env_file:
       - path: .env
@@ -24,7 +30,7 @@ services:
     environment:
       MONGO_INITDB_DATABASE: ${MONGO_INITDB_DATABASE:-aguavigia}
     ports:
-      - "27017:27017"
+      - "127.0.0.1:27017:27017"
     volumes:
       - mongo-data:/data/db
     networks:
@@ -66,7 +72,7 @@ services:
     container_name: aguavigia-redis
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     volumes:
       - redis-data:/data
     networks:
@@ -82,8 +88,8 @@ services:
     container_name: aguavigia-mailhog
     restart: unless-stopped
     ports:
-      - "1025:1025" # SMTP
-      - "8025:8025" # UI web
+      - "127.0.0.1:1025:1025" # SMTP
+      - "127.0.0.1:8025:8025" # UI web
     networks:
       - aguavigia
 
@@ -110,7 +116,7 @@ services:
       AGUAVIGIA_APP_URL_PUBLICA: ${APP_URL_PUBLICA:-http://localhost:8081}
       AGUAVIGIA_APP_URL_FRONTEND: ${APP_URL_FRONTEND:-http://localhost:5173}
     ports:
-      - "8081:8080"
+      - "127.0.0.1:8081:8080"
     volumes:
       - fotos-data:/app/data/fotos
     depends_on:
@@ -131,10 +137,11 @@ services:
       retries: 5
       start_period: 30s
 
-  # Siembra de un solo uso (scripts/sembrador.mjs): corre al terminar de arrancar el backend y sale. También sirve para
+  # Siembra de un solo uso (scripts/sembrador.mjs): con el perfil `siembra` corre al terminar de arrancar el backend y sale; sin él no arranca (base vacía). También sirve para
   # ampliar datos en vivo sin instalar Node: docker compose run --rm sembrador agregar-usuarios --cantidad 1000
   sembrador:
     image: aguavigia/sembrador:local
+    profiles: ["siembra"]
     build:
       context: .
       dockerfile: scripts/Dockerfile

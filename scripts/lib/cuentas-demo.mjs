@@ -4,11 +4,14 @@
 //   - agregar-usuarios.mjs: ampliaciones en vivo con faker, distintas en cada ejecución (ADR-087).
 // Quien la usa decide de dónde sale el azar y los nombres; el resto de las reglas vive solo aquí.
 
-import { createHash } from 'node:crypto';
+import { createHash, createHmac, randomBytes } from 'node:crypto';
+import bcrypt from 'bcryptjs';
 
-// BCrypt (coste 10) de «DemoAguaVigia-2026», calculado con la misma biblioteca que usa el backend.
-export const HASH_CLAVE_DEMO = '$2a$10$9Z7IzVuDwklPgBYmu8noLeYWAUyXtjYWkfdBCYi282zRzSANE/256';
-export const CLAVE_DEMO = 'DemoAguaVigia-2026';
+// La clave de las cuentas de demostración NO está en el repositorio: sale de CLAVE_DEMO si la defines al sembrar, o se
+// genera al azar en cada ejecución (y el script que siembra la imprime una sola vez). Una clave fija y pública compartida
+// por miles de cuentas VEEDOR sería una puerta abierta para cualquiera que lea el repo y llegue a la API.
+export const CLAVE_DEMO = process.env.CLAVE_DEMO || `Demo-${randomBytes(9).toString('base64url')}`;
+export const HASH_CLAVE_DEMO = bcrypt.hashSync(CLAVE_DEMO, 10);
 export const COLECCIONES_SEMBRADAS = ['usuarios', 'tokens_cuenta', 'auditoria_cuentas', 'suscripciones'];
 
 const PAQUETE = 'com.aguavigia.ctg.infrastructure.persistence.mongo.';
@@ -29,8 +32,10 @@ const ALFABETO_BASE32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 const IP_ADMIN = '172.18.0.1';
 
 const hashDeToken = (token) => createHash('sha256').update(token, 'utf8').digest('hex');
-// El token en claro de una cuenta sembrada es `demo-token-<id>`: solo sirve contra esta base local de demostración.
-const tokenDeDemo = (usuarioId) => `demo-token-${usuarioId}`;
+// Los tokens de invitación y verificación de las cuentas sembradas se derivan de un secreto que solo existe durante esta
+// ejecución: nadie puede calcularlos desde el repositorio ni desde el id de la cuenta, y el claro no se guarda en ninguna parte.
+const SECRETO_DE_TOKENS = randomBytes(32);
+const tokenDeDemo = (usuarioId) => createHmac('sha256', SECRETO_DE_TOKENS).update(usuarioId).digest('base64url');
 
 /**
  * @param azar      () => número en [0, 1): el generador de aleatoriedad (con semilla o no).

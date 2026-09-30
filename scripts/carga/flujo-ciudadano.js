@@ -24,7 +24,7 @@
  *   LECTORES            150      lecturas por segundo
  *   VEEDORES_TASA       2        inicios de sesión de veedores por segundo (0 = ninguno)
  *   VEEDORES            correos separados por coma de cuentas VEEDOR sin segundo factor
- *   CLAVE_VEEDORES      DemoAguaVigia-2026
+ *   CLAVE_VEEDORES      la clave de demostración que imprimió el sembrador (obligatoria si VEEDORES_TASA > 0)
  *   SUSCRIPCIONES       1        altas de suscripción por segundo (0 = ninguna)
  *   REGISTROS           0        cuentas nuevas por la API (0 = ninguna)
  *   TASA_REGISTROS      50       registros por segundo; el techo medido en un PC de 12 hilos es ≈ 160/s, lo pone el BCrypt
@@ -50,7 +50,10 @@ const CONFIRMAR = Number(__ENV.CONFIRMAR || 0.15);
 const CON_COORDENADA = Number(__ENV.CON_COORDENADA || 0.6);
 const LECTORES = Number(__ENV.LECTORES || 150);
 const VEEDORES_TASA = Number(__ENV.VEEDORES_TASA || 2);
-const CLAVE_VEEDORES = __ENV.CLAVE_VEEDORES || 'DemoAguaVigia-2026';
+const CLAVE_VEEDORES = __ENV.CLAVE_VEEDORES || '';
+if (VEEDORES_TASA > 0 && !CLAVE_VEEDORES) {
+  throw new Error('Falta CLAVE_VEEDORES: la clave de demostración ya no está en el repositorio, usa la que imprimió el sembrador (o VEEDORES_TASA=0).');
+}
 const SUSCRIPCIONES = Number(__ENV.SUSCRIPCIONES || 1);
 const VEEDORES = (__ENV.VEEDORES || '').split(',').map((c) => c.trim()).filter(Boolean);
 const REGISTROS = Number(__ENV.REGISTROS || 0);
