@@ -44,7 +44,7 @@ Redis (caché, rate limiting, ventana de consenso, pub/sub). **Sin SDK de IA**: 
 **Infraestructura** Docker multi-etapa + docker compose (solo local, `ADR-080`) · GitHub Actions
 
 **Frontend** (en construcción, `ADR-067`) React 19 · Vite · TS estricto · CSS propio. Contrato: `backend/openapi.yaml`; guía: `docs/api/`.
-Identidad visual: `docs/diseno/identidad.md` (`ADR-070`). **Antes de tocar la interfaz, skill `disenar-frontend`; antes del PR, `revisar-diseno`.**
+Identidad visual: `docs/diseno/identidad.md` (`ADR-070`). **Antes de tocar la interfaz, skill `disenar-frontend`; antes de subir a `main`, `revisar-diseno`.**
 
 ---
 
@@ -90,10 +90,9 @@ Al proponer código, verifica mentalmente esta regla antes de escribir el import
 
 ## Convenciones de Git
 
-Repo **público** en GitHub pese al nombre `-privado` (nada sensible se versiona), de dos personas. Commits, ramas y PRs siguen las reglas de siempre en mis
-proyectos, documentadas en [`CONTRIBUTING.md`](CONTRIBUTING.md) — no las repito acá para no duplicar
-la fuente de verdad. Resumen: Conventional Commits en español y **commits directo a `main`, sin ramas ni PR**
-(decisión del dueño, 2026-09-29), con la verificación local antes de cada push y el CI en verde después.
+Repo **público** en GitHub pese al nombre `-privado` (nada sensible se versiona), de dos personas. **Todo va directo a `main`: no se crean ramas ni PR** (decisión del dueño, 2026-09-29). Un commit por
+unidad de trabajo, Conventional Commits en español ([`CONTRIBUTING.md`](CONTRIBUTING.md)), con la verificación local
+antes de cada push y el CI en verde después.
 
 Las fechas del proyecto se escriben en **hora local de Cartagena (UTC-5)**, no UTC.
 
@@ -154,11 +153,11 @@ No es opcional: es parte de la definición de terminado.
 
 | Ocurre | Se registra en | Con la skill |
 |---|---|---|
-| Se fusiona un PR a `main` | `docs/gestion/registro-de-implementaciones.md` | `registrar-implementacion` |
+| Se termina y se sube a `main` una unidad de trabajo | `docs/gestion/registro-de-implementaciones.md` | `registrar-implementacion` |
 | Se encuentra un bug (aunque se arregle en el acto) | `docs/gestion/registro-de-bugs.md` | `registrar-bug` |
 | Termina una sesión de trabajo con IA | `docs/gestion/bitacora-sesiones.md` | `cerrar-sesion` |
 | Se elige entre alternativas técnicas | `docs/design-decisions.md` | `registrar-decision` |
-| Cambia el comportamiento del sistema | `docs/ingenieria/comportamiento-del-sistema.md`, en el mismo PR | — |
+| Cambia el comportamiento del sistema | `docs/ingenieria/comportamiento-del-sistema.md`, en el mismo commit | — |
 | Se verifica una fuente de datos | `docs/ingenieria/auditoria-fuentes-de-datos.md` | `verificar-fuente` |
 | Avanza un compromiso del sprint (entregado o a medias) | `docs/gestion/sprint-N.md` §2 — `✅`/`🟡` al inicio del Entregable | — |
 
