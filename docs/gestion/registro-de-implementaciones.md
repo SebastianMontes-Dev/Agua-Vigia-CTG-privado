@@ -97,24 +97,29 @@ PR fusionados a `main` en el repositorio privado después de cerrar los Sprints 
 | RF032–RF036 · RNF007 · RNF017 | docs | Cierre funcional del backend: la documentación deja de contradecir al código. Anexo 4 (HU001–HU046) y Anexo 5 (manual técnico solo local y CP001–CP046) recuperados del historial y actualizados; RF033 y RF035 pasan a ✅ y RF032, RF034 y RF036 a 🟡 en la matriz (sin IA, `ADR-025`); `estado-del-backend`, guion de demo, plan de pruebas y README al día; BUG-046/047/048/095 comprimidos. Pruebas nuevas: `show-details: never` fuera de `dev` y cierre de un corte nacido de la ingesta | #102 | `./mvnw -B verify`: 1 104 pruebas, 0 fallos, 1 a petición; JaCoCo cumplido; etiqueta `pre-retiro-frontend` subida a `origin` |
 | RF017 · RF029 | docs | Cierre funcional del backend: `docs/api/panel-veedor.md` deja de decir que los cortes de la ingesta no tienen ruta de cierre (se cierran con `PATCH …/cierre` y cuentan para el Índice de Cumplimiento) y precisa que repetir la misma decisión sobre una propuesta responde `200` y contradecirla `409` | #104 | `GestionarCorteOficialServiceTest.debeCerrarTambienUnCorteNacidoDeLaIngesta`; `PropuestaIngestaTest.noDebeDescartarUnaPropuestaYaAprobada` y `noDebeAprobarUnaPropuestaYaDescartada`; los 5 checks en verde (solo documentación) |
 | — | docs | Reparto del trabajo escrito en `CLAUDE.md`: el backend es de Sebastian y `frontend/` de Yordy Pardo; el agente no lo edita sin petición explícita. Nace de que una sesión con IA reimplementó F5 en `frontend/` (PR #103, cerrado sin fusionar; la fase de Yordy sigue en `feat/f5-ingreso-panel`) | #105 | — (documento; sin comportamiento). `CLAUDE.md` en 188 de 200 líneas; los 5 checks en verde |
+| — | limpieza | Auditoría de código sin uso (`ADR-085`): los 35 casos de uso, todos los puertos y plantillas enganchados; solo `Base32.bytesUtf8` estaba muerto y se retira. Open311, IoT y la purga de evidencia se conservan a propósito y el guion de demo avisa qué está apagado. El escaneo de secretos deja de citar un documento inexistente | #107 | `TotpAdapterTest`, `GeneradorSecretosSeguroAdapterTest` (21 pruebas, las que usan `Base32`) · los 8 checks en verde |
+| RNF020 | infra | Un solo `docker compose up`, sin `.env` (`ADR-086`): el perfil `docker` genera el `JWT_SECRET` y la clave del primer ADMIN (una vez en el log); servicio `sembrador` idempotente que deja 211 sectores, 30 000 cuentas, histórico y barrios afectados por consenso real; `verificar-datos.mjs`; `mongo-express` en el perfil `demo`. `BUG-127` cerrado. Reúne lo revisado en #108 (GitHub cerró los PR apilados al borrarse sus bases) | #112 | `SembradorAdminInicialTest` (+3) · job de `contenedores-ci` «Un solo docker compose up deja la base sembrada» y «Un segundo docker compose up no duplica datos» en verde · ensayo en limpio: 30 001 usuarios en 58 s (`docs/gestion/evidencias/ensayo-sustentacion/`) |
+| RF042 | datos | Usuarios nuevos en vivo con faker (`ADR-087`): `agregar-usuarios.mjs` (modo directo con lotes borrables o registro real por la API) sobre la fábrica compartida `lib/cuentas-demo.mjs`; el sembrador de las 30 000 genera byte a byte lo mismo que antes. **Requisito ya cubierto:** no mueve la cobertura. Reúne lo revisado en #109 | #112 | `scripts/pruebas/cuentas-demo.test.mjs` (5) · paso «Agregar un lote de usuarios con faker y borrarlo» de `contenedores-ci` · 30 001 → 31 001 → 30 001 dentro del contenedor |
+| RNF027 | infra | Demo de carga con registro masivo por `POST /api/cuentas/registro` a tasa propia y visor en vivo de la base (`ADR-088`); `--sin-correo` con `CorreoDeCuentaDescartadoAdapter`. Techo medido ≈ 160 altas/s (BCrypt); a 50/s junto a los reportes se cumplen todos los umbrales. Reúne lo revisado en #110 | #112 | `CorreoDeCuentaDescartadoAdapterTest` (2) · demo final: 3 000 reportes (p95 215 ms), 1 500 registros (p95 256 ms), 2 000 SSE, 0 errores, `--restaurar` exacto |
+| RF004 · RF008 · RF022 · RNF001 · RNF012–RNF016 · RNF020 | docs | Barrido de ~90 contradicciones contra el código: anexos alineados con la matriz, RF004/RF008/RF022 a 🟡 (backend ✅, interfaz pendiente), RNF de interfaz a pendiente de F6, diagramas leídos de `domain/`, ingesta de Sprint 0 marcada como diseño, registros rotados a `historico/`, 13 estados de ADR y `docs/README.md`. Reúne lo revisado en #111 | #112 | `./mvnw verify`: 1 109 pruebas, 0 fallos · Sala de control con las mismas cifras de bugs, ADR y recomendaciones antes y después de rotar · 0 enlaces rotos |
 
 ---
 
 ## Estado de cobertura de requisitos
 
 Se actualiza al cerrar cada sprint. Es el insumo directo de `docs/ingenieria/matriz-trazabilidad.md` y
-debe coincidir con ella: **46 RF = 42 implementados + 3 parciales sin IA (RF032, RF034, RF036) + 1 armado sin conectar (RF041)**.
+debe coincidir con ella: **46 RF = 39 implementados + 3 con la interfaz pendiente (RF004, RF008, RF022) + 3 parciales sin IA (RF032, RF034, RF036) + 1 armado sin conectar (RF041)**.
 Los parciales y el armado cuentan en «Requisitos» pero no en «Implementados». Recalculada el 2026-09-29 desde la
 matriz, no desde lo que los PR afirman en su descripción.
 
 | Módulo | Requisitos | Implementados | % |
 |---|---|---|---|
-| M1 Mapa en vivo | 4 | 4 (RF001–RF004) | 100% |
-| M2 Reporte ciudadano | 4 | 4 (RF005–RF008) | 100% — `POST /api/reportes` (PR #104), RF006 real con límite por dispositivo |
+| M1 Mapa en vivo | 4 | 3 (RF001–RF003) | 75% — RF004 🟡: backend ✅, lista accesible en F2 del frontend |
+| M2 Reporte ciudadano | 4 | 3 (RF005–RF007) | 75% — RF008 🟡 (backend ✅, dos toques en F2); `POST /api/reportes` (PR #104), RF006 real con límite por dispositivo |
 | M3 Consenso automático | 3 | 3 (RF009–RF011) | 100% — `EvaluarConsensoService`, patrón Strategy, sustento trazado en la bitácora |
 | M4 Alertas por correo | 4 | 4 (RF012–RF015) | 100% — RF014 (aviso al suscriptor al cambiar el estado del sector) marcado ✅ en la matriz de trazabilidad |
 | M5 Panel del veedor | 4 | 4 (RF016–RF019) | 100% — CRUD de cortes (PR #116), moderación de reportes (PR #121, `ADR-023`), login JWT |
-| M6 Índice de Cumplimiento ⭐ | 3 | 3 (RF020–RF022) | 100% — `CalcularCumplimientoService`, `ADR-022` (PR #118) |
+| M6 Índice de Cumplimiento ⭐ | 3 | 2 (RF020, RF021) | 67% — RF022 🟡 (backend ✅, presentación en F3); `CalcularCumplimientoService`, `ADR-022` (PR #118) |
 | M7 Estadísticas | 3 | 3 (RF023–RF025) | 100% — `EstadisticasMongoAdapterTest`, serie del índice y exportación CSV en el backend |
 | M8 Bitácora pública | 3 | 3 (RF026–RF028) | 100% — `GET /api/bitacora` público (PR #120), eventos de todo el ciclo de vida del corte anexados (PR #119), inmutable por diseño del puerto (sin editar ni eliminar) |
 | M9 Ingesta (sin IA) ⭐ | 8 | 5 (RF029–RF031, RF033, RF035) | 63% — colectores y deduplicación reales (PR #59, #98); sin IA (`ADR-025`) RF032, RF034 y RF036 quedan parciales y se cuentan aparte (reclasificados el 2026-09-29 en la matriz) |
@@ -124,7 +129,7 @@ matriz, no desde lo que los PR afirman en su descripción.
 | M13 Integración IoT pasiva | 1 | 1 (RF040) | 100% |
 | M14 Alertas push | 1 | 0 | 0% — RF041 armado (PR #52, `ADR-066`): Telegram construido y probado contra un servidor falso, apagado hasta tener `TELEGRAM_BOT_TOKEN`; cuenta como implementado cuando se pruebe contra el bot real |
 | M15 Cuentas y permisos | 5 | 5 (RF042–RF046) | 100% |
-| **Total funcionales** | **46** | **42** | **91%** |
+| **Total funcionales** | **46** | **39** | **85%** |
 | **No funcionales** | **27** | **17** | **63%** |
 
 Los 17 RNF verificados: RNF002–RNF011, RNF017, RNF018, RNF020 y RNF022–RNF025. `RNF006` bajó de
@@ -132,7 +137,7 @@ verificado a parcial el 2026-09-22 (`BUG-091`: la matriz lo marcaba ✅ sin que 
 que pide el requisito) y volvió a subir el mismo día, cerrado con la cola real (`documentos_fallidos`
 en Mongo, `GET /api/veedor/ingesta/fallidos`). Los otros diez: RNF001 y
 RNF012–RNF016 **retirados por alcance** (interfaz, `ADR-048`) · RNF019 descartado (`ADR-025`) · RNF021 y RNF027
-parciales · RNF026 sin verificar, no aplica al entorno local (`ADR-057`).
+parciales · RNF026 sin verificar (desde el 2026-09-29, RNF001 y RNF012–RNF016 pasan a pendientes de F6 en la matriz), no aplica al entorno local (`ADR-057`).
 
 ---
 

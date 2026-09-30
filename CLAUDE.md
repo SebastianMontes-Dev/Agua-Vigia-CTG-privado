@@ -92,10 +92,8 @@ Al proponer código, verifica mentalmente esta regla antes de escribir el import
 
 Repo **público** en GitHub pese al nombre `-privado` (nada sensible se versiona), de dos personas. Commits, ramas y PRs siguen las reglas de siempre en mis
 proyectos, documentadas en [`CONTRIBUTING.md`](CONTRIBUTING.md) — no las repito acá para no duplicar
-la fuente de verdad. Resumen: Conventional Commits en español, ramas
-`tipo/slug-corto-en-espanol-kebab-case` sobre `main`, squash-merge por defecto, CI en verde antes de
-mergear. No hay rama `develop` ni revisor obligatorio: el PR es recomendado para cambios no
-triviales, no obligatorio.
+la fuente de verdad. Resumen: Conventional Commits en español y **commits directo a `main`, sin ramas ni PR**
+(decisión del dueño, 2026-09-29), con la verificación local antes de cada push y el CI en verde después.
 
 Las fechas del proyecto se escriben en **hora local de Cartagena (UTC-5)**, no UTC.
 
