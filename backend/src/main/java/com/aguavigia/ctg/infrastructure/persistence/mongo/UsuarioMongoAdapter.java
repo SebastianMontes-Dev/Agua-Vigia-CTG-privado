@@ -51,7 +51,11 @@ public class UsuarioMongoAdapter implements UsuarioRepository {
         documento.setCreadoEn(usuario.creadoEn());
         documento.setActualizadoEn(usuario.actualizadoEn());
 
-        repositorio.save(documento);
+        try {
+            repositorio.save(documento);
+        } catch (org.springframework.dao.DuplicateKeyException correoRepetido) {
+            throw new com.aguavigia.ctg.domain.CorreoYaRegistradoException(documento.getCorreo());
+        }
         return usuario;
     }
 

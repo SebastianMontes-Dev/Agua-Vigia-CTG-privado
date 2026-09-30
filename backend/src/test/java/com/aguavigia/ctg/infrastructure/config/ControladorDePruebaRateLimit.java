@@ -7,12 +7,17 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class ControladorDePruebaRateLimit {
 
-    @GetMapping("/protegida")
+    @GetMapping("/api/sectores/prueba-rate-limit/protegida")
     public String protegida() {
         return "ok";
     }
 
-    @GetMapping("/sin-proteger")
+    @GetMapping("/ruta-no-declarada")
+    public String noDeclarada() {
+        return "ok";
+    }
+
+    @GetMapping("/api/sectores/prueba-rate-limit/sin-proteger")
     public String sinProteger() {
         return "ok";
     }

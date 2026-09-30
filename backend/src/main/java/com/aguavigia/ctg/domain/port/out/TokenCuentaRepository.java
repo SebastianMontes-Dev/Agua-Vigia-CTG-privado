@@ -18,4 +18,11 @@ public interface TokenCuentaRepository {
      * "olvidé mi clave" deja tres enlaces válidos a la vez, y basta con que se filtre el más viejo.
      */
     void invalidarVigentes(UsuarioId usuarioId, TipoTokenCuenta tipo);
+
+    /**
+     * Marca el token como usado solo si sigue sin usar y sin vencer, en una única operación atómica. Devuelve
+     * si lo consiguió: de dos peticiones simultáneas con el mismo enlace solo una gana, y la otra recibe
+     * falso. Con leer, comprobar y guardar por separado pasaban las dos.
+     */
+    boolean marcarUsadoSiVigente(String hash, java.time.Instant ahora);
 }

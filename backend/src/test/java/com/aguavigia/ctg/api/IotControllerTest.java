@@ -112,6 +112,33 @@ class IotControllerTest {
     }
 
     @Test
+    void debeResponder400SiElIdentificadorDelSensorEsDemasiadoLargoOTraeCaracteresRaros() throws Exception {
+        for (String sensor : new String[] {"s".repeat(65), "sensor con espacios", "sensor/../1"}) {
+            mockMvc.perform(post("/api/iot/presion")
+                            .header("X-IoT-Key", "clave-de-prueba")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(
+                                    new IotPresionRequest(sensor, "bocagrande", 10.0, null))))
+                    .andExpect(status().isBadRequest());
+        }
+
+        verify(lecturas, never()).registrar(any(), any(), any(), any());
+    }
+
+    @Test
+    void debeResponder400SiLaPresionEsNegativaOAbsurda() throws Exception {
+        for (double presion : new double[] {-1.0, 1000.5}) {
+            mockMvc.perform(post("/api/iot/presion")
+                            .header("X-IoT-Key", "clave-de-prueba")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(cuerpo("bocagrande", presion)))
+                    .andExpect(status().isBadRequest());
+        }
+
+        verify(lecturas, never()).registrar(any(), any(), any(), any());
+    }
+
+    @Test
     void debeResponder400SiLaCoordenadaEstaFueraDeRango() throws Exception {
         var conCoordenadaInvalida = new IotPresionRequest("sensor-1", "bocagrande", 10.0,
                 new IotCoordenada(200.0, -75.5));

@@ -109,6 +109,7 @@ class GestionDeCuentasDelPanelTest {
 
     @Test
     void consumirDebeDevolverAlDuenoYQuemarElEnlace() {
+        given(tokens.marcarUsadoSiVigente(eq("hash-del-token"), any())).willReturn(true);
         given(tokens.buscarPorHash("hash-del-token")).willReturn(Optional.of(
                 TokenCuenta.nuevo("hash-del-token", TipoTokenCuenta.INVITACION, ID, AHORA)));
         given(usuarios.buscarPorId(ID)).willReturn(Optional.of(cuenta(EstadoCuenta.INVITADA, RolVeedor.VEEDOR)));
@@ -116,9 +117,20 @@ class GestionDeCuentasDelPanelTest {
         Usuario dueno = emisor().consumir("token-en-claro", TipoTokenCuenta.INVITACION);
 
         assertThat(dueno.id()).isEqualTo(ID);
-        ArgumentCaptor<TokenCuenta> guardado = ArgumentCaptor.forClass(TokenCuenta.class);
-        verify(tokens).guardar(guardado.capture());
-        assertThat(guardado.getValue().usadoEn()).isEqualTo(AHORA);
+        verify(tokens).marcarUsadoSiVigente("hash-del-token", AHORA);
+    }
+
+    /** Dos peticiones a la vez con el mismo enlace: solo la que gana el marcado atómico puede usarlo. */
+    @Test
+    void consumirDebeRechazarAlQuePierdeLaCarreraPorElMismoEnlace() {
+        given(tokens.buscarPorHash("hash-del-token")).willReturn(Optional.of(
+                TokenCuenta.nuevo("hash-del-token", TipoTokenCuenta.INVITACION, ID, AHORA)));
+        given(usuarios.buscarPorId(ID)).willReturn(Optional.of(cuenta(EstadoCuenta.INVITADA, RolVeedor.VEEDOR)));
+        given(tokens.marcarUsadoSiVigente(eq("hash-del-token"), any())).willReturn(false);
+
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> emisor().consumir("token-en-claro", TipoTokenCuenta.INVITACION))
+                .withMessageContaining("ya se había usado");
     }
 
     /** Un token de verificación no debe servir para restablecer una clave, aunque sea válido. */

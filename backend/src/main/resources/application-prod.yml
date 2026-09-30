@@ -1,0 +1,9 @@
+# Perfil de producción. Lo que en dev y docker es comodidad aquí se cierra:
+#  - La documentación interactiva de la API no se publica.
+#  - Sin orígenes CORS por defecto: CORS_ORIGENES debe declararse a propósito.
+#  - ValidacionDeSecretos exige JWT_SECRET (>= 32 bytes) e IOT_KEY (>= 32 caracteres, si se usa).
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false

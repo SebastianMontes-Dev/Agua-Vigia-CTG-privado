@@ -60,6 +60,15 @@ public class TokenCuentaMongoAdapter implements TokenCuentaRepository {
         mongoTemplate.updateMulti(query, update, TokenCuentaDocumento.class);
     }
 
+    @Override
+    public boolean marcarUsadoSiVigente(String hash, java.time.Instant ahora) {
+        Query query = Query.query(Criteria.where("hash").is(hash)
+                .and("usadoEn").isNull()
+                .and("expiraEn").gt(ahora));
+        return mongoTemplate.updateFirst(query, Update.update("usadoEn", ahora), TokenCuentaDocumento.class)
+                .getModifiedCount() == 1;
+    }
+
     private static TokenCuenta aDominio(TokenCuentaDocumento documento) {
         return new TokenCuenta(
                 documento.getHash(),

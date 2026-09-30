@@ -64,6 +64,23 @@ class TokenCuentaMongoAdapterTest {
     }
 
     @Test
+    void marcarUsadoSiVigenteDebeGanarUnaSolaVezAunqueSeIntenteDosVeces() {
+        adaptador.guardar(TokenCuenta.nuevo("hash-carrera", TipoTokenCuenta.INVITACION, ANA, T0));
+
+        assertThat(adaptador.marcarUsadoSiVigente("hash-carrera", AHORA)).isTrue();
+        assertThat(adaptador.marcarUsadoSiVigente("hash-carrera", AHORA)).isFalse();
+        assertThat(adaptador.buscarPorHash("hash-carrera").orElseThrow().usadoEn()).isEqualTo(AHORA);
+    }
+
+    @Test
+    void marcarUsadoSiVigenteNoDebeGastarUnTokenVencidoNiUnoInexistente() {
+        adaptador.guardar(TokenCuenta.nuevo("hash-viejo", TipoTokenCuenta.INVITACION, ANA, T0.minusSeconds(30L * 24 * 3600)));
+
+        assertThat(adaptador.marcarUsadoSiVigente("hash-viejo", AHORA)).isFalse();
+        assertThat(adaptador.marcarUsadoSiVigente("no-existe", AHORA)).isFalse();
+    }
+
+    @Test
     void unHashDesconocidoNoDebeEncontrarNada() {
         assertThat(adaptador.buscarPorHash("no-existe")).isEmpty();
     }

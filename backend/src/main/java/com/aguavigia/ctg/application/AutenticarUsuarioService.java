@@ -44,6 +44,14 @@ public class AutenticarUsuarioService implements AutenticarUsuarioUseCase {
      */
     private static final Duration VENTANA_ANTIRREPLAY_TOTP = Duration.ofMinutes(2);
 
+    /**
+     * El bloqueo se lleva por cuenta *y* dirección: si bastara con el correo, cualquiera que lo conociera
+     * (el del ADMIN inicial es público) podría dejar sin acceso a su titular con cinco intentos. Además
+     * hay un tope por cuenta, esta vez mucho más alto, que sí frena el ataque repartido entre muchas IP.
+     */
+    private static final int FACTOR_TOPE_GLOBAL = 10;
+    private static final String PREFIJO_GLOBAL = "cuenta-global:";
+
     private final UsuarioRepository usuarios;
     private final CifradorClavePort cifrador;
     private final SegundoFactorPort segundoFactor;
@@ -51,6 +59,7 @@ public class AutenticarUsuarioService implements AutenticarUsuarioUseCase {
     private final EmisorDeSesionPort emisorDeSesion;
     private final RegistroDeAuditoria auditoria;
     private final int maximoIntentos;
+    private final int maximoIntentosGlobales;
     private final Duration ventanaIntentos;
     private final Duration bloqueo;
 
@@ -70,6 +79,7 @@ public class AutenticarUsuarioService implements AutenticarUsuarioUseCase {
         this.emisorDeSesion = emisorDeSesion;
         this.auditoria = auditoria;
         this.maximoIntentos = maximoIntentos;
+        this.maximoIntentosGlobales = maximoIntentos * FACTOR_TOPE_GLOBAL;
         this.ventanaIntentos = Duration.ofMinutes(ventanaIntentosMinutos);
         this.bloqueo = Duration.ofMinutes(bloqueoMinutos);
     }
@@ -77,9 +87,10 @@ public class AutenticarUsuarioService implements AutenticarUsuarioUseCase {
     @Override
     public SesionEmitida autenticar(CorreoElectronico correo, String claveEnClaro, String codigoTotp,
                                     ContextoDeAccion contexto) {
-        String clave = correo.normalizado().valor();
+        String cuenta = correo.normalizado().valor();
+        String clave = cuenta + "|" + contexto.ip();
 
-        Optional<Duration> bloqueoVigente = intentos.bloqueoVigente(clave);
+        Optional<Duration> bloqueoVigente = bloqueoVigente(clave, cuenta);
         if (bloqueoVigente.isPresent()) {
             throw new CuentaBloqueadaException(bloqueoVigente.get(),
                     "Demasiados intentos fallidos. Vuelve a intentarlo en "
@@ -92,7 +103,7 @@ public class AutenticarUsuarioService implements AutenticarUsuarioUseCase {
             // contra un correo inventado dejaría que cualquiera llenara la tabla de auditoría desde
             // fuera. Para ese caso ya está el límite por IP de ADR-018.
             cifrador.gastarTiempoEquivalente();
-            intentos.registrarFallo(clave, ventanaIntentos, maximoIntentos, bloqueo);
+            registrarFallo(clave);
             throw new CredencialInvalidaException("Correo o clave incorrectos.");
         }
 
@@ -112,6 +123,8 @@ public class AutenticarUsuarioService implements AutenticarUsuarioUseCase {
         }
 
         intentos.limpiarIntentos(clave);
+        intentos.limpiarIntentos(cuenta);
+        intentos.limpiarIntentos(PREFIJO_GLOBAL + cuenta);
 
         AlcanceSesion alcance = usuario.debeCompletarAltaDeSegundoFactor()
                 ? AlcanceSesion.ALTA_SEGUNDO_FACTOR
@@ -142,8 +155,23 @@ public class AutenticarUsuarioService implements AutenticarUsuarioUseCase {
         }
     }
 
+    private void registrarFallo(String claveConIp) {
+        intentos.registrarFallo(claveConIp, ventanaIntentos, maximoIntentos, bloqueo);
+        String cuenta = claveConIp.substring(0, claveConIp.lastIndexOf('|'));
+        intentos.registrarFallo(PREFIJO_GLOBAL + cuenta, ventanaIntentos, maximoIntentosGlobales, bloqueo);
+    }
+
+    private Optional<Duration> bloqueoVigente(String claveConIp, String cuenta) {
+        Optional<Duration> porIp = intentos.bloqueoVigente(claveConIp);
+        Optional<Duration> global = intentos.bloqueoVigente(PREFIJO_GLOBAL + cuenta);
+        if (porIp.isPresent() && global.isPresent()) {
+            return porIp.get().compareTo(global.get()) >= 0 ? porIp : global;
+        }
+        return porIp.isPresent() ? porIp : global;
+    }
+
     private void fallar(Usuario usuario, String detalle, String claveIntentos, ContextoDeAccion contexto) {
-        intentos.registrarFallo(claveIntentos, ventanaIntentos, maximoIntentos, bloqueo);
+        registrarFallo(claveIntentos);
         auditoria.registrarConAutor(AccionAuditada.SESION_RECHAZADA, usuario, usuario, detalle, contexto);
     }
 

@@ -49,6 +49,17 @@ class AgregarEvidenciaServiceTest {
     private static final byte[] JPEG_DE_PRUEBA = {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF, 1, 2, 3};
 
     @Test
+    void noDebeReemplazarLaFotoDeUnReporteQueYaTieneEvidencia() {
+        given(reportes.buscarPorId(new ReporteId("r1"))).willReturn(Optional.of(reporte().conFoto("/fotos/original.jpg")));
+
+        assertThatThrownBy(() -> servicio.agregarEvidencia("r1", "image/jpeg", JPEG_DE_PRUEBA))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("ya tiene una foto");
+
+        verify(almacenamiento, never()).guardar(any(), any());
+    }
+
+    @Test
     void debeGuardarLaFotoConLaExtensionDerivadaDelContentType() {
         given(reportes.buscarPorId(new ReporteId("r1"))).willReturn(Optional.of(reporte()));
         given(almacenamiento.guardar(eq(".jpg"), any())).willReturn("/fotos/uuid.jpg");

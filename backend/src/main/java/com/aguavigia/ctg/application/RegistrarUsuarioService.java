@@ -84,13 +84,19 @@ public class RegistrarUsuarioService implements RegistrarUsuarioUseCase {
             return;
         }
 
-        Usuario nuevo = usuarios.guardar(Usuario.registrado(
+        Usuario nuevo;
+        try {
+            nuevo = usuarios.guardar(Usuario.registrado(
                 new UsuarioId(UUID.randomUUID().toString()),
                 normalizado,
                 nombre.strip(),
                 cifrador.cifrar(clave.valor()),
                 barrio,
                 reloj.ahora()));
+        } catch (com.aguavigia.ctg.domain.CorreoYaRegistradoException altaConcurrente) {
+            // Otro registro con este correo ganó la carrera: la respuesta sigue siendo la uniforme (RNF024).
+            return;
+        }
 
         String token = emisorDeTokens.emitir(nuevo.id(), TipoTokenCuenta.VERIFICACION_CORREO);
         notificaciones.enviarVerificacionDeCorreo(nuevo, token);

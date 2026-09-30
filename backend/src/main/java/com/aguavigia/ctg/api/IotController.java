@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
@@ -68,7 +69,7 @@ public class IotController {
     @PostMapping("/presion")
     public ResponseEntity<Void> reportarPresion(
             @RequestHeader(value = "X-IoT-Key", required = false) String key,
-            @RequestBody IotPresionRequest request) {
+            @Valid @RequestBody IotPresionRequest request) {
 
         if (iotKey.isBlank()) {
             throw new ServicioNoDisponibleException("La telemetría de sensores no está configurada en este servidor");

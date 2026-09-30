@@ -35,6 +35,12 @@ public class AgregarEvidenciaService implements AgregarEvidenciaUseCase {
         ReporteCiudadano reporte = reportes.buscarPorId(id)
                 .orElseThrow(() -> new EntidadNoEncontradaException("No existe el reporte '" + reporteId + "'"));
 
+        // La subida es pública y sin dueño: quien conociera el id de un reporte ajeno podría cambiarle la foto.
+        // Una vez puesta, la evidencia no se reemplaza.
+        if (reporte.fotoUrl() != null) {
+            throw new IllegalStateException("El reporte '" + reporteId + "' ya tiene una foto de evidencia.");
+        }
+
         String extension = contentType == null ? null : TIPOS_PERMITIDOS.get(contentType);
         if (extension == null) {
             throw new IllegalArgumentException(

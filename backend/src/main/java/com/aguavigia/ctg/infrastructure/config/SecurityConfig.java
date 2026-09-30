@@ -17,6 +17,13 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.header.writers.DelegatingRequestMatcherHeaderWriter;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
+import org.springframework.security.web.header.writers.StaticHeadersWriter;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
+import org.springframework.security.web.util.matcher.OrRequestMatcher;
+import org.springframework.security.web.util.matcher.RequestMatcher;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
@@ -29,15 +36,14 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 /**
- * RF019: el panel del veedor exige token; el resto de la plataforma es publico. Por eso la regla
- * por defecto es permitAll y solo /api/veedor/** (menos el login) exige autenticacion — así
- * cualquier endpoint publico que se agreguen despues queda publico sin tocar este archivo.
+ * RF019: el panel del veedor exige token. Todo lo que no esté en la lista de rutas públicas de
+ * abajo se deniega por defecto (`denyAll`): un endpoint nuevo fuera de /api/veedor/** no queda
+ * público por descuido, hay que declararlo aquí a propósito.
  *
  * Esta cadena decide *si hace falta una sesion*; qué puede hacer esa sesión lo deciden los
- * `@PreAuthorize` de cada controlador contra un Permiso concreto (@EnableMethodSecurity). Están
- * separados a propósito: una lista de rutas en un solo archivo se desincroniza en cuanto alguien
- * añade un endpoint y no se acuerda de venir aquí, mientras que la anotación viaja pegada al método
- * que protege.
+ * `@PreAuthorize` de cada controlador contra un Permiso concreto (@EnableMethodSecurity). La
+ * anotación viaja pegada al método que protege; la lista de rutas públicas solo abre lo que es
+ * público de verdad.
  */
 @Configuration
 @EnableMethodSecurity
@@ -45,6 +51,30 @@ import java.util.List;
 public class SecurityConfig {
 
     private static final String BASE_TIPO = "https://aguavigia.example/errores/";
+
+    /** Lectura y reporte ciudadano, avisos, telemetría y salud: lo que existe sin sesión. */
+    private static final String[] RUTAS_PUBLICAS = {
+            "/api/sectores/**", "/api/reportes/**", "/api/cumplimiento/**", "/api/estadisticas/**",
+            "/api/bitacora/**", "/api/suscripciones/**", "/api/iot/**", "/api/v2/**",
+            "/actuator/health", "/actuator/health/**",
+            // Páginas de error del contenedor: sin esto un 404 o un 500 saldrían como 401.
+            "/error",
+            // Solo existen en los perfiles que no las desactivan (application-prod.yml).
+            "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs", "/v3/api-docs/**"
+    };
+
+    private static final List<RequestMatcher> DOCUMENTACION_INTERACTIVA = List.of(
+            new AntPathRequestMatcher("/swagger-ui.html"), new AntPathRequestMatcher("/swagger-ui/**"),
+            new AntPathRequestMatcher("/v3/api-docs/**"));
+
+    /**
+     * La API responde JSON y unas pocas páginas HTML sencillas (enlaces de cuenta): sin scripts,
+     * sin recursos externos, sin poder ser embebidas en un marco. Swagger UI queda fuera porque
+     * necesita sus propios scripts.
+     */
+    private static final String POLITICA_CSP = "default-src 'none'; style-src 'unsafe-inline'; "
+            + "form-action 'self'; base-uri 'none'; frame-ancestors 'none'";
+
     private final ObjectMapper objectMapper;
 
     public SecurityConfig(ObjectMapper objectMapper) {
@@ -114,7 +144,14 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/veedor/sesion").permitAll()
                         .requestMatchers("/api/cuentas/**").permitAll()
                         .requestMatchers("/api/veedor/**").authenticated()
-                        .anyRequest().permitAll())
+                        .requestMatchers(RUTAS_PUBLICAS).permitAll()
+                        .anyRequest().denyAll())
+                .headers(cabeceras -> cabeceras
+                        .referrerPolicy(r -> r.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER))
+                        .httpStrictTransportSecurity(hsts -> hsts.includeSubDomains(true).maxAgeInSeconds(31536000))
+                        .addHeaderWriter(new DelegatingRequestMatcherHeaderWriter(
+                                new NegatedRequestMatcher(new OrRequestMatcher(DOCUMENTACION_INTERACTIVA)),
+                                new StaticHeadersWriter("Content-Security-Policy", POLITICA_CSP))))
                 .exceptionHandling(manejo -> manejo
                         .authenticationEntryPoint((request, response, ex) -> {
                             response.setStatus(HttpStatus.UNAUTHORIZED.value());

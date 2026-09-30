@@ -154,7 +154,8 @@ class AutenticarUsuarioServiceTest {
         assertThatExceptionOfType(CredencialInvalidaException.class)
                 .isThrownBy(() -> servicio.autenticar(CORREO, CLAVE, null, CONTEXTO));
 
-        verify(intentos).registrarFallo(eq("ana@ejemplo.org"), any(), anyInt(), any());
+        verify(intentos).registrarFallo(eq("ana@ejemplo.org|10.0.0.1"), any(), eq(5), any());
+        verify(intentos).registrarFallo(eq("cuenta-global:ana@ejemplo.org"), any(), eq(50), any());
     }
 
     /**
@@ -170,6 +171,31 @@ class AutenticarUsuarioServiceTest {
 
         verify(usuarios, never()).buscarPorCorreo(any());
         verify(cifrador, never()).coincide(anyString(), any());
+    }
+
+    /**
+     * Quien conoce el correo del ADMIN no debe poder bloquearlo desde otra dirección: el bloqueo por
+     * cuenta y dirección solo afecta a quien falló.
+     */
+    @Test
+    void elBloqueoDeOtraDireccionNoDebeImpedirElIngresoDelTitular() {
+        given(intentos.bloqueoVigente("ana@ejemplo.org|203.0.113.9")).willReturn(Optional.of(Duration.ofMinutes(10)));
+        existeLaCuenta(cuenta(EstadoCuenta.ACTIVA, RolVeedor.VEEDOR));
+        laClaveEsCorrecta();
+
+        var sesion = servicio.autenticar(CORREO, CLAVE, null, CONTEXTO);
+
+        assertThat(sesion.token()).isEqualTo("token-emitido");
+    }
+
+    @Test
+    void elTopeGlobalPorCuentaDebeBloquearElAtaqueRepartidoEntreMuchasDirecciones() {
+        given(intentos.bloqueoVigente("cuenta-global:ana@ejemplo.org")).willReturn(Optional.of(Duration.ofMinutes(10)));
+
+        assertThatExceptionOfType(CuentaBloqueadaException.class)
+                .isThrownBy(() -> servicio.autenticar(CORREO, CLAVE, null, CONTEXTO));
+
+        verify(usuarios, never()).buscarPorCorreo(any());
     }
 
     /** El estado se revisa después de la clave: antes, sería regalar media respuesta. */
@@ -247,7 +273,8 @@ class AutenticarUsuarioServiceTest {
         assertThatExceptionOfType(CredencialInvalidaException.class)
                 .isThrownBy(() -> servicio.autenticar(CORREO, CLAVE, "000000", CONTEXTO));
 
-        verify(intentos).registrarFallo(eq("ana@ejemplo.org"), any(), anyInt(), any());
+        verify(intentos).registrarFallo(eq("ana@ejemplo.org|10.0.0.1"), any(), eq(5), any());
+        verify(intentos).registrarFallo(eq("cuenta-global:ana@ejemplo.org"), any(), eq(50), any());
     }
 
     /** Un código vale unos segundos; sin esto vale esos segundos para cualquiera que lo vea pasar. */

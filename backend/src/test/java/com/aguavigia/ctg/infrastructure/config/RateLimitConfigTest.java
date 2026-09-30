@@ -36,7 +36,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ImportAutoConfiguration(RedisAutoConfiguration.class)
 @Import({RedisConfig.class, RateLimitConfig.class, SecurityConfig.class})
 @TestPropertySource(properties = {
-        "aguavigia.rate-limit.reglas[0].ruta=/protegida",
+        "aguavigia.rate-limit.reglas[0].ruta=/api/sectores/prueba-rate-limit/protegida",
         "aguavigia.rate-limit.reglas[0].limite=2",
         "aguavigia.rate-limit.reglas[0].ventana-segundos=60"
 })
@@ -74,10 +74,10 @@ class RateLimitConfigTest {
 
     @Test
     void laRutaConfiguradaDebeRechazarLaPeticionQueSuperaElLimite() throws Exception {
-        mockMvc.perform(get("/protegida")).andExpect(status().isOk());
-        mockMvc.perform(get("/protegida")).andExpect(status().isOk());
+        mockMvc.perform(get("/api/sectores/prueba-rate-limit/protegida")).andExpect(status().isOk());
+        mockMvc.perform(get("/api/sectores/prueba-rate-limit/protegida")).andExpect(status().isOk());
 
-        mockMvc.perform(get("/protegida"))
+        mockMvc.perform(get("/api/sectores/prueba-rate-limit/protegida"))
                 .andExpect(status().is(429))
                 .andExpect(header().exists("Retry-After"));
     }
@@ -85,7 +85,7 @@ class RateLimitConfigTest {
     @Test
     void unaRutaSinReglaConfiguradaNuncaDebeLimitarse() throws Exception {
         for (int i = 0; i < 5; i++) {
-            mockMvc.perform(get("/sin-proteger")).andExpect(status().isOk());
+            mockMvc.perform(get("/api/sectores/prueba-rate-limit/sin-proteger")).andExpect(status().isOk());
         }
     }
 }

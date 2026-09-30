@@ -65,7 +65,9 @@ public class EmisorDeTokensDeCuenta {
         Usuario usuario = usuarios.buscarPorId(token.usuarioId())
                 .orElseThrow(() -> new IllegalArgumentException("El enlace no es válido"));
 
-        tokens.guardar(token.marcarUsado(reloj.ahora()));
+        if (!tokens.marcarUsadoSiVigente(token.hash(), reloj.ahora())) {
+            throw new IllegalArgumentException("El enlace venció o ya se había usado. Pide uno nuevo.");
+        }
         return usuario;
     }
 }

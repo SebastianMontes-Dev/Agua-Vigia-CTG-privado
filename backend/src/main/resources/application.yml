@@ -75,9 +75,10 @@ aguavigia:
     # Limite por IP, no por huella (ADR-018). Cierra el hueco que ADR-016 dejo senalado.
     reglas:
       # Fuerza bruta contra la unica credencial del veedor: 8h de sesion (RNF011) valen mas que
-      # la comodidad de reintentar rapido. 5 intentos por 5 minutos.
+      # la comodidad de reintentar rapido. 10 intentos por 5 minutos por IP (el bloqueo por cuenta y dirección, en aguavigia.cuentas, es el freno fino;
+      # tras Docker Desktop todos los clientes comparten la IP de la pasarela, así que un tope más bajo sería global).
       - ruta: /api/veedor/sesion
-        limite: 5
+        limite: 10
         ventana-segundos: 300
       # Segunda linea, no la primera: RF006 ya limita por dispositivo dentro de
       # RegistrarReporteService. Esto frena el flood desde una IP que rote la huella, y por eso
