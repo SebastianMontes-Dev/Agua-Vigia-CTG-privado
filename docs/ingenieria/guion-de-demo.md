@@ -196,6 +196,8 @@ node scripts/carga/demo.mjs --usuarios 30000 --ventana 60 --conectados 30000 --r
 | **50 000 usuarios simultáneos** (`RNF027`) | No se demuestran en un PC (`ADR-057`). Sí se demuestran **30 000** a la vez con la demo de la sección 7, dicho como banco local compartido con el generador, no producción. |
 | **`RF041`** alertas por Telegram | Construido y armado, pero **apagado**: falta el bot real (`TELEGRAM_BOT_TOKEN`, ver `telegram.md`). No se muestra en vivo hasta conectarlo. WhatsApp no existe. |
 | **IoT (`RF040`)** | Solución que se implementaría en físico: el endpoint `POST /api/iot/presion` existe y está probado, pero no hay sensores instalados. Para probarlo en local hay que dar valor a `IOT_KEY` en `.env` y mandarlo en `X-IoT-Key`; vacía, responde 503. |
+| **Open311 (`RF039`)** | `GET /api/v2/requests.json` responde con los sectores afectados en formato Open311, pero ningún cliente lo consume: se muestra solo con `curl` o Swagger (`ADR-026`, `ADR-085`). |
+| **Purga de evidencia fotográfica** | `PurgaEvidenciaAntiguaJob` existe y está probado, pero apagado (`habilitada: false`): cuánto tiempo guardar fotos es política de datos (`ADR-027`, `ADR-085`). |
 | **Confirmar un reporte (`RF038`) no mueve el mapa** | Decisión mantenida (`BUG-114`): la confirmación suma al conteo `confirmaciones` del reporte, una vez por dispositivo, pero no entra al consenso; solo los reportes originales cuentan. |
 | **TLS, dominio, CDN, hosting** | No existen por decisión del proyecto (`ADR-057`). |
 | **Interfaz web completa** | El frontend nuevo (`ADR-067`) cubre el mapa, la historia pública y los avisos (F2–F4); el panel del veedor y las cuentas (F5) aún no tienen pantalla y se demuestran con Swagger y `curl`. |
