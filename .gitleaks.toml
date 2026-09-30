@@ -3,6 +3,9 @@ title = "AguaVigía CTG — configuración de gitleaks"
 [extend]
 useDefault = true
 
+# Sintaxis compatible con gitleaks 8.24.x, la que instala gitleaks-action@v3 en el CI: `[[allowlists]]` global y
+# `regexTarget` no existen ahí, y con ellas la excepción se ignora en silencio.
+
 # ADR-031: hasta el 2026-09-29 un documento del repo publicó una clave de desarrollo (JWT_SECRET). Ya no está en
 # ningún archivo vigente, pero sigue en el historial de git, que gitleaks también escanea: por eso el valor exacto
 # sigue exento aquí. Se trata como EXPUESTO: no debe usarse en ningún `.env`. El perfil `prod` exige un secreto propio
@@ -12,22 +15,22 @@ useDefault = true
 # RFC 4226/6238 (Base32 de "12345678901234567890"), usada en TotpAdapterTest.java para verificar
 # el formato de la URI otpauth://. No es un secreto real — la regla es sobre el valor exacto, no
 # sobre una ruta, para no eximir de escaneo ningún archivo completo.
-[[allowlists]]
-description = "Excepciones evaluadas y aceptadas: clave de desarrollo local (ADR-031) y semilla TOTP del RFC (ADR-043)"
+[allowlist]
+description = "Excepciones evaluadas y aceptadas: clave de desarrollo local ya retirada (ADR-031) y semilla TOTP del RFC (ADR-043)"
 regexes = [
   '''GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ''',
-  # REC-013: antes eximia el archivo `docs/ingenieria/entorno-local.md` completo por ruta; un
-  # secreto de produccion pegado ahi por error habria pasado el CI en verde y en silencio. Se
-  # acota al valor exacto, mismo criterio que la semilla TOTP de arriba: el resto del archivo
-  # sigue escaneado.
   '''jHZczrMtY\+dNWbYoCFZe3ZOvDUl8j7rWqVDeEeLMfIQ=''',
 ]
 
-# El modelo NoSQL de Moon Modeler guarda cada relación entre colecciones con un UUID en `parent_key`; la regla
-# `generic-api-key` lo toma por una clave (10 hallazgos, todos de este campo). No es un secreto: identifica una
-# relación del diagrama. La excepción exige las dos cosas a la vez, este archivo y este campo con forma de UUID, así
-# que cualquier otro valor del archivo, o un `parent_key` que no sea un UUID, sigue escaneándose.
-[[allowlists]]
+# El modelo NoSQL de Moon Modeler (docs/modelo-nosql-moon-modeler.dmm) guarda cada relación entre colecciones con un
+# UUID en `parent_key`; la regla `generic-api-key` lo toma por una clave (10 hallazgos, todos de este campo). No es un
+# secreto: identifica una relación del diagrama. La excepción cuelga de esa regla y exige las dos cosas a la vez, este
+# archivo y este campo con forma de UUID, así que cualquier otro valor del archivo, o un `parent_key` que no sea un
+# UUID, sigue escaneándose.
+[[rules]]
+id = "generic-api-key"
+
+[[rules.allowlists]]
 description = "UUID de relaciones (parent_key) del modelo NoSQL de Moon Modeler"
 condition = "AND"
 paths = ['''docs/modelo-nosql-moon-modeler\.dmm''']
