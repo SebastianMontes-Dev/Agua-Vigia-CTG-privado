@@ -1,69 +1,54 @@
 # Integración frontend-backend
 
-> **Estado: documento histórico.** El `frontend/` se retiró de `main` (ADR-048); este contrato se
-> conserva porque describe qué endpoints consumía la SPA y cuáles quedaron "deliberadamente sin
-> conectar". El código del frontend sigue disponible en la etiqueta git `pre-retiro-frontend`.
-> Las referencias a `npm`, Vite y `src/api/generated/schema.ts` describen el estado anterior al retiro.
+> **Estado (2026-09-29).** El frontend anterior se retiró de `main` (`ADR-048`; código en la etiqueta git
+> `pre-retiro-frontend`) y el nuevo se rehace en `frontend/` (React 19 + Vite, `ADR-067`), por fases F0–F6
+> (`plan-frontend.md`). Este documento describe cómo se conecta **el frontend nuevo**. Qué hace cada ruta y
+> sus reglas: `docs/api/`; el contrato exacto: `backend/openapi.yaml`.
 
-El frontend consume siempre la API real del backend en `/api` — no hay modo simulación.
-Vite hace de proxy hacia el backend local (ver `vite.config.ts`); el proyecto corre solo en local (`ADR-080`).
+El frontend consume siempre la API real del backend — no hay modo simulación. Vite hace de proxy de `/api` y
+`/fotos` hacia el backend, así que para el navegador es el mismo origen y no hace falta CORS
+(`frontend/vite.config.ts:5-17`). El proyecto corre solo en local, sin nginx (`ADR-080`).
 
 ## Arrancar contra un backend local
 
-1. Levantar el backend (`cd backend && ./mvnw spring-boot:run`, o `docker-compose up`).
-2. Copiar `.env.example` a `.env.local` si necesitas cambiar el puerto del backend
-   (`VITE_BACKEND_PROXY_TARGET`, por defecto `http://localhost:8080`).
-3. `npm run dev` — las llamadas a `/api/*` se redirigen automáticamente al backend.
+| Paso | Qué | Detalle |
+|---|---|---|
+| 1 | Levantar el backend | `docker compose up` (API en `http://localhost:8081`) o `cd backend && ./mvnw spring-boot:run` |
+| 2 | Si el backend no está en `:8081` | Variable de entorno `AGUAVIGIA_BACKEND` al arrancar Vite; por defecto `http://localhost:8081` (`frontend/vite.config.ts:5`) |
+| 3 | `cd frontend && npm run dev` | SPA en `http://localhost:5173`; `/api/*` y `/fotos/*` van al backend por el proxy |
 
-Todo lo anterior es suficiente para el mapa y el resto de pantallas públicas. Para el panel
-del veedor (`PaginaVeedor` — login, moderación, cortes oficiales) el backend necesita
-`JWT_SECRET` y `VEEDOR_PASSWORD_HASH` en su `.env`, vacías por defecto — ver
-[`../docs/ingenieria/entorno-local.md`](entorno-local.md).
+Con `docker compose up` el backend genera su secreto de sesión y la clave del primer ADMIN (`ADR-086`); fuera de
+Docker, ver `entorno-local.md`.
 
-## Endpoints que consume el frontend
+## Cliente tipado
 
-- `GET /api/sectores` + `GET /api/sectores/stream` (SSE) — mapa en vivo (M1).
-- `GET /api/sectores/{id}` — detalle de un sector (`/sectores/:id`, destino del enlace "ver mi
-  sector" del correo de cambio de estado — `MailNotificacionAdapter`).
-- `POST /api/reportes` — reportes ciudadanos (M2).
-- `POST /api/reportes/{id}/foto` — adjuntar evidencia fotográfica a un reporte propio (M10).
-- `POST /api/reportes/{id}/confirmar` — confirmar el reporte de otro vecino (M11, RF038), vía el
-  enlace compartido `/confirmar/:id` (no hay listado público de reportes por sector, así que el
-  único id de reporte que un vecino puede confirmar es el que otro le compartió a propósito).
-- `POST /api/suscripciones` — avisos por correo (M3/M4).
-- `GET /api/suscripciones/confirmar` y `/cancelar` — el enlace de correo vive en el backend, no en
-  el frontend: responde HTML o JSON según el `Accept` de quien pide (ADR-030), el frontend no llama
-  a esta ruta directamente.
-- `POST /api/veedor/sesion`, `GET/PATCH /api/veedor/reportes/*`, `GET/POST/PATCH /api/veedor/cortes/*`,
-  `GET /api/veedor/cortes/{id}` (detalle de un corte, expandible en el panel) — panel del veedor (M4/M5).
-- `GET /api/estadisticas` + `GET /api/estadisticas/exportar.csv` — estadísticas públicas y su
-  exportación (M7, RF025).
-- `GET /api/bitacora` — bitácora pública (M8).
-- `GET /api/cumplimiento` (global), `/sectores/{id}` (por sector, en el panel de detalle del mapa),
-  `/cortes/{id}` (por corte, expandible en el panel del veedor), `/serie` y `/serie.csv` — índice de
-  cumplimiento (M6).
-- `GET/PATCH /api/veedor/ingesta/propuestas/*`, `GET /api/veedor/ingesta/salud` — cola de revisión
-  de la ingesta automatizada (M9, ADR-028).
+Los tipos salen de `backend/openapi.yaml` y viven en `frontend/src/api/generado/esquema.ts`. `npm run api:sync` los
+regenera; `npm run api:check` falla si están desfasados del contrato y corre en el CI del frontend
+(`.github/workflows/frontend-ci.yml:51`). Solo compara el YAML con los tipos, no contra un backend vivo: el YAML a su
+vez lo protege `ContratoOpenApiTest` en el backend.
 
-**Deliberadamente sin conectar** (son para otros consumidores, no para esta SPA):
-`POST /api/iot/presion` (sensores externos empujando telemetría) y `GET /api/v2/requests.json`
-(Open311, formato estándar para sistemas cívicos de terceros).
+## Endpoints que consume hoy el frontend nuevo
 
-Antes de cambiar un contrato, regenerar los tipos con `npm run api:sync` (lee
-`backend/openapi.yaml`) y correr `npm run api:check` en CI para detectar el desfase.
+Pantallas públicas (`frontend/src/pantallas/publico/`). Leído de `frontend/src` (sin contar `generado/`) el 2026-09-29.
 
-## Verificación de punta a punta (2026-08-12)
+| Área | Rutas |
+|---|---|
+| Mapa y sector | `GET /api/sectores`, `GET /api/sectores/geometria`, `GET /api/sectores/stream` (SSE), `GET /api/sectores/{id}`, `GET /api/sectores/{sectorId}/cortes` |
+| Reportes | `POST /api/reportes`, `POST /api/reportes/{id}/foto`, `POST /api/reportes/{id}/confirmar` (enlace compartido `/confirmar/:id`) |
+| Avisos por correo | `POST /api/suscripciones`; `POST /api/suscripciones/confirmar` y `/cancelar` con `Accept: application/json`, al pulsar el botón |
+| Bitácora | `GET /api/bitacora`, `GET /api/bitacora/{id}/sustento` |
+| Estadísticas | `GET /api/estadisticas`, `GET /api/estadisticas/exportar.csv` |
+| Cumplimiento | `GET /api/cumplimiento`, `/sectores/{sectorId}`, `/serie`, `/serie.csv` |
 
-`backend/openapi.yaml` estaba desincronizado del contrato real del backend vivo (el cambio de
-`ADR-030` — respuesta HTML/JSON en `/confirmar` y `/cancelar` según `Accept` — nunca se
-regeneró). Regenerado desde `GET /v3/api-docs.yaml` y sincronizado `src/api/generated/schema.ts`
-con `npm run api:sync`; detalle completo en
-[`../docs/ingenieria/estado-del-backend.md`](estado-del-backend.md) (nota de
-sesión). `npm run api:check` no lo detectó porque solo compara `openapi.yaml` ↔ `schema.ts` entre
-sí, no contra un backend corriendo — ambos estaban desactualizados de forma consistente.
+El panel del veedor (sesión, moderación, cortes, ingesta, cuentas) es de F5 y todavía no consume ninguna ruta `/api/veedor/*`.
 
-Con el stack completo levantado (`docker compose up -d --build --wait`), se probó en navegador
-cada ruta de esta lista: mapa en vivo con SSE, reporte ciudadano, bitácora, estadísticas e índice
-de cumplimiento, y el panel del veedor completo (login, cola de moderación con datos reales, cola
-de propuestas de ingesta, registro y cierre de cortes). Todo responde con datos reales del backend,
-sin ningún endpoint huérfano en ninguna dirección.
+### Los enlaces del correo llevan a la SPA
+
+Los correos de suscripción apuntan a `${aguavigia.app.url-frontend}/avisos/confirmar?token=…` y `…/avisos/baja?token=…`
+(`MailNotificacionAdapter.java:66,71`); el aviso de cambio de estado enlaza a `…/sectores/{id}` (`:110`). La pantalla
+retira el token de la URL y solo actúa al pulsar el botón (`ADR-054`). Las páginas `GET /api/suscripciones/confirmar`
+y `/cancelar` del backend siguen existiendo, pero ya no son el enlace del correo. Los enlaces de cuentas siguen en
+el backend (`/api/cuentas/enlaces/*`) hasta F5: `docs/api/correos-y-enlaces.md`.
+
+**Deliberadamente sin conectar** (son para otros consumidores, no para la SPA): `POST /api/iot/presion` (sensores
+empujando telemetría) y `GET /api/v2/requests.json` (Open311, formato estándar para sistemas cívicos de terceros).

@@ -25,9 +25,17 @@ Referencias cruzadas: `ADR-NNN` · `BUG-NNN` · `RF0NN` · `archivo:línea`.
 
 ## Sprint 7 — Frontend nuevo
 
+### 2026-09-29 · `docs/barrido-contradicciones` (y `chore/orden-y-limpieza-menor`, `feat/arranque-con-un-comando`, `feat/agregar-usuarios-faker`, `feat/demo-carga-registro-masivo`)
+**Qué:** Orden para la sustentación y los 4 requisitos obligatorios: un solo `docker compose up` sin `.env` con la base sembrada (`ADR-086`), usuarios en vivo con faker (`ADR-087`), registro masivo y visor en vivo en la demo de carga (`ADR-088`), código a la deriva auditado (`ADR-085`), barrido de ~90 contradicciones y rotación de registros; `BUG-127` (secreto publicado en `entorno-local.md`) cerrado y `JWT_SECRET` retirado del `.env`. PR #107–#111 abiertos y apilados; `verify` 1 109 en verde; ensayo en limpio en `evidencias/ensayo-sustentacion/`.
+**Sigue:** Del dueño: fusionar #107→#111 en orden, limpiar con force push el `.dmm` que entró por error en la rama de #110 (gitleaks), decidir si el repo público pasa a privado y enviar a Yordy el pedido del `frontend/Dockerfile` (F6) y de sus ramas; sigue pendiente confirmar Google News (`Disallow: /`).
+
 ### 2026-09-29 · `docs/cierre-final-backend`
 **Qué:** Cierre funcional del backend fusionado (#90–#101: barrio en la cuenta, ingesta local, RNF024, 30 000 cuentas, demo de carga `ADR-083`, pruebas de adaptadores y reglas de capas `ADR-084`); docs conciliadas con el código (anexos HU/CP recuperados, RF032–RF036 reclasificados, `estado-del-backend`); `verify` 1 104 pruebas en verde.
 **Sigue:** Del dueño: decidir si rota `JWT_SECRET` y quita las credenciales de desarrollo de `docs/ingenieria/entorno-local.md`, y confirmar Google News (`Disallow: /`); F5 (panel del veedor) sigue sin hacerse.
+
+### 2026-09-29 · `fix/estabilidad-bajo-carga`
+**Qué:** Backend de `main` revisado con los cambios del compañero (`./mvnw verify`: 970 pruebas, 0 fallos) y `RNF027` medido de nuevo con la carga dentro de la red de Docker y 3 réplicas: 50 100 SSE sostenidas, lecturas a 6 000 req/s, escrituras a 900/s de pico, todo junto dentro de umbrales hasta 25 000 SSE (`escalabilidad.md`). Corregidos `BUG-117`, `BUG-118`, `BUG-119` y cerrado el hallazgo del puerto publicado (era Docker Desktop); `scripts/carga/escenario-integrado.sh` repite el escenario. Base de la demo restaurada de una copia tras las pruebas.
+**Sigue:** Revisar y fusionar el PR de esta rama y registrarlo en `registro-de-implementaciones.md`. Fusionar `fix/jackson-cve-2026-68497` (CVE alto en `main`; ocupa `BUG-116`, por eso el siguiente libre aquí es 120). Con 50 000 SSE y todo el tráfico la latencia se sale de umbrales: solo una prueba con varias máquinas dice de quién es el límite. Sin probar: estampida de lecturas tras un aviso SSE, cerrojos de tareas con réplicas. La bitácora pasa de 30 entradas y no se rotó.
 
 ### 2026-09-28 · `feat/f4-avisos`
 **Qué:** PR #87 adaptado a la prueba de 5 segundos para las tres pantallas de avisos, con fichas de barrios, dos columnas y capturas completas en ambos temas; 248 unitarias y 102 E2E pasaron.
@@ -75,9 +83,6 @@ Referencias cruzadas: `ADR-NNN` · `BUG-NNN` · `RF0NN` · `archivo:línea`.
 
 ## Preparación del backend
 
-### 2026-09-29 · `fix/estabilidad-bajo-carga`
-**Qué:** Backend de `main` revisado con los cambios del compañero (`./mvnw verify`: 970 pruebas, 0 fallos) y `RNF027` medido de nuevo con la carga dentro de la red de Docker y 3 réplicas: 50 100 SSE sostenidas, lecturas a 6 000 req/s, escrituras a 900/s de pico, todo junto dentro de umbrales hasta 25 000 SSE (`escalabilidad.md`). Corregidos `BUG-117`, `BUG-118`, `BUG-119` y cerrado el hallazgo del puerto publicado (era Docker Desktop); `scripts/carga/escenario-integrado.sh` repite el escenario. Base de la demo restaurada de una copia tras las pruebas.
-**Sigue:** Revisar y fusionar el PR de esta rama y registrarlo en `registro-de-implementaciones.md`. Fusionar `fix/jackson-cve-2026-68497` (CVE alto en `main`; ocupa `BUG-116`, por eso el siguiente libre aquí es 120). Con 50 000 SSE y todo el tráfico la latencia se sale de umbrales: solo una prueba con varias máquinas dice de quién es el límite. Sin probar: estampida de lecturas tras un aviso SSE, cerrojos de tareas con réplicas. La bitácora pasa de 30 entradas y no se rotó.
 ### 2026-09-24 · `docs/entregables-bd2`
 **Qué:** Entrega de Base de Datos 2 (ER → NoSQL): `docs/ingenieria/transformacion-er-a-nosql-bd2.docx` y `.pdf` (14 tablas → 10 colecciones, índices tomados de `IndicesMongo.java`) y `modelo-nosql-moon-modeler.dmm` con el diagrama de las 10 colecciones. No hay `.sql` en el repo; el documento no lo cubre. Los diagramas omiten `suscripciones_telegram`, `bloqueos_administracion` y `documentos_fallidos`.
 **Sigue:** El `.docx` y el `.pdf` se versionan el 2026-09-29. El `.dmm` queda fuera de git: gitleaks toma por claves los UUID de sus relaciones (`parent_key`) y exceptuarlo exige que el dueño decida la allowlist. El PDF no se revisó renderizado.
@@ -161,9 +166,7 @@ en `settings.json`). `docker-compose.prod.yml` sigue sin *replica set*, a propó
 
 ## Sprints 3, 4 y 5
 
-### 2026-09-22 · `docs/cerrar-sprints-3-y-4`
-**Qué:** Delegado por el dueño (`REC-017`), se escribieron y cerraron retroactivamente `sprint-3.md`, `sprint-4.md` y `sprint-5.md` contra el código y `matriz-trazabilidad.md`, sin inventar una ceremonia que no ocurrió. ⚠️ `sprint-3.md` se fusionó por error dentro del PR #35 (CI de secretos): se escribió en esa misma rama mientras el CI corría, y un `git add -A docs` posterior lo arrastró — corregido en el registro, no en el historial de git (ver la fila de #35 en `registro-de-implementaciones.md`). El Sprint 5 quedó redefinido a solo cobertura de backend (su parte de interfaz es alcance retirado, `ADR-048`). Al verificar el Sprint 4 se encontró `BUG-091`: la matriz marcaba `RNF006` (cola muerta de la ingesta) ✅ sin que exista tal cola en el código — corregida a parcial, y bajó la cobertura de RNF de 17/27 a 16/27 en el registro. El Sprint 6 se redefinió para local (`ADR-057`) pero no se cerró: la pregunta de qué cuenta como demo sin frontend propio se separó en `REC-018`, pendiente del dueño. Cerrar varios sprints de golpe destapó tres bugs más en el generador de la Sala de control: una fila `Abierto` con la palabra «parcial» en su prosa se clasificaba mal (`BUG-092`), el «sprint activo» se calculaba mal — doblaba el avance por encima del 100% — en cuanto el último `sprint-N.md` documentado ya estaba cerrado (`BUG-093`), y ese mismo arreglo hizo que el aviso de secciones vacías reventara al toparse con un activo sin archivo (`BUG-094`). La Sala de control ahora corre sin error y da 85,7% (6/7 sprints cerrados).
-**Sigue:** Del dueño: decidir `REC-018` y, aparte, `BUG-091` (construir la cola muerta o replantear `RNF006`).
+Rotado a [`historico/bitacora-sprints-3-a-5.md`](historico/bitacora-sprints-3-a-5.md).
 
 ## Sprint 2
 

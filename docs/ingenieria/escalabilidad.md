@@ -120,6 +120,31 @@ diseñado (`aguavigia.mongo.espera-conexion-ms`, «falla rápido» en vez de enc
 - La memoria del backend con 30 000 conexiones (≈ 6,4 GiB) no se desglosó entre memoria viva y heap sin recoger
   (`-XX:MaxRAMPercentage=75`); en la prueba de SSE de antes, 10 000 conexiones midieron ≈ 1,2 GB (≈ 100 KB cada una).
 
+## Registro masivo de cuentas (2026-09-29, `ADR-088`)
+
+`demo.mjs --registros N` suma a la ciudad reportando N personas que piden una cuenta del panel por la API real
+(`POST /api/cuentas/registro`): el backend valida, **cifra la clave con BCrypt**, audita y envía el correo de verificación
+(o lo descarta con `--sin-correo`). Cada alta aparece en `usuarios` en cuanto responde 202. Medido en el mismo PC de 12 hilos,
+sobre una base con ≈ 30 000–43 000 cuentas, sin conexiones SSE:
+
+| Carga | Registros aceptados | p95 · máx de un registro | Reportes: p95 | Umbrales de k6 | Backend (pico) |
+|---|---|---|---|---|---|
+| Solo registros, 2 000 a 64 a la vez (cliente Node desde el equipo) | 2 000 / 2 000 | — (131 registros/s) | — | — | — |
+| Solo registros, 3 000 a 150 a la vez (cliente Node desde el equipo) | 3 000 / 3 000 | — (161 registros/s) | — | — | ≈ 840 % CPU |
+| 3 000 reportes en 30 s **+ 3 000 registros a 100/s**, sin correo | 3 000 / 3 000 | 1 668 ms · 5 753 ms | **1 655 ms** ✗ | ✗ `RNF002` no se cumple | 1 061 % CPU · 697 MiB |
+| 3 000 reportes en 30 s **+ 1 500 registros a 50/s**, sin correo | 1 500 / 1 500 | **221 ms** · 434 ms | **75 ms** | ✓ todos | — |
+
+- **El techo lo pone el BCrypt, no Mongo.** Solos, los registros llegan a ≈ 160 por segundo con el backend en ≈ 8,4 núcleos y
+  Mongo en ≈ 0,3. Cada alta dura además al menos 100 ms a propósito (`RNF024`): la duración mínima que impide adivinar qué
+  correos tienen cuenta por el tiempo de respuesta.
+- **Con reportes a la vez, 50 altas por segundo es lo que cabe sin degradar los reportes**; por eso es la tasa por defecto. A
+  100/s los reportes pasan de p95 75 ms a 1,6 s porque compiten por la misma CPU. Con 20 000 registros a 50/s la carga dura
+  ≈ 7 minutos; si solo se quiere ver crecer la base, `--usuarios` bajo y `--tasa-registros 150`.
+- **El correo no frena el registro**: sale en segundo plano (`@Async`, cola de 500, `CallerRunsPolicy`). MailHog guardó más de
+  10 000 correos sin problema; `--sin-correo` existe para no llenarlo (comprobado: 0 correos a `@carga.aguavigia.local`).
+- Las cuentas de la carga quedan en `PENDIENTE_VERIFICACION` con correo `r-<corrida>-<n>@carga.aguavigia.local`. `--restaurar`
+  las quita junto con todo lo demás.
+
 ## Lo que no se probó
 
 - **Resiliencia bajo carga** (Mongo o Redis caídos durante la prueba). El comportamiento con Redis caído está cubierto por
@@ -134,6 +159,7 @@ diseñado (`aguavigia.mongo.espera-conexion-ms`, «falla rápido» en vez de enc
 
 ```bash
 node scripts/carga/demo.mjs --usuarios 30000 --ventana 60 --conectados 30000 --restaurar
+node scripts/carga/demo.mjs --usuarios 10000 --ventana 60 --conectados 10000 --registros 20000 --sin-correo   # con registro masivo (≈ 7 min; esta escala no se midió entera)
 ```
 
 Guía y trampas del banco local en [`scripts/carga/README.md`](../../scripts/carga/README.md). Para las pruebas sueltas: vaciar

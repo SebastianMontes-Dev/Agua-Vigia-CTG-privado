@@ -6,7 +6,7 @@
 > **Qué SÍ va aquí:** hallazgos verificados, restricciones externas, correcciones de errores de
 > entendimiento, decisiones permanentes del proyecto, callejones sin salida ya explorados.
 > **Qué NO va aquí:** decisiones de arquitectura (van en `docs/design-decisions.md`), estado de
-> tareas (va en GitHub Projects), documentación de producto (va en `docs/`).
+> tareas (va en `docs/gestion/sprint-N.md` §2), documentación de producto (va en `docs/`).
 
 ---
 
@@ -111,7 +111,7 @@ que no cede desde este entorno. Pendiente: otra red, u contacto sugerido por la 
 | 2026-08-07 | El Sprint 0 admite **andamiaje** (estructura, configuración, rutas vacías), no funcionalidad. Criterio: si el código implementa un `RF`, no va en el Sprint 0. Ver `ADR-009`. |
 | 2026-08-07 | **No hay branch protection en GitHub.** El PR es recomendado para cambios no triviales, no obligatorio, y se sostiene por disciplina. Ver `ADR-010`. |
 | 2026-08-07 | Las fechas del proyecto se escriben en **hora local de Cartagena (UTC-5)**. Los agentes venían escribiendo la fecha UTC y adelantaban un día cada noche. Ver `protocolo-de-contexto.md` §3. |
-| 2026-09-29 | **Solo local, sin nada de despliegue**: un único `docker-compose.yml`, sin nginx, perfil `prod` ni réplicas. No proponer hosting, CDN, TLS ni S3. Lo retirado está en la etiqueta `pre-solo-local`. Ver `ADR-057` y `ADR-080`. |
+| 2026-09-29 | **Solo local, sin nada de despliegue**: `docker-compose.yml` más la capa opcional `docker-compose.carga.yml` de la demo de carga, sin nginx, perfil `prod` ni réplicas. No proponer hosting, CDN, TLS ni S3. Lo retirado está en la etiqueta `pre-solo-local`. Ver `ADR-057` y `ADR-080`. |
 
 ---
 
@@ -144,7 +144,7 @@ que no cede desde este entorno. Pendiente: otra red, u contacto sugerido por la 
 - **Pruebas de carga en Windows con Docker Desktop**: k6 contra un puerto publicado o `host.docker.internal`
   se satura en ~1 200 req/s y da p95 de segundos que **no son del sistema**; correr k6 en la misma red de Docker que
   el backend (`http://backend:8080`). Detalle: `docs/ingenieria/escalabilidad.md`.
-- **Entorno local con la imagen al día**: tras traer cambios de `main`, `docker compose up -d --build backend`; con la imagen vieja fallaban CORS, la foto y el cierre de sesión (2026-09-24).
-  Sin `.env` junto al compose el backend arranca sin ADMIN (`--env-file` no alimenta el `env_file` del servicio). «Cerrar sesión» falla a veces por diseño: margen de 1 s del filtro JWT (`plan-de-pruebas.md` §8).
+- **Entorno local con la imagen al día**: tras traer cambios, `docker compose up --build` (`up` a secas reutiliza la imagen; con una vieja fallaban CORS, la foto y el cierre de sesión, 2026-09-24).
+  Sin `.env`, el ADMIN nace con clave aleatoria escrita una vez en el log del backend (`ADR-086`). «Cerrar sesión» falla a veces por diseño: margen de 1 s del filtro JWT (`plan-de-pruebas.md` §8).
 - **Demo de carga** (`ADR-083`): `node scripts/carga/demo.mjs --usuarios 30000 --ventana 60 --conectados 30000 --restaurar`. Medido: 30 000 reportes con
   30 000 SSE, p95 130–164 ms. Los 50 000 de `RNF027` no se demuestran en un PC. Sin `--restaurar` una segunda corrida seguida ya no encuentra focos.

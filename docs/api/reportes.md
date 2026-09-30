@@ -109,8 +109,8 @@ cambio con la evidencia.
 
 Errores: `400` (tipo o firma inválidos, falta la parte `foto`), `404` (el reporte no existe), `413`.
 
-La foto es **evidencia**, no contenido público destacado: el servidor puede borrar los binarios pasados 365
-días (minimización de datos), conservando el reporte.
+La foto es **evidencia**, no contenido público destacado. La purga de binarios pasados 365 días (minimización de
+datos, conservando el reporte) existe pero está **desactivada por defecto** (`application.yml:132`; `ADR-027`, `ADR-085`).
 
 ## `POST /api/reportes/{id}/confirmar`
 

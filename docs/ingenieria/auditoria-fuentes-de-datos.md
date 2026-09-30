@@ -156,7 +156,7 @@ si la capa pasa a ser mixta y cómo se le declara eso al usuario.
 
 | # | Fuente | Tipo | Estado | Capa del pipeline |
 |---|---|---|---|---|
-| 1 | Acuacar API REST + RSS | Oficial | ✅ Verificado, en uso | L1 |
+| 1 | Acuacar API REST (`wp-json`) | Oficial | ✅ Verificado, en uso (`application.yml:175-177`). Su `/feed/` RSS está verificado (§1) pero el backend no lo consume | L1 |
 | 2 | Google News RSS | Agregador de prensa | ✅ Verificado, en uso | L2 |
 | 3 | Zona Cero RSS | Prensa local | ✅ Verificado, en uso | L2 |
 | 4 | RCN Radio | Prensa | ⚠️ Permitido, sin feed localizado (4 rutas probadas, reverificado 2026-08-08) | L2 (pendiente) |
@@ -185,7 +185,8 @@ si la capa pasa a ser mixta y cómo se le declara eso al usuario.
 2. ~~Reintentar la conexión a los feeds de Caracol Radio y W Radio.~~ **Resuelto 2026-08-08**: no era
    un problema de red/TLS, era la ruta equivocada (`/rss/` no existe). El feed real es
    `/arc/outboundfeeds/google-news-feed/?outputType=xml` en ambos (mismo CMS Arc/PEP), verificado con
-   `robots.txt` permitiéndolo explícitamente. Listos para integrarse en `RssCollector` (Sprint 3).
+   `robots.txt` permitiéndolo explícitamente. Ya integrados: son dos filas de `aguavigia.ingesta.rss` (`application.yml:185-188`)
+   que consume `RssCollector`.
 3. ~~Reintentar GDELT con throttling propio.~~ Reintentado 2026-08-08 con 3 espaciados crecientes
    (2 s, 6 s, 15 s) — sigue en `429` de forma persistente. El límite no cede con throttling desde este
    entorno; queda pendiente probar desde otra red o escribir al contacto que la propia API sugiere.

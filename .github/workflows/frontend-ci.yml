@@ -9,7 +9,6 @@ on:
       - "scripts/**"
       - "docker-compose.yml"
       - ".env.example"
-      - "docs/ingenieria/entorno-local.md"
       - "DESIGN.md"
       - ".github/workflows/frontend-ci.yml"
   pull_request:
@@ -19,7 +18,6 @@ on:
       - "scripts/**"
       - "docker-compose.yml"
       - ".env.example"
-      - "docs/ingenieria/entorno-local.md"
       - "DESIGN.md"
       - ".github/workflows/frontend-ci.yml"
 
@@ -73,7 +71,8 @@ jobs:
           path: frontend/test-results/
           retention-days: 14
 
-  # Por este job el filtro de rutas incluye backend, siembra, compose y el hash de desarrollo de entorno-local.md.
+  # Por este job el filtro de rutas incluye backend, siembra y compose. El sembrador del compose (ADR-086) no se levanta:
+  # las pruebas E2E siembran su propio conjunto controlado en el paso siguiente.
   integracion:
     name: Núcleo ciudadano contra backend real
     runs-on: ubuntu-latest
@@ -94,7 +93,7 @@ jobs:
         run: |
           docker compose up -d --wait mongo redis
           docker compose exec -T redis redis-cli SET tarea-unica:ingesta pruebas-f2 EX 3600
-      - run: docker compose up -d --build --wait
+      - run: docker compose up -d --build --wait mongo redis mailhog backend
       - run: npm ci
         working-directory: scripts
       - name: Sembrar demo y casos de borde

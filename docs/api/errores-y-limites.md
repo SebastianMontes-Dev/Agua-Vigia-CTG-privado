@@ -126,9 +126,10 @@ leerlas.
 CORS. El frontend de `frontend/` pasa por el proxy de Vite (mismo origen), así que no hace peticiones cruzadas.
 
 **Abierto en local**: los perfiles `dev` (backend desde el IDE) y `docker` (el de `docker compose up`, con la API
-en `http://localhost:8081`) dejan pasar a `http://localhost:5173` (Vite), `http://localhost:3000` (React/Next) y
-`http://localhost:4200` (Angular). Con Docker se cambia con `CORS_ORIGENES` en el `.env` (lista separada por
-comas, sustituye a los tres). Un origen no permitido recibe `403` en el preflight.
+en `http://localhost:8081`) dejan pasar cuatro orígenes: `http://localhost:5173` (Vite), `http://localhost:4173`
+(`vite preview`, el de las pruebas E2E), `http://localhost:3000` (React/Next) y `http://localhost:4200` (Angular)
+(`application-dev.yml:19-23`, `application-docker.yml:24`). Con Docker se cambia con `CORS_ORIGENES` en el `.env`
+(lista separada por comas, sustituye a los cuatro). Un origen no permitido recibe `403` en el preflight.
 
 Un frontend en **otro origen** (un dev server local, un hosting estático aparte) tiene dos caminos:
 

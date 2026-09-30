@@ -6,23 +6,26 @@
 > `ADR-067`) se enseña en la sección 7; el panel del veedor (F5) aún no tiene interfaz y se muestra con Swagger.
 > Duración: unos 10 minutos.
 
-**Entorno de la corrida:** `docker compose up` con Mongo, Redis, MailHog y backend sanos, 211 sectores
-sembrados y el histórico de `scripts/sembrar-historico-cortes.mjs` cargado. El backend queda en
-`http://localhost:8081`.
+**Entorno de la corrida:** `docker compose up` con Mongo, Redis, MailHog y backend sanos; desde `ADR-086` ese mismo comando
+siembra los 211 sectores, las 30 000 cuentas, el histórico y los barrios afectados. El backend queda en `http://localhost:8081`.
 
 ---
 
 ## 0. Antes de presentar
 
 ```bash
-docker compose up -d --build --wait
-cd scripts && npm install && node sembrar-sectores.mjs && node sembrar-historico-cortes.mjs && cd ..
-curl -s localhost:8081/actuator/health/readiness        # {"status":"UP"}
+docker compose up                                   # espera la línea «Datos listos: …» del sembrador
+docker compose run --rm sembrador verificar         # conteo por colección y mínimos de la entrega
+docker compose logs backend | findstr ADMINISTRADOR # clave del ADMIN (solo en una base recién creada)
 ```
+
+- **El día antes**, con internet: `docker compose up --build` para dejar las imágenes construidas; el día de la sustentación
+  arranca sin conexión si además `INGESTA_MODO=local` (`ADR-082`).
 
 - **La siembra histórica es aleatoria** (`Math.random()`): las cifras del índice cambian en cada corrida. En
   la corrida de referencia dieron 99,62 % global; **lee el valor real en pantalla, no lo cites de este archivo.**
-- **Sembrar borra los cortes y reportes de mayo–julio 2026** que hubiera antes (`deleteMany` del script).
+- **El sembrador no repite el histórico** si ya hay cortes de mayo–julio; si se corre a mano, `sembrar-historico-cortes.mjs`
+  borra los de ese rango antes de insertar (`deleteMany`).
 - **Copia de la base de la demo** (211 sectores, histórico y cuentas): la de la corrida del 2026-09-24, con 40 001 cuentas sin barrio, está en `C:\Users\sabas\Documentos\respaldos-aguavigia\aguavigia-demo-2026-09-24.archive.gz`, fuera del repo. La base de hoy tiene **30 000 cuentas completas** (barrio, segundo factor, tokens y auditoría; `scripts/sembrar-usuarios-demo.mjs`) y la demo de carga (sección 7) hace su propio respaldo en `respaldos-mongo/` (ignorado por git). Para volver a un respaldo (sustituye la base actual):
   `docker exec -i aguavigia-mongo mongorestore --archive --gzip --drop < <ruta del archivo>`. Contiene los datos de cuentas, incluido el hash del ADMIN: no la subas a git.
 - Abre en pestañas: `http://localhost:8081/swagger-ui.html` y MailHog `http://localhost:8025`.
@@ -94,8 +97,10 @@ curl -s -X POST localhost:8081/api/suscripciones -H 'Content-Type: application/j
 ```
 
 Abre `http://localhost:8025`: llega «Confirma que quieres recibir los avisos de ALCIBIA» con el enlace
-`/api/suscripciones/confirmar?token=…`. **Ese enlace abre una página con un botón; confirmar es un `POST`**
-(un `GET` no confirma, para que un escáner de correo no lo haga por el vecino). Desde consola:
+`http://localhost:5173/avisos/confirmar?token=…` (la SPA, `APP_URL_FRONTEND`; `MailNotificacionAdapter.java:66`).
+**Esa pantalla muestra un botón; confirmar es un `POST`** (abrir el enlace no confirma, para que un escáner de correo no
+lo haga por el vecino). Sin el frontend levantado, `localhost:8081/api/suscripciones/confirmar?token=…` sirve la misma
+página con botón desde el backend. Desde consola:
 
 ```bash
 curl -s -X POST "localhost:8081/api/suscripciones/confirmar?token=<el token del enlace>"    # 200, CONFIRMADA
@@ -153,6 +158,23 @@ node scripts/verificar-flujos.mjs
 - **Para mostrarlo en vivo** usa Swagger con el token de `POST /api/veedor/sesion` (con el segundo factor ya dado de alta, el cuerpo del login lleva
   además `codigoTotp`; la primera vez, sin alta, devuelve `alcance: ALTA_SEGUNDO_FACTOR`).
 
+## 6.1 «Metan 1 000 usuarios más» (dónde se guarda un usuario)
+
+```bash
+docker compose run --rm sembrador agregar-usuarios --cantidad 1000
+```
+
+- Muestra `aguavigia.usuarios` antes → después (30 001 → 31 001 sobre una base recién sembrada), lo que cada cuenta dejó en
+  `tokens_cuenta`, `auditoria_cuentas` y `suscripciones`, y tres documentos tal como quedaron en Mongo. Son personas distintas
+  en cada ejecución (faker, `ADR-087`).
+- Para verlas en la base: `docker compose --profile demo up -d mongo-express` y abrir `http://localhost:8082` →
+  `aguavigia` → `usuarios`, o `db.usuarios.find({"lote": "<el lote que imprimió>"})` en Compass.
+- Para demostrar que entran de verdad: una cuenta `ACTIVA` del lote sin segundo factor inicia sesión en
+  `POST /api/veedor/sesion` con la clave `DemoAguaVigia-2026`.
+- Con `--modo api` cada usuario se registra por `POST /api/cuentas/registro` y su correo de verificación llega a MailHog; con el
+  límite normal solo pasan 10 cada 10 min por IP (el resto, `429`, y el script lo explica).
+- Deshacer: `docker compose run --rm sembrador agregar-usuarios --borrar-lote <lote>`.
+
 ## 7. La ciudad entera reportando a la vez (demo de carga)
 
 Es la parte que responde «¿y si lo usa toda la ciudad?». Un solo comando abre 30 000 conexiones en vivo, dispara 30 000
@@ -163,6 +185,7 @@ reportes en un minuto y deja ver tres cosas a la vez (`ADR-083`):
 | El mapa cambiando de color barrio por barrio, por SSE, a medida que el consenso real decide | `http://localhost:5173`: `cd frontend && npm run dev` |
 | El panel en vivo de k6: peticiones por segundo, latencia, errores | `http://localhost:5665` (aparece al arrancar la prueba) |
 | El resumen final en la consola: reportes, latencia, conexiones, CPU y memoria, barrios que cambiaron | la terminal donde se lanzó |
+| La base creciendo cada segundo: usuarios, reportes, bitácora, auditoría | otra terminal: `docker compose run --rm sembrador monitor` |
 
 ```bash
 node scripts/carga/demo.mjs --usuarios 30000 --ventana 60 --conectados 30000 --restaurar --esperar
@@ -172,6 +195,17 @@ node scripts/carga/demo.mjs --usuarios 30000 --ventana 60 --conectados 30000 --r
   con el perfil `carga` (sin límite de peticiones por IP: todo el tráfico sale de este PC), abre las conexiones, lanza k6 dentro
   de la red de Docker y, al terminar, devuelve el backend a su perfil normal. **`--restaurar`** deja además Mongo y Redis como
   estaban, para poder repetirlo; **`--esperar`** se detiene antes de disparar, para abrir el mapa y el panel de k6.
+- **Con registro masivo (`ADR-088`):** `--registros 20000 --sin-correo` suma 20 000 personas pidiendo una cuenta por la API real
+  mientras los demás reportan; cada alta aparece en `usuarios` en cuanto responde 202 (correo `@carga.aguavigia.local`,
+  `PENDIENTE_VERIFICACION`). A la tasa por defecto (50/s, la que no degrada los reportes) son ≈ 7 minutos:
+
+  ```bash
+  node scripts/carga/demo.mjs --usuarios 10000 --ventana 60 --conectados 10000 --registros 20000 --sin-correo --restaurar
+  ```
+
+  Referencia medida (2026-09-29): 1 500 registros a 50/s junto a 3 000 reportes en 30 s cumplieron todos los umbrales (p95 del
+  registro 221 ms, del reporte 75 ms, 0 errores); a 100/s los reportes subieron a p95 1,6 s porque el BCrypt de cada alta se come
+  la CPU. Es el límite de este PC, dicho como tal.
 - **Todo es parametrizable:** `--usuarios 10000`, `--ventana 30`, `--conectados 10000`, `--focos 12` (barrios con avería masiva
   que se encienden uno tras otro) y `--lectores`, `--veedores`, `--suscripciones` por segundo. Con `--conectados 0` no abre el
   canal en vivo. El informe HTML de k6 queda en `resultados/<fecha>/`.
@@ -205,7 +239,7 @@ node scripts/carga/demo.mjs --usuarios 30000 --ventana 60 --conectados 30000 --r
 
 ## Si algo falla en vivo
 
-- **Backend con imagen vieja:** si CORS, la foto o «cerrar sesión» fallan tras traer cambios de `main`, reconstruye con `docker compose up -d --build backend` (el 2026-09-24 eso resolvió los tres).
+- **Imagen vieja:** tras traer cambios de `main`, `docker compose up` reutiliza las imágenes ya construidas; reconstruye con `docker compose up --build` (el 2026-09-24 eso resolvió CORS, la foto y «cerrar sesión»).
 - Docker Desktop apagado: `docker info` falla; ábrelo y espera a que `docker ps` muestre los cuatro contenedores sanos.
 - `429` al reportar: límite por dispositivo o por IP; cambia la huella o espera (`Retry-After`).
 - El sector no cambia: cuenta los reportes de la ventana de 30 min; un empate no cambia el estado.

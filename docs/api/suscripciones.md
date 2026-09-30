@@ -8,9 +8,9 @@ correo. **Doble confirmación** (*doble opt-in*): el correo no recibe nada hasta
 | Método y ruta | Para qué | Límite por IP |
 |---|---|---|
 | `POST /api/suscripciones` | Pedir avisos. `201`. | 10 / 10 min |
-| `GET /api/suscripciones/confirmar?token=…` | **Página** con un botón «Confirmar» (el enlace del correo). No confirma nada. | 10 / 10 min |
+| `GET /api/suscripciones/confirmar?token=…` | **Página** del backend con un botón «Confirmar». No confirma nada. Ya no es el enlace del correo (que lleva a la SPA, `/avisos/confirmar`), pero sigue disponible. | 10 / 10 min |
 | `POST /api/suscripciones/confirmar?token=…` | Confirmar de verdad (lo que hace el botón). | 10 / 10 min |
-| `GET /api/suscripciones/cancelar?token=…` | **Página** con un botón «Darme de baja» (el enlace de **todo** correo). No cancela nada. | 10 / 10 min |
+| `GET /api/suscripciones/cancelar?token=…` | **Página** del backend con un botón «Darme de baja». No cancela nada. El enlace de baja de **todo** correo lleva a la SPA (`/avisos/baja`); esta ruta sigue disponible. | 10 / 10 min |
 | `POST /api/suscripciones/cancelar?token=…` | Darse de baja de verdad. | 10 / 10 min |
 
 ## `POST /api/suscripciones`
@@ -46,20 +46,21 @@ PENDIENTE_CONFIRMACION ──confirmar──▶ CONFIRMADA ──cancelar──�
 
 ## Los enlaces del correo: el `GET` muestra, el `POST` actúa
 
-Los enlaces de los correos son `GET`, y un antivirus o una vista previa de enlaces los abre sin que nadie los
-pida. Por eso el `GET` **no cambia nada**: devuelve una página HTML con un botón, y el botón hace `POST` a la
-misma ruta (`ADR-054`). Un enlace ya enviado antes de este cambio sigue funcionando: ahora abre la página con el botón.
+Los enlaces del correo apuntan a la SPA: `${APP_URL_FRONTEND}/avisos/confirmar?token=…` y
+`${APP_URL_FRONTEND}/avisos/baja?token=…` (`MailNotificacionAdapter.java:66,71,112`). Un antivirus o una vista previa
+de enlaces los abre sin que nadie los pida, así que abrirlos **no cambia nada**: la pantalla muestra un botón y el
+botón hace `POST` con `Accept: application/json` (`ADR-054`). Las páginas `GET` del backend siguen existiendo con la
+misma regla (el botón hace `POST` a la misma ruta), para quien no tenga el frontend levantado o tenga un enlace
+viejo que apuntaba al backend.
 
 | Llamada | Qué hace | `Accept` |
 |---|---|---|
 | `GET …/confirmar?token=…` o `…/cancelar?token=…` | Página con el botón; no consume el token. | Solo `text/html`. Con `application/json` responde `406`. |
 | `POST …/confirmar?token=…` o `…/cancelar?token=…` (el token puede ir también como campo del formulario) | Ejecuta la acción. | `text/html` → página de resultado; `application/json` → el JSON de la suscripción (o el error RFC 7807). |
 
-Un frontend propio puede:
-1. **Dejar las páginas del backend** tal cual (cero trabajo), o
-2. **Servir su propia pantalla** con un botón que llame a `POST` con `Accept: application/json`. En ese caso, el
-   correo debe apuntar a esa pantalla: F4 usa `APP_URL_FRONTEND`
-   (ver [Correos y enlaces](correos-y-enlaces.md)). **La llamada se hace al pulsar el botón, no al cargar la pantalla.**
+El frontend de `frontend/` ya sirve esas dos pantallas (`/avisos/confirmar`, `/avisos/baja`) y llama a `POST` con
+`Accept: application/json`. **La llamada se hace al pulsar el botón, no al cargar la pantalla.** Otro cliente en otro
+origen cambia `APP_URL_FRONTEND` (ver [Correos y enlaces](correos-y-enlaces.md)).
 
 Errores: `400` con `type: peticion-invalida` si el token no existe o venció; `409` si intentas confirmar
 una suscripción ya cancelada.

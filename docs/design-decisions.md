@@ -189,7 +189,7 @@ Solo si el medio cambia su `robots.txt` o concede permiso explícito por escrito
 ## ADR-006 — Exigir cita textual verificable a toda extracción de IA
 
 - **Fecha:** 2026-08-06
-- **Estado:** Aceptada
+- **Estado:** Parcialmente reemplazada por ADR-025 y ADR-028 — la capa de IA y los umbrales de confianza (0.85 / 0.5); la cita textual verificable sigue
 
 ### Contexto
 La capa de IA extrae sectores, fechas y horas de texto libre. Un modelo puede alucinar un corte que
@@ -399,7 +399,7 @@ Activando las reglas de protección en GitHub.
 ## ADR-014 — Un sector sin dato verificado se publica con estado nulo, no como `CON_SERVICIO`
 
 - **Fecha:** 2026-08-08
-- **Estado:** Parcialmente reemplazada por ADR-035 — el contrato sigue transmitiendo `estado: null`; lo que cambia es cómo lo presenta el frontend
+- **Estado:** Aceptada — ADR-035, que la reemplazaba en parte, fue a su vez reemplazada por ADR-069, que devuelve el nulo a «Sin datos verificados»
 
 ### Contexto
 
@@ -863,7 +863,7 @@ Si en el futuro se prefiere la opción (b), requiere además tocar `CorteAguaDoc
 ## ADR-025 — Descartar funcionalidades de Inteligencia Artificial (M9) para cumplir plazos
 
 - **Fecha:** 2026-08-10
-- **Estado:** Aceptada
+- **Estado:** Parcialmente reemplazada por ADR-032 y ADR-034 — RF033 (confianza graduada y cita, ADR-032) y RF035 (la prensa pasa siempre por el veedor, ADR-034) se cumplen sin IA con el extractor heurístico (PR #102, matriz de trazabilidad); sigue el descarte de la IA
 
 ### Contexto
 El Módulo 9 (Ingesta automática con IA) requería usar el SDK de Anthropic para estructurar avisos no estructurados de la prensa local y Acuacar. Sin embargo, para poder destrabar el Módulo 9 en su funcionalidad base (ingesta por heurísticas), se eliminó la dependencia de Anthropic (PR #137) ya que bloqueaba el despliegue y desarrollo por falta de API keys o limitaciones de integración.
@@ -926,7 +926,7 @@ coordenada igual.
 ## ADR-027 — Modelo de privacidad y retención de la evidencia fotográfica (M10)
 
 - **Fecha:** 2026-08-11
-- **Estado:** Aceptada
+- **Estado:** Parcialmente reemplazada por ADR-080 — la activación de la retención en el perfil `prod` (ese perfil ya no existe); la purga se conserva apagada, ver ADR-085
 
 ### Contexto
 M10 permite adjuntar una foto a un reporte. Esa foto se sirve en `/fotos/<uuid>.jpg` sin
@@ -1053,7 +1053,7 @@ del frontend en ese punto.
 ## ADR-030 — Los enlaces de `/api/suscripciones/confirmar` y `/cancelar` responden HTML o JSON según el `Accept`, no dos rutas separadas
 
 - **Fecha:** 2026-08-12
-- **Estado:** Aceptada
+- **Estado:** Parcialmente reemplazada por ADR-054 — el GET del enlace ya no actúa ni responde JSON; la respuesta HTML o JSON según el `Accept` sigue en el POST
 
 ### Contexto
 `MailNotificacionAdapter` manda el enlace de confirmación y el de baja apuntando directo al backend
@@ -1437,7 +1437,7 @@ Volver a agregar sobre `CorteAguaDocumento` y restaurar el `unwind` por `sectore
 ## ADR-038 — Las portadas de Acuacar se sirven por proxy propio, no enlazadas directo
 
 - **Fecha:** 2026-08-31
-- **Estado:** Aceptada
+- **Estado:** Parcialmente reemplazada por ADR-080 — el bloque de nginx; sigue el proxy de Vite
 
 ### Contexto
 Las tarjetas de la bitácora muestran la portada del boletín. Enlazarla directo a
@@ -1631,7 +1631,7 @@ el PRD quedan como estaban.
 ## ADR-041 — El rediseño «carta náutica» se archiva; la paleta oficial sigue siendo la de DESIGN.md
 
 - **Fecha:** 2026-09-04
-- **Estado:** Aceptada
+- **Estado:** Parcialmente reemplazada por ADR-070 — la paleta; sigue archivado el rediseño «carta náutica»
 
 ### Contexto
 La rama `rediseno/frontend-premium` sostenía un rediseño completo del frontend —fondo crema
@@ -1966,7 +1966,7 @@ build, ni el CI, ni el contrato OpenAPI.
 ## ADR-048 — El repositorio pasa a ser backend + datos + infraestructura: el frontend se retira y lo rehace otra persona
 
 - **Fecha:** 2026-09-21
-- **Estado:** Aceptada
+- **Estado:** Parcialmente reemplazada por ADR-067 y ADR-080 — el frontend se rehace en `frontend/` y ya no hay proxy nginx; sigue `docs/api/` como contrato
 - **Decide:** Dueño del proyecto
 
 ### Contexto
@@ -2002,7 +2002,7 @@ plantillas de correo usan su paleta).
 ## ADR-049 — El backend escala con micro-caché HTTP, avisos SSE ligeros y ejecución única de jobs, no con más hardware
 
 - **Fecha:** 2026-09-21
-- **Estado:** Reemplazada en parte por ADR-080 (micro-caché de nginx y réplicas)
+- **Estado:** Parcialmente reemplazada por ADR-080 — la micro-caché de nginx y las réplicas
 - **Decide:** Dueño del proyecto
 
 ### Contexto
@@ -2141,7 +2141,7 @@ Lanzar `IllegalArgumentException` en lugar de `EntidadNoEncontradaException` en 
 ## ADR-053 — El consenso se evalúa como mucho una vez por segundo y sector, y la micro-caché de nginx ignora las cabeceras de caché del origen
 
 - **Fecha:** 2026-09-21
-- **Estado:** Reemplazada en parte por ADR-080 (la micro-caché de nginx; el consenso acotado sigue)
+- **Estado:** Parcialmente reemplazada por ADR-080 — la micro-caché de nginx; el consenso acotado sigue
 - **Decide:** Dueño del proyecto (delegó las decisiones de escalabilidad, «tú decide qué pulir»)
 
 ### Contexto
@@ -2508,7 +2508,7 @@ exige primero el *replica set* de esta misma fase.
 ## ADR-063 — Mongo local corre como *replica set* de un nodo, con `directConnection=true` en los scripts del host
 
 - **Fecha:** 2026-09-22
-- **Estado:** Aceptada
+- **Estado:** Aceptada — la condición sobre `docker-compose.prod.yml` quedó obsoleta por ADR-080
 - **Decide:** Dueño del proyecto (delegado al agente, Fase 3 de `docs/ingenieria/plan-validacion-backend.md`)
 
 ### Contexto
@@ -2567,7 +2567,7 @@ cuatro scripts de siembra (vuelven a conectar sin problema a una instancia únic
 ## ADR-064 — Transacción multi-documento detrás de un puerto, con notificaciones e invalidación de caché diferidas al commit
 
 - **Fecha:** 2026-09-22
-- **Estado:** Aceptada
+- **Estado:** Aceptada — la condición sobre `docker-compose.prod.yml` quedó obsoleta por ADR-080
 - **Decide:** Dueño del proyecto (delegado al agente, Fase 3 de `docs/ingenieria/plan-validacion-backend.md`)
 
 ### Contexto
@@ -2725,7 +2725,7 @@ involucrados (no hay endpoint HTTP nuevo).
 ## ADR-067 — El frontend nuevo se hace con React 19, Vite y CSS propio, sobre un mapa base PMTiles local y sin el shell de ADR-029
 
 - **Fecha:** 2026-09-25
-- **Estado:** Parcialmente reemplazada por ADR-070 — solo la exclusión de webfonts; el stack sigue vigente
+- **Estado:** Parcialmente reemplazada por ADR-070 — solo la exclusión de webfonts; y ADR-080 — el servidor de F6 (ya no hay nginx); el stack sigue vigente
 - **Decide:** Dueño del proyecto
 
 ### Contexto
@@ -3514,8 +3514,129 @@ usan las pruebas) y `scripts/limpiar-puertos.sh` (la utilidad para Linux y macOS
 Retirar `RF039`/`RF040` del PRD y de la matriz, borrar sus controladores, casos de uso y pruebas, regenerar `openapi.yaml` y
 avisar al frontend para regenerar su esquema.
 
+## ADR-086 — Todo se levanta con un solo `docker compose up`, sin `.env`: el backend genera sus secretos y un sembrador deja la base lista
+
+- **Fecha:** 2026-09-29
+- **Estado:** Aceptada
+- **Decide:** Dueño del proyecto (Sebastian)
+
+### Contexto
+La entrega exige que el proyecto solo necesite `docker compose up` y que Mongo tenga al menos 30 000 registros. Hasta hoy
+hacían falta, además: copiar `.env`, generar `JWT_SECRET`, calcular el hash BCrypt del primer ADMIN con `GenerarHashVeedor`
+desde el IDE, y correr a mano `sembrar-sectores.mjs` y `sembrar-usuarios-demo.mjs` con Node en el equipo. Sin `JWT_SECRET`
+el panel respondía 503, y un clon limpio arrancaba con la base vacía (medido: 0 usuarios; el equipo del dueño tenía 30 004
+solo porque los había sembrado a mano).
+
+### Alternativas consideradas
+| Opción | A favor | En contra |
+|---|---|---|
+| Credenciales de demostración fijas en el compose | Simple; clave conocida para la demo | Versiona un secreto (regla del proyecto) y un hash que habilita el panel |
+| Restaurar un respaldo de Mongo al primer arranque | Arranque rápido, datos idénticos | Un binario de ~12 MB en git (LFS) que envejece con cada cambio de esquema |
+| **Autogenerar secretos en el perfil `docker` y sembrar con un servicio de un solo uso** | Sin secretos versionados; datos siempre coherentes con el código | El primer arranque tarda más; la clave del ADMIN hay que leerla del log |
+
+### Decisión
+- Perfil `docker`: `aguavigia.jwt.secret` = `${JWT_SECRET:${random.uuid}${random.uuid}}` (UUID de `SecureRandom`) y
+  `aguavigia.cuentas.admin-inicial-generar-clave: true`, con `admin@aguavigia.local` por defecto. Sin
+  `VEEDOR_PASSWORD_HASH`, `SembradorAdminInicial` genera una clave aleatoria de 20 caracteres, la cifra con BCrypt y la escribe
+  **una sola vez** en el log del backend.
+- Servicio `sembrador` (`scripts/Dockerfile`, `scripts/sembrador.mjs`): Node con los scripts y `data/geoespacial` dentro.
+  Corre al quedar sano el backend y orquesta los scripts que ya existían, cada uno con su puerta: sectores si hay menos de 211,
+  30 000 cuentas si hay menos de 30 000 de demostración, reportes reales por la API si no hay reportes fuera del histórico, e
+  histórico si no hay cortes de mayo–julio. Un segundo `up` no escribe nada.
+- `mongo-express` en el perfil `demo`, solo en `127.0.0.1:8082`, para enseñar dónde se guarda cada dato.
+- `contenedores-ci.yml` levanta todo sin `.env` en cada PR, exige que el sembrador termine con 0, que se cumplan los mínimos y que
+  un segundo `up` no cambie los conteos.
+
+### Consecuencias
+- **Gana:** clon limpio → `docker compose up` → 211 sectores, 30 001 usuarios, 120 cortes y barrios afectados por consenso real,
+  en 106 s con las imágenes en caché (medido el 2026-09-29). Ningún secreto nuevo en git.
+- **Pierde:** con el secreto aleatorio, las sesiones no sobreviven a un reinicio del backend. La clave del ADMIN se lee con
+  `docker compose logs backend`; si se pierde, `scripts/restablecer-admin.mjs`. Las cuentas de demostración comparten una clave
+  pública (`DemoAguaVigia-2026`, ya documentada), aceptable solo porque el proyecto es local (`ADR-057`, `ADR-080`).
+- **Queda condicionado:** con `image:` y `build:` a la vez, `docker compose up` reutiliza la imagen existente; tras cambiar
+  código hay que usar `docker compose up --build`. La primera construcción necesita internet (Maven Central y npm).
+
+### Cómo se revierte
+Quitar las dos claves de `application-docker.yml`, el parámetro `generarClaveSiFalta` de `SembradorAdminInicial` y el servicio
+`sembrador`; volver a exigir `.env` y la siembra a mano. No toca datos.
+
+## ADR-087 — Los usuarios que se agregan en vivo salen de faker y se agrupan por lote; las 30 000 iniciales siguen deterministas
+
+- **Fecha:** 2026-09-29
+- **Estado:** Aceptada
+- **Decide:** Dueño del proyecto (Sebastian)
+
+### Contexto
+En la sustentación pueden pedir «metan 1 000 usuarios más» para ver dónde se guardan y cómo se comporta el sistema. El
+sembrador de las 30 000 (`sembrar-usuarios-demo.mjs`) es determinista a propósito (misma semilla, misma base) y, antes de
+insertar, borra lo que él mismo sembró: correrlo otra vez no agrega nada.
+
+### Alternativas consideradas
+| Opción | A favor | En contra |
+|---|---|---|
+| Reusar el sembrador con otra semilla | Sin código nuevo | Borra las 30 000 antes de insertar; los nombres salen de las mismas listas cortas |
+| Script aparte con su propia lógica de cuentas | Independiente | Duplica ~150 líneas de reglas (estados, auditoría, tokens, suscripciones) que tarde o temprano divergen |
+| **Fábrica compartida (`scripts/lib/cuentas-demo.mjs`) con dos fuentes de azar** | Una sola copia de las reglas; el sembrador queda byte a byte igual (comprobado con 2 000 cuentas); faker da personas distintas en cada ejecución | Una dependencia nueva (`@faker-js/faker`) en `scripts/` |
+
+### Decisión
+- `scripts/lib/cuentas-demo.mjs` genera la cuenta y lo que deja en el sistema; recibe `azar`, `nombrar` y `extras`.
+- `sembrar-usuarios-demo.mjs` la usa con su semilla y sus listas; `agregar-usuarios.mjs` con `lib/fuente-faker.mjs` (faker
+  `es_MX`, sin semilla salvo `--semilla`).
+- `agregar-usuarios.mjs --modo directo` (por defecto) inserta cuentas completas con la marca `lote`; `--modo api` las registra por
+  `POST /api/cuentas/registro` en un dominio reservado (`<lote>.registro.aguavigia.local`). `--borrar-lote` retira un lote y lo que
+  dejó. Se ejecuta sin Node en el equipo: `docker compose run --rm sembrador agregar-usuarios --cantidad 1000`.
+
+### Consecuencias
+- **Gana:** medido el 2026-09-29, 1 000 cuentas en segundos (30 001 → 31 001) con tokens, auditoría y suscripciones coherentes; una
+  de ellas inicia sesión en el backend con la clave de demostración; borrar el lote devuelve exactamente los conteos anteriores.
+- **Pierde:** el modo `api` choca con el límite de 10 registros cada 10 min por IP salvo con el perfil `carga`, y las cuentas que
+  crea no llevan `lote` (se reconocen por el dominio). Volver a correr el sembrador de las 30 000 borra también los lotes de faker,
+  porque llevan la misma marca `datosDeDemostracion`.
+- **Queda condicionado:** cualquier regla nueva de las cuentas de demostración se escribe en la fábrica, no en los scripts.
+
+### Cómo se revierte
+Borrar `agregar-usuarios.mjs`, `lib/fuente-faker.mjs` y la dependencia; `sembrar-usuarios-demo.mjs` puede quedarse con la fábrica.
+
+## ADR-088 — La demo de carga suma el registro masivo de cuentas por la API real, a su propia tasa, con un visor en vivo de la base
+
+- **Fecha:** 2026-09-29
+- **Estado:** Aceptada
+- **Decide:** Dueño del proyecto (Sebastian)
+
+### Contexto
+La entrega pide mostrar un flujo real con muchos usuarios a la vez («10 000 registrándose, otros enviando reportes») y poder
+ir a la base mientras ocurre. La demo de carga (`ADR-083`) ya cubría reportes, confirmaciones, averías, lecturas, sesiones,
+suscripciones y SSE, pero las cuentas solo existían sembradas directo en Mongo. Medido el 2026-09-29: un alta por
+`POST /api/cuentas/registro` cifra la clave con BCrypt y dura al menos 100 ms (`RNF024`); solas, las altas llegan a ≈ 160/s con
+el backend en ≈ 8,4 núcleos; a 100/s junto con 100 reportes/s, los reportes pasan de p95 75 ms a 1,6 s.
+
+### Alternativas consideradas
+| Opción | A favor | En contra |
+|---|---|---|
+| Registrar dentro de la ventana de los reportes (misma duración) | Una sola cifra de duración | 20 000 altas en 60 s son 333/s: el doble del techo; la prueba mediría la cola, no el sistema |
+| Sembrar las cuentas directo en Mongo durante la carga | Rápido | No es un flujo real: se salta validación, BCrypt, auditoría y correo |
+| **Escenario de k6 propio, a una tasa configurable (50/s por defecto), en paralelo con los reportes** | Flujo real completo; la tasa por defecto no degrada los reportes | Con 20 000 altas la carga dura ≈ 7 min |
+
+### Decisión
+- `flujo-ciudadano.js`: escenario `registros` (`REGISTROS`, `TASA_REGISTROS`) con correos `r-<corrida>-<n>@carga.aguavigia.local`
+  y umbral de p95 < 2 s. `demo.mjs --registros N --tasa-registros T --sin-correo`, con su bloque en el resumen.
+- `--sin-correo`: `docker-compose.carga.yml` pasa `aguavigia.correo.cuentas-habilitado=false` y `CorreoDeCuentaDescartadoAdapter`
+  sustituye a `MailCuentaAdapter` (solo correos de cuentas; los avisos de corte no cambian). Sin esa opción, nada cambia.
+- `scripts/carga/monitor-bd.mjs` (`docker compose run --rm sembrador monitor`): conteo por colección y ritmo por segundo.
+
+### Consecuencias
+- **Gana:** medido, 1 500 altas a 50/s junto a 3 000 reportes en 30 s con todos los umbrales cumplidos (registro p95 221 ms,
+  reporte p95 75 ms, 0 errores), y 0 correos a MailHog con `--sin-correo`.
+- **Pierde:** con `--sin-correo`, una invitación hecha durante la demo no se puede aceptar (el enlace solo existía en el correo).
+  El techo de altas es de este PC (BCrypt compite con el generador de carga): no se extrapola a un servidor.
+- **Queda condicionado:** subir el coste de BCrypt baja el techo de altas en la misma proporción.
+
+### Cómo se revierte
+Quitar el escenario, las opciones de `demo.mjs`, `CorreoDeCuentaDescartadoAdapter` y la anotación condicional de
+`MailCuentaAdapter`. No toca datos ni el contrato de la API.
+
 <!--
-Siguiente número disponible: ADR-086
+Siguiente número disponible: ADR-089
 Para agregar: usa la skill `registrar-decision`.
 Recuerda: append-only. Las entradas viejas solo cambian de estado, no de contenido.
 -->

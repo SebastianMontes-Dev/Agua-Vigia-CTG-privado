@@ -6,9 +6,13 @@
   "scripts": {
     "sembrar-sectores": "node sembrar-sectores.mjs",
     "sembrar-cortes": "node sembrar-historico-cortes.mjs",
-    "sembrar-usuarios-demo": "node sembrar-usuarios-demo.mjs"
+    "sembrar-usuarios-demo": "node sembrar-usuarios-demo.mjs",
+    "agregar-usuarios": "node agregar-usuarios.mjs",
+    "verificar-datos": "node verificar-datos.mjs",
+    "test": "node --test pruebas/*.test.mjs"
   },
   "dependencies": {
+    "@faker-js/faker": "^10.6.0",
     "mongodb": "^6.10.0"
   }
 }

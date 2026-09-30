@@ -1,8 +1,8 @@
 # Plan de pruebas
 
-> **Estado: PLAN, no informe.** Los documentos académicos (capítulos, anexos) se retiraron del repo
-> el 2026-09-17 y se rehacen más adelante; este plan sigue vigente como estrategia de pruebas del
-> proyecto, independiente de esa numeración. **Su parte de resultados sale del registro, no de la
+> **Estado: PLAN, no informe.** Los documentos académicos se retiraron del repo el 2026-09-17; los anexos 4
+> (historias) y 5 (manual técnico y casos de prueba) volvieron en el PR #102, en `docs/anexos/`. Este plan sigue
+> vigente como estrategia de pruebas del proyecto. **Su parte de resultados sale del registro, no de la
 > memoria**: se construye desde `registro-de-bugs.md` y `registro-de-implementaciones.md` cuando
 > existan. Escribir esa parte ahora sería inventar datos.
 >
@@ -27,7 +27,7 @@ un `RNF` verificable con métrica y umbral — no hay pruebas "porque sí".
 | Unitarias `domain/` · `application/` | RNF017 (cobertura ≥ 70%) | JUnit 5 + JaCoCo | En cada PR, CI | 1 (base) → 5 (umbral exigido) |
 | Arquitectura | RNF018 (falla si se viola una capa) | ArchUnit | En cada PR, CI | 1 |
 | Integración backend ↔ datos | — (soporta RNF017) | Testcontainers (Mongo, Redis reales) | En cada PR, CI | 2 |
-| Rendimiento del mapa | RNF001 (< 3 s en 3G simulada) | Lighthouse + throttling | Antes de cada release | 4 (ajustes 3G) — ⛔ retirado por alcance hasta que exista el frontend nuevo (`ADR-048`) |
+| Rendimiento del mapa | RNF001 (< 3 s en 3G simulada) | Lighthouse + throttling | Antes de cada release | 4 (ajustes 3G) — ⬜ pendiente: F6 del frontend nuevo (`sprint-7.md`); aún no hay Lighthouse en el repo |
 | Rendimiento de escritura | RNF002 (confirmación < 1 s) | k6 contra `POST /api/reportes` (`scripts/carga/rnf002-registrar-reporte.js`) | Antes de cada release | 2 |
 | Caché | RNF003 (TTL ≤ 60 s) | Inspección de cabeceras HTTP / Redis | Manual + smoke test en CI | 2 |
 | Caos — caída de fuente externa | RNF004, RNF005, RNF006 | Apagar el colector en `docker compose`, observar cortacircuitos y cola muerta | Sprint 4, repetible | 4 |
@@ -35,10 +35,10 @@ un `RNF` verificable con métrica y umbral — no hay pruebas "porque sí".
 | Datos personales | RNF008, RNF009 | Revisión de código + prueba de baja de suscripción | Manual, checklist de PR | 1 (M4), 5 (auditoría) |
 | Secretos en el repo | RNF010 | `gitleaks` en CI (ya activo desde Sprint 0, `.github/workflows/escaneo-de-fugas.yml`) | En cada push | 0 |
 | Seguridad del panel admin | RNF011 (JWT ≤ 8 h) | Test de seguridad (expiración de token) | Sprint 3 | 3 |
-| Accesibilidad | RNF012–RNF016 (contraste, teclado, táctil, responsive, no-solo-color) | `axe-core` + Lighthouse + prueba manual con teclado | Por página, antes de cada release | 1 → 5 (auditoría formal) — ⛔ retirado por alcance hasta que exista el frontend nuevo (`ADR-048`) |
+| Accesibilidad | RNF012–RNF016 (contraste, teclado, táctil, responsive, no-solo-color) | `axe-core` + Lighthouse + prueba manual con teclado | Por página, antes de cada release | 1 → 5 (auditoría formal) — ⬜ pendiente: F6 del frontend nuevo (`sprint-7.md`); aún no hay `axe-core` en el repo |
 | Precisión del clasificador IA | RNF019 — ⛔ **descartado** (`ADR-025`: no hay clasificador de IA) | El extractor heurístico se prueba con `PrefiltroDeterministaTest`, `HeuristicaExtractorTest` e `IngestaLocalDeExtremoAExtremoTest` | En cada PR, CI | — |
-| Arranque en máquina limpia | RNF020 (`docker compose up`, un comando) | E2E de infraestructura | Antes de cada release | 0 (compose base) → 5 (documentado en manual técnico) |
-| Flujo completo de usuario | RF001–RF028 (flujos principales) | Playwright E2E | Antes de cada release | 5 — ⛔ retirado por alcance hasta que exista el frontend nuevo (`ADR-048`); mientras tanto, `scripts/carga/` y las pruebas de integración del backend |
+| Arranque en máquina limpia | RNF020 (`docker compose up`, un comando) | `contenedores-ci.yml`: `docker compose up` sin `.env`, el sembrador termina con 0, `sembrador verificar` confirma los mínimos y un segundo `up` no duplica (`ADR-086`) | En cada PR, CI | 0 (compose base) → 7 (un solo comando con la base sembrada) |
+| Flujo completo de usuario | RF001–RF028 (flujos principales) | Playwright E2E (`frontend/e2e/`: con la API simulada y, en `e2e/real/`, contra el backend real) | En cada PR que toca el frontend, `frontend-ci.yml` | 7 (F2–F4); el panel (RF016–RF019) llega con F5 |
 
 **Sin RNF asociado, no hay fila.** Si aparece una necesidad de prueba sin requisito que la respalde, se
 corrige `product-requirements.md` primero (mismo criterio que usa `registrar-implementacion`).
@@ -51,7 +51,7 @@ corrige `product-requirements.md` primero (mismo criterio que usa `registrar-imp
 |---|---|---|
 | Local | Desarrollo y pruebas unitarias/integración | `./mvnw test` |
 | CI (GitHub Actions) | Puerta de calidad en cada PR — ver `.github/workflows/` | Automático en `push`/`pull_request` |
-| Réplica local completa | Caos, RNF020, pruebas de carga | `docker compose up` (Dockerfile de `/backend`; el frontend se retiró, `ADR-048`) |
+| Réplica local completa | Caos, RNF020, pruebas de carga | `docker compose up`: backend, bases y base sembrada (`ADR-086`, [`entorno-local.md`](entorno-local.md)); la SPA aún corre aparte con Vite (entra en F6) |
 | Staging desplegado | — | **No existe**: el proyecto es académico y corre en local, sin hosting (`ADR-057`). La demo se hace con `docker compose` en los PC del equipo |
 
 ---
@@ -83,16 +83,16 @@ Una prueba está **Hecha** cuando (alineado con `docs/gestion/README.md` § Defi
 
 ## 6. Lo que este documento NO es
 
-- **No es el informe de resultados.** Cobertura real, bugs encontrados, resultados de E2E: eso se
-  redacta en Sprint 5–6 desde los registros, con fecha y evidencia.
-- **No fija herramientas que dependen de una decisión pendiente** (p. ej. la herramienta de prueba de
-  carga para RNF002 — "k6 o similar" — se confirma cuando exista `/backend` real contra qué probar).
+- **No es el informe de resultados.** Cobertura real y número de pruebas: `estado-del-backend.md` §2; estado por
+  requisito: `matriz-trazabilidad.md`; bugs: `registro-de-bugs.md`.
 
 ## 7. Siguiente paso
 
-Cuando exista `/backend` con al menos un caso de uso (Sprint 1-2): escribir los primeros tests
-unitarios reales y verificar que la fila de JaCoCo/ArchUnit de la matriz corre en CI de verdad, no solo
-en el papel.
+| Qué | Por qué |
+|---|---|
+| Una corrida completa de `./mvnw verify` y de `npm test` en `scripts/` | Tras `ADR-086`–`ADR-088` se añadieron pruebas y la última cifra es anterior (`estado-del-backend.md` §2) |
+| Lighthouse y `axe-core` sobre el frontend nuevo | `RNF001` y `RNF012`–`RNF016` están pendientes de F6 (`sprint-7.md`) |
+| Repetir la §8 sobre el arranque de un solo comando | La corrida de referencia es anterior a `ADR-086` y usaba `.env` y siembra manual |
 
 ## 8. Verificación de flujos HTTP (Fase 5)
 
@@ -124,7 +124,7 @@ PR #48 y #49. El script ya espera 1,1 s antes del cierre (2026-09-24).
 `git archive` de `origin/main` (`488bb6c`) en una carpeta nueva **sin `.env` ni datos**, proyecto de Docker y volúmenes nuevos
 (`docker compose -p … up -d --build --wait`), `npm install` y `sembrar-sectores.mjs` en la copia, y una sola pasada de
 `scripts/verificar-flujos.mjs`: **21 pasos, 0 fallos a la primera** (incluido CORS, la foto y el cierre de sesión).
-- Sin `.env` en la carpeta, el backend arranca sano pero **no siembra ADMIN** y lo avisa en el log («Sin ADMIN_INICIAL_CORREO o
+- *(Superado por `ADR-086`: sin `.env` el backend genera su secreto y un ADMIN con clave aleatoria en el log.)* Sin `.env` en la carpeta, el backend arranca sano pero **no siembra ADMIN** y lo avisa en el log («Sin ADMIN_INICIAL_CORREO o
   VEEDOR_PASSWORD_HASH…»). `docker compose --env-file` **no basta**: alimenta la interpolación del compose (por eso llegó
   `ADMIN_INICIAL_CORREO`) pero no el `env_file: .env` del servicio, así que `JWT_SECRET` y el hash llegaron vacíos. Hace falta
   el `.env` dentro de la carpeta del compose y recrear el backend.

@@ -5,10 +5,10 @@ reconstruido retroactivamente. Ver la nota de `sprint-3.md` sobre por qué.
 
 > **Este sprint no es el que originaba `docs/gestion/README.md`.** Su foco original era "Calidad,
 > accesibilidad y PWA", con tres entregables: cobertura, auditoría WCAG AA y E2E en verde. Las dos
-> últimas son de interfaz y `ADR-048` retiró el frontend del repositorio — no hay nada que auditar ni
-> qué correr en Playwright. `docs/gestion/README.md` ya quedó redefinido a solo la parte de backend
-> (`REC-017`). Cuando exista el frontend nuevo, su propia auditoría de accesibilidad y su propia suite
-> E2E son trabajo de ese momento, no de este sprint reabierto.
+> últimas son de interfaz y, al cierre del sprint (2026-09-22), `ADR-048` había retirado el frontend del repositorio: no
+> había nada que auditar ni qué correr en Playwright. `docs/gestion/README.md` ya quedó redefinido a solo la parte de backend
+> (`REC-017`). La auditoría de accesibilidad y la suite E2E del frontend nuevo pasaron al Sprint 7
+> (`sprint-7.md`: E2E desde F2, Lighthouse y axe en F6), no a este sprint reabierto.
 
 > **Corrección del 2026-09-22, tarde:** este sprint se cerró citando `jacoco:check` como lo que
 > exige y protege el umbral. Al revisar el commit de un compañero se verificó con la build real que
@@ -37,8 +37,9 @@ manual.**
 La columna **Depende de** es la importante: es donde se ve qué tiene que existir antes.
 
 **Fuera de este sprint, retirado por alcance (`ADR-048`):** RNF012–RNF016 (contraste, teclado,
-objetivos táctiles, responsive, no-solo-color) y el E2E de `RF001`–`RF028` — los seis dependen de una
-interfaz que hoy no existe en el repositorio.
+objetivos táctiles, responsive, no-solo-color) y el E2E de `RF001`–`RF028` — los seis dependían de una
+interfaz que al cierre del sprint (2026-09-22) no existía en el repositorio. Hoy son compromisos del Sprint 7
+(RNF012–RNF016 en F6; el E2E, desde F2): `sprint-7.md`.
 
 ---
 

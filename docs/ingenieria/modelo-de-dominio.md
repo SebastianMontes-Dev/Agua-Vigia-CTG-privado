@@ -4,6 +4,12 @@
 > Documentación pura — nada de esto es código. Este
 > documento se traduce directo a Java 21 (`record`, sin Lombok, cero imports de Spring/MongoDB).
 >
+> **Estado (2026-09-29): modelo de Sprint 0, ya construido y superado.** Lo concreto de abajo
+> (firmas, nombres de clase) se corrigió contra el código; el alcance no. El dominio real tiene
+> entidades que aquí no aparecen (`Usuario`, `Suscripcion`, `SuscripcionTelegram`,
+> `PropuestaIngesta`, `EventoAuditoria`, `TokenCuenta`) y 34 casos de uso en `domain/port/in/`, no
+> cinco. Diagrama al día: `diagrama-de-clases.md`.
+>
 > **Trazabilidad:** RF009–RF011, RF016–RF017, RF020–RF022
 > (`docs/product-requirements.md`) · **Restricciones heredadas:** ADR-003, ADR-007
 > (`docs/design-decisions.md`).
@@ -32,9 +38,9 @@
 
 | Patrón | Dónde | RF / Sprint |
 |---|---|---|
-| **Strategy** | `EstrategiaConsenso`: `UmbralFijoEstrategia`, `UmbralProporcionalEstrategia` | RF010 · Sprint 2 |
+| **Strategy** | `EstrategiaConsenso` (`boolean seAlcanzaConsenso(long reportesRecientes, Sector sector)`): `UmbralFijoEstrategiaConsenso`, `UmbralProporcionalEstrategiaConsenso` | RF010 · Sprint 2 |
 | **Builder** | `CorteAgua.Builder` | RF016 · Sprint 3 |
-| **Factory Method** | `EventoBitacoraFactory` — `corteAnunciado`, `corteRestablecido`, `consensoConfirmado` | RF026 · implementado |
+| **Factory Method** | `EventoBitacoraFactory` — `corteAnunciado`, `corteRestablecido`, `consensoConfirmado`, `detectadoPorIngesta` | RF026 · implementado |
 | **Specification** *(pendiente)* | Filtros de M7 (estadísticas) | Sprint 4, no urgente ahora |
 
 ### 3.1 Decisión — `Sector.poblacion` es nulable
@@ -43,19 +49,19 @@ El PR #13 (siembra de sectores) encontró que **27 de 211 barrios no tienen pobl
 fuente censal (DANE 2018 + CORVIVIENDA) — corregimientos rurales/insulares que el censo no cubre. No
 se inventa un número.
 
-**Decisión:** `poblacion` es `Integer` nulable, no `int`. `UmbralProporcionalEstrategia` (RF010) cae a
-la misma lógica que `UmbralFijoEstrategia` cuando `poblacion == null` — un sector sin dato censal no
+**Decisión:** `poblacion` es `Integer` nulable, no `int`. `UmbralProporcionalEstrategiaConsenso` (RF010)
+cae a su `umbralMinimo` cuando `poblacion == null` (`domain/UmbralProporcionalEstrategiaConsenso.java:26-28`) — un sector sin dato censal no
 se queda sin consenso posible, usa el umbral fijo como respaldo. Se documenta así en vez de con un
 `0` centinela, que sería indistinguible de un barrio real sin habitantes.
 
 ## 4. Puertos — lo que abre C1
 
-**`port/in`** (un caso de uso = una clase):
+**`port/in`** (un caso de uso = una clase). Los cinco que abrió C1; hoy son 34 (`domain/port/in/`):
 
 | Caso de uso | Firma | RF |
 |---|---|---|
-| `RegistrarReporteUseCase` | `(sectorId, tipo, coordenada?, huella) -> ReporteCiudadano` | RF005–RF007 |
-| `EvaluarConsensoUseCase` | `(sectorId) -> ResultadoConsenso` | RF009–RF011 |
+| `RegistrarReporteUseCase` | `registrar(sectorId, tipo, coordenada?, huella, boolean esSensor) -> ReporteCiudadano` | RF005–RF007 |
+| `EvaluarConsensoUseCase` | `evaluar(sectorId) -> ResultadoConsenso`, `evaluarPendientes()` | RF009–RF011 |
 | `GestionarCorteOficialUseCase` | `registrar(...)`, `cerrar(corteId, horaReal)` | RF016, RF017 |
 | `CalcularCumplimientoUseCase` | `porCorte(corteId)`, `porSector(sectorId)`, `global()` | RF020–RF022 |
 | `RegistrarEventoBitacoraUseCase` | `(evento) -> void` | RF026 |
@@ -66,7 +72,7 @@ se queda sin consenso posible, usa el umbral fijo como respaldo. Se documenta as
 |---|---|---|
 | `SectorRepository`, `CorteAguaRepository`, `ReporteCiudadanoRepository`, `EventoBitacoraRepository` | Persistencia | MongoDB (ADR-003) |
 | `ContadorReportesPort` | Ventana deslizante de reportes por sector | Redis (ADR-003) |
-| `RelojPort` | `Instant.now()` inyectable | Reloj del sistema — sin esto, las invariantes de `VentanaTiempo` no son testeables sin mockear tiempo real |
+| `RelojPort` | `Instant ahora()` inyectable | Reloj del sistema — sin esto, las invariantes de `VentanaTiempo` no son testeables sin mockear tiempo real |
 
 ## 5. Diagrama de clases (borrador)
 
@@ -81,11 +87,11 @@ classDiagram
   class ReporteCiudadano { +ReporteId id +SectorId sectorId +TipoReporte tipo +Coordenada coordenada +HuellaDispositivo huella +Instant timestamp }
   class EventoBitacora { +EventoId id +TipoEvento tipo +Instant timestamp +String descripcion }
 
-  class EstrategiaConsenso { <<interface>> +evaluar(List~ReporteCiudadano~, Sector) ResultadoConsenso }
-  class UmbralFijoEstrategia
-  class UmbralProporcionalEstrategia
-  EstrategiaConsenso <|.. UmbralFijoEstrategia
-  EstrategiaConsenso <|.. UmbralProporcionalEstrategia
+  class EstrategiaConsenso { <<interface>> +seAlcanzaConsenso(long reportesRecientes, Sector sector) boolean }
+  class UmbralFijoEstrategiaConsenso
+  class UmbralProporcionalEstrategiaConsenso
+  EstrategiaConsenso <|.. UmbralFijoEstrategiaConsenso
+  EstrategiaConsenso <|.. UmbralProporcionalEstrategiaConsenso
 
   CorteAgua --> VentanaTiempo
   CorteAgua "1" --> "*" Sector : sectoresAfectados
@@ -94,9 +100,9 @@ classDiagram
   Sector --> EstadoServicio
 ```
 
-## 7. Siguiente paso
+## 7. Siguiente paso (cumplido)
 
-Cuando exista `/backend` y C0 abra: este documento se traduce a `domain/` (Value Objects como
-`record`, entidades, `EstrategiaConsenso`) y `application/` (los cinco casos de uso de `port/in`),
-en ese orden — el test de ArchUnit (Sprint 1) se escribe primero para que la build falle si algo
-importa Spring o MongoDB desde el minuto uno.
+El plan de Sprint 0 era traducir este documento a `domain/` y `application/` (los cinco casos de uso
+de `port/in`) con el test de ArchUnit escrito primero. Se hizo así y el dominio siguió creciendo:
+34 casos de uso en `domain/port/in/`. El diagrama del §5 queda como borrador histórico; el vigente es
+`diagrama-de-clases.md`.
