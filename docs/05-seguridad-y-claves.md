@@ -47,7 +47,6 @@ red del aula no se ve. Mongo y Redis siguen **sin autenticación**: es aceptable
 - **Secreto TOTP en claro en Mongo.** Cifrarlo en reposo exige una clave que sobreviva a los reinicios; no hay dónde guardarla sin
   romper el arranque sin `.env`. Decisión pendiente del dueño.
 - **Huella del dispositivo enviada por el cliente:** el cupo de 3 reportes por dispositivo se evade rotándola; solo lo frena el límite por IP.
-- **WebP** se guarda sin recomprimir (solo se valida la firma).
 - **`IOT_KEY` es una clave compartida**, no se puede rotar por sensor.
 - **Historial de git:** una clave de desarrollo y una clave de demostración estuvieron publicadas en un repo público. Ya no están en
   ningún archivo vigente y se consideran expuestas (no usarlas jamás); seguirán en el historial mientras no se reescriba.

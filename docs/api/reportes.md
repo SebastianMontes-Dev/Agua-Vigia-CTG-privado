@@ -102,9 +102,9 @@ cambio con la evidencia.
 
 | Regla | Valor |
 |---|---|
-| Tipos | `image/jpeg`, `image/png`, `image/webp`. Se verifica la **firma binaria**, no solo el `Content-Type`. |
+| Tipos | `image/jpeg`, `image/png`. **WebP se rechaza** (no se le puede quitar el EXIF). Se verifica la **firma binaria**, no solo el `Content-Type`. |
 | Tamaño máximo | **10 MB** → `413` con `type: archivo-demasiado-grande`. |
-| Procesado | JPEG y PNG se reescalan a un lado máximo de 1600 px (JPEG a calidad 0,75). Se descarta el EXIF, **incluida la ubicación GPS de la foto**. WebP se guarda tal cual. |
+| Procesado | JPEG y PNG se reescalan a un lado máximo de 1600 px (JPEG a calidad 0,75). Se descarta el EXIF, **incluida la ubicación GPS de la foto**. |
 | URL resultante | Relativa: `/fotos/<uuid>.<ext>`. Se sirve del mismo origen, con caché de un día. |
 
 Errores: `400` (tipo o firma inválidos, falta la parte `foto`), `404` (el reporte no existe), `413`.

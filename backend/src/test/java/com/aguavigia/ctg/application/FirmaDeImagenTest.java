@@ -28,11 +28,11 @@ class FirmaDeImagenTest {
     }
 
     @Test
-    void debeAceptarUnWebpConSuContenedorRiffReal() {
-        // "RIFF" + 4 bytes de tamaño (no se validan) + "WEBP"
+    void debeRechazarUnWebpAunqueTengaSuContenedorRiffReal() {
+        // "RIFF" + 4 bytes de tamaño + "WEBP": WebP ya no es un tipo permitido (no se le puede quitar el EXIF).
         assertThat(FirmaDeImagen.coincideConTipo("image/webp",
                 bytes('R', 'I', 'F', 'F', 0, 0, 0, 0, 'W', 'E', 'B', 'P')))
-                .isTrue();
+                .isFalse();
     }
 
     @Test

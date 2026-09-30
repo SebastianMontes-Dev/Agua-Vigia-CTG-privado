@@ -72,7 +72,7 @@ class CompresorDeImagenesTest {
         assertThat(decodificado.getWidth()).isEqualTo(1600);
     }
 
-    /** El JDK no trae lector de WebP: se documenta como paso-directo, no como error. */
+    /** Una extensión que ImageIO no lee se devuelve intacta, no como error (WebP ya no llega aquí: se rechaza antes). */
     @Test
     void debeDejarWebpSinModificar() {
         byte[] original = {1, 2, 3, 4};

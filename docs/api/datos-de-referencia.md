@@ -92,7 +92,7 @@ el token solo sirve para configurarlo).
 | Empate entre tipos de reporte | No cambia el estado |
 | Índice de Cumplimiento | `prometido × 100 / real`, tope 100; solo cortes **cerrados** |
 | Longitud de la huella | 32 a 128 caracteres |
-| Foto | JPEG, PNG o WebP · máx. **10 MB** · lado máx. **1600 px** · sin EXIF |
+| Foto | JPEG o PNG · máx. **10 MB** · lado máx. **1600 px** · sin EXIF |
 | Vigencia de sesión del panel | **8 h**, sin renovación |
 | Vigencia de enlaces | verificar cuenta 48 h · invitación 7 d · restablecer clave 30 min · confirmar suscripción 48 h |
 | Clave de una cuenta | 12 a 128 caracteres |

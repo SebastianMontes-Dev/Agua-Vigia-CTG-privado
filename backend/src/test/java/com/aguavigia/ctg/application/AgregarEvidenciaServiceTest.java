@@ -87,6 +87,24 @@ class AgregarEvidenciaServiceTest {
         verify(reportes, never()).guardar(any());
     }
 
+    /**
+     * Un WebP auténtico tampoco pasa: este backend no tiene decodificador, así que no puede
+     * recomprimirlo ni quitarle el EXIF (ubicación y cámara del teléfono), y se guardaría y serviría
+     * tal cual. Solo se aceptan los formatos que {@code CompresorDeImagenes} sabe limpiar.
+     */
+    @Test
+    void debeRechazarUnWebpAunqueSuContenidoSeaValido() {
+        given(reportes.buscarPorId(new ReporteId("r1"))).willReturn(Optional.of(reporte()));
+        byte[] webpReal = {'R', 'I', 'F', 'F', 0, 0, 0, 0, 'W', 'E', 'B', 'P'};
+
+        assertThatThrownBy(() -> servicio.agregarEvidencia("r1", "image/webp", webpReal))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("image/webp");
+
+        verify(almacenamiento, never()).guardar(any(), any());
+        verify(reportes, never()).guardar(any());
+    }
+
     @Test
     void debeRechazarUnTipoDeArchivoNoPermitido() {
         given(reportes.buscarPorId(new ReporteId("r1"))).willReturn(Optional.of(reporte()));

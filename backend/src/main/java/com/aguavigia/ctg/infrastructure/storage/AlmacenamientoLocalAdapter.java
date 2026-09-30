@@ -38,7 +38,7 @@ public class AlmacenamientoLocalAdapter implements AlmacenamientoPort {
      * (AgregarEvidenciaService) — este adaptador no decide qué se puede subir, solo dónde queda.
      *
      * RNF021: antes de escribir a disco, CompresorDeImagenes recodifica jpg/png (comprime y
-     * descarta EXIF de paso); `.webp` se guarda tal cual por la limitación documentada ahí.
+     * descarta EXIF de paso). WebP no llega aquí: la lista blanca lo rechaza.
      */
     @Override
     public String guardar(String extension, byte[] contenido) {

@@ -15,11 +15,13 @@ public class AgregarEvidenciaService implements AgregarEvidenciaUseCase {
      * M10: solo imagenes. La extension sale de aqui, nunca del nombre de archivo que manda el
      * cliente — si mas adelante se sirve el directorio de fotos, un ".svg" o ".html" subido con
      * un nombre falsificado se hubiera convertido en XSS almacenado del mismo origen.
+     *
+     * Sin WebP: el JDK no trae decodificador (ver CompresorDeImagenes), así que no se podría
+     * recomprimir ni quitarle el EXIF, y se guardaría tal cual con la ubicación del teléfono.
      */
     private static final Map<String, String> TIPOS_PERMITIDOS = Map.of(
             "image/jpeg", ".jpg",
-            "image/png", ".png",
-            "image/webp", ".webp");
+            "image/png", ".png");
 
     private final ReporteCiudadanoRepository reportes;
     private final AlmacenamientoPort almacenamiento;
@@ -48,8 +50,7 @@ public class AgregarEvidenciaService implements AgregarEvidenciaUseCase {
         }
         // El Content-Type es un dato que el cliente declara, no que el archivo demuestra
         // (`POST /api/reportes/{id}/foto` es publico, sin cuenta). Sin esta verificacion, cualquier
-        // binario declarado "image/webp" se guardaba y servia tal cual bajo /fotos/** — .webp no
-        // tiene decodificador en este backend (ver CompresorDeImagenes), asi que nada mas lo frenaba.
+        // binario declarado con un tipo permitido se guardaba y servia tal cual bajo /fotos/**.
         if (!FirmaDeImagen.coincideConTipo(contentType, contenido)) {
             throw new IllegalArgumentException(
                     "El archivo no es un '%s' válido: sus primeros bytes no coinciden con el formato declarado."

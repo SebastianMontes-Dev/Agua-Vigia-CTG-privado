@@ -245,6 +245,29 @@ class ReporteControllerTest {
                 .andExpect(jsonPath("$.title").value("Peticion invalida"));
     }
 
+    /**
+     * CARACTERIZACIÓN, no comportamiento deseado (hallazgo 7 del plan): hoy basta conocer el id de un
+     * reporte —que lista `/api/bitacora/{id}/sustento`, público— para adjuntarle una foto, sin cuenta,
+     * sin token de dispositivo ni nada que pruebe que se es su autor. Al llegar el token de subida
+     * (F3.1) este test debe invertirse: sin `X-Subida` la respuesta será 403.
+     */
+    @Test
+    void hoyCualquieraConElIdPuedeSubirUnaFotoAlReporteDeOtro() throws Exception {
+        ReporteCiudadano ajeno = new ReporteCiudadano(
+                new ReporteId("r-ajeno"), new SectorId("bocagrande"), TipoReporte.SIN_AGUA,
+                null, new HuellaDispositivo("huella-de-otra-persona"), AHORA)
+                .conFoto("/fotos/puesta-por-un-desconocido.jpg");
+        given(agregarEvidenciaUseCase.agregarEvidencia(eq("r-ajeno"), any(), any())).willReturn(ajeno);
+        org.springframework.mock.web.MockMultipartFile foto = new org.springframework.mock.web.MockMultipartFile(
+                "foto", "foto.jpg", "image/jpeg", new byte[]{(byte) 0xFF, (byte) 0xD8, (byte) 0xFF, 1});
+
+        mockMvc.perform(multipart("/api/reportes/r-ajeno/foto").file(foto))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.fotoUrl").value("/fotos/puesta-por-un-desconocido.jpg"));
+
+        verify(agregarEvidenciaUseCase).agregarEvidencia(eq("r-ajeno"), eq("image/jpeg"), any());
+    }
+
     @Test
     void debeConfirmarReporteYResponder200() throws Exception {
         ReporteCiudadano confirmado = new ReporteCiudadano(

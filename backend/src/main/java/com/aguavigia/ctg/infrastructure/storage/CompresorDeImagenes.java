@@ -23,8 +23,9 @@ import java.util.Iterator;
  * subida con GPS embebido no expone una ubicación más precisa que la que autorizó en RF007.
  *
  * Limitado a JPEG y PNG: el ImageIO del JDK no trae lector de WebP sin un plugin externo
- * (p. ej. TwelveMonkeys imageio-webp). `.webp` se guarda tal cual llega — sin comprimir ni limpiar
- * metadatos —, que es preferible a romper la subida o a fingir un procesamiento que no ocurrió.
+ * (p. ej. TwelveMonkeys imageio-webp), y un WebP guardado tal cual conservaría su EXIF. Por eso
+ * AgregarEvidenciaService rechaza WebP antes de llegar aquí: este compresor solo recibe formatos
+ * que sabe limpiar.
  */
 final class CompresorDeImagenes {
 
@@ -38,7 +39,7 @@ final class CompresorDeImagenes {
         String formato = switch (extension) {
             case ".jpg" -> "jpg";
             case ".png" -> "png";
-            default -> null; // .webp u otra extensión futura no soportada por ImageIO
+            default -> null; // una extensión futura que ImageIO no soporte
         };
         if (formato == null) {
             return original;
