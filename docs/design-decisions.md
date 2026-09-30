@@ -3635,8 +3635,48 @@ el backend en ≈ 8,4 núcleos; a 100/s junto con 100 reportes/s, los reportes p
 Quitar el escenario, las opciones de `demo.mjs`, `CorreoDeCuentaDescartadoAdapter` y la anotación condicional de
 `MailCuentaAdapter`. No toca datos ni el contrato de la API.
 
+## ADR-089 — El repositorio se queda público para siempre; lo que se filtró se trata como expuesto y ningún secreto se comparte
+
+- **Fecha:** 2026-09-29
+- **Estado:** Aceptada
+- **Decide:** Dueño del proyecto (Sebastian)
+
+### Contexto
+La bitácora del 2026-09-29 dejó pendiente «decidir si el repo público pasa a privado». El repositorio
+(`SebastianMontes-Dev/Agua-Vigia-CTG-privado`) es público pese al nombre. `BUG-127` mostró que un `JWT_SECRET` y un hash BCrypt de
+desarrollo estuvieron publicados en `entorno-local.md`, y que siguen en el historial de git. Comprobado el 2026-09-29 con
+`gh api`: el repositorio está en `PUBLIC` y `secret_scanning` y `secret_scanning_push_protection` están **desactivados**.
+Además, el otro integrante clona el repo y necesita poder levantarlo sin que nadie le pase claves.
+
+### Alternativas consideradas
+| Opción | A favor | En contra |
+|---|---|---|
+| Pasar el repo a privado | Cierra la vista pública del historial | Un valor ya publicado pudo copiarse mientras fue público: hacerlo privado no lo recupera; la sustentación y el compañero necesitan clonar sin fricción |
+| Reescribir el historial con `git filter-repo` y `push --force` | Quita los valores de los commits | Cambia todos los hashes, rompe las referencias a PR y commits de los documentos y de Yordy, y no borra copias ya hechas ni las cachés de GitHub |
+| **Público siempre; tratar lo filtrado como expuesto y diseñar para que no haga falta compartir ningún secreto** | Coherente con la ética de datos abierta del proyecto; sin riesgo real si el valor ya no se usa | Los valores viejos quedan visibles para siempre |
+
+### Decisión
+- El repositorio es público de forma permanente. No se vuelve a plantear pasarlo a privado.
+- Los valores que estuvieron en `entorno-local.md` (`JWT_SECRET` de desarrollo, su hash y la clave de desarrollo asociada) están
+  expuestos y no se usan en ningún `.env`, ni local ni de nadie. No se reescribe el historial.
+- Nada secreto se comparte entre las dos personas: cada máquina que hace `docker compose up` genera su propio secreto JWT y su
+  propia clave de ADMIN (`ADR-086`). Lo único compartido es la clave pública de las cuentas de demostración.
+- Los valores reales de `.env`, la clave y el TOTP del ADMIN viven en el gestor de contraseñas de cada quien, no en archivos de
+  texto (`credenciales-y-accesos.md` §1).
+
+### Consecuencias
+- **Gana:** un solo modo de trabajo, sin depender de que alguien reciba claves por otro canal.
+- **Pierde:** el historial público conserva valores de desarrollo ya expuestos; cualquier secreto nuevo que se cuele en un
+  commit queda público desde el push.
+- **Queda condicionado:** la defensa es preventiva. `gitleaks` corre en el CI, pero GitHub Secret Scanning y su protección de
+  push siguen desactivados; activarlos es una decisión del dueño (cambia la configuración del repositorio), pendiente.
+
+### Cómo se revierte
+Volver el repositorio a privado es un cambio de configuración en GitHub, pero no deshace lo ya visto por terceros: si un
+secreto real se llega a publicar, la reversión es rotarlo, no ocultar el repositorio.
+
 <!--
-Siguiente número disponible: ADR-089
+Siguiente número disponible: ADR-090
 Para agregar: usa la skill `registrar-decision`.
 Recuerda: append-only. Las entradas viejas solo cambian de estado, no de contenido.
 -->
