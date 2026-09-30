@@ -17,9 +17,6 @@ import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.SectorRepository;
 import com.aguavigia.ctg.domain.port.out.TransaccionPort;
 
-import java.nio.charset.StandardCharsets;
-import java.util.UUID;
-
 /**
  * M9 + M5 — el punto donde una propuesta automatizada se convierte (o no) en dato público.
  *
@@ -118,18 +115,13 @@ public class RevisarPropuestaIngestaService implements RevisarPropuestaIngestaUs
         // Un boletín nombra muchos barrios y genera una propuesta por cada uno. El id se deriva del
         // boletín y su ventana para que todos caigan en el mismo corte, en vez de inflar la
         // estadística con un corte por barrio.
-        CorteId id = idDelBoletin(propuesta);
+        CorteId id = propuesta.idDelCorte();
         String causa = propuesta.citaTextual() == null || propuesta.citaTextual().isBlank()
                 ? "Anuncio de " + propuesta.fuente()
                 : propuesta.citaTextual();
 
         cortes.anexarSectorAlCorte(id, propuesta.sectorId(), propuesta.inicioDeclarado(),
                 propuesta.finPrometido(), causa, OrigenCorte.INGESTA_IA, EstadoCorte.ANUNCIADO);
-    }
-
-    private static CorteId idDelBoletin(PropuestaIngesta propuesta) {
-        String semilla = propuesta.urlOriginal() + "|" + propuesta.inicioDeclarado() + "|" + propuesta.finPrometido();
-        return new CorteId(UUID.nameUUIDFromBytes(semilla.getBytes(StandardCharsets.UTF_8)).toString());
     }
 
     @Override

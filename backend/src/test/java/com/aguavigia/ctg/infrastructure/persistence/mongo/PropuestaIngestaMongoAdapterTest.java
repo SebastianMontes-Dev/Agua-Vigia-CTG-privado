@@ -125,6 +125,20 @@ class PropuestaIngestaMongoAdapterTest {
                 .isEqualTo(EstadoRevision.APROBADA);
     }
 
+    /** El resolutor necesita todo lo aprobado de un barrio, con o sin ventana: un restablecimiento no la trae. */
+    @Test
+    void listarAprobadasPorSectorDebeTraerSoloLasAprobadasDeEseBarrio() {
+        adaptador.guardar(propuesta("aprobada", "manga", EstadoServicio.SIN_SERVICIO, AHORA).aprobar());
+        adaptador.guardar(propuesta("restablecimiento", "manga", EstadoServicio.CON_SERVICIO, AHORA).aprobar());
+        adaptador.guardar(propuesta("pendiente", "manga", EstadoServicio.SIN_SERVICIO, AHORA));
+        adaptador.guardar(propuesta("descartada", "manga", EstadoServicio.SIN_SERVICIO, AHORA).descartar());
+        adaptador.guardar(propuesta("de-otro-barrio", "crespo", EstadoServicio.SIN_SERVICIO, AHORA).aprobar());
+
+        assertThat(adaptador.listarAprobadasPorSector(new SectorId("manga")))
+                .extracting(propuesta -> propuesta.id().valor())
+                .containsExactlyInAnyOrder("aprobada", "restablecimiento");
+    }
+
     @Test
     void buscarPorIdDebeDevolverVacioCuandoNoExiste() {
         assertThat(adaptador.buscarPorId(new PropuestaId("no-existe"))).isEmpty();

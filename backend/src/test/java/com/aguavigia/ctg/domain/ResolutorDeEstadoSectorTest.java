@@ -300,6 +300,29 @@ class ResolutorDeEstadoSectorTest {
             assertThat(resolver(ahora, deUnaSolaRed).estado()).isNull();
         }
 
+        /**
+         * Un quórum que el barrio ya recuerda se alcanzó en su momento —quizá con el umbral reducido de un
+         * restablecimiento— y no se vuelve a exigir: solo caduca con el tiempo.
+         */
+        @Test
+        void unQuorumSostenidoNoVuelveAPedirElUmbralCompleto() {
+            QuorumVecinos recordado = new QuorumVecinos(TipoReporte.SERVICIO_RESTABLECIDO, 2, 3, true,
+                    ahora.minus(Duration.ofHours(2)), ahora.minus(Duration.ofHours(2)), true);
+
+            EstadoPublicado publicado = resolver(ahora, recordado);
+
+            assertThat(publicado.estado()).isEqualTo(EstadoServicio.CON_SERVICIO);
+            assertThat(publicado.respaldo()).isEqualTo(new RespaldoVecinal(2, 3));
+        }
+
+        @Test
+        void unQuorumSostenidoTambienCaducaALas24Horas() {
+            Instant ultimo = ahora.minus(Duration.ofHours(24));
+            QuorumVecinos recordado = new QuorumVecinos(TipoReporte.SIN_AGUA, 3, 3, true, ultimo, ultimo, true);
+
+            assertThat(resolver(ahora, recordado).estado()).isNull();
+        }
+
         @Test
         void unEmpateEntreDosQuorumsEsEvidenciaAmbiguaYNoPublicaNada() {
             assertThat(resolver(ahora,

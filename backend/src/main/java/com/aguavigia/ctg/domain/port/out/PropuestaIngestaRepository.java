@@ -32,4 +32,10 @@ public interface PropuestaIngestaRepository {
      * CON_SERVICIO. Acotar por {@code finDesde} evita recorrer el histórico entero en cada barrido.
      */
     List<PropuestaIngesta> listarAprobadasConVentanaVigente(Instant finDesde);
+
+    /**
+     * Todo lo aprobado de un barrio, con o sin ventana declarada: el resolutor decide qué pesa ahora.
+     * Un boletín de restablecimiento no trae ventana, así que no lo alcanza la consulta de arriba.
+     */
+    List<PropuestaIngesta> listarAprobadasPorSector(SectorId sectorId);
 }

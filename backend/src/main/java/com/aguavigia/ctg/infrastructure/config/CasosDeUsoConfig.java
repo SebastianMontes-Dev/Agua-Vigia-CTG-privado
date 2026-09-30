@@ -5,14 +5,18 @@ import com.aguavigia.ctg.application.CambiarClaveService;
 import com.aguavigia.ctg.application.ConfirmarSuscripcionService;
 import com.aguavigia.ctg.application.EmisorDeTokensDeCuenta;
 import com.aguavigia.ctg.application.EvaluarConsensoService;
+import com.aguavigia.ctg.application.RecalcularSectorService;
 import com.aguavigia.ctg.application.RegistrarLecturaDePresionService;
 import com.aguavigia.ctg.application.RegistrarReporteService;
 import com.aguavigia.ctg.application.RegistroDeAuditoria;
 import com.aguavigia.ctg.domain.EstrategiaConsenso;
+import com.aguavigia.ctg.domain.ResolutorDeEstadoSector;
 import com.aguavigia.ctg.domain.port.in.RegistrarEventoBitacoraUseCase;
 import com.aguavigia.ctg.domain.port.in.RegistrarReporteUseCase;
 import com.aguavigia.ctg.domain.port.in.EvaluarConsensoUseCase;
 import com.aguavigia.ctg.domain.port.out.CifradorClavePort;
+import com.aguavigia.ctg.domain.port.out.CorteAguaRepository;
+import com.aguavigia.ctg.domain.port.out.PropuestaIngestaRepository;
 import com.aguavigia.ctg.domain.port.out.ContadorReportesPort;
 import com.aguavigia.ctg.domain.port.out.ControlIntentosPort;
 import com.aguavigia.ctg.domain.port.out.EmisorDeSesionPort;
@@ -32,6 +36,8 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.ComponentScan.Filter;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.FilterType;
+
+import java.time.Duration;
 
 /**
  * Registra los casos de uso de {@code application/}, que no llevan anotaciones de Spring: el
@@ -89,6 +95,16 @@ public class CasosDeUsoConfig {
             @Value("${aguavigia.consenso.ventana-minutos:30}") long ventanaMinutos) {
         return new EvaluarConsensoService(sectores, reportes, contadorReportes, reserva, estrategia,
                 registrarEvento, reloj, transaccion, ventanaMinutos);
+    }
+
+    @Bean
+    public RecalcularSectorService recalcularSectorService(
+            SectorRepository sectores, CorteAguaRepository cortes, PropuestaIngestaRepository propuestas,
+            ReporteCiudadanoRepository reportes, EstrategiaConsenso estrategia, ResolutorDeEstadoSector resolutor,
+            RegistrarEventoBitacoraUseCase registrarEvento, RelojPort reloj, TransaccionPort transaccion,
+            @Value("${aguavigia.consenso.ventana-minutos:30}") long ventanaMinutos) {
+        return new RecalcularSectorService(sectores, cortes, propuestas, reportes, estrategia, resolutor,
+                registrarEvento, reloj, transaccion, Duration.ofMinutes(ventanaMinutos));
     }
 
     @Bean

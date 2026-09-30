@@ -89,4 +89,48 @@ class PropuestaIngestaTest {
                 EstadoServicio.SIN_SERVICIO, "acuacar", null, "cita", -0.1, AHORA))
                 .isInstanceOf(IllegalArgumentException.class);
     }
+
+    private PropuestaIngesta conVentana(String sector, String url, Instant inicio, Instant fin) {
+        return new PropuestaIngesta(new PropuestaId("p-" + sector), new SectorId(sector), EstadoServicio.SIN_SERVICIO,
+                "acuacar", url, "cita", 0.85, AHORA, inicio, fin);
+    }
+
+    /** Un boletín nombra muchos barrios y genera una propuesta por cada uno: todas caen en el mismo corte. */
+    @Test
+    void lasPropuestasDeUnMismoBoletinComparteElCorte() {
+        Instant inicio = Instant.parse("2026-08-21T14:00:00Z");
+        Instant fin = Instant.parse("2026-08-21T23:00:00Z");
+
+        CorteId deManga = conVentana("manga", "https://acuacar.com/2854", inicio, fin).idDelCorte();
+        CorteId deBocagrande = conVentana("bocagrande", "https://acuacar.com/2854", inicio, fin).idDelCorte();
+
+        assertThat(deManga).isEqualTo(deBocagrande);
+    }
+
+    @Test
+    void otroBoletinOOtraVentanaDaOtroCorte() {
+        Instant inicio = Instant.parse("2026-08-21T14:00:00Z");
+        Instant fin = Instant.parse("2026-08-21T23:00:00Z");
+        CorteId base = conVentana("manga", "https://acuacar.com/2854", inicio, fin).idDelCorte();
+
+        assertThat(conVentana("manga", "https://acuacar.com/2900", inicio, fin).idDelCorte()).isNotEqualTo(base);
+        assertThat(conVentana("manga", "https://acuacar.com/2854", inicio, fin.plusSeconds(3600)).idDelCorte())
+                .isNotEqualTo(base);
+    }
+
+    /** El id debe seguir siendo el que ya se guardó en los cortes existentes: cambiarlo los dejaría huérfanos. */
+    @Test
+    void elIdDelCorteSeDerivaDeLaUrlYLaVentanaComoSiempre() {
+        Instant inicio = Instant.parse("2026-08-21T14:00:00Z");
+        Instant fin = Instant.parse("2026-08-21T23:00:00Z");
+        String semilla = "https://acuacar.com/2854|" + inicio + "|" + fin;
+
+        assertThat(conVentana("manga", "https://acuacar.com/2854", inicio, fin).idDelCorte().valor())
+                .isEqualTo(java.util.UUID.nameUUIDFromBytes(semilla.getBytes(java.nio.charset.StandardCharsets.UTF_8)).toString());
+    }
+
+    @Test
+    void unaPropuestaSinVentanaNoTieneCorte() {
+        assertThatThrownBy(() -> propuesta().idDelCorte()).isInstanceOf(IllegalStateException.class);
+    }
 }

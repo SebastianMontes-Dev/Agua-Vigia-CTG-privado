@@ -14,6 +14,8 @@ public interface PropuestaIngestaMongoRepository extends MongoRepository<Propues
     boolean existsBySectorIdAndEstadoPropuestoAndEstadoRevision(
             String sectorId, String estadoPropuesto, String estadoRevision);
 
+    List<PropuestaIngestaDocumento> findBySectorIdAndEstadoRevision(String sectorId, String estadoRevision);
+
     /** Aprobadas con ventana declarada que aún no ha caducado del todo. */
     List<PropuestaIngestaDocumento> findByEstadoRevisionAndInicioDeclaradoNotNullAndFinPrometidoGreaterThanEqual(
             String estadoRevision, Instant finDesde);

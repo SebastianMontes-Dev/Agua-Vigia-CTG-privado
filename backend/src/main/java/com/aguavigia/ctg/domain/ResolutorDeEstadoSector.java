@@ -42,6 +42,10 @@ public class ResolutorDeEstadoSector {
         this.reglas = Objects.requireNonNull(reglas);
     }
 
+    public ReglasDeEstado reglas() {
+        return reglas;
+    }
+
     public EstadoPublicado resolver(List<Afirmacion> afirmaciones, Instant ahora) {
         List<ConVentana> ventanas = afirmaciones.stream()
                 .filter(ConVentana.class::isInstance).map(ConVentana.class::cast).toList();
@@ -128,7 +132,7 @@ public class ResolutorDeEstadoSector {
     private Optional<EstadoPublicado> confirmadoPorLosVecinos(Candidato oficial, List<QuorumVecinos> vecinos) {
         return vecinos.stream()
                 .filter(q -> q.estado() == EstadoServicio.CON_SERVICIO)
-                .filter(q -> q.respaldo() >= Math.max(reglas.restablecimientoMinimo(), (q.umbral() + 1) / 2))
+                .filter(q -> q.sostenido() || q.respaldo() >= reglas.quorumReducido(q.umbral()))
                 .max(Comparator.comparingInt(QuorumVecinos::respaldo))
                 .map(q -> EstadoPublicado.porVecinos(EstadoServicio.CON_SERVICIO, null, respaldoDe(q), false));
     }
@@ -181,7 +185,7 @@ public class ResolutorDeEstadoSector {
     }
 
     private static List<QuorumVecinos> alcanzados(List<QuorumVecinos> vecinos) {
-        return vecinos.stream().filter(q -> q.respaldo() >= q.umbral()).toList();
+        return vecinos.stream().filter(QuorumVecinos::alcanzado).toList();
     }
 
     /** El quórum con más respaldo. Un empate entre tipos distintos es evidencia ambigua y no decide nada. */

@@ -159,6 +159,21 @@ public record PropuestaIngesta(
     }
 
     /**
+     * El corte al que pertenece esta propuesta. Un boletín nombra muchos barrios y genera una propuesta
+     * por cada uno; el id se deriva del boletín y su ventana para que todas caigan en el mismo corte, en
+     * vez de inflar la estadística con un corte por barrio. Es determinista: permite casar la propuesta
+     * con su corte (y con el cierre de su barrio) sin guardar una referencia aparte.
+     */
+    public CorteId idDelCorte() {
+        if (inicioDeclarado == null || finPrometido == null) {
+            throw new IllegalStateException("Una propuesta sin ventana declarada no tiene corte");
+        }
+        String semilla = urlOriginal + "|" + inicioDeclarado + "|" + finPrometido;
+        return new CorteId(java.util.UUID.nameUUIDFromBytes(
+                semilla.getBytes(java.nio.charset.StandardCharsets.UTF_8)).toString());
+    }
+
+    /**
      * Idempotente sobre una ya aprobada. A diferencia de {@link ReporteCiudadano#aprobar()}, una propuesta
      * descartada no se puede aprobar: aprobar mueve el mapa y anexa a la bitácora (RF028), y una decisión del
      * veedor que ya se cerró no debe revertirse por una segunda petición.

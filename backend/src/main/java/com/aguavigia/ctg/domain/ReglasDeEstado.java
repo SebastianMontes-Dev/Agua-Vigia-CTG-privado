@@ -22,9 +22,22 @@ public record ReglasDeEstado(Duration expiraTrasFin, Duration vecinosSinVerifica
         Objects.requireNonNull(expiraTrasFin, "Falta el plazo de expiración");
         Objects.requireNonNull(vecinosSinVerificacion, "Falta el plazo de «sin verificación reciente»");
         Objects.requireNonNull(vecinosCaducan, "Falta el plazo de caducidad de los vecinos");
+        for (Duration plazo : new Duration[]{expiraTrasFin, vecinosSinVerificacion, vecinosCaducan}) {
+            if (plazo.isZero() || plazo.isNegative()) {
+                throw new IllegalArgumentException("Los plazos del estado deben ser positivos: " + plazo);
+            }
+        }
         if (restablecimientoMinimo < 1) {
             throw new IllegalArgumentException("El mínimo de vecinos para confirmar un restablecimiento debe ser al menos 1");
         }
+    }
+
+    /**
+     * Cuántos vecinos bastan para confirmar un restablecimiento una vez vencida la promesa: la mitad
+     * del umbral, redondeada hacia arriba y nunca menos que el mínimo configurado.
+     */
+    public int quorumReducido(int umbral) {
+        return Math.max(restablecimientoMinimo, (umbral + 1) / 2);
     }
 
     public static ReglasDeEstado porDefecto() {

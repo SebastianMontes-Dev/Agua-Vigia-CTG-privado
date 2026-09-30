@@ -90,6 +90,14 @@ public class PropuestaIngestaMongoAdapter implements PropuestaIngestaRepository 
     }
 
     @Override
+    public List<PropuestaIngesta> listarAprobadasPorSector(SectorId sectorId) {
+        return repositorio.findBySectorIdAndEstadoRevision(sectorId.valor(), EstadoRevision.APROBADA.name())
+                .stream()
+                .map(PropuestaIngestaMongoAdapter::aDominio)
+                .toList();
+    }
+
+    @Override
     public List<PropuestaIngesta> listarAprobadasConVentanaVigente(Instant finDesde) {
         return repositorio
                 .findByEstadoRevisionAndInicioDeclaradoNotNullAndFinPrometidoGreaterThanEqual(

@@ -54,10 +54,11 @@ public sealed interface Afirmacion
      * Los vecinos que coinciden en un tipo de reporte. La capa de aplicación cuenta los votos y
      * comprueba la composición (verificación y diversidad de redes); aquí llega el resultado:
      * cuántos son, cuántos hacían falta y cuándo reportó el último. El resolutor decide qué umbral
-     * aplica según la fase, por eso recibe el completo.
+     * aplica según la fase, por eso recibe el completo. {@code sostenido} marca el que el barrio ya
+     * recuerda: se alcanzó en su momento, así que solo caduca con el tiempo.
      */
     record QuorumVecinos(TipoReporte tipo, int respaldo, int umbral, boolean composicionValida,
-                         Instant primerReporte, Instant ultimoReporte) implements Afirmacion {
+                         Instant primerReporte, Instant ultimoReporte, boolean sostenido) implements Afirmacion {
 
         public QuorumVecinos {
             Objects.requireNonNull(tipo, "El quórum debe declarar el tipo de reporte");
@@ -67,7 +68,18 @@ public sealed interface Afirmacion
             }
         }
 
-        EstadoServicio estado() {
+        /** Un quórum reciente, que los reportes de la ventana sostienen ahora mismo. */
+        public QuorumVecinos(TipoReporte tipo, int respaldo, int umbral, boolean composicionValida,
+                             Instant primerReporte, Instant ultimoReporte) {
+            this(tipo, respaldo, umbral, composicionValida, primerReporte, ultimoReporte, false);
+        }
+
+        /** Si el quórum ya se alcanzó (ahora o cuando el barrio lo registró) y no hay que volver a exigir el umbral. */
+        public boolean alcanzado() {
+            return sostenido || respaldo >= umbral;
+        }
+
+        public EstadoServicio estado() {
             return switch (tipo) {
                 case SIN_AGUA -> EstadoServicio.SIN_SERVICIO;
                 case PRESION_BAJA -> EstadoServicio.PRESION_BAJA;
