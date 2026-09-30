@@ -117,4 +117,38 @@ class CorteAguaTest {
         assertThatThrownBy(() -> corte.cerrar(inicio.plus(6, ChronoUnit.HOURS)))
                 .isInstanceOf(IllegalStateException.class);
     }
+
+    private CorteAgua corteAbierto(OrigenCorte origen) {
+        return CorteAgua.builder()
+                .id(new CorteId("corte-1"))
+                .sectoresAfectados(List.of(new SectorId("manga")))
+                .inicio(inicio)
+                .finPrometido(inicio.plus(6, ChronoUnit.HOURS))
+                .causa("Mantenimiento")
+                .origen(origen)
+                .build();
+    }
+
+    @Test
+    void unCorteDeIngestaDejaDeSostenerElEstadoAlVencerSuVentana() {
+        CorteAgua deIngesta = corteAbierto(OrigenCorte.INGESTA_IA);
+
+        assertThat(deIngesta.sostieneElEstadoEn(inicio.plus(5, ChronoUnit.HOURS))).isTrue();
+        assertThat(deIngesta.sostieneElEstadoEn(inicio.plus(6, ChronoUnit.HOURS).plusSeconds(1))).isFalse();
+    }
+
+    /** El corte del veedor es la señal autorizada: sigue abierto hasta que alguien lo cierre. */
+    @Test
+    void unCorteDelVeedorSostieneElEstadoAunqueSuVentanaHayaVencido() {
+        CorteAgua delVeedor = corteAbierto(OrigenCorte.VEEDOR);
+
+        assertThat(delVeedor.sostieneElEstadoEn(inicio.plus(30, ChronoUnit.HOURS))).isTrue();
+    }
+
+    @Test
+    void unCorteCerradoNuncaSostieneElEstado() {
+        CorteAgua cerrado = corteAbierto(OrigenCorte.VEEDOR).cerrar(inicio.plus(4, ChronoUnit.HOURS));
+
+        assertThat(cerrado.sostieneElEstadoEn(inicio.plus(5, ChronoUnit.HOURS))).isFalse();
+    }
 }

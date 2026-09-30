@@ -55,6 +55,19 @@ public final class CorteAgua {
         return estado;
     }
 
+    /**
+     * Si este corte todavía obliga a que el barrio siga afectado. Un corte de ingesta solo vale
+     * mientras dure la ventana que el boletín prometió: nadie fija su {@code finReal}, así que
+     * sin este límite quedaría «abierto» para siempre y bloquearía el retorno a CON_SERVICIO. El
+     * corte del veedor, en cambio, sigue en pie hasta que alguien lo cierre.
+     */
+    public boolean sostieneElEstadoEn(Instant ahora) {
+        if (ventana.estaCerrada()) {
+            return false;
+        }
+        return origen != OrigenCorte.INGESTA_IA || ventana.finPrometido().isAfter(ahora);
+    }
+
     /** RF017 — única vía autorizada para restablecer un corte: cierra la ventana y marca el
      * estado atómicamente, así nunca puede existir un CorteAgua con estado/ventana incoherentes
      * por esta vía. */

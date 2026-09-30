@@ -100,7 +100,9 @@ public class RevisarPropuestaIngestaService implements RevisarPropuestaIngestaUs
      * **No se fija `finReal`.** El boletín dice cuándo *prometieron* restablecer, no cuándo se
      * restableció de verdad. Rellenarlo con la promesa daría un Índice de Cumplimiento del 100%
      * permanente, que es justo la afirmación que este proyecto existe para poder contrastar. El
-     * corte queda abierto hasta que alguien —consenso ciudadano o veedor— confirme la hora real.
+     * corte queda abierto hasta que el veedor confirme la hora real (`PATCH /api/veedor/cortes/{id}/cierre`):
+     * hoy ni el consenso ciudadano ni un boletín de restablecimiento lo cierran. Mientras tanto
+     * `CorteAgua.sostieneElEstadoEn` impide que, vencida su ventana, bloquee el retorno a CON_SERVICIO.
      *
      * Anexa el sector con una escritura atómica (`CorteAguaRepository.anexarSectorAlCorte`), no con
      * leer→modificar→guardar: un boletín nombra muchos barrios y genera una propuesta por sector,

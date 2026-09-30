@@ -153,7 +153,7 @@ public class ActualizarEstadosPorVentanaService implements ActualizarEstadosPorV
                                                                      EstadoServicio queCorresponde) {
         EstadoServicio resultado = queCorresponde;
         for (CorteAgua corte : cortesDelSector) {
-            if (corte.ventana().estaCerrada()) {
+            if (!corte.sostieneElEstadoEn(ahora)) {
                 continue;
             }
             EstadoServicio estadoDelCorte = corte.ventana().inicio().isAfter(ahora)

@@ -1,5 +1,6 @@
 package com.aguavigia.ctg.infrastructure.ingest;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
@@ -124,6 +125,22 @@ class HeuristicaExtractorTest {
         EventoExtraido evento = extractor.extraer(DocumentoCrudo.de(
                 "acuacar", "https://acuacar.com/x", PUBLICADO, "aviso",
                 "Se completó el restablecimiento del servicio en los siguientes barrios: Manga."));
+
+        assertThat(evento.tipo()).isEqualTo("SERVICIO_NORMAL");
+    }
+
+    /**
+     * Un aviso de restablecimiento suele recordar la suspensión que termina («tras la suspensión
+     * temporal…»). Mencionarla no lo convierte en un corte nuevo: el barrido lo leería como
+     * SIN_SERVICIO y dejaría el barrio sin agua en el mapa justo cuando Acuacar dice que volvió.
+     */
+    @Disabled("F3 (plan 3.2): el extractor aún clasifica por «suspensión» antes que por restablecimiento")
+    @Test
+    void debeReconocerElRestablecimientoAunqueMencioneLaSuspensionQueTermina() {
+        EventoExtraido evento = extractor.extraer(DocumentoCrudo.de(
+                "acuacar", "https://acuacar.com/x", PUBLICADO, "aviso",
+                "Tras la suspensión temporal del suministro, se completó el restablecimiento del "
+                        + "servicio en los siguientes barrios: Manga, Bocagrande."));
 
         assertThat(evento.tipo()).isEqualTo("SERVICIO_NORMAL");
     }

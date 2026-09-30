@@ -165,7 +165,7 @@ public class GestionarCorteOficialService implements GestionarCorteOficialUseCas
                                                                List<CorteAgua> otrosCortesDelSector) {
         EstadoServicio masSevero = nuevoEstado;
         for (CorteAgua otro : otrosCortesDelSector) {
-            if (otro.equals(corteActual) || otro.ventana().estaCerrada()) {
+            if (otro.equals(corteActual) || !otro.sostieneElEstadoEn(reloj.ahora())) {
                 continue;
             }
             EstadoServicio estadoOtro = otro.ventana().inicio().isAfter(reloj.ahora())
