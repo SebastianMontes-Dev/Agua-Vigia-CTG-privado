@@ -1,6 +1,6 @@
 # Protocolo de contexto y ahorro de tokens
 
-> Cinco personas trabajando el mismo repositorio con agentes de IA. Sin reglas, cada sesión vuelve a
+> Dos personas (backend de Sebastian, frontend de Yordy Pardo; `CLAUDE.md`) trabajando el mismo repositorio con agentes de IA. Sin reglas, cada sesión vuelve a
 > descubrir lo que otro ya descubrió, y cada archivo se lee entero para responder una pregunta de una
 > línea. Este documento existe para que eso no pase.
 >
@@ -44,7 +44,7 @@ sabe cuál manda.
 | Qué se implementó | `docs/gestion/registro-de-implementaciones.md` |
 | Qué se rompió y cómo se arregló | `docs/gestion/registro-de-bugs.md` |
 | Qué hizo cada sesión de trabajo con IA | `docs/gestion/bitacora-sesiones.md` |
-| Estado de tareas en curso | GitHub Issues / Projects — **no** en archivos |
+| Estado de tareas en curso | `docs/gestion/sprint-N.md` §2 (`✅`/`🟡` al inicio de cada entregable) |
 | Cómo va el proyecto de un vistazo | La **Sala de control** — generada, nunca escrita a mano (`docs/gestion/README.md`) |
 
 **La Sala de control no es un lugar donde se escribe: es la lectura de los archivos de esta tabla.**

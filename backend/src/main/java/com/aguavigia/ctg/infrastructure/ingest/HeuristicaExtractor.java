@@ -30,7 +30,7 @@ import java.util.regex.Pattern;
  * </ol>
  *
  * <h2>La confianza ya no es una constante</h2>
- * `ADR-026` descartó publicar por umbral con un argumento exacto: «el extractor emite un valor
+ * `ADR-028` descartó publicar por umbral con un argumento exacto: «el extractor emite un valor
  * constante de 0.6, el umbral no distinguiría nada». Ahora distingue —enumeración explícita y
  * ventana horaria valen más que una mención suelta— y el número sirve para ordenar la cola del
  * veedor por lo que más se sostiene. Aun así <b>nada se publica solo</b>: quien decide sigue siendo

@@ -10,7 +10,7 @@
 Plataforma web ciudadana de monitoreo y trazabilidad del acueducto en **Cartagena de Indias,
 Colombia**. Cruza los avisos oficiales de Acuacar con reportes ciudadanos georreferenciados y publica
 un **Índice de Cumplimiento** que compara la duración prometida de cada corte con la real.
-**Proyecto personal**, de un solo desarrollador. Detalle en `docs/brief.md`.
+**Proyecto académico de dos personas** (reparto en § Cómo colaborar conmigo). Detalle en `docs/brief.md`.
 
 **El problema que resuelve no es hidráulico, es informativo.** No reparamos tuberías; cerramos el
 vacío de información que multiplica el daño. Toda decisión de alcance se juzga contra eso.
@@ -19,10 +19,11 @@ vacío de información que multiplica el daño. Toda decisión de alcance se juz
 
 ## Estado actual
 
-**Sprints 0 a 6 cerrados** (el 6, «entrega final», el 2026-09-24, con `RNF027` parcial: `docs/gestion/sprint-6.md`). M1–M15 están construidos en el backend. **El frontend se retiró de `main`
-(`ADR-048`; su código sigue en la etiqueta git `pre-retiro-frontend`) y se rehace en `frontend/`** con el stack de
-`ADR-067`, por fases (F0–F6): `docs/ingenieria/plan-frontend.md`. **Es un proyecto académico que corre en local**
-(`ADR-057`): sin hosting, dominio ni CDN. Requisito de escalabilidad: **50 000 usuarios simultáneos** (`ADR-049`,
+**Sprints 0 a 6 cerrados** (el 6, «entrega final», el 2026-09-24, con `RNF027` parcial: `docs/gestion/sprint-6.md`). M1–M15 están construidos en el backend. **El frontend anterior se retiró
+(`ADR-048`; etiqueta git `pre-retiro-frontend`) y el nuevo se rehace en `frontend/`, ya en `main`**, con el stack de
+`ADR-067`, por fases (F0–F6): plan en `docs/ingenieria/plan-frontend.md`, avance en `docs/gestion/sprint-7.md`. **Es un proyecto académico que corre en local**
+(`ADR-057`): sin hosting, dominio ni CDN; se levanta y siembra con un solo `docker compose up`, sin `.env` (`ADR-086`,
+`docs/ingenieria/entorno-local.md`). Requisito de escalabilidad: **50 000 usuarios simultáneos** (`ADR-049`,
 `docs/ingenieria/escalabilidad.md`), que en local solo puede medirse a escala reducida.
 `RF041` (alertas por Telegram) está construido y armado (`ADR-066`), apagado hasta tener `TELEGRAM_BOT_TOKEN`; sin probar contra Telegram real.
 Cifra de pruebas de backend y su última corrida: `docs/ingenieria/estado-del-backend.md` §2 (las de integración exigen Docker y no corren sin él).
@@ -89,7 +90,7 @@ Al proponer código, verifica mentalmente esta regla antes de escribir el import
 
 ## Convenciones de Git
 
-Repo privado, de un solo desarrollador. Commits, ramas y PRs siguen las reglas de siempre en mis
+Repo **público** en GitHub pese al nombre `-privado` (nada sensible se versiona), de dos personas. Commits, ramas y PRs siguen las reglas de siempre en mis
 proyectos, documentadas en [`CONTRIBUTING.md`](CONTRIBUTING.md) — no las repito acá para no duplicar
 la fuente de verdad. Resumen: Conventional Commits en español, ramas
 `tipo/slug-corto-en-espanol-kebab-case` sobre `main`, squash-merge por defecto, CI en verde antes de
@@ -127,10 +128,10 @@ Es la coherencia del proyecto, no una preferencia de estilo. Detalle en `ADR-005
 
 ## Fuentes de datos
 
-En uso y verificadas: **Acuacar** (API REST de WordPress + RSS), **Google News RSS** y **Zona Cero
-RSS**. Las 18 evaluadas, con veredicto: `docs/ingenieria/auditoria-fuentes-de-datos.md`. **Antes de
-afirmar que una fuente está bloqueada o disponible, verifícalo con una petición real** (skill
-`verificar-fuente`): aquí ya costó caro asumir un `robots.txt` sin leerlo.
+En uso y verificadas: **Acuacar** (API REST de WordPress) y, por RSS, **Google News**, **Zona Cero**,
+**Caracol Radio** y **W Radio** (lista en `application.yml`). Las 18 evaluadas, con veredicto:
+`docs/ingenieria/auditoria-fuentes-de-datos.md`. **Antes de afirmar que una fuente está bloqueada o disponible,
+verifícalo con una petición real** (skill `verificar-fuente`): aquí ya costó caro asumir un `robots.txt` sin leerlo.
 
 ---
 

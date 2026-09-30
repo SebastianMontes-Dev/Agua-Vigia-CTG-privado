@@ -15,11 +15,12 @@ Cómo se obtiene el token: [Cuentas y sesión](cuentas-y-sesion.md).
 | `POST /api/veedor/cortes` · `PATCH /api/veedor/cortes/{id}/cierre` | `GESTIONAR_CORTES` |
 | `GET /api/veedor/reportes/pendientes` | `VER_PANEL` |
 | `PATCH /api/veedor/reportes/{id}/aprobar` · `…/descartar` | `MODERAR_REPORTES` |
-| `GET /api/veedor/ingesta/propuestas` · `GET /api/veedor/ingesta/salud` | `VER_PANEL` |
+| `GET /api/veedor/ingesta/propuestas` · `GET /api/veedor/ingesta/salud` · `GET /api/veedor/ingesta/fallidos` | `VER_PANEL` |
 | `PATCH /api/veedor/ingesta/propuestas/{id}/aprobar` · `…/descartar` | `REVISAR_INGESTA` |
 | `GET /api/veedor/usuarios` · `POST …/usuarios/invitaciones` · `POST …/usuarios/{id}/invitacion/reenvio` · `PATCH …/usuarios/{id}/{aprobacion,rechazo,suspension,reactivacion,permisos}` | `GESTIONAR_USUARIOS` |
 | `GET /api/veedor/auditoria` | `VER_AUDITORIA` |
 | `POST /api/veedor/segundo-factor/{alta,confirmacion,baja}` | `CONFIGURAR_SEGUNDO_FACTOR` |
+| `POST /api/veedor/cuenta/clave` (cambiar la propia clave; detalle en [Cuentas y sesión](cuentas-y-sesion.md)) | `VER_PANEL` |
 | `POST /api/veedor/sesion/cierre` · `GET /api/veedor/yo` | solo estar autenticado |
 
 Esquemas en [`referencia-de-rutas.md`](referencia-de-rutas.md).
@@ -75,8 +76,8 @@ abierto), `causa`, `origen` (quién lo creó: un veedor o la ingesta) y `estado`
 
 ## Revisión de la ingesta
 
-El sistema lee los boletines de **Acuacar** (API REST de WordPress y RSS), **Google News** y **Zona Cero**, y
-propone cambios de estado por sector. Un veedor decide.
+El sistema lee los boletines de **Acuacar** (solo su API REST de WordPress, `application.yml:175-177`) y la prensa por RSS
+(**Google News**, **Zona Cero**, **Caracol Radio** y **W Radio**, `application.yml:180-188`), y propone cambios de estado por sector. Un veedor decide.
 
 `GET /api/veedor/ingesta/propuestas` (paginada) devuelve las propuestas: qué sector, qué estado propone,
 de qué fuente, el enlace al original, la **`citaTextual`** exacta que la respalda y una `confianza` entre 0 y
@@ -102,11 +103,15 @@ fallo, su tasa de error y sus fallos consecutivos. Un colector con 3 fallos segu
 **Ojo:** ese estado vive en la memoria de cada instancia del backend; con varias réplicas, cada una reporta lo
 que ella misma ejecutó.
 
+`GET /api/veedor/ingesta/fallidos` lista los documentos que siguen fallando al procesarse (fuente, `urlOriginal`, título,
+motivo, primer y último intento, reintentos), más recientes primero y hasta 200. Un documento sale de la lista en
+cuanto se procesa con éxito: es lo que está roto ahora, no un histórico (`IngestaFallidosController.java`).
+
 ## Gestión de cuentas (ADMIN)
 
 | Ruta | Efecto |
 |---|---|
-| `GET /api/veedor/usuarios?estado=…&pagina&tamano` | Lista paginada, filtrable por estado de cuenta. `400` si el estado no existe. |
+| `GET /api/veedor/usuarios?estado=…&barrioId=…&pagina&tamano` | Lista paginada, filtrable por estado de cuenta y por barrio donde vive la persona (`barrioId`, slug de un sector; `AdminUsuariosController.java:77`). `400` si el estado no existe. |
 | `POST /api/veedor/usuarios/invitaciones` `{ correo, nombre, rol }` | Crea una cuenta `INVITADA` y envía el correo. `409` si el correo ya tiene cuenta. |
 | `POST …/{id}/invitacion/reenvio` | Reenvía la invitación a una cuenta `INVITADA` (invalida el enlace anterior y reinicia sus 7 días). `202`; `404` si no existe; `409` si la cuenta ya no está `INVITADA`. |
 | `PATCH …/{id}/aprobacion` `{ rol, concedidos, revocados }` | Aprueba una cuenta de registro abierto, asignándole rol. |

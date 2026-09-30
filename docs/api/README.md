@@ -1,9 +1,10 @@
 # API de AguaVigía CTG — guía para construir el frontend
 
-> **Para quién es.** Para quien vaya a construir el frontend desde cero. El frontend anterior se
-> retiró del repositorio (`ADR-048`; su código sigue en la etiqueta git `pre-retiro-frontend`), así que
-> **nada de lo que está aquí presupone una interfaz concreta**: describe qué hace el backend, qué rutas
-> expone y qué reglas debe respetar cualquier cliente.
+> **Para quién es.** Para quien construye el frontend. El anterior se retiró (`ADR-048`; su código sigue
+> en la etiqueta git `pre-retiro-frontend`) y el nuevo se rehace en `frontend/` (React 19 + Vite, `ADR-067`,
+> fases en `docs/ingenieria/plan-frontend.md`). Aun así, **nada de lo que está aquí presupone una
+> interfaz concreta**: describe qué hace el backend, qué rutas expone y qué reglas debe respetar cualquier
+> cliente.
 >
 > **Fuente de verdad.** El contrato exacto (campos, tipos, códigos) es
 > [`backend/openapi.yaml`](../../backend/openapi.yaml), generado desde el código y comprobado en cada
@@ -83,7 +84,7 @@ docker compose up -d --build --wait
 ## Qué debe saber ya quien construya la interfaz
 
 1. **CORS está abierto en los perfiles locales.** Con `docker compose up` (perfil `docker`) ya pasan
-   `localhost:5173`, `:3000` y `:4200`; otro origen se declara en `CORS_ORIGENES` del `.env`. El proyecto corre
+   `localhost:5173`, `:4173`, `:3000` y `:4200`; otro origen se declara en `CORS_ORIGENES` del `.env`. El proyecto corre
    solo en local (`ADR-080`). Ver
    [Errores y límites §CORS](errores-y-limites.md#cors).
 2. **No hay endpoint de refresco de sesión.** El token del panel dura 8 horas; al caducar hay que volver

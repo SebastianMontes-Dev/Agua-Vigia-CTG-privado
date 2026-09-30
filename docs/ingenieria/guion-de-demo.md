@@ -97,8 +97,10 @@ curl -s -X POST localhost:8081/api/suscripciones -H 'Content-Type: application/j
 ```
 
 Abre `http://localhost:8025`: llega «Confirma que quieres recibir los avisos de ALCIBIA» con el enlace
-`/api/suscripciones/confirmar?token=…`. **Ese enlace abre una página con un botón; confirmar es un `POST`**
-(un `GET` no confirma, para que un escáner de correo no lo haga por el vecino). Desde consola:
+`http://localhost:5173/avisos/confirmar?token=…` (la SPA, `APP_URL_FRONTEND`; `MailNotificacionAdapter.java:66`).
+**Esa pantalla muestra un botón; confirmar es un `POST`** (abrir el enlace no confirma, para que un escáner de correo no
+lo haga por el vecino). Sin el frontend levantado, `localhost:8081/api/suscripciones/confirmar?token=…` sirve la misma
+página con botón desde el backend. Desde consola:
 
 ```bash
 curl -s -X POST "localhost:8081/api/suscripciones/confirmar?token=<el token del enlace>"    # 200, CONFIRMADA

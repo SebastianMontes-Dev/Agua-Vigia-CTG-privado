@@ -22,6 +22,8 @@ compose: se ejecuta con el servidor de desarrollo de Vite.
 | `mongo-init-replica` | Contenedor de un solo uso que inicia el *replica set* si aún no lo está | — |
 | `redis` (`aguavigia-redis`) | Redis 7: caché, límites de peticiones, ventana del consenso, canal SSE | 6379 |
 | `mailhog` (`aguavigia-mailhog`) | SMTP de pruebas: los correos de la plataforma llegan aquí y nunca salen de la máquina | 1025 (SMTP) · **8025** (interfaz web) |
+| `sembrador` (`aguavigia-sembrador`) | Node de un solo uso (`scripts/sembrador.mjs`, `ADR-086`): corre cuando el backend queda sano, siembra lo que falte y sale. También ejecuta utilidades con `docker compose run --rm sembrador <comando>` | — |
+| `mongo-express` (perfil `demo`) | Visor web de Mongo para enseñar dónde se guarda cada dato; solo con `docker compose --profile demo up` | 127.0.0.1:8082 |
 | Frontend (`frontend/`) | React 19 · Vite · TypeScript estricto (`ADR-067`), con `npm run dev` | **5173** (desarrollo) · 4173 (vista previa que usan las pruebas E2E) |
 
 Volúmenes: `mongo-data`, `redis-data` y `fotos-data` (las fotos de evidencia, `RNF021`). En desarrollo, el servidor de Vite
@@ -31,15 +33,18 @@ la API comparten origen sin nginx.
 ### 1.1 Los archivos de Docker Compose
 
 - `docker-compose.yml` — **el único entorno**. Publica en el host los puertos de la tabla anterior para poder inspeccionarlos.
-- `docker-compose.carga.yml` — capa opcional para la demo de carga (`ADR-083`): solo activa el perfil Spring `carga` en el
-  backend (sin límite de peticiones por IP, más conexiones en vivo). **No se usa a mano ni se deja activo**: lo combina
+- `docker-compose.carga.yml` — capa opcional para la demo de carga (`ADR-083`, `ADR-088`): activa el perfil Spring `carga` en
+  el backend (sin límite de peticiones por IP, más conexiones en vivo) y, con `--sin-correo`, apaga los correos de cuentas.
+  **No se usa a mano ni se deja activo**: lo combina
   `scripts/carga/demo.mjs` con el compose base y, al terminar, devuelve el backend a su perfil normal.
 
 ## 2. Requisitos previos
 
-- Docker Desktop (o Docker Engine) con Compose V2, **encendido**: las pruebas de integración lo necesitan (Testcontainers).
-- JDK 21, solo si se ejecuta Maven fuera de Docker (`backend/mvnw`).
-- Node 22 o superior, para el frontend (`engines` de `frontend/package.json`) y para los scripts de `scripts/`.
+- Docker Desktop (o Docker Engine) con Compose V2, **encendido**. Para levantar y sembrar el proyecto no hace falta nada
+  más: ni Java ni Node en el equipo (`ADR-086`). La primera construcción necesita internet (Maven Central y npm).
+- JDK 21, solo si se ejecuta Maven fuera de Docker (`backend/mvnw`); las pruebas de integración usan Testcontainers.
+- Node 22 o superior, solo para el frontend en desarrollo (`engines` de `frontend/package.json`) o para correr los scripts de
+  `scripts/` fuera del contenedor `sembrador`.
 - Git LFS: el extracto del mapa base (PMTiles) se versiona con Git LFS (`ADR-072`).
 - Sin internet la plataforma funciona con `INGESTA_MODO=local` (§3.4). El mapa base es local y no usa terceros.
 - Recursos: no hay una medida para el uso normal. La demo de carga con 30 000 conexiones llevó al backend a ≈ 8 núcleos y
@@ -53,46 +58,52 @@ la API comparten origen sin nginx.
    cd Agua-Vigia-CTG-privado
    ```
 
-2. **Variables de entorno.** Copiar el ejemplo y completar lo que queda vacío (`.env` nunca se versiona):
+2. **Levantar y sembrar con un solo comando** (`ADR-086`), sin `.env`:
    ```bash
-   cp .env.example .env
+   docker compose up
    ```
+   Construye las imágenes, levanta Mongo, Redis, MailHog y el backend, y el servicio `sembrador` deja la base lista **solo si
+   hace falta** (cada paso tiene su puerta y un segundo `up` no escribe nada):
 
-   Las variables de `.env.example` (los valores por defecto ya apuntan a los servicios del compose):
+   | Paso | Qué siembra |
+   |---|---|
+   | 1 | 211 sectores con geometría y población |
+   | 2 | 30 000 cuentas de demostración completas (barrio, segundo factor, tokens, auditoría y suscripciones; `ADR-081`) |
+   | 3 | Barrios afectados por el camino real: reportes por la API hasta que el consenso cambia su estado |
+   | 4 | Cortes y reportes históricos sintéticos de mayo–julio de 2026, para el Índice de Cumplimiento |
 
-   | Variable | Para qué | Si está vacía |
+   El sembrador termina con una línea `Datos listos: …` con los conteos. **Tras traer cambios del repositorio:
+   `docker compose up --build`**: con las imágenes ya construidas, `up` a secas no las rehace. Tiempos medidos, puertas de
+   cada paso y cómo entrar al panel (la clave del primer `ADMIN` sale una sola vez en `docker compose logs backend`; segundo
+   factor TOTP, `RNF025`): [`docs/ingenieria/entorno-local.md`](../ingenieria/entorno-local.md). Las credenciales de
+   desarrollo viven allí y en [`credenciales-y-accesos.md`](../ingenieria/credenciales-y-accesos.md), no en este anexo.
+
+   **Más datos en vivo**, sin Node en el equipo:
+
+   | Comando | Qué hace |
+   |---|---|
+   | `docker compose run --rm sembrador agregar-usuarios --cantidad 1000` | Agrega cuentas nuevas con faker, distintas en cada ejecución y marcadas por lote; `--borrar-lote <lote>` las retira (`ADR-087`) |
+   | `docker compose run --rm sembrador monitor` | Conteo por colección y ritmo por segundo de la base, en vivo (`ADR-088`) |
+   | `docker compose --profile demo up -d mongo-express` | Visor web de Mongo en `http://127.0.0.1:8082` |
+
+   **`.env` es opcional** y solo cambia un valor por defecto: `cp .env.example .env` y descomentar lo que haga falta. Las
+   que importan:
+
+   | Variable | Para qué | Sin ella |
    |---|---|---|
-   | `JWT_SECRET` | Firma del token del panel (`RNF011`). Mínimo 32 bytes: `openssl rand -base64 32` | El inicio de sesión del panel responde 503 |
-   | `VEEDOR_PASSWORD_HASH` | Hash BCrypt de la clave del **primer administrador**, nunca la clave en texto plano. Cada `$` va escrito `$$` en el `.env` | No se siembra ningún administrador |
-   | `ADMIN_INICIAL_CORREO` | Correo de ese primer administrador | No se siembra ningún administrador |
+   | `JWT_SECRET` | Firma del token del panel (`RNF011`) | El perfil `docker` genera una aleatoria en cada arranque: las sesiones no sobreviven a un reinicio |
+   | `VEEDOR_PASSWORD_HASH` · `ADMIN_INICIAL_CORREO` | Hash BCrypt de la clave y correo del **primer administrador** | Clave aleatoria escrita una vez en el log; correo `admin@aguavigia.local` |
    | `IOT_KEY` | Clave que deben mandar los sensores IoT (`X-IoT-Key`, `M13`) | `POST /api/iot/presion` responde 503; el resto sigue igual |
    | `TELEGRAM_BOT_TOKEN` | Token del bot de Telegram (`RF041`), que entrega `@BotFather` | El canal de Telegram queda apagado; el resto sigue igual |
-   | `COLLECTOR_USER_AGENT` | Identificación del colector de ingesta (ética de datos, `CLAUDE.md`) | El colector se niega a llamar |
-   | `INGESTA_MODO` · `INGESTA_INTERVALO_MS` | `en-vivo` (por defecto) o `local` (§3.4) · cada cuántos ms corre la ingesta (600 000 = 10 min) | — |
-   | `APP_URL_PUBLICA` · `APP_URL_FRONTEND` | Bases de los enlaces de los correos: la API (`http://localhost:8081`) y la SPA (`http://localhost:5173`) | Enlaces rotos en los correos |
-   | `CORS_ORIGENES` | Orígenes que pueden llamar a la API desde su propio servidor de desarrollo | — |
-   | `SPRING_PROFILES_ACTIVE` · `SERVER_PORT` · `MONGODB_URI` · `MONGO_INITDB_DATABASE` · `REDIS_HOST` · `REDIS_PORT` · `MAIL_HOST` · `MAIL_PORT` | Topología del compose | No tocar salvo que cambie |
-   | `GITHUB_PERSONAL_ACCESS_TOKEN` | Solo para el servidor MCP de GitHub de las herramientas de desarrollo (opcional) | — |
+   | `INGESTA_MODO` · `INGESTA_INTERVALO_MS` | `en-vivo` (por defecto) o `local` (paso 4) · cada cuántos ms corre la ingesta (600 000 = 10 min) | — |
+   | `APP_URL_PUBLICA` · `APP_URL_FRONTEND` · `CORS_ORIGENES` | Bases de los enlaces de los correos y orígenes admitidos por la API | Valores por defecto de `localhost` |
 
-   Cómo generar el hash, el secreto y entrar al panel con el segundo factor (TOTP, `RNF025`):
-   [`docs/ingenieria/entorno-local.md`](../ingenieria/entorno-local.md). Las credenciales de desarrollo viven allí y en
-   [`credenciales-y-accesos.md`](../ingenieria/credenciales-y-accesos.md), no en este anexo.
+   Una variable presente pero vacía tapa el valor por defecto: por eso las de seguridad van comentadas en `.env.example`.
 
-3. **Levantar el stack y sembrar los sectores:**
-   ```bash
-   docker compose up -d --build --wait
-   cd scripts && npm install && node sembrar-sectores.mjs   # 211 sectores; idempotente
-   ```
-   Tras traer cambios de `main`, reconstruir con `docker compose up -d --build backend`: con la imagen vieja fallaron CORS,
-   la foto y el cierre de sesión (`MEMORY.md`).
-
-   Datos opcionales de demostración (desde `scripts/`):
-
-   | Script | Qué deja |
-   |---|---|
-   | `sembrar-historico-cortes.mjs` | Cortes y reportes históricos sintéticos de mayo–julio 2026 (para el Índice de Cumplimiento). **Borra** los de ese rango que hubiera |
-   | `sembrar-demo.mjs` | Barrios afectados por el camino real: envía reportes a la API hasta que el consenso cambia el estado |
-   | `sembrar-usuarios-demo.mjs` | 30 000 cuentas con barrio, tokens, auditoría y suscripciones (`ADR-081`) |
+3. **Scripts sueltos** (desde `scripts/`, con Node en el equipo): los del sembrador se pueden correr a mano
+   (`sembrar-sectores.mjs`, `sembrar-usuarios-demo.mjs`, `sembrar-demo.mjs`, `sembrar-historico-cortes.mjs`). Ojo:
+   `sembrar-historico-cortes.mjs` **borra** los cortes de mayo–julio que hubiera, y `sembrar-usuarios-demo.mjs` borra lo que
+   él mismo sembró, lotes de faker incluidos (`ADR-087`).
 
 4. **Ingesta sin internet.** Con `INGESTA_MODO=local` en `.env`, el backend lee boletines reales de Acuacar guardados en el
    repositorio en vez de consultar a Acuacar y a la prensa (`ADR-082`). Cambiar de modo exige recrear el backend:
@@ -120,8 +131,9 @@ la API comparten origen sin nginx.
 (recupera a un ADMIN sin segundo factor, solo contra una base local), `limpiar-puertos.ps1` / `.sh` (libera procesos que
 dejaron un puerto ocupado).
 
-**Estado de la interfaz:** F2 (núcleo ciudadano), F3 (historia pública) y F4 (avisos) están construidas; **F5 (cuentas y panel
-del veedor) y F6 (integración) siguen pendientes** (`docs/gestion/sprint-7.md`). El panel se opera hoy por la API con Swagger.
+**Estado de la interfaz:** F2 (núcleo ciudadano), F3 (historia pública) y F4 (avisos) están construidas y en `main`; F2 sigue
+sin cerrar. **F5 (cuentas y panel del veedor) tiene avance en la rama `feat/f5-ingreso-panel`, sin fusionar, y F6
+(integración) sigue pendiente** (`docs/gestion/sprint-7.md`). El panel se opera hoy por la API con Swagger.
 
 ## 4. Pruebas y aseguramiento de calidad (QA)
 
@@ -138,12 +150,9 @@ cd backend
 ./mvnw -B verify
 ```
 
-Cifras vigentes (`docs/ingenieria/estado-del-backend.md` §2):
-
 | Qué | Valor |
 |---|---|
-| Pruebas | **1 104** |
-| Cobertura JaCoCo | `domain/` **91,1 %** · `application/` **97,7 %** · total **94,1 %** |
+| Número de pruebas y cobertura real | En `docs/ingenieria/estado-del-backend.md` §2 (única fuente de la cifra) |
 | Umbral que exige la build | 85 % en `domain/` y `application/` (`RNF017`); por debajo, `verify` falla |
 | Arquitectura | **10 reglas ArchUnit** (`RNF018`); una violación de capas rompe la build |
 
@@ -168,7 +177,9 @@ npm run test:e2e    # Playwright con la API simulada; construye y sirve la vista
 Las **E2E reales** (`npm run test:e2e:real`) corren contra el backend de verdad. Necesitan el stack levantado y sembrado,
 como hace el job `integracion` de `.github/workflows/frontend-ci.yml`: `docker compose up -d --build --wait`, luego
 `sembrar-sectores.mjs`, `sembrar-demo.mjs`, `sembrar-historico-cortes.mjs` y `preparar-pruebas-frontend.mjs`, todos de
-`scripts/`. Ese job reserva la ingesta externa mientras corre para que no cambie los datos.
+`scripts/`. Ese job no levanta el servicio `sembrador` (siembra solo lo que las pruebas esperan, sin las 30 000 cuentas) y
+reserva la ingesta externa mientras corre para que no cambie los datos. El arranque de un solo comando lo verifica aparte
+`contenedores-ci.yml` (§4.5).
 
 ### 4.3 Verificación de flujos HTTP
 
@@ -184,10 +195,16 @@ cliente SSE dentro de la red de Docker y devuelve el sistema a su estado con `--
 30 000 reportes en 60 s con 30 000 conexiones en vivo, p95 de 130 a 164 ms en tres corridas. **Los 50 000 usuarios de
 `RNF027` no se demuestran en un solo PC.** Cifras y límites: `docs/ingenieria/escalabilidad.md`.
 
+`--registros N --tasa-registros T --sin-correo` suma, en paralelo con los reportes, personas que piden cuenta por
+`POST /api/cuentas/registro` (el flujo real, con BCrypt y auditoría), y `docker compose run --rm sembrador monitor` muestra en
+otra terminal cómo crece cada colección (`ADR-088`).
+
 ### 4.5 Integración continua
 
 En `.github/workflows/`: `backend-ci.yml` (`./mvnw verify`, con ArchUnit y JaCoCo), `frontend-ci.yml` (lint, tipos, contrato,
-Vitest, E2E simuladas y E2E reales), `contenedores-ci.yml` (valida el compose local, construye la imagen y pasa Trivy),
+Vitest, E2E simuladas y E2E reales), `contenedores-ci.yml` (valida el compose local, construye la imagen, pasa Trivy y, sin `.env`, exige que un solo
+`docker compose up` deje la base sembrada, que un segundo `up` no duplique datos y que un lote de `agregar-usuarios` sume y
+se borre exacto: `RNF020`, `ADR-086`, `ADR-087`),
 `escaneo-de-fugas.yml` (gitleaks, `RNF010`) y `autoria.yml`.
 
 ## 5. Respaldo y restauración
@@ -222,8 +239,7 @@ tiene además una pantalla en `frontend/` y qué prueba la cubre.
 | ✅ | El RF está ✅ en la matriz. Si la matriz cita una prueba automatizada, se cita aquí; si no, el caso ya figuraba ✅ en la versión anterior de este anexo y se indica «matriz» |
 | 🟡 | Parcial: se dice qué parte falta |
 | ⏳ | **Por ejecutar**: no hay evidencia citada que permita darlo por verificado. Se anota la prueba existente, si la hay |
-| ❌ | El requisito está descartado o no se cumple tal como está escrito |
-| ⛔ | Solo en la columna *Interfaz nueva*: la pantalla todavía no está construida (F5 del plan del frontend) |
+| ⛔ | Solo en la columna *Interfaz nueva*: la pantalla todavía no está en `main` (F5 del plan del frontend; avance en la rama `feat/f5-ingreso-panel`, sin fusionar) |
 
 Ningún caso de la columna *Interfaz nueva* está verificado en este anexo: la interfaz se rehizo (`ADR-048`, `ADR-067`) y esas
 pruebas (`frontend/e2e/`, `frontend/src/**/*.test.ts*`) están sin ejecutar aquí. **Sus nombres se citan porque existen en el
@@ -235,7 +251,7 @@ repositorio, no porque pasen.**
 | CP001 | Estado de todos los sectores | `GET /api/sectores` devuelve los 211 sectores, cada uno con su estado (con servicio, sin servicio, presión baja, corte programado). Un sector sin dato verificado trae `estado: null`, nunca `CON_SERVICIO`. | ✅ matriz | ⏳ F2: `e2e/mapa.spec.ts` (`debePresentarElEstadoNuloComoSinDatosYNuncaComoConServicio`) |
 | CP002 | Detalle de un sector | `GET /api/sectores/{id}` devuelve estado y marca del último cambio; `GET /api/sectores/{id}/cortes` devuelve el histórico paginado, el más reciente primero. Un id inexistente responde 404 en RFC 7807. | ✅ matriz | ⏳ F2: ficha del barrio, `e2e/mapa.spec.ts` (`debeResponderElEstadoYElFinPrometidoDeUnBarrioBuscado`) |
 | CP003 | Antigüedad del dato | Cada sector trae la fecha de su último cambio de estado (`actualizadoEn`) y la de su última verificación (`verificadoEn`). | ✅ `SectorMongoAdapterTest.debeDevolverLaFechaDelEstadoAlLeerElSector` | ⏳ F2: «Sin verificación reciente» a las 24 h, `e2e/mapa.spec.ts` (`debeAdvertirSinVerificacionRecienteSinCambiarElEstado`) |
-| CP004 | Lista textual accesible | La interfaz ofrece una lista de todos los barrios con su estado como alternativa al mapa. Sin componente de backend propio. | ⏳ Por ejecutar: el ✅ anterior era del frontend retirado (`ADR-048`) | ⏳ F2: `e2e/mapa.spec.ts` (`debeOfrecerLaListaDeBarriosComoAlternativaAlMapa`) |
+| CP004 | Lista textual accesible | La interfaz ofrece una lista de todos los barrios con su estado como alternativa al mapa. Sin componente de backend propio. | 🟡 Backend ✅ (`GET /api/sectores`, CP001); interfaz en F2 (frontend), sin cerrar (matriz) | ⏳ F2: `e2e/mapa.spec.ts` (`debeOfrecerLaListaDeBarriosComoAlternativaAlMapa`) |
 
 ### M2 — Reporte ciudadano
 | ID | Descripción | Resultado esperado | Estado | Interfaz nueva |
@@ -243,7 +259,7 @@ repositorio, no porque pasen.**
 | CP005 | Reportar sin cuenta | `POST /api/reportes` con tipo, sector y huella de dispositivo, sin token, responde 201 con el identificador del reporte. No se guarda ningún dato personal más allá de la huella anónima (`RNF008`). | ✅ matriz | ⏳ F2: `e2e/real/ciudadano.spec.ts` (`debeReportarEnDosToquesYRecibirUn201`) |
 | CP006 | Límite por dispositivo | Al superar el cupo por huella y sector en la ventana (3 en 30 min por defecto), la API responde 429 en RFC 7807 con el límite y cuándo se libera, y el reporte no se guarda. | ✅ matriz | ⏳ F2: `e2e/mapa.spec.ts` (`debeExplicarElCupoAgotadoSinReintentarSolo`) |
 | CP007 | Sector inferido por coordenada | Un reporte con `coordenada` y sin `sectorId` queda asociado al sector que la contiene y la respuesta lo devuelve. Una coordenada fuera de Cartagena, o un reporte sin sector ni coordenada, responde 400. | ✅ matriz | ⏳ F2: «Usar mi ubicación», `e2e/ubicacion-y-confirmacion.spec.ts` |
-| CP008 | Reporte en dos toques | Desde el mapa, el vecino toca «Reportar que no tengo agua» y confirma el tipo: el reporte queda enviado sin pasos intermedios. Sin componente de backend propio. | ⏳ Por ejecutar: el ✅ anterior era del frontend retirado (`ADR-048`) | ⏳ F2: `e2e/mapa.spec.ts` (`debeReportarEnDosToquesConLaHuellaDelDispositivo`) |
+| CP008 | Reporte en dos toques | Desde el mapa, el vecino toca «Reportar que no tengo agua» y confirma el tipo: el reporte queda enviado sin pasos intermedios. Sin componente de backend propio. | 🟡 Backend ✅ (`POST /api/reportes`, CP005); interfaz en F2 (frontend), sin cerrar (matriz) | ⏳ F2: `e2e/mapa.spec.ts` (`debeReportarEnDosToquesConLaHuellaDelDispositivo`) |
 
 ### M3 — Consenso automático
 | ID | Descripción | Resultado esperado | Estado | Interfaz nueva |
@@ -275,7 +291,7 @@ El panel se ejerce hoy por la API con el token de `POST /api/veedor/sesion`. **L
 |---|---|---|---|---|
 | CP020 | Desviación prometido vs real | `GET /api/cumplimiento/cortes/{corteId}` de un corte cerrado con fin prometido expone la duración prometida, la real y su desviación. Un corte cerrado sin fin prometido no aporta al índice. | ✅ matriz | — |
 | CP021 | Índice por sector y global | `GET /api/cumplimiento` y `GET /api/cumplimiento/sectores/{sectorId}` devuelven el índice, calculado sumando duraciones (no promediando porcentajes, `ADR-022`). Sin cortes medidos, informan que no hay dato y nunca un 100 %. | ✅ matriz | ⏳ F3: `e2e/real/cumplimiento.spec.ts` |
-| CP022 | Comparación prometido vs real | La interfaz muestra lo prometido y lo real juntos, en lenguaje natural («Prometieron 2 horas · Fueron 8»), no un puntaje aislado. La API ya expone ambas duraciones (CP020). | ⏳ Por ejecutar: el ✅ anterior era del frontend retirado (`ADR-048`) | ⏳ F3: `e2e/cumplimiento.spec.ts`, `src/pantallas/publico/Cumplimiento.test.tsx` |
+| CP022 | Comparación prometido vs real | La interfaz muestra lo prometido y lo real juntos, en lenguaje natural («Prometieron 2 horas · Fueron 8»), no un puntaje aislado. La API ya expone ambas duraciones (CP020). | 🟡 Backend ✅ (ambas duraciones, CP020); interfaz en F3 (frontend), fusionada y pendiente de la revisión visual del dueño (matriz) | ⏳ F3: `e2e/cumplimiento.spec.ts`, `src/pantallas/publico/Cumplimiento.test.tsx` |
 
 ### M7 — Estadísticas
 | ID | Descripción | Resultado esperado | Estado | Interfaz nueva |
@@ -293,20 +309,20 @@ El panel se ejerce hoy por la API con el token de `POST /api/veedor/sesion`. **L
 
 ### M9 — Ingesta automática (heurística determinista, sin IA)
 El SDK de IA se descartó (`ADR-025`): la ingesta usa `PrefiltroDeterminista` y `HeuristicaExtractor`, y lo que deduce de la
-prensa entra como propuesta a una cola de revisión del veedor (`ADR-028`). La matriz marca **RF032–RF036 como ❌
-Descartado**. Para cada uno se dice qué parte se cumple de forma heurística y qué parte no. Las pruebas que se citan
-**existen en el repositorio, pero la matriz no las cita para estos RF**, por eso la parte heurística queda ⏳.
+prensa entra como propuesta a una cola de revisión del veedor (`ADR-028`). La matriz los da **reformulados sin IA**:
+RF033 y RF035 ✅, RF032, RF034 y RF036 🟡, con las pruebas que se citan abajo. Para cada uno se dice qué parte se cumple de
+forma heurística y qué parte no.
 
 | ID | Descripción | Resultado esperado | Estado | Interfaz nueva |
 |---|---|---|---|---|
 | CP029 | Consumo de la API de Acuacar | El colector lee los boletines de la API pública de WordPress de Acuacar, avanza su marca de lectura y no retrocede si no hay novedades. En modo `local` (`ADR-082`) lee boletines guardados en el repositorio, sin tocar la red. | ✅ `AcuacarApiCollectorTest` (modo local: `IngestaLocalDeExtremoAExtremoTest` existe; la matriz no la cita) | — |
 | CP030 | Prensa por RSS | El colector procesa los feeds de prensa configurados (Google News, Zona Cero, Caracol Radio y W Radio) con un `User-Agent` que nombra al proyecto y da un correo. | ✅ `RssCollectorTest` | — |
 | CP031 | Descarte de duplicados | Un aviso cuyo contenido normalizado ya se vio, por su hash, no crea documento ni propuesta nuevos. | ✅ `DeduplicadorRecienteTest`, `PipelineOrquestadorTest` | — |
-| CP032 | Clasificación y extracción | El prefiltro descarta lo que no contiene sus palabras clave y el extractor decide si el texto habla de una interrupción (nombra un barrio y menciona suspensión, presión baja o restablecimiento), y extrae barrios, ventana prometida, causa y tipo; lo que no logra leer lo declara como faltante. **No es IA** (`RF032` la pedía). | ❌ RF descartado como IA (matriz, `ADR-025`) · parte heurística ⏳ por ejecutar: `PrefiltroDeterministaTest`, `HeuristicaExtractorTest` (`debeLeerLosBarriosDeLaEnumeracionYNoLaFraseDeResumen`, `debeLeerLaVentanaPrometidaEnHoraDeCartagena`, `debeDeclararLosCamposQueNoSupoLeerEnVezDeInventarlos`) | — |
-| CP033 | Confianza y cita textual | Toda extracción trae una confianza graduada por la evidencia (0,85 con enumeración y horario, 0,75 con enumeración sin horario, 0,45 con mención suelta) y la cita del fragmento del boletín que la sustenta; ambas se guardan en la propuesta. La confianza es una regla, no la probabilidad de un modelo. | ❌ RF descartado como IA · parte heurística ⏳ por ejecutar: `HeuristicaExtractorTest` (`debeGraduarLaConfianzaSegunLaEvidenciaEncontrada`, `debeBajarLaConfianzaCuandoLaEnumeracionNoTraeHorario`, `laCitaTextualDebeMostrarLaListaDeBarriosYNoLaFraseDeResumen`) | — |
-| CP034 | Cita literal | La cita es un fragmento literal del boletín (salvo los «…» del recorte). **No existe** un verificador que rechace en ejecución una cita que no esté en el documento: se garantiza por construcción, porque el extractor la recorta del propio texto. | ❌ Rechazo automático no implementado · literalidad ⏳ por ejecutar: `HeuristicaExtractorTest.laCitaTextualDebeSerLiteralDelBoletin` | — |
-| CP035 | Revisión humana | Lo que la ingesta deduce de la prensa queda como propuesta pendiente en `GET /api/veedor/ingesta/propuestas` y el mapa no cambia; aprobarla lo publica y anota la bitácora, descartarla la cierra, y resolverla al revés responde 409. **No hay banda de «confianza intermedia»**: toda propuesta de prensa va a la cola. El boletín oficial de Acuacar se publica sin revisión (`ADR-034`). | ❌ RF descartado tal como está escrito (matriz) · cola de revisión ⏳ por ejecutar: `IngestaRevisionControllerTest`, `RevisarPropuestaIngestaServiceTest` (la matriz da por cerrado este hueco el 2026-08-11, sin citar prueba) | ⛔ F5 pendiente |
-| CP036 | Fuentes que bloquean a la IA | Una fuente cuyo `robots.txt` bloquea a los agentes de IA no se incorpora a los colectores (su cobertura llega vía Google News). La regla se cumple por **curación de las fuentes**, con una petición real (`verificar-fuente`, `auditoria-fuentes-de-datos.md`); el backend **no** consulta `robots.txt` al ejecutar. | ❌ RF descartado (matriz); la regla ética sigue vigente (`ADR-005`) · verificación de la auditoría de fuentes ⏳ por ejecutar | — |
+| CP032 | Clasificación y extracción | El prefiltro descarta lo que no contiene sus palabras clave y el extractor decide si el texto habla de una interrupción (nombra un barrio y menciona suspensión, presión baja o restablecimiento), y extrae barrios, ventana prometida, causa y tipo; lo que no logra leer lo declara como faltante. **No es IA** (`RF032` la pedía). | 🟡 Sin IA (`ADR-025`): la salida estructurada de un modelo no existe; la clasificación y la extracción heurísticas sí (matriz): `PrefiltroDeterministaTest`, `HeuristicaExtractorTest` (`debeLeerLosBarriosDeLaEnumeracionYNoLaFraseDeResumen`, `debeLeerLaVentanaPrometidaEnHoraDeCartagena`, `debeDeclararLosCamposQueNoSupoLeerEnVezDeInventarlos`) | — |
+| CP033 | Confianza y cita textual | Toda extracción trae una confianza graduada por la evidencia (0,85 con enumeración y horario, 0,75 con enumeración sin horario, 0,45 con mención suelta) y la cita del fragmento del boletín que la sustenta; ambas se guardan en la propuesta. La confianza es una regla, no la probabilidad de un modelo. | ✅ (matriz): `HeuristicaExtractorTest` (`debeGraduarLaConfianzaSegunLaEvidenciaEncontrada`, `debeBajarLaConfianzaCuandoLaEnumeracionNoTraeHorario`, `laCitaTextualDebeMostrarLaListaDeBarriosYNoLaFraseDeResumen`), `RegistrarPropuestaIngestaServiceTest` | — |
+| CP034 | Cita literal | La cita es un fragmento literal del boletín (salvo los «…» del recorte). **No existe** un verificador que rechace en ejecución una cita que no esté en el documento: se garantiza por construcción, porque el extractor la recorta del propio texto. | 🟡 Cumplido por construcción, no por verificación (matriz): el rechazo automático no existe · literalidad: `HeuristicaExtractorTest.laCitaTextualDebeSerLiteralDelBoletin` | — |
+| CP035 | Revisión humana | Lo que la ingesta deduce de la prensa queda como propuesta pendiente en `GET /api/veedor/ingesta/propuestas` y el mapa no cambia; aprobarla lo publica y anota la bitácora, descartarla la cierra, y resolverla al revés responde 409. **No hay banda de «confianza intermedia»**: toda propuesta de prensa va a la cola. El boletín oficial de Acuacar se publica sin revisión (`ADR-034`). | ✅ Más estricto que lo pedido (matriz, `ADR-028`, `ADR-034`): `RevisarPropuestaIngestaServiceTest`, `IngestaRevisionControllerTest` | ⛔ F5 pendiente |
+| CP036 | Fuentes que bloquean a la IA | Una fuente cuyo `robots.txt` bloquea a los agentes de IA no se incorpora a los colectores (su cobertura llega vía Google News). La regla se cumple por **curación de las fuentes**, con una petición real (`verificar-fuente`, `auditoria-fuentes-de-datos.md`); el backend **no** consulta `robots.txt` al ejecutar. | 🟡 Política cumplida por auditoría, no por código (matriz, `ADR-005`); abierto: el `Disallow: /` de Google News RSS espera la confirmación del dueño | — |
 
 ### M10 — Evidencia Multimedia (Fase 2)
 | ID | Descripción | Resultado esperado | Estado | Interfaz nueva |
@@ -356,7 +372,7 @@ ejecutaron**. La interfaz (F5) no está construida: se ejercen por la API.
 
 | Estado | Casos |
 |---|---|
-| ✅ | CP001–CP003, CP005–CP007, CP009–CP021, CP023–CP031, CP037–CP040, CP042–CP046 |
-| ⏳ Por ejecutar | CP004, CP008, CP022 (solo tienen sentido en la interfaz nueva) · la parte heurística de CP032–CP036 |
-| ❌ | CP032–CP036 tal como están escritos (requisito descartado, `ADR-025`); en CP034, además, el rechazo automático no existe |
-| 🟡 | CP041 (Telegram armado, sin probar contra Telegram real) |
+| ✅ | CP001–CP003, CP005–CP007, CP009–CP021, CP023–CP031, CP033, CP035, CP037–CP040, CP042–CP046 |
+| 🟡 | CP004, CP008, CP022 (backend ✅; la interfaz de F2/F3 sin cerrar) · CP032, CP034, CP036 (reformulados sin IA, `ADR-025`: ver la nota de cada uno) · CP041 (Telegram armado, sin probar contra Telegram real) |
+
+Coincide con la matriz: 39 RF ✅ y 7 🟡 (`estado-del-backend.md` §2).

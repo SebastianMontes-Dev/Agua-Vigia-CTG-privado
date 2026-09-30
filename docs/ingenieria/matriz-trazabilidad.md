@@ -23,7 +23,7 @@
 **Numeración pareja:** `RF001 → HU001 → CP001`. Un requisito puede necesitar más de un caso de prueba
 (`CP001a`, `CP001b`), pero **ninguno puede quedarse sin historia ni sin prueba**.
 
-**Estado:** ⬜ pendiente · 🟡 en curso · ✅ implementado y probado
+**Estado:** ⬜ pendiente · 🟡 en curso o parcial · ✅ implementado y probado · ❌ descartado · ⛔ fuera de alcance
 
 ---
 
@@ -51,7 +51,7 @@
 | RF001 Mapa con sectores coloreados por estado | HU001 | CP001 | 1, 2, 3 | 1 | ✅ |
 | RF002 Detalle del sector al seleccionarlo | HU002 | CP002 | 3 | 1 | ✅ |
 | RF003 Antigüedad del dato visible por sector | HU003 | CP003 | 3 | 2 | ✅ (`SectorMongoAdapterTest.debeDevolverLaFechaDelEstadoAlLeerElSector`) |
-| RF004 Lista textual accesible alternativa al mapa | HU004 | CP004 | 3, 4 | 1 | ✅ |
+| RF004 Lista textual accesible alternativa al mapa | HU004 | CP004 | 3, 4 | 1 | 🟡 Backend ✅ (`GET /api/sectores` entrega todos los sectores con su estado); interfaz en F2 (frontend), construida con E2E y sin cerrar (`sprint-7.md`). El ✅ anterior era del frontend retirado (`ADR-048`) |
 
 ### M2 — Reporte ciudadano
 
@@ -60,7 +60,7 @@
 | RF005 Reportar sin registro ni cuenta | HU005 | CP005 | 1, 3 | 2 | ✅ |
 | RF006 Límite de reportes por dispositivo | HU006 | CP006 | 3 | 2 | ✅ |
 | RF007 Coordenada del reporte e inferencia de sector | HU007 | CP007 | 2, 3 | 2 | ✅ |
-| RF008 Reporte en máximo dos toques | HU008 | CP008 | 3, 4 | 2 | ✅ |
+| RF008 Reporte en máximo dos toques | HU008 | CP008 | 3, 4 | 2 | 🟡 Backend ✅ (`POST /api/reportes` en una sola petición, sin cuenta); interfaz en F2 (frontend), construida con E2E y sin cerrar (`sprint-7.md`). El ✅ anterior era del frontend retirado (`ADR-048`) |
 
 ### M3 — Consenso automático
 
@@ -94,7 +94,7 @@
 |---|---|---|---|---|---|
 | RF020 Desviación entre duración prometida y real | HU020 | CP020 | 3, 4 | 4 | ✅ |
 | RF021 Índice agregado por sector y global | HU021 | CP021 | 3, 4 | 4 | ✅ |
-| RF022 Presentación como comparación, no como puntaje | HU022 | CP022 | 3 | 4 | ✅ |
+| RF022 Presentación como comparación, no como puntaje | HU022 | CP022 | 3 | 4 | 🟡 Backend ✅ (la API expone la duración prometida y la real, RF020); interfaz en F3 (frontend), fusionada y pendiente de la revisión visual del dueño (`sprint-7.md`). El ✅ anterior era del frontend retirado (`ADR-048`) |
 
 ### M7 — Estadísticas
 
@@ -173,7 +173,7 @@ Los RNF no llevan historia de usuario: se verifican con una medición, no con un
 
 | RNF | Umbral | Cómo se verifica | Sprint | Estado |
 |---|---|---|---|---|
-| RNF001 | Mapa completo < 3 s en 3G | Lighthouse con throttling | 6 | ⛔ **Retirado por alcance (`ADR-048`).** Antes: 🟡 **Medido y corregido en parte, 2026-08-12.** Primera medición (Regular 3G dura: 300 ms RTT, 400 Kbps, CPU 4×): puntaje 27/100, FCP 21.3 s, LCP 46.4 s, 6.04 MB de página — culpa principal, `logo-aguavigia-animado.gif` de **4.5 MB** (75% del peso) más el chunk `PaginaMapa` sin dividir (715 KB). Corrección aplicada: el logo pasó a WebP animado a 200 px (mismos 120 frames y transparencia, **404 KB**, −91%), `PaginaMapa` se dividió con `lazy()`+`Suspense` (`PanelDetalleSector`, `SeccionBitacora`, `SeccionEstadisticas`), sacando `recharts` del bundle inicial (715 KB → **355 KB**), y se agregó `<link rel="preconnect">`/`dns-prefetch` a los dominios de tiles del mapa (`index.html`) — el elemento del LCP bajo throttling duro es un tile de CartoDB/OSM (`img.leaflet-tile`), no algo servido por nuestro origen. Con el throttling estándar de Lighthouse (1.6 Mbps/150 ms, más representativo de un "3G" real): **puntaje 42/100, FCP 3.9 s, LCP 9.7 s** — mejora real, pero sigue sin cumplir el umbral de 3 s. **Lo que queda:** bajo el throttling duro (400 Kbps compartidos entre *todo* lo que carga la página), 2.03 MB tarda >40 s solo en transferencia — el preconnect a los tiles ayudó al FCP (17.4 s → 13.2 s) pero apenas movió el LCP, porque el cuello de botella ya no es la latencia de conexión sino el ancho de banda total disponible. Cerrar esto del todo exigiría bajar el peso total muy por debajo de lo que cualquier mapa interactivo con tiles externos puede pesar, o aceptar que 3 s sobre 400 Kbps reales es un presupuesto que ninguna SPA con mapa cumple hoy |
+| RNF001 | Mapa completo < 3 s en 3G | Lighthouse con throttling | 6 | ⬜ **Pendiente: F6 del frontend** (`sprint-7.md`). Con el frontend nuevo el mapa pinta a 7,5–11 s con caché vacía (`BUG-115`). Antecedente, del frontend retirado (`ADR-048`), medido el 2026-08-12: con el throttling estándar de Lighthouse (1,6 Mbps/150 ms), puntaje 42/100, FCP 3,9 s y LCP 9,7 s tras bajar el logo de 4,5 MB a 404 KB y dividir `PaginaMapa`; bajo 3G dura (400 Kbps) el cuello de botella era el ancho de banda total, con los tiles externos del mapa como elemento del LCP. El detalle de aquella medición está en el historial de git de este archivo |
 | RNF002 | Confirmación de reporte < 1 s | Prueba de carga | 5 | ✅ **Medido 2026-08-11** — k6 (`scripts/carga/rnf002-registrar-reporte.js`), 20 solicitudes/min durante 2 min contra el stack de `docker compose`: p(95)=16.49 ms, 0% de errores |
 | RNF003 | Caché del mapa con TTL ≤ 60 s | Inspección de Redis | 2 | ✅ (TTL de 15 s en `application.yml` · `SectorMongoAdapterCacheTest`) |
 | RNF004 | Fuente caída no tumba el sistema | Prueba de caos | 4 | ✅ (`PipelineOrquestadorTest.unColectorCaidoNoDebeImpedirQueSeLeaElOtro`) |
@@ -184,15 +184,15 @@ Los RNF no llevan historia de usuario: se verifican con una medición, no con un
 | RNF009 | Correos con acceso restringido, borrados al darse de baja | Revisión de código y prueba | 2 | ✅ (`MailNotificacionAdapterTest.debeIncluirElEnlaceDeBajaEnElAviso`) |
 | RNF010 | Cero credenciales en el repositorio | `gitleaks` en CI | 0 | ✅ |
 | RNF011 | JWT con expiración ≤ 8 h | Test de seguridad | 3 | ✅ |
-| RNF012 | Contraste AA en ambos temas | axe / Lighthouse | 5 | ⛔ **Retirado por alcance (`ADR-048`).** Antes: ✅ |
-| RNF013 | Operable solo con teclado | Prueba manual | 5 | ⛔ **Retirado por alcance (`ADR-048`).** Antes: ✅ |
-| RNF014 | Objetivos táctiles ≥ 44×44 px | Inspección de CSS | 5 | ⛔ **Retirado por alcance (`ADR-048`).** Antes: ✅ |
-| RNF015 | Funcional desde 360 px | Prueba responsive | 5 | ⛔ **Retirado por alcance (`ADR-048`).** Antes: ✅ |
-| RNF016 | El estado nunca solo por color | Revisión de diseño | 5 | ⛔ **Retirado por alcance (`ADR-048`).** Antes: ✅ |
-| RNF017 | Cobertura ≥ 70% en `domain/` y `application/` | JaCoCo en CI | 5 | ✅ (real: **91,1 %** en `domain/`, **97,7 %** en `application/` y **94,1 %** en todo el backend, sobre 1 104 pruebas, medido el 2026-09-29 con Docker; el 2026-09-22 eran 90,2 % y 97,6 % sobre 825. El `jacoco:check` del `pom.xml` falla la build por debajo del 85% **desde el 2026-09-22**: hasta entonces la regla no evaluaba ningún paquete real — `BUG-096` — y pasaba sin importar la cobertura) |
+| RNF012 | Contraste AA en ambos temas | axe / Lighthouse | 5 | ⬜ **Pendiente: F6 del frontend** (`sprint-7.md`, Lighthouse y axe). El ✅ anterior era del frontend retirado (`ADR-048`) |
+| RNF013 | Operable solo con teclado | Prueba manual | 5 | ⬜ **Pendiente: F6 del frontend** (`sprint-7.md`, Lighthouse y axe). El ✅ anterior era del frontend retirado (`ADR-048`) |
+| RNF014 | Objetivos táctiles ≥ 44×44 px | Inspección de CSS | 5 | ⬜ **Pendiente: F6 del frontend** (`sprint-7.md`, Lighthouse y axe). El ✅ anterior era del frontend retirado (`ADR-048`) |
+| RNF015 | Funcional desde 360 px | Prueba responsive | 5 | ⬜ **Pendiente: F6 del frontend** (`sprint-7.md`, Lighthouse y axe). El ✅ anterior era del frontend retirado (`ADR-048`) |
+| RNF016 | El estado nunca solo por color | Revisión de diseño | 5 | ⬜ **Pendiente: F6 del frontend** (`sprint-7.md`, Lighthouse y axe). El ✅ anterior era del frontend retirado (`ADR-048`) |
+| RNF017 | Cobertura ≥ 70% en `domain/` y `application/` | JaCoCo en CI | 5 | ✅ (la cobertura real y el número de pruebas viven en [`estado-del-backend.md`](estado-del-backend.md) §2. El `jacoco:check` del `pom.xml` falla la build por debajo del 85% **desde el 2026-09-22**: hasta entonces la regla no evaluaba ningún paquete real — `BUG-096` — y pasaba sin importar la cobertura) |
 | RNF018 | Build falla si se viola una capa | ArchUnit en CI | 1 | ✅ (`ReglaDeOroArchitectureTest`, 10 reglas) |
 | RNF019 | Precisión del clasificador ≥ 90% | Regresión sobre el conjunto dorado | 5 | ❌ (Descartado) |
-| RNF020 | Levanta con un solo comando | `docker compose up` en máquina limpia | 0 | ✅ (verificado en CI: `.github/workflows/contenedores-ci.yml` construye la imagen y valida el compose en cada push) |
+| RNF020 | Levanta con un solo comando | `docker compose up` en máquina limpia | 0 | ✅ Desde `ADR-086`, `docker compose up` sin `.env` levanta todo y el servicio `sembrador` deja la base lista (211 sectores, 30 000 cuentas de demostración, histórico y barrios afectados). `.github/workflows/contenedores-ci.yml` lo comprueba en cada PR: el sembrador termina con 0, `sembrador verificar` confirma los mínimos, el backend crea el ADMIN inicial y un segundo `up` no cambia los conteos. La SPA aún no entra en ese comando: es F6 del frontend (`sprint-7.md`) |
 | RNF021 | Imágenes en bucket con compresión automática | Inspección de bucket y metadatos | Fase 2 | 🟡 **Parcial.** Compresión y limpieza de EXIF ✅ (`CompresorDeImagenes`, recodifica jpg/png y descarta metadatos al reescribir — `CompresorDeImagenesTest`). El almacenamiento es el volumen local `fotos-data`: el proyecto es solo local (`ADR-080`) y el bucket queda fuera de alcance. `.webp` no se procesa — el JDK no trae lector nativo |
 | RNF022 | Autorización siempre contra un permiso concreto, nunca contra el rol | ArchUnit + pruebas de contrato por endpoint | Fase 2 | ✅ (`@PreAuthorize("hasAuthority('PERM_...')")` en `AdminUsuariosController` y `SegundoFactorController`; `AdministrarCuentaServiceTest.debeExigirUnaSesionDeAdministrador`) |
 | RNF023 | Suspender o cambiar permisos invalida sesiones vivas de inmediato | Prueba de integración de revocación | Fase 2 | ✅ (`AdministrarCuentaServiceTest.suspenderDebeRevocarLasSesionesVivasDelAfectado`, `.rechazarDebeRevocarLasSesionesVivasDelAfectado`, `.ampliarPermisosTambienDebeRevocarLaSesion`) |
@@ -220,7 +220,7 @@ Se revisa al cerrar cada sprint. Un hueco aquí es un hallazgo del docente esper
 | Ningún endpoint paginaba: `/api/bitacora` devolvía la bitácora entera, que por RF028 crece sin cota | 2026-08-11 | ✅ **Cerrado 2026-08-11** — paginación con metadatos en cabeceras en bitácora y las dos colas del veedor |
 | El cupo por dispositivo (RF006) contaba y luego guardaba: dos peticiones simultáneas del mismo dispositivo pasaban ambas | 2026-08-11 | ✅ **Cerrado 2026-08-11** — reserva atómica con INCR de Redis, con prueba de 50 hilos concurrentes |
 | RNF020 marcado ✅ sin verificación: el CI no construía las imágenes ni validaba los compose | 2026-08-11 | ✅ **Cerrado 2026-08-11** — `despliegue-ci.yml` (hoy `contenedores-ci.yml`, `ADR-080`), que en su día también fallaba si producción publicaba un puerto de base de datos |
-| RNF001 y RNF002 marcados ✅ sin ninguna medición | 2026-08-11 | 🟡 **RNF001 sigue abierto** (es de frontend) · ✅ **RNF002 cerrado 2026-08-11** — k6 midió p(95)=16.49 ms contra el umbral de 1 s |
+| RNF001 y RNF002 marcados ✅ sin ninguna medición | 2026-08-11 | ✅ **Cerrado como hueco:** RNF002 medido el 2026-08-11 (k6, p(95)=16.49 ms contra el umbral de 1 s); RNF001 ya no está marcado ✅ sin medir: su estado vive en su fila del Nivel 3 |
 | El backend paginó `/api/veedor/reportes/pendientes` y `/api/veedor/ingesta/propuestas` (fila anterior), pero el frontend nunca leyó `X-Total-Count`: un reporte o propuesta más allá del elemento 50 era invisible para el veedor, sin aviso | 2026-08-12 | ✅ **Cerrado 2026-08-12** — ambas colas piden el máximo (`tamano=200`) y el panel avisa si aun así sobra más de lo mostrado (`PanelVeedor.tsx`) |
 | M15 (cuentas individuales, roles, permisos y TOTP) está construido y probado en el backend desde el 2026-08-31 (`ADR-039`), pero nunca entró a la cadena académica: `product-requirements.md` §4 no citaba `RF037`–`RF046` ni `RNF020`–`RNF026`, esta matriz no tenía Nivel 1 ni sección M15 para RF042–RF046 y llegaba solo hasta RNF021 en Nivel 3, y esta misma matriz citaba `HU037`–`HU041` para M10–M14 sin que `anexo-4-historias-de-usuario.md` las tuviera escritas (solo cubría HU001–HU036) | 2026-09-05 | ✅ **Cerrado 2026-09-05** — `anexo-4` incorpora HU037–HU041 (M10–M14) y HU042–HU046 (M15); `anexo-5` incorpora CP042–CP046; `product-requirements.md` §4 y esta matriz citan RF037–RF046 y RNF020–RNF026. **Pendiente de verificar por un humano:** los nombres de los métodos JUnit citados en CP042–CP046 y en las filas RNF022–RNF025 se tomaron de una lectura estática del código (`Grep`), sin ejecutar `mvnw test` en esta sesión — confirmar que compilan y pasan antes de cerrar el sprint |
 
@@ -231,4 +231,4 @@ No son huecos de trazabilidad: están declarados y con su razón.
 | Qué | Por qué sigue abierto |
 |---|---|
 | RF041 (conectar el bot real de Telegram) | Falta un bot creado con `@BotFather` y su token, que entrega un tercero. El canal está construido y apagado sin él (`ADR-066`); WhatsApp queda fuera |
-| RNF021 (bucket, no disco local) | Decisión explícita del 2026-08-11: mantener disco local mientras el despliegue sea de servidor único (Anexo 5). `AlmacenamientoPort` ya aísla el cambio si se migra después |
+| RNF021 (bucket, no disco local) | El bucket queda fuera de alcance porque el proyecto es solo local (`ADR-080`): las fotos van al volumen `fotos-data`. `AlmacenamientoPort` aísla el cambio si algún día se despliega |

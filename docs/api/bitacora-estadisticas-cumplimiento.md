@@ -92,8 +92,8 @@ Campos que **pueden ser nulos** y que la interfaz debe tolerar: `sectorId`, `cor
 - **`urlOriginal` e `imagenUrl`**: cuando el evento nace de un boletín de Acuacar, enlazar la fuente es
   parte de la credibilidad del proyecto (`ADR-006`). **Muéstrala.**
 - **`imagenUrl` apunta a `acuacar.com`**, que bloquea el uso de sus imágenes desde otros dominios
-  (*hotlinking*): la misma imagen responde `200` sin `Referer` y `403` con uno ajeno. En producción, el
-  proxy del proyecto las sirve como propias: sustituye `https://www.acuacar.com/wp-content/uploads/` por
+  (*hotlinking*): la misma imagen responde `200` sin `Referer` y `403` con uno ajeno. El proxy de Vite
+  (`frontend/vite.config.ts`, `ADR-038`; no hay otro, `ADR-080`) las sirve como propias: sustituye `https://www.acuacar.com/wp-content/uploads/` por
   **`/acuacar-media/`** en la URL. Sin ese proxy, las imágenes no cargarán en el navegador.
 - **`cantidadReportesSustento`** dice cuántos reportes sostuvieron el cambio. **Los ids no vienen en el listado**
   (en una avería grande pueden ser miles y una página llegó a pesar 205 KB): se piden con

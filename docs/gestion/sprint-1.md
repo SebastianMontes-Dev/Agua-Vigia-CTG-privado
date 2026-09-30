@@ -32,6 +32,10 @@ código muerto que alguien confundirá con producción.
 
 ## 2. Compromisos
 
+> **Números de PR:** los de este sprint (#12, #13, #21, #56, #67, #74, #78, #84, #85, #98) son del repositorio público
+> anterior. El historial se reinició el 2026-09-17 (`chore: iniciar historial privado`) y esos números no corresponden a los
+> PR de este repositorio (aquí, por ejemplo, el #98 es F4 del frontend). Mismo criterio que `registro-de-implementaciones.md`.
+
 | RF/RNF | Entregable | Depende de |
 |---|---|---|
 | RF012–RF014 | ✅ Entregado — `POST /api/suscripciones` con DTOs y envío de correo asíncrono (`@Async` + `JavaMailSender`) contra Mailhog, probado extremo a extremo contra Mailhog real | Dominio y puertos ✅ · plantillas HTML ya listas, sin fusionar · PR #78 |

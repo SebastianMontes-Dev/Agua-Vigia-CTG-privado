@@ -13,9 +13,11 @@ cobertura de `domain/` y `application/` por encima del 85% que exige la build (`
 abierto). El detalle requisito por requisito, con el nombre de la prueba que sostiene cada uno, está en la
 [matriz de trazabilidad](docs/ingenieria/matriz-trazabilidad.md).
 
-**`main` ya no incluye frontend** (`ADR-048`; su código sigue en la etiqueta git `pre-retiro-frontend`): se rehace en
-otras ramas de este mismo repositorio y luego se junta todo. Es un **proyecto académico que corre en local** (`ADR-057`). La guía completa de funcionalidades, rutas y reglas para
-hacerlo está en [`docs/api/`](docs/api/README.md), y el contrato exacto en
+**El frontend nuevo está en `frontend/`, en `main`** (React 19 + Vite, `ADR-067`; lo construye Yordy Pardo): F0–F4 fusionadas
+(mapa, historia pública y avisos), F5 (panel del veedor) con avance en una rama sin fusionar y F6 (integración) pendiente;
+avance en [`sprint-7.md`](docs/gestion/sprint-7.md). El frontend anterior se retiró (`ADR-048`; etiqueta `pre-retiro-frontend`).
+Es un **proyecto académico que corre en local** (`ADR-057`). La guía completa de funcionalidades, rutas y reglas para
+construir la interfaz está en [`docs/api/`](docs/api/README.md), y el contrato exacto en
 [`backend/openapi.yaml`](backend/openapi.yaml). El requisito de **50 000 usuarios simultáneos** y su estado
 real están en [`docs/ingenieria/escalabilidad.md`](docs/ingenieria/escalabilidad.md).
 
@@ -45,15 +47,15 @@ El proyecto está construido bajo una estricta **Arquitectura Limpia (Puertos y 
 | **M2** | Reporte ciudadano | Formulario de 2 toques sin registro con rate limiting. |
 | **M3** | Consenso automático | Cambio de estado de un barrio basado en masa crítica de reportes. |
 | **M4** | Alertas por correo | Notificaciones (Doble Opt-In) al cambiar el estado de un barrio. |
-| **M5** | Panel del veedor | Backoffice JWT para moderación y registro de cortes. |
+| **M5** | Panel del veedor | Backoffice JWT para moderación y registro de cortes, en `/api/veedor/**` (la interfaz es F5, pendiente: hoy se opera con Swagger). |
 | **M6** | Índice de Cumplimiento | Diferencial de tiempo prometido vs real de reparación. |
 | **M7** | Estadísticas | Sectores más afectados, cortes por día, duración promedio, evolución del índice mes a mes y exportación en CSV. |
 | **M8** | Bitácora pública | Registro cronológico inmutable de todo lo acontecido. |
-| **M9** | Ingesta automatizada | Colectores de la API oficial y RSS de prensa, con deduplicación por hash, reintentos y cortacircuitos. La clasificación por IA (RF032-036) se descartó por bloqueo de dependencias (`ADR-025`); queda una heurística por expresiones regulares que **propone** cambios de estado a una cola de revisión del veedor, sin publicar nada por su cuenta (`ADR-028`). |
+| **M9** | Ingesta automatizada | Colectores de la API oficial y RSS de prensa, con deduplicación por hash, reintentos y cortacircuitos. Sin IA (`ADR-025`): RF032–RF036 se cumplen reformulados con una heurística por expresiones regulares que **propone** cambios de estado a una cola de revisión del veedor, sin publicar nada por su cuenta (`ADR-028`); qué parte de cada uno se cumple, en la [matriz](docs/ingenieria/matriz-trazabilidad.md). |
 | **M10** | Evidencia Multimedia | Soporte de capturas fotográficas en reportes. |
 | **M11** | Validación Comunitaria | Confirmaciones de un toque para un reporte existente. |
 | **M12** | API Abierta Open311 | Estándar internacional para consumo de datos cívicos. |
-| **M13** | Integración IoT Pasiva | Telemetría en tiempo real desde sensores de presión locales. |
+| **M13** | Integración IoT Pasiva | Endpoint para alertas de sensores de presión. No hay sensores instalados: responde 503 hasta poner `IOT_KEY` (`ADR-085`). |
 | **M14** | Alertas Push | Alertas por Telegram (RF041, `ADR-066`): el bot recibe por sondeo y avisa al cambiar el estado de un sector. Apagado hasta poner `TELEGRAM_BOT_TOKEN`; sin probar contra Telegram real. Guía: `docs/ingenieria/telegram.md`. |
 | **M15** | Cuentas y permisos | Cuentas individuales del panel (RF042-RF046). Registro abierto con verificación de correo y aprobación de un administrador, o invitación directa con rol asignado. Roles (ADMIN/VEEDOR/OBSERVADOR) como paquetes de permisos, con ajustes por persona; segundo factor TOTP obligatorio para ADMIN; revocación inmediata de sesiones y bitácora de auditoría. Reemplaza la credencial compartida de `ADR-016` — ver `ADR-039`. |
 
@@ -63,6 +65,8 @@ El proyecto está construido bajo una estricta **Arquitectura Limpia (Puertos y 
 
 Solo hace falta **Docker** en marcha (Docker Desktop en Windows o macOS) y, para clonar, **Git con Git LFS** (el mapa base
 del frontend se versiona con LFS). No hace falta `.env`, Java ni Node en el equipo (`ADR-086`).
+En Windows, clona en una ruta corta o activa antes `git config --global core.longpaths true`: algunas rutas del backend
+rozan el límite de 260 caracteres y, dentro de una carpeta muy profunda, el clon falla con «Filename too long».
 
 ```bash
 docker compose up
@@ -110,8 +114,8 @@ conserva los datos; `docker compose down -v` los borra y el siguiente `up` vuelv
 ## 🔀 CORS y desarrollo del frontend
 
 El backend **no emite cabeceras CORS por defecto** (`aguavigia.cors.origenes-permitidos` vacío). Los perfiles
-locales `dev` y `docker` sí los abren para los dev servers habituales (5173, 3000 y 4200; `CORS_ORIGENES` los
-reemplaza). El frontend de `frontend/` además pasa por el proxy de Vite, así que en desarrollo no hace peticiones
+locales `dev` y `docker` sí los abren para los dev servers habituales (5173, 4173 de la vista previa de las E2E, 3000 y
+4200; `CORS_ORIGENES` los reemplaza). El frontend de `frontend/` además pasa por el proxy de Vite, así que en desarrollo no hace peticiones
 cruzadas. Detalle en
 [`docs/api/errores-y-limites.md`](docs/api/errores-y-limites.md#cors).
 
