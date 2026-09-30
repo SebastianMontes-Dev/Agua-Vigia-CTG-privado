@@ -115,6 +115,10 @@ services:
       # La API y las pantallas de avisos tienen bases públicas independientes (ADR-078).
       AGUAVIGIA_APP_URL_PUBLICA: ${APP_URL_PUBLICA:-http://localhost:8081}
       AGUAVIGIA_APP_URL_FRONTEND: ${APP_URL_FRONTEND:-http://localhost:5173}
+      # Sin User-Agent los colectores de Acuacar y prensa no hacen la petición (ética de datos, punto 3):
+      # el valor por defecto deja la ingesta funcionando en un `docker compose up` sin .env. El correo
+      # de contacto debe ser uno que controles; cámbialo con COLLECTOR_USER_AGENT en tu .env.
+      COLLECTOR_USER_AGENT: "${COLLECTOR_USER_AGENT:-AguaVigiaCTG-Bot/1.0 (+alertas@aguavigia.com)}"
     ports:
       - "127.0.0.1:8081:8080"
     volumes:
