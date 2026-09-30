@@ -99,6 +99,30 @@ class ActualizarEstadosPorVentanaServiceCortesAbiertosTest {
         assertThat(guardado.getValue().estadoActual()).isEqualTo(EstadoServicio.CON_SERVICIO);
     }
 
+    /** Un corte del veedor sobre dos barrios, ya cerrado en Manga pero no en el otro, deja de sostener solo a Manga. */
+    @Test
+    void unCorteDelVeedorCerradoSoloEnEsteBarrioYaNoLoSostiene() {
+        given(reloj.ahora()).willReturn(FIN.plusSeconds(60));
+        dadoUnBoletinAprobadoConSuCorteAbierto(EstadoServicio.SIN_SERVICIO);
+        CorteAgua delVeedor = CorteAgua.builder()
+                .id(new CorteId("corte-veedor"))
+                .sectoresAfectados(List.of(MANGA, new SectorId("bocagrande")))
+                .inicio(INICIO)
+                .finPrometido(FIN.plusSeconds(10 * 3600))
+                .causa("corte del veedor")
+                .origen(OrigenCorte.VEEDOR)
+                .build()
+                .cerrarSector(MANGA, new com.aguavigia.ctg.domain.CierreDeCorte(
+                        FIN.minusSeconds(1800), com.aguavigia.ctg.domain.OrigenEstado.VEEDOR, false));
+        given(cortes.listarPorSectores(List.of(MANGA))).willReturn(List.of(delVeedor));
+
+        servicio.aplicarVentanasVencidas();
+
+        ArgumentCaptor<Sector> guardado = ArgumentCaptor.forClass(Sector.class);
+        verify(sectores).guardar(guardado.capture());
+        assertThat(guardado.getValue().estadoActual()).isEqualTo(EstadoServicio.CON_SERVICIO);
+    }
+
     /** Contrapeso: el arreglo no puede soltar el barrio mientras la ventana del boletín sigue corriendo. */
     @Test
     void debeSeguirSinServicioMientrasLaVentanaDelBoletinEstaEnCurso() {

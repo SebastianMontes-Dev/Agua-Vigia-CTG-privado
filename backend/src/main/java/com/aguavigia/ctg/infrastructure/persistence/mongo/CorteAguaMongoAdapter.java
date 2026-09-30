@@ -1,10 +1,12 @@
 package com.aguavigia.ctg.infrastructure.persistence.mongo;
 
 import com.aguavigia.ctg.domain.AgregadoDuraciones;
+import com.aguavigia.ctg.domain.CierreDeCorte;
 import com.aguavigia.ctg.domain.CorteAgua;
 import com.aguavigia.ctg.domain.CorteId;
 import com.aguavigia.ctg.domain.EstadoCorte;
 import com.aguavigia.ctg.domain.OrigenCorte;
+import com.aguavigia.ctg.domain.OrigenEstado;
 import com.aguavigia.ctg.domain.PuntoAgregadoMensual;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.port.out.CorteAguaRepository;
@@ -23,7 +25,9 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.YearMonth;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -81,6 +85,10 @@ public class CorteAguaMongoAdapter implements CorteAguaRepository {
         documento.setCausa(corte.causa());
         documento.setOrigen(corte.origen().name());
         documento.setEstado(corte.estado().name());
+        documento.setCierres(corte.cierres().entrySet().stream()
+                .map(entrada -> aDocumento(entrada.getKey(), entrada.getValue()))
+                .toList());
+        documento.setMotivoAnulacion(corte.motivoAnulacion());
 
         repositorio.save(documento);
         return corte;
@@ -191,6 +199,27 @@ public class CorteAguaMongoAdapter implements CorteAguaRepository {
         return new AgregadoDuraciones(Duration.ofMillis(milisPrometidos), Duration.ofMillis(milisReales), cantidad);
     }
 
+    private static CorteAguaDocumento.Cierre aDocumento(SectorId sectorId, CierreDeCorte cierre) {
+        CorteAguaDocumento.Cierre documento = new CorteAguaDocumento.Cierre();
+        documento.setSectorId(sectorId.valor());
+        documento.setHora(cierre.hora());
+        documento.setFuente(cierre.fuente().name());
+        documento.setProvisional(cierre.provisional());
+        return documento;
+    }
+
+    /** Un documento anterior a los cierres por sector no trae la lista: el dominio lo completa desde finReal. */
+    private static Map<SectorId, CierreDeCorte> cierresDe(CorteAguaDocumento documento) {
+        Map<SectorId, CierreDeCorte> cierres = new LinkedHashMap<>();
+        if (documento.getCierres() != null) {
+            for (CorteAguaDocumento.Cierre cierre : documento.getCierres()) {
+                cierres.put(new SectorId(cierre.getSectorId()),
+                        new CierreDeCorte(cierre.getHora(), OrigenEstado.valueOf(cierre.getFuente()), cierre.isProvisional()));
+            }
+        }
+        return cierres;
+    }
+
     private static CorteAgua aDominio(CorteAguaDocumento documento) {
         try {
             return CorteAgua.builder()
@@ -202,6 +231,8 @@ public class CorteAguaMongoAdapter implements CorteAguaRepository {
                     .causa(documento.getCausa())
                     .origen(OrigenCorte.valueOf(documento.getOrigen()))
                     .estado(EstadoCorte.valueOf(documento.getEstado()))
+                    .cierres(cierresDe(documento))
+                    .motivoAnulacion(documento.getMotivoAnulacion())
                     .build();
         } catch (IllegalStateException | IllegalArgumentException e) {
             throw new IllegalStateException(

@@ -23,10 +23,30 @@ public class CorteAguaDocumento {
     private Instant inicio;
     private Instant finPrometido;
 
-    /** Nulo mientras el corte sigue abierto — RF017 lo cierra con la hora real. */
+    /**
+     * Nulo mientras el corte no esté RESTABLECIDO. Es la hora del último cierre: se sigue guardando
+     * porque las agregaciones del Índice la consultan directamente en Mongo. Los documentos anteriores
+     * a los cierres por sector traen solo este campo, y el dominio los lee como cerrados en todos sus barrios.
+     */
     private Instant finReal;
 
     private String causa;
     private String origen;
     private String estado;
+
+    /** Un cierre por cada barrio ya restablecido. Nulo en los documentos anteriores a los cierres por sector. */
+    private List<Cierre> cierres;
+
+    /** Solo en un corte ANULADO. */
+    private String motivoAnulacion;
+
+    /** Lista y no mapa: un id de sector como clave de documento obligaría a escapar puntos y símbolos. */
+    @Getter
+    @Setter
+    public static class Cierre {
+        private String sectorId;
+        private Instant hora;
+        private String fuente;
+        private boolean provisional;
+    }
 }

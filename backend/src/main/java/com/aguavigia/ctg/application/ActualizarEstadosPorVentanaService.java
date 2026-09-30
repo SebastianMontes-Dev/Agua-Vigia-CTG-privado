@@ -109,7 +109,7 @@ public class ActualizarEstadosPorVentanaService implements ActualizarEstadosPorV
             // autorizada que un boletín de ingesta: no debe rebajarse el estado que ese corte exige,
             // aunque la ventana del boletín ya haya vencido según su propia fecha.
             queCorresponde = plegarConCortesOficialesAbiertos(
-                    cortesPorSector.getOrDefault(sectorId, List.of()), ahora, queCorresponde);
+                    sectorId, cortesPorSector.getOrDefault(sectorId, List.of()), ahora, queCorresponde);
 
             if (sector.estadoActual() == queCorresponde) {
                 continue;
@@ -149,11 +149,11 @@ public class ActualizarEstadosPorVentanaService implements ActualizarEstadosPorV
         return cambiados;
     }
 
-    private static EstadoServicio plegarConCortesOficialesAbiertos(List<CorteAgua> cortesDelSector, Instant ahora,
-                                                                     EstadoServicio queCorresponde) {
+    private static EstadoServicio plegarConCortesOficialesAbiertos(SectorId sectorId, List<CorteAgua> cortesDelSector,
+                                                                     Instant ahora, EstadoServicio queCorresponde) {
         EstadoServicio resultado = queCorresponde;
         for (CorteAgua corte : cortesDelSector) {
-            if (!corte.sostieneElEstadoEn(ahora)) {
+            if (!corte.sostieneElEstadoEn(sectorId, ahora)) {
                 continue;
             }
             EstadoServicio estadoDelCorte = corte.ventana().inicio().isAfter(ahora)
