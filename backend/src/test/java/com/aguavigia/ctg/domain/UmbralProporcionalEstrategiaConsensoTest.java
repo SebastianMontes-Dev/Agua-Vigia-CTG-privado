@@ -34,6 +34,14 @@ class UmbralProporcionalEstrategiaConsensoTest {
         assertThat(ESTRATEGIA.seAlcanzaConsenso(3, sinCenso)).isTrue();
     }
 
+    /** El resolutor recibe el umbral como número: lo necesita para aplicar el quórum reducido y mostrar «11 de 12». */
+    @Test
+    void debeExponerElUmbralQueAplicaAUnSector() {
+        assertThat(ESTRATEGIA.umbral(new Sector(new SectorId("bocagrande"), "BOCAGRANDE", 12000, null))).isEqualTo(12);
+        assertThat(ESTRATEGIA.umbral(new Sector(new SectorId("el-socorro"), "EL SOCORRO", 500, null))).isEqualTo(3);
+        assertThat(ESTRATEGIA.umbral(new Sector(new SectorId("isla-fuerte"), "ISLA FUERTE", null, null))).isEqualTo(3);
+    }
+
     @Test
     void debeRechazarUnFactorNoPositivo() {
         assertThatThrownBy(() -> new UmbralProporcionalEstrategiaConsenso(0, 3))

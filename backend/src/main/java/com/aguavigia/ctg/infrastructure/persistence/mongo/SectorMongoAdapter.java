@@ -2,6 +2,10 @@ package com.aguavigia.ctg.infrastructure.persistence.mongo;
 
 import com.aguavigia.ctg.domain.Coordenada;
 import com.aguavigia.ctg.domain.EstadoServicio;
+import com.aguavigia.ctg.domain.MarcasDeEstado;
+import com.aguavigia.ctg.domain.OrigenEstado;
+import com.aguavigia.ctg.domain.RespaldoVecinal;
+import com.aguavigia.ctg.domain.VentanaTiempo;
 import com.aguavigia.ctg.domain.Sector;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.port.out.RelojPort;
@@ -184,6 +188,63 @@ public class SectorMongoAdapter implements SectorRepository {
     }
 
     /**
+     * `findAndModify` con el estado esperado en el filtro, igual que {@link #cambiarEstadoSiEs}, pero
+     * escribe también las marcas y admite «sin datos» (nulo) en ambos extremos. El evento que manda
+     * correo y push solo sale si el estado cambia a un valor: volver a «sin datos» no es una noticia.
+     */
+    @Override
+    public boolean publicarSiEs(SectorId id, EstadoServicio esperado, EstadoServicio nuevo, MarcasDeEstado marcas) {
+        Query condicion = Query.query(Criteria.where("slug").is(id.valor())
+                .and("estadoActual").is(esperado == null ? null : esperado.name()));
+        Update cambio = new Update();
+        escribirMarcas(cambio, marcas);
+
+        boolean cambiaElEstado = esperado != nuevo;
+        if (cambiaElEstado) {
+            if (nuevo == null) {
+                cambio.unset("estadoActual").unset("estadoActualizadoEn").unset("estadoVerificadoEn");
+            } else {
+                Instant ahora = reloj.ahora();
+                cambio.set("estadoActual", nuevo.name())
+                        .set("estadoActualizadoEn", ahora)
+                        .set("estadoVerificadoEn", ahora);
+            }
+        }
+
+        SectorDocumento actualizado = mongoTemplate.findAndModify(
+                condicion, cambio, FindAndModifyOptions.options().returnNew(true), SectorDocumento.class);
+        if (actualizado == null) {
+            return false;
+        }
+        trasConfirmar(this::invalidarCache);
+        if (cambiaElEstado && nuevo != null) {
+            trasConfirmar(() -> eventPublisher.publishEvent(new SectorActualizadoEvent(aDominio(actualizado))));
+        }
+        return true;
+    }
+
+    private static void escribirMarcas(Update cambio, MarcasDeEstado marcas) {
+        asignarOQuitar(cambio, "estadoOrigen", marcas.origen() == null ? null : marcas.origen().name());
+        asignarOQuitar(cambio, "ventanaPrometidaInicio",
+                marcas.ventanaPrometida() == null ? null : marcas.ventanaPrometida().inicio());
+        asignarOQuitar(cambio, "ventanaPrometidaFin",
+                marcas.ventanaPrometida() == null ? null : marcas.ventanaPrometida().finPrometido());
+        cambio.set("porConfirmar", marcas.porConfirmar());
+        cambio.set("enDisputa", marcas.enDisputa());
+        cambio.set("reportesEnContra", marcas.reportesEnContra());
+        asignarOQuitar(cambio, "respaldoVecinos", marcas.respaldo() == null ? null : marcas.respaldo().vecinos());
+        asignarOQuitar(cambio, "umbralVecinos", marcas.respaldo() == null ? null : marcas.respaldo().umbral());
+    }
+
+    private static void asignarOQuitar(Update cambio, String campo, Object valor) {
+        if (valor == null) {
+            cambio.unset(campo);
+        } else {
+            cambio.set(campo, valor);
+        }
+    }
+
+    /**
      * Mismo filtro atómico que {@link #cambiarEstadoSiEs}: si otro proceso cambió el estado entre la
      * lectura y esta escritura, no se marca como verificado un estado que ya no rige. Invalida la caché
      * para que el mapa vea la nueva marca, pero no publica `SectorActualizadoEvent`: nada cambió y ese
@@ -213,7 +274,30 @@ public class SectorMongoAdapter implements SectorRepository {
                 documento.getPoblacion(),
                 estado,
                 actualizadoEn,
-                verificadoEn(actualizadoEn, estado != null ? documento.getEstadoVerificadoEn() : null));
+                verificadoEn(actualizadoEn, estado != null ? documento.getEstadoVerificadoEn() : null),
+                estado != null ? marcasDe(documento) : MarcasDeEstado.ninguna());
+    }
+
+    /** Un documento anterior a las marcas, o con un valor que ya no se sabe leer, se lee sin marcas. */
+    private static MarcasDeEstado marcasDe(SectorDocumento documento) {
+        OrigenEstado origen = null;
+        if (documento.getEstadoOrigen() != null) {
+            try {
+                origen = OrigenEstado.valueOf(documento.getEstadoOrigen());
+            } catch (IllegalArgumentException valorFueraDelEnum) {
+                origen = null;
+            }
+        }
+        VentanaTiempo ventana = documento.getVentanaPrometidaInicio() != null
+                && documento.getVentanaPrometidaFin() != null
+                && documento.getVentanaPrometidaFin().isAfter(documento.getVentanaPrometidaInicio())
+                ? new VentanaTiempo(documento.getVentanaPrometidaInicio(), documento.getVentanaPrometidaFin())
+                : null;
+        RespaldoVecinal respaldo = documento.getRespaldoVecinos() != null && documento.getUmbralVecinos() != null
+                ? new RespaldoVecinal(documento.getRespaldoVecinos(), documento.getUmbralVecinos())
+                : null;
+        return new MarcasDeEstado(origen, ventana, documento.isPorConfirmar(), documento.isEnDisputa(),
+                documento.getReportesEnContra(), respaldo);
     }
 
     /** El más reciente de los dos: un documento anterior al campo, o escrito a mano, no rompe la lectura. */

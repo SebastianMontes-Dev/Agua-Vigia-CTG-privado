@@ -7,5 +7,11 @@ package com.aguavigia.ctg.domain;
  */
 public interface EstrategiaConsenso {
 
-    boolean seAlcanzaConsenso(long reportesRecientes, Sector sector);
+    /** Cuántos vecinos hacen falta en este sector. El resolutor lo necesita como número, no solo como sí o no. */
+    long umbral(Sector sector);
+
+    /** Una sola fuente de verdad: el «sí o no» se deriva del umbral, así que nunca pueden divergir. */
+    default boolean seAlcanzaConsenso(long reportesRecientes, Sector sector) {
+        return reportesRecientes >= umbral(sector);
+    }
 }

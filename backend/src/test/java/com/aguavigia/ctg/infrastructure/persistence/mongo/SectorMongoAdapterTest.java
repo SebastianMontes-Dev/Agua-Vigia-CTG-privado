@@ -2,6 +2,11 @@ package com.aguavigia.ctg.infrastructure.persistence.mongo;
 
 import com.aguavigia.ctg.domain.Coordenada;
 import com.aguavigia.ctg.domain.EstadoServicio;
+import com.aguavigia.ctg.domain.MarcasDeEstado;
+import com.aguavigia.ctg.domain.OrigenEstado;
+import com.aguavigia.ctg.domain.RespaldoVecinal;
+import com.aguavigia.ctg.domain.VentanaTiempo;
+import com.aguavigia.ctg.infrastructure.eventos.SectorActualizadoEvent;
 import com.aguavigia.ctg.domain.Sector;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.port.out.RelojPort;
@@ -15,6 +20,8 @@ import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.test.context.event.ApplicationEvents;
+import org.springframework.test.context.event.RecordApplicationEvents;
 import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -31,6 +38,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @Testcontainers
 @DataMongoTest
+@RecordApplicationEvents
 @Import({SectorMongoAdapter.class, SectorMongoAdapterTest.RelojFijo.class, SectorMongoAdapterTest.CacheDePrueba.class})
 class SectorMongoAdapterTest {
 
@@ -60,6 +68,9 @@ class SectorMongoAdapterTest {
 
     @Autowired
     private MongoTemplate mongoTemplate;
+
+    @Autowired
+    private ApplicationEvents eventos;
 
     @BeforeEach
     void limpiar() {
@@ -223,6 +234,100 @@ class SectorMongoAdapterTest {
         boolean cambio = adaptador.cambiarEstadoSiEs(new SectorId("manga"), null, EstadoServicio.SIN_SERVICIO);
 
         assertThat(cambio).isTrue();
+    }
+
+    private long eventosDeActualizacion() {
+        return eventos.stream(SectorActualizadoEvent.class).count();
+    }
+
+    private static MarcasDeEstado marcasDeAcuacarEnDisputa() {
+        return new MarcasDeEstado(OrigenEstado.ACUACAR,
+                new VentanaTiempo(Instant.parse("2026-08-21T14:00:00Z"), Instant.parse("2026-08-21T23:00:00Z")),
+                false, true, 11, null);
+    }
+
+    @Test
+    void publicarSiEsDebeGuardarElEstadoConSusMarcasYAvisarDelCambio() {
+        sembrar("manga", "MANGA", 5000);
+        eventos.clear();
+
+        boolean publicado = adaptador.publicarSiEs(new SectorId("manga"), null, EstadoServicio.SIN_SERVICIO,
+                marcasDeAcuacarEnDisputa());
+
+        assertThat(publicado).isTrue();
+        Sector leido = adaptador.buscarPorId(new SectorId("manga")).orElseThrow();
+        assertThat(leido.estadoActual()).isEqualTo(EstadoServicio.SIN_SERVICIO);
+        assertThat(leido.estadoActualizadoEn()).isEqualTo(INSTANTE_FIJO);
+        assertThat(leido.marcas()).isEqualTo(marcasDeAcuacarEnDisputa());
+        assertThat(eventosDeActualizacion()).isEqualTo(1);
+    }
+
+    @Test
+    void publicarSiEsNoDebeTocarNadaSiElEstadoYaNoEsElEsperado() {
+        sembrar("manga", "MANGA", 5000);
+        adaptador.guardar(adaptador.buscarPorId(new SectorId("manga")).orElseThrow()
+                .conEstado(EstadoServicio.PRESION_BAJA));
+        eventos.clear();
+
+        boolean publicado = adaptador.publicarSiEs(new SectorId("manga"), EstadoServicio.CON_SERVICIO,
+                EstadoServicio.SIN_SERVICIO, marcasDeAcuacarEnDisputa());
+
+        assertThat(publicado).isFalse();
+        Sector leido = adaptador.buscarPorId(new SectorId("manga")).orElseThrow();
+        assertThat(leido.estadoActual()).isEqualTo(EstadoServicio.PRESION_BAJA);
+        assertThat(leido.marcas()).isEqualTo(MarcasDeEstado.ninguna());
+        assertThat(eventosDeActualizacion()).isZero();
+    }
+
+    /** Las marcas cambian sin que cambie el estado (p. ej. se abre una disputa): ni avisa ni mueve la fecha del estado. */
+    @Test
+    void publicarSiEsConElMismoEstadoSoloActualizaLasMarcasSinAvisar() {
+        sembrar("manga", "MANGA", 5000);
+        Instant hace2Horas = INSTANTE_FIJO.minusSeconds(7200);
+        mongoTemplate.getDb().getCollection("sectores").updateOne(
+                new org.bson.Document("slug", "manga"),
+                new org.bson.Document("$set", new org.bson.Document("estadoActual", "SIN_SERVICIO")
+                        .append("estadoActualizadoEn", java.util.Date.from(hace2Horas))
+                        .append("estadoVerificadoEn", java.util.Date.from(hace2Horas))));
+        eventos.clear();
+
+        boolean publicado = adaptador.publicarSiEs(new SectorId("manga"), EstadoServicio.SIN_SERVICIO,
+                EstadoServicio.SIN_SERVICIO, marcasDeAcuacarEnDisputa());
+
+        assertThat(publicado).isTrue();
+        Sector leido = adaptador.buscarPorId(new SectorId("manga")).orElseThrow();
+        assertThat(leido.marcas().enDisputa()).isTrue();
+        assertThat(leido.estadoActualizadoEn()).isEqualTo(hace2Horas);
+        assertThat(eventosDeActualizacion()).isZero();
+    }
+
+    /** Volver a «sin datos» es una decisión del resolutor, no una noticia: no se avisa a nadie y se limpia todo. */
+    @Test
+    void publicarSiEsConEstadoNuloDevuelveElBarrioASinDatosSinAvisar() {
+        sembrar("manga", "MANGA", 5000);
+        adaptador.publicarSiEs(new SectorId("manga"), null, EstadoServicio.SIN_SERVICIO, marcasDeAcuacarEnDisputa());
+        eventos.clear();
+
+        boolean publicado = adaptador.publicarSiEs(new SectorId("manga"), EstadoServicio.SIN_SERVICIO, null,
+                MarcasDeEstado.ninguna());
+
+        assertThat(publicado).isTrue();
+        Sector leido = adaptador.buscarPorId(new SectorId("manga")).orElseThrow();
+        assertThat(leido.estadoActual()).isNull();
+        assertThat(leido.estadoActualizadoEn()).isNull();
+        assertThat(leido.marcas()).isEqualTo(MarcasDeEstado.ninguna());
+        assertThat(eventosDeActualizacion()).isZero();
+    }
+
+    @Test
+    void publicarSiEsDebeGuardarElRespaldoDeLosVecinos() {
+        sembrar("manga", "MANGA", 5000);
+        MarcasDeEstado deLosVecinos = new MarcasDeEstado(OrigenEstado.VECINOS, null, false, false, 0,
+                new RespaldoVecinal(6, 6));
+
+        adaptador.publicarSiEs(new SectorId("manga"), null, EstadoServicio.SIN_SERVICIO, deLosVecinos);
+
+        assertThat(adaptador.buscarPorId(new SectorId("manga")).orElseThrow().marcas()).isEqualTo(deLosVecinos);
     }
 
     /** La carrera real: N peticiones leen el mismo estado y las N intentan cambiarlo. Solo una debe ganar. */

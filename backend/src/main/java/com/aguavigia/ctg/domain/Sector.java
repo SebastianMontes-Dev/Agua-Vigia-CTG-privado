@@ -25,7 +25,7 @@ import java.time.Instant;
  * nuevas, porque se construye desde el documento ya guardado.
  */
 public record Sector(SectorId id, String nombre, Integer poblacion, EstadoServicio estadoActual,
-                     Instant estadoActualizadoEn, Instant estadoVerificadoEn) {
+                     Instant estadoActualizadoEn, Instant estadoVerificadoEn, MarcasDeEstado marcas) {
 
     public Sector {
         if (nombre == null || nombre.isBlank()) {
@@ -38,6 +38,15 @@ public record Sector(SectorId id, String nombre, Integer poblacion, EstadoServic
                 && estadoVerificadoEn.isBefore(estadoActualizadoEn)) {
             throw new IllegalArgumentException("La verificación no puede ser anterior al cambio de estado");
         }
+        if (marcas == null) {
+            marcas = MarcasDeEstado.ninguna();
+        }
+    }
+
+    /** Sin marcas: el estado no declara de dónde sale (lo que escribían los escritores anteriores al resolutor). */
+    public Sector(SectorId id, String nombre, Integer poblacion, EstadoServicio estadoActual,
+                  Instant estadoActualizadoEn, Instant estadoVerificadoEn) {
+        this(id, nombre, poblacion, estadoActual, estadoActualizadoEn, estadoVerificadoEn, null);
     }
 
     /** Sin verificación aparte: la última verificación conocida es el propio cambio de estado. */
@@ -52,7 +61,8 @@ public record Sector(SectorId id, String nombre, Integer poblacion, EstadoServic
     }
 
     public Sector conEstado(EstadoServicio nuevoEstado) {
-        return new Sector(id, nombre, poblacion, nuevoEstado, estadoActualizadoEn, estadoVerificadoEn);
+        // Las marcas acompañan al estado que las produjo: con otro estado ya no dicen nada.
+        return new Sector(id, nombre, poblacion, nuevoEstado, estadoActualizadoEn, estadoVerificadoEn, null);
     }
 
     /** Sin verificación conocida, cualquier instante es posterior: hay que verificar. */

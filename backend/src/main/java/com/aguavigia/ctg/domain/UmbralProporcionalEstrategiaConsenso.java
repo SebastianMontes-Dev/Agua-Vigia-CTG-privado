@@ -22,10 +22,9 @@ public class UmbralProporcionalEstrategiaConsenso implements EstrategiaConsenso 
     }
 
     @Override
-    public boolean seAlcanzaConsenso(long reportesRecientes, Sector sector) {
-        long umbral = sector.poblacion() != null
+    public long umbral(Sector sector) {
+        return sector.poblacion() != null
                 ? Math.max(umbralMinimo, (long) Math.ceil(sector.poblacion() * factorPoblacion))
                 : umbralMinimo;
-        return reportesRecientes >= umbral;
     }
 }

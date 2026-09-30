@@ -13,7 +13,7 @@ public class UmbralFijoEstrategiaConsenso implements EstrategiaConsenso {
     }
 
     @Override
-    public boolean seAlcanzaConsenso(long reportesRecientes, Sector sector) {
-        return reportesRecientes >= umbral;
+    public long umbral(Sector sector) {
+        return umbral;
     }
 }

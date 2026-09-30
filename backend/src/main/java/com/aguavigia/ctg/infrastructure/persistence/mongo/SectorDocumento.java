@@ -57,4 +57,24 @@ public class SectorDocumento {
      * documentos anteriores al campo: se lee entonces como `estadoActualizadoEn`.
      */
     private Instant estadoVerificadoEn;
+
+    // --- marcas del estado (MarcasDeEstado): de dónde sale y qué lo acompaña. Ausentes en los documentos anteriores. ---
+
+    /** Quién sostiene `estadoActual` (OrigenEstado). */
+    private String estadoOrigen;
+
+    private Instant ventanaPrometidaInicio;
+    private Instant ventanaPrometidaFin;
+
+    /** La promesa oficial ya venció y nadie confirmó que volvió el agua. */
+    private boolean porConfirmar;
+
+    /** Un quórum de vecinos contradice a la fuente oficial. */
+    private boolean enDisputa;
+
+    private int reportesEnContra;
+
+    /** Los vecinos que sostienen el estado y los que hacían falta. Los dos presentes o los dos ausentes. */
+    private Integer respaldoVecinos;
+    private Integer umbralVecinos;
 }

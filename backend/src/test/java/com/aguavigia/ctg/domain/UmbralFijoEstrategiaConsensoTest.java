@@ -20,6 +20,14 @@ class UmbralFijoEstrategiaConsensoTest {
     }
 
     @Test
+    void debeExponerElMismoUmbralParaCualquierSector() {
+        EstrategiaConsenso estrategia = new UmbralFijoEstrategiaConsenso(3);
+
+        assertThat(estrategia.umbral(BOCAGRANDE)).isEqualTo(3);
+        assertThat(estrategia.umbral(SIN_CENSO)).isEqualTo(3);
+    }
+
+    @Test
     void debeRechazarUnUmbralNoPositivo() {
         assertThatThrownBy(() -> new UmbralFijoEstrategiaConsenso(0))
                 .isInstanceOf(IllegalArgumentException.class);

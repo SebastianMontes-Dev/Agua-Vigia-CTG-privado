@@ -3,6 +3,7 @@ package com.aguavigia.ctg.application;
 import com.aguavigia.ctg.domain.EstadoServicio;
 import com.aguavigia.ctg.domain.EstrategiaConsenso;
 import com.aguavigia.ctg.domain.HuellaDispositivo;
+import com.aguavigia.ctg.domain.MarcasDeEstado;
 import com.aguavigia.ctg.domain.PropuestaId;
 import com.aguavigia.ctg.domain.PropuestaIngesta;
 import com.aguavigia.ctg.domain.ReporteCiudadano;
@@ -73,7 +74,7 @@ class ConsensoContraVentanaTest {
         given(reportes.contarVotosRecientes(any(), any())).willReturn(Map.of(TipoReporte.SIN_AGUA, 3L));
         given(reportes.listarRecientesPorSector(any(), any())).willAnswer(i -> List.of(
                 reporte("r1"), reporte("r2"), reporte("r3")));
-        EstrategiaConsenso tresReportes = (recientes, sector) -> recientes >= 3;
+        EstrategiaConsenso tresReportes = sector -> 3;
         consenso = new EvaluarConsensoService(sectores, reportes, contador, reserva, tresReportes,
                 mock(RegistrarEventoBitacoraUseCase.class), ahora::get, pasoDirecto, 30);
 
@@ -156,6 +157,16 @@ class ConsensoContraVentanaTest {
                 return false;
             }
             almacen.put(id, actual.conEstado(nuevo));
+            return true;
+        }
+
+        @Override
+        public boolean publicarSiEs(SectorId id, EstadoServicio esperado, EstadoServicio nuevo, MarcasDeEstado marcas) {
+            Sector actual = almacen.get(id);
+            if (actual == null || actual.estadoActual() != esperado) {
+                return false;
+            }
+            almacen.put(id, new Sector(id, actual.nombre(), actual.poblacion(), nuevo, null, null, marcas));
             return true;
         }
 
