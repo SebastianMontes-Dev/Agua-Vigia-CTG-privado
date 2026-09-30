@@ -65,6 +65,8 @@ El proyecto está construido bajo una estricta **Arquitectura Limpia (Puertos y 
 
 Solo hace falta **Docker** en marcha (Docker Desktop en Windows o macOS) y, para clonar, **Git con Git LFS** (el mapa base
 del frontend se versiona con LFS). No hace falta `.env`, Java ni Node en el equipo (`ADR-086`).
+En Windows, clona en una ruta corta o activa antes `git config --global core.longpaths true`: algunas rutas del backend
+rozan el límite de 260 caracteres y, dentro de una carpeta muy profunda, el clon falla con «Filename too long».
 
 ```bash
 docker compose up
