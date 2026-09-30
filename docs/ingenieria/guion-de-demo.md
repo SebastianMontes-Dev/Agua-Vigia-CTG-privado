@@ -183,6 +183,7 @@ reportes en un minuto y deja ver tres cosas a la vez (`ADR-083`):
 | El mapa cambiando de color barrio por barrio, por SSE, a medida que el consenso real decide | `http://localhost:5173`: `cd frontend && npm run dev` |
 | El panel en vivo de k6: peticiones por segundo, latencia, errores | `http://localhost:5665` (aparece al arrancar la prueba) |
 | El resumen final en la consola: reportes, latencia, conexiones, CPU y memoria, barrios que cambiaron | la terminal donde se lanzó |
+| La base creciendo cada segundo: usuarios, reportes, bitácora, auditoría | otra terminal: `docker compose run --rm sembrador monitor` |
 
 ```bash
 node scripts/carga/demo.mjs --usuarios 30000 --ventana 60 --conectados 30000 --restaurar --esperar
@@ -192,6 +193,17 @@ node scripts/carga/demo.mjs --usuarios 30000 --ventana 60 --conectados 30000 --r
   con el perfil `carga` (sin límite de peticiones por IP: todo el tráfico sale de este PC), abre las conexiones, lanza k6 dentro
   de la red de Docker y, al terminar, devuelve el backend a su perfil normal. **`--restaurar`** deja además Mongo y Redis como
   estaban, para poder repetirlo; **`--esperar`** se detiene antes de disparar, para abrir el mapa y el panel de k6.
+- **Con registro masivo (`ADR-088`):** `--registros 20000 --sin-correo` suma 20 000 personas pidiendo una cuenta por la API real
+  mientras los demás reportan; cada alta aparece en `usuarios` en cuanto responde 202 (correo `@carga.aguavigia.local`,
+  `PENDIENTE_VERIFICACION`). A la tasa por defecto (50/s, la que no degrada los reportes) son ≈ 7 minutos:
+
+  ```bash
+  node scripts/carga/demo.mjs --usuarios 10000 --ventana 60 --conectados 10000 --registros 20000 --sin-correo --restaurar
+  ```
+
+  Referencia medida (2026-09-29): 1 500 registros a 50/s junto a 3 000 reportes en 30 s cumplieron todos los umbrales (p95 del
+  registro 221 ms, del reporte 75 ms, 0 errores); a 100/s los reportes subieron a p95 1,6 s porque el BCrypt de cada alta se come
+  la CPU. Es el límite de este PC, dicho como tal.
 - **Todo es parametrizable:** `--usuarios 10000`, `--ventana 30`, `--conectados 10000`, `--focos 12` (barrios con avería masiva
   que se encienden uno tras otro) y `--lectores`, `--veedores`, `--suscripciones` por segundo. Con `--conectados 0` no abre el
   canal en vivo. El informe HTML de k6 queda en `resultados/<fecha>/`.

@@ -1374,6 +1374,18 @@ El sembrador debe dejar al menos 30 000 cuentas en `usuarios` y no debe duplicar
 - **Cuando** tras sembrar `usuarios` tiene menos de 30 000 documentos
 - **Entonces** el sembrador termina con código distinto de 0 y lo dice (`FALLA: 'usuarios' tiene …`)
 
+### Requisito: Registro masivo en la demo de carga
+
+La demo de carga debe poder registrar cuentas por la API real mientras la ciudad reporta, y opcionalmente sin enviar sus correos
+(`ADR-088`).
+
+#### Escenario: Correos de cuentas apagados
+
+- **Dado** el backend con `aguavigia.correo.cuentas-habilitado=false` (`demo.mjs --sin-correo`)
+- **Cuando** alguien se registra por `POST /api/cuentas/registro`
+- **Entonces** la cuenta se crea en `PENDIENTE_VERIFICACION` y responde 202 como siempre, pero no sale ningún correo
+- **Y** los avisos de corte a los suscriptores siguen saliendo: solo se apagan los correos de cuentas
+
 ## Canal del frontend (F2, ADR-074)
 Cuando llega un aviso sectores, el cliente programa la lectura con jitter de 0–3 s y nunca inicia dos GET del listado en menos de 5 s. Ante 429 del canal respeta Retry-After y sondea cada 30 s. Al ocultarse la pestaña cancela las consultas y temporizadores inmediatamente; cierra la conexión a los 15 s. Al regresar refresca por el mismo limitador. Sin red conserva fecha y estado publicados; reconectar tras el cierre normal no es un error del vecino.
 

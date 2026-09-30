@@ -3597,8 +3597,46 @@ insertar, borra lo que él mismo sembró: correrlo otra vez no agrega nada.
 ### Cómo se revierte
 Borrar `agregar-usuarios.mjs`, `lib/fuente-faker.mjs` y la dependencia; `sembrar-usuarios-demo.mjs` puede quedarse con la fábrica.
 
+## ADR-088 — La demo de carga suma el registro masivo de cuentas por la API real, a su propia tasa, con un visor en vivo de la base
+
+- **Fecha:** 2026-09-29
+- **Estado:** Aceptada
+- **Decide:** Dueño del proyecto (Sebastian)
+
+### Contexto
+La entrega pide mostrar un flujo real con muchos usuarios a la vez («10 000 registrándose, otros enviando reportes») y poder
+ir a la base mientras ocurre. La demo de carga (`ADR-083`) ya cubría reportes, confirmaciones, averías, lecturas, sesiones,
+suscripciones y SSE, pero las cuentas solo existían sembradas directo en Mongo. Medido el 2026-09-29: un alta por
+`POST /api/cuentas/registro` cifra la clave con BCrypt y dura al menos 100 ms (`RNF024`); solas, las altas llegan a ≈ 160/s con
+el backend en ≈ 8,4 núcleos; a 100/s junto con 100 reportes/s, los reportes pasan de p95 75 ms a 1,6 s.
+
+### Alternativas consideradas
+| Opción | A favor | En contra |
+|---|---|---|
+| Registrar dentro de la ventana de los reportes (misma duración) | Una sola cifra de duración | 20 000 altas en 60 s son 333/s: el doble del techo; la prueba mediría la cola, no el sistema |
+| Sembrar las cuentas directo en Mongo durante la carga | Rápido | No es un flujo real: se salta validación, BCrypt, auditoría y correo |
+| **Escenario de k6 propio, a una tasa configurable (50/s por defecto), en paralelo con los reportes** | Flujo real completo; la tasa por defecto no degrada los reportes | Con 20 000 altas la carga dura ≈ 7 min |
+
+### Decisión
+- `flujo-ciudadano.js`: escenario `registros` (`REGISTROS`, `TASA_REGISTROS`) con correos `r-<corrida>-<n>@carga.aguavigia.local`
+  y umbral de p95 < 2 s. `demo.mjs --registros N --tasa-registros T --sin-correo`, con su bloque en el resumen.
+- `--sin-correo`: `docker-compose.carga.yml` pasa `aguavigia.correo.cuentas-habilitado=false` y `CorreoDeCuentaDescartadoAdapter`
+  sustituye a `MailCuentaAdapter` (solo correos de cuentas; los avisos de corte no cambian). Sin esa opción, nada cambia.
+- `scripts/carga/monitor-bd.mjs` (`docker compose run --rm sembrador monitor`): conteo por colección y ritmo por segundo.
+
+### Consecuencias
+- **Gana:** medido, 1 500 altas a 50/s junto a 3 000 reportes en 30 s con todos los umbrales cumplidos (registro p95 221 ms,
+  reporte p95 75 ms, 0 errores), y 0 correos a MailHog con `--sin-correo`.
+- **Pierde:** con `--sin-correo`, una invitación hecha durante la demo no se puede aceptar (el enlace solo existía en el correo).
+  El techo de altas es de este PC (BCrypt compite con el generador de carga): no se extrapola a un servidor.
+- **Queda condicionado:** subir el coste de BCrypt baja el techo de altas en la misma proporción.
+
+### Cómo se revierte
+Quitar el escenario, las opciones de `demo.mjs`, `CorreoDeCuentaDescartadoAdapter` y la anotación condicional de
+`MailCuentaAdapter`. No toca datos ni el contrato de la API.
+
 <!--
-Siguiente número disponible: ADR-088
+Siguiente número disponible: ADR-089
 Para agregar: usa la skill `registrar-decision`.
 Recuerda: append-only. Las entradas viejas solo cambian de estado, no de contenido.
 -->
