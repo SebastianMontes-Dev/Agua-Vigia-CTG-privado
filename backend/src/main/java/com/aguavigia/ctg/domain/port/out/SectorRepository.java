@@ -39,6 +39,14 @@ public interface SectorRepository {
     boolean publicarSiEs(SectorId id, EstadoServicio esperado, EstadoServicio nuevo, MarcasDeEstado marcas);
 
     /**
+     * Publica {@code marcas} (con la disputa abierta) sin tocar el estado, solo si el estado sigue siendo {@code esperado}
+     * <b>y el barrio aún no estaba en disputa</b>. La disputa se anota en la bitácora al abrirse y la bitácora es de solo
+     * anexado: si dos recálculos simultáneos la abrieran los dos, el evento duplicado no se podría retirar. Solo el primero
+     * escribe; el otro recibe {@code false} y no anexa nada.
+     */
+    boolean abrirDisputaSiEs(SectorId id, EstadoServicio esperado, MarcasDeEstado marcas);
+
+    /**
      * Marca que una fuente con autoridad sostuvo el estado sin cambiarlo (ADR-073), solo si el sector
      * sigue en {@code estado}; devuelve si lo marcó. No es un cambio: no avisa a los suscriptores ni
      * anexa nada a la bitácora.

@@ -14,15 +14,18 @@ import java.util.Objects;
  *                                vecinos se marca «sin verificación reciente»
  * @param vecinosCaducan          desde cuándo, sin un reporte nuevo, ese estado vuelve a «sin datos»
  * @param restablecimientoMinimo  piso de vecinos para confirmar un restablecimiento pasada la promesa
+ * @param ventanaDeReapertura     cuánto después de un cierre provisional los vecinos pueden contradecirlo y reabrir el
+ *                                mismo corte: pasado ese plazo una intermitencia ya es otro evento
  */
 public record ReglasDeEstado(Duration expiraTrasFin, Duration vecinosSinVerificacion, Duration vecinosCaducan,
-                             int restablecimientoMinimo) {
+                             int restablecimientoMinimo, Duration ventanaDeReapertura) {
 
     public ReglasDeEstado {
         Objects.requireNonNull(expiraTrasFin, "Falta el plazo de expiración");
         Objects.requireNonNull(vecinosSinVerificacion, "Falta el plazo de «sin verificación reciente»");
         Objects.requireNonNull(vecinosCaducan, "Falta el plazo de caducidad de los vecinos");
-        for (Duration plazo : new Duration[]{expiraTrasFin, vecinosSinVerificacion, vecinosCaducan}) {
+        Objects.requireNonNull(ventanaDeReapertura, "Falta la ventana de reapertura");
+        for (Duration plazo : new Duration[]{expiraTrasFin, vecinosSinVerificacion, vecinosCaducan, ventanaDeReapertura}) {
             if (plazo.isZero() || plazo.isNegative()) {
                 throw new IllegalArgumentException("Los plazos del estado deben ser positivos: " + plazo);
             }
@@ -41,6 +44,6 @@ public record ReglasDeEstado(Duration expiraTrasFin, Duration vecinosSinVerifica
     }
 
     public static ReglasDeEstado porDefecto() {
-        return new ReglasDeEstado(Duration.ofHours(72), Duration.ofHours(6), Duration.ofHours(24), 2);
+        return new ReglasDeEstado(Duration.ofHours(72), Duration.ofHours(6), Duration.ofHours(24), 2, Duration.ofHours(3));
     }
 }

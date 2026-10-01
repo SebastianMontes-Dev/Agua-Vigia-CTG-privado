@@ -29,6 +29,7 @@ public final class CorteAgua {
     private final EstadoCorte estado;
     private final Map<SectorId, CierreDeCorte> cierres;
     private final String motivoAnulacion;
+    private final Instant caducaEn;
 
     private CorteAgua(Builder builder, VentanaTiempo ventana, Map<SectorId, CierreDeCorte> cierres) {
         this.id = builder.id;
@@ -39,6 +40,7 @@ public final class CorteAgua {
         this.estado = builder.estado;
         this.cierres = Map.copyOf(cierres);
         this.motivoAnulacion = builder.motivoAnulacion;
+        this.caducaEn = builder.caducaEn;
     }
 
     public static Builder builder() {
@@ -81,6 +83,14 @@ public final class CorteAgua {
     /** Nulo salvo en un corte ANULADO, donde es obligatorio. */
     public String motivoAnulacion() {
         return motivoAnulacion;
+    }
+
+    /**
+     * Solo en el corte del veedor, que es el override: pasada esta hora deja de afirmar nada aunque nadie lo
+     * haya cerrado. Nulo cuando el corte dura hasta que alguien lo cierre o expire.
+     */
+    public Instant caducaEn() {
+        return caducaEn;
     }
 
     /** Anunciado o confirmado: todavía puede cerrarse, expirar o anularse. */
@@ -126,6 +136,53 @@ public final class CorteAgua {
         Map<SectorId, CierreDeCorte> nuevos = new LinkedHashMap<>(cierres);
         nuevos.put(sectorId, cierre);
         return copiaCon(nuevos, todosCerrados(nuevos) ? EstadoCorte.RESTABLECIDO : estado, null);
+    }
+
+    /**
+     * El veedor confirma —o corrige la hora de— un cierre que solo sostenían los vecinos o los sensores.
+     * Solo se confirma un cierre provisional, y la confirmación es definitiva: no puede ser provisional.
+     */
+    public CorteAgua confirmarCierre(SectorId sectorId, CierreDeCorte confirmado) {
+        if (estado == EstadoCorte.ANULADO) {
+            throw new IllegalStateException("El corte '" + id.valor() + "' está anulado");
+        }
+        if (confirmado.provisional()) {
+            throw new IllegalArgumentException("Una confirmación no puede ser provisional");
+        }
+        if (confirmado.hora().isBefore(ventana.inicio())) {
+            throw new IllegalArgumentException("El cierre no puede preceder al inicio del corte");
+        }
+        CierreDeCorte actual = cierres.get(sectorId);
+        if (actual == null) {
+            throw new IllegalStateException("El sector '" + sectorId.valor() + "' no tiene cierre que confirmar");
+        }
+        if (!actual.provisional()) {
+            throw new IllegalStateException("El cierre de '" + sectorId.valor() + "' ya está confirmado");
+        }
+        Map<SectorId, CierreDeCorte> nuevos = new LinkedHashMap<>(cierres);
+        nuevos.put(sectorId, confirmado);
+        return copiaCon(nuevos, estado, null);
+    }
+
+    /**
+     * Un restablecimiento que solo sostenían los vecinos resultó no ser efectivo: el barrio vuelve a estar
+     * abierto en el mismo corte, en vez de abrir un corte nuevo (una intermitencia no es un evento distinto).
+     * Solo se reabre un cierre provisional; lo que confirmó el veedor o un boletín es definitivo.
+     */
+    public CorteAgua reabrirSector(SectorId sectorId) {
+        if (estado == EstadoCorte.ANULADO || estado == EstadoCorte.EXPIRADO) {
+            throw new IllegalStateException("No se puede reabrir un barrio de un corte " + estado.name().toLowerCase());
+        }
+        CierreDeCorte actual = cierres.get(sectorId);
+        if (actual == null) {
+            throw new IllegalStateException("El sector '" + sectorId.valor() + "' no tiene cierre que reabrir");
+        }
+        if (!actual.provisional()) {
+            throw new IllegalStateException("El cierre de '" + sectorId.valor() + "' está confirmado y no se reabre");
+        }
+        Map<SectorId, CierreDeCorte> nuevos = new LinkedHashMap<>(cierres);
+        nuevos.remove(sectorId);
+        return copiaCon(nuevos, EstadoCorte.ANUNCIADO, null);
     }
 
     /**
@@ -180,7 +237,8 @@ public final class CorteAgua {
                 .origen(corte.origen)
                 .cierres(corte.cierres)
                 .estado(corte.estado)
-                .motivoAnulacion(corte.motivoAnulacion);
+                .motivoAnulacion(corte.motivoAnulacion)
+                .caducaEn(corte.caducaEn);
     }
 
     private boolean todosCerrados(Map<SectorId, CierreDeCorte> porSector) {
@@ -198,6 +256,7 @@ public final class CorteAgua {
         private EstadoCorte estado = EstadoCorte.ANUNCIADO;
         private final Map<SectorId, CierreDeCorte> cierres = new LinkedHashMap<>();
         private String motivoAnulacion;
+        private Instant caducaEn;
 
         private Builder() {
         }
@@ -259,6 +318,11 @@ public final class CorteAgua {
             return this;
         }
 
+        public Builder caducaEn(Instant caducaEn) {
+            this.caducaEn = caducaEn;
+            return this;
+        }
+
         public CorteAgua build() {
             Objects.requireNonNull(id, "El corte debe tener id");
             if (sectoresAfectados.isEmpty()) {
@@ -269,6 +333,9 @@ public final class CorteAgua {
             Objects.requireNonNull(estado, "El corte debe tener estado");
             // VentanaTiempo valida finPrometido > inicio al construirse — no se puede rodear.
             new VentanaTiempo(inicio, finPrometido);
+            if (caducaEn != null && caducaEn.isBefore(inicio)) {
+                throw new IllegalArgumentException("La caducidad no puede preceder al inicio del corte");
+            }
 
             if ((estado == EstadoCorte.ANULADO) != (motivoAnulacion != null && !motivoAnulacion.isBlank())) {
                 throw new IllegalStateException(

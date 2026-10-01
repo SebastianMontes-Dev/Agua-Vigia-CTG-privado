@@ -35,4 +35,9 @@ public class EventoBitacoraDocumento {
     private String imagenUrl;
     /** RF011 — ids de los reportes que sustentaron un cambio por consenso. Ausente en eventos anteriores. */
     private java.util.List<String> reportesSustento;
+    /** Quién sostiene el evento (OrigenEstado). Ausente en eventos anteriores al dato. */
+    private String fuente;
+    /** Vecinos que sostienen el cambio y umbral que hacía falta. Ausentes si el evento no nace de un quórum. */
+    private Integer respaldoVecinos;
+    private Integer respaldoUmbral;
 }

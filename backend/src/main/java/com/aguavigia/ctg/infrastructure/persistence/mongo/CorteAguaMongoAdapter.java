@@ -68,6 +68,22 @@ public class CorteAguaMongoAdapter implements CorteAguaRepository {
     }
 
     @Override
+    public List<CorteAgua> listarAbiertos() {
+        return repositorio.findByEstadoIn(List.of(EstadoCorte.ANUNCIADO.name(), EstadoCorte.CONFIRMADO.name())).stream()
+                .map(CorteAguaMongoAdapter::aDominio)
+                .toList();
+    }
+
+    @Override
+    public List<CorteAgua> listarConCierresProvisionales() {
+        Query query = Query.query(Criteria.where("cierres").elemMatch(Criteria.where("provisional").is(true))
+                .and("estado").ne(EstadoCorte.ANULADO.name()));
+        return mongoTemplate.find(query, CorteAguaDocumento.class).stream()
+                .map(CorteAguaMongoAdapter::aDominio)
+                .toList();
+    }
+
+    @Override
     public List<CorteAgua> listarTodos() {
         return repositorio.findAll().stream()
                 .map(CorteAguaMongoAdapter::aDominio)
@@ -89,6 +105,7 @@ public class CorteAguaMongoAdapter implements CorteAguaRepository {
                 .map(entrada -> aDocumento(entrada.getKey(), entrada.getValue()))
                 .toList());
         documento.setMotivoAnulacion(corte.motivoAnulacion());
+        documento.setCaducaEn(corte.caducaEn());
 
         repositorio.save(documento);
         return corte;
@@ -233,6 +250,7 @@ public class CorteAguaMongoAdapter implements CorteAguaRepository {
                     .estado(EstadoCorte.valueOf(documento.getEstado()))
                     .cierres(cierresDe(documento))
                     .motivoAnulacion(documento.getMotivoAnulacion())
+                    .caducaEn(documento.getCaducaEn())
                     .build();
         } catch (IllegalStateException | IllegalArgumentException e) {
             throw new IllegalStateException(

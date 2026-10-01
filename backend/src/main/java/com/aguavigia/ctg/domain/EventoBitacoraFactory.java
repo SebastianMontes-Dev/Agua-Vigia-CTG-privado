@@ -22,7 +22,8 @@ public final class EventoBitacoraFactory {
                 sectorId,
                 corte.id(),
                 ahora,
-                "Corte oficial anunciado en '%s': %s".formatted(sectorId.valor(), corte.causa()));
+                "Corte oficial anunciado en '%s': %s".formatted(sectorId.valor(), corte.causa()))
+                .conFuente(corte.origen() == OrigenCorte.VEEDOR ? OrigenEstado.VEEDOR : OrigenEstado.ACUACAR, null);
     }
 
     public static EventoBitacora corteRestablecido(CorteAgua corte, SectorId sectorId, Instant ahora) {
@@ -32,7 +33,91 @@ public final class EventoBitacoraFactory {
                 sectorId,
                 corte.id(),
                 ahora,
-                "Corte restablecido en '%s'".formatted(sectorId.valor()));
+                "Corte restablecido en '%s'".formatted(sectorId.valor()))
+                .conFuente(OrigenEstado.VEEDOR, null);
+    }
+
+    /** El corte se anuló: la bitácora no se edita, así que la corrección queda como un evento con su motivo. */
+    public static EventoBitacora corteAnulado(CorteAgua corte, SectorId sectorId, Instant ahora) {
+        return new EventoBitacora(
+                new EventoId(UUID.randomUUID().toString()),
+                TipoEvento.CORTE_ANULADO,
+                sectorId,
+                corte.id(),
+                ahora,
+                "Corte anulado en '%s': %s".formatted(sectorId.valor(), corte.motivoAnulacion()));
+    }
+
+    /** Un boletín aprobado resultó ser un error: se anexa la corrección y se cita el boletín que se anuló. */
+    public static EventoBitacora boletinAnulado(SectorId sectorId, String motivo, String urlOriginal, Instant ahora) {
+        return new EventoBitacora(
+                new EventoId(UUID.randomUUID().toString()),
+                TipoEvento.CORTE_ANULADO,
+                sectorId,
+                null,
+                ahora,
+                "Aviso anulado en '%s': %s".formatted(sectorId.valor(), motivo),
+                null,
+                urlOriginal,
+                null);
+    }
+
+    /** Nadie confirmó el restablecimiento a tiempo: sin estado que afirmar, el barrio vuelve a «sin datos». */
+    public static EventoBitacora corteExpirado(CorteAgua corte, SectorId sectorId, Instant ahora) {
+        return new EventoBitacora(
+                new EventoId(UUID.randomUUID().toString()),
+                TipoEvento.CORTE_EXPIRADO,
+                sectorId,
+                corte.id(),
+                ahora,
+                "El corte en '%s' venció sin que nadie confirmara el restablecimiento; el barrio vuelve a «sin datos»"
+                        .formatted(sectorId.valor()));
+    }
+
+    /** Los vecinos confirmaron que volvió el agua; quedan citados los reportes que lo sostienen. */
+    public static EventoBitacora restablecimientoPorVecinos(SectorId sectorId, List<ReporteId> reportesQueSustentan,
+                                                              RespaldoVecinal respaldo, Instant ahora) {
+        return new EventoBitacora(
+                new EventoId(UUID.randomUUID().toString()),
+                TipoEvento.RESTABLECIMIENTO_POR_VECINOS,
+                sectorId,
+                null,
+                ahora,
+                "%d reportes ciudadanos independientes confirmaron que volvió el servicio en '%s'"
+                        .formatted(reportesQueSustentan.size(), sectorId.valor()),
+                EstadoServicio.CON_SERVICIO,
+                null,
+                null,
+                reportesQueSustentan)
+                .conFuente(OrigenEstado.VECINOS, respaldo);
+    }
+
+    /** Un quórum de vecinos contradice a la fuente oficial, sin cambiar el color del barrio. */
+    public static EventoBitacora estadoEnDisputa(SectorId sectorId, EstadoServicio estadoQueSeDiscute, int vecinos,
+                                                   Instant ahora) {
+        return new EventoBitacora(
+                new EventoId(UUID.randomUUID().toString()),
+                TipoEvento.ESTADO_EN_DISPUTA,
+                sectorId,
+                null,
+                ahora,
+                "%d vecinos contradicen el estado oficial de '%s'".formatted(vecinos, sectorId.valor()),
+                estadoQueSeDiscute,
+                null,
+                null)
+                .conFuente(OrigenEstado.VECINOS, null);
+    }
+
+    /** Un estado que movió el mapa se cayó al descartar los reportes que lo sostenían. */
+    public static EventoBitacora consensoRevertido(SectorId sectorId, Instant ahora) {
+        return new EventoBitacora(
+                new EventoId(UUID.randomUUID().toString()),
+                TipoEvento.CONSENSO_REVERTIDO,
+                sectorId,
+                null,
+                ahora,
+                "Al descartar reportes, el consenso de vecinos en '%s' dejó de sostenerse".formatted(sectorId.valor()))
+                .conFuente(OrigenEstado.VECINOS, null);
     }
 
     /**
@@ -40,7 +125,8 @@ public final class EventoBitacoraFactory {
      * conteo suelto no permite contrastar el cambio con la evidencia que lo sostuvo.
      */
     public static EventoBitacora consensoConfirmado(SectorId sectorId, EstadoServicio nuevoEstado,
-                                                      List<ReporteId> reportesQueSustentan, Instant ahora) {
+                                                      List<ReporteId> reportesQueSustentan,
+                                                      RespaldoVecinal respaldo, Instant ahora) {
         return new EventoBitacora(
                 new EventoId(UUID.randomUUID().toString()),
                 TipoEvento.CORTE_CONFIRMADO_POR_CIUDADANOS,
@@ -52,7 +138,8 @@ public final class EventoBitacoraFactory {
                 nuevoEstado,
                 null,
                 null,
-                reportesQueSustentan);
+                reportesQueSustentan)
+                .conFuente(OrigenEstado.VECINOS, respaldo);
     }
 
     /**
@@ -79,7 +166,8 @@ public final class EventoBitacoraFactory {
                 descripcion(tituloOriginal, nuevoEstado, barrio, fuente),
                 nuevoEstado,
                 urlOriginal,
-                imagenUrl);
+                imagenUrl)
+                .conFuente("acuacar".equalsIgnoreCase(fuente) ? OrigenEstado.ACUACAR : OrigenEstado.PRENSA, null);
     }
 
     /**

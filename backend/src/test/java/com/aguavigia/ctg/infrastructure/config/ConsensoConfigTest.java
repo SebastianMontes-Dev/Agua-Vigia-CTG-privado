@@ -13,21 +13,21 @@ class ConsensoConfigTest {
 
     @Test
     void debeElegirLaEstrategiaFijaPorConfiguracion() {
-        var estrategia = config.estrategiaConsenso("fijo", 5, 0.001, 3);
+        var estrategia = config.estrategiaConsenso("fijo", 5, 0.001, 3, 15);
 
         assertThat(estrategia).isInstanceOf(UmbralFijoEstrategiaConsenso.class);
     }
 
     @Test
     void debeElegirLaEstrategiaProporcionalPorConfiguracion() {
-        var estrategia = config.estrategiaConsenso("proporcional", 5, 0.001, 3);
+        var estrategia = config.estrategiaConsenso("proporcional", 5, 0.001, 3, 15);
 
         assertThat(estrategia).isInstanceOf(UmbralProporcionalEstrategiaConsenso.class);
     }
 
     @Test
     void debeRechazarUnNombreDeEstrategiaDesconocido() {
-        assertThatThrownBy(() -> config.estrategiaConsenso("no-existe", 5, 0.001, 3))
+        assertThatThrownBy(() -> config.estrategiaConsenso("no-existe", 5, 0.001, 3, 15))
                 .isInstanceOf(IllegalStateException.class);
     }
 }

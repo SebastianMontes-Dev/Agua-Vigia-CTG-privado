@@ -90,6 +90,49 @@ class PropuestaIngestaTest {
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
+    @Test
+    void unaPropuestaAprobadaSePuedeAnularConSuMotivo() {
+        PropuestaIngesta anulada = propuesta().aprobar().anular("El extractor leyó mal el barrio");
+
+        assertThat(anulada.estadoRevision()).isEqualTo(EstadoRevision.ANULADA);
+        assertThat(anulada.motivoAnulacion()).isEqualTo("El extractor leyó mal el barrio");
+    }
+
+    @Test
+    void anularExigeUnMotivo() {
+        assertThatThrownBy(() -> propuesta().aprobar().anular(" ")).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> propuesta().aprobar().anular(null)).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    /** Solo se anula lo que ya movió el mapa: una pendiente o descartada nunca lo movió. */
+    @Test
+    void soloSeAnulaUnaPropuestaAprobada() {
+        assertThatThrownBy(() -> propuesta().anular("x")).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> propuesta().descartar().anular("x")).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> propuesta().aprobar().anular("x").anular("otra vez"))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    void unaPropuestaAnuladaNoSePuedeAprobarNiDescartar() {
+        PropuestaIngesta anulada = propuesta().aprobar().anular("x");
+
+        assertThatThrownBy(anulada::aprobar).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(anulada::descartar).isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    void elMotivoSoloVaConElEstadoAnulada() {
+        PropuestaIngesta base = propuesta();
+
+        assertThatThrownBy(() -> new PropuestaIngesta(base.id(), base.sectorId(), base.estadoPropuesto(), base.fuente(),
+                base.urlOriginal(), base.citaTextual(), base.confianza(), base.detectadaEn(), EstadoRevision.ANULADA,
+                null, null, null, null, null, null)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new PropuestaIngesta(base.id(), base.sectorId(), base.estadoPropuesto(), base.fuente(),
+                base.urlOriginal(), base.citaTextual(), base.confianza(), base.detectadaEn(), EstadoRevision.APROBADA,
+                null, null, null, null, null, "sin estar anulada")).isInstanceOf(IllegalArgumentException.class);
+    }
+
     private PropuestaIngesta conVentana(String sector, String url, Instant inicio, Instant fin) {
         return new PropuestaIngesta(new PropuestaId("p-" + sector), new SectorId(sector), EstadoServicio.SIN_SERVICIO,
                 "acuacar", url, "cita", 0.85, AHORA, inicio, fin);

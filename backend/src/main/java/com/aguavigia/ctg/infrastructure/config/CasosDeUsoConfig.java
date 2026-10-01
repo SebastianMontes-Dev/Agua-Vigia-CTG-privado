@@ -1,5 +1,6 @@
 package com.aguavigia.ctg.infrastructure.config;
 
+import com.aguavigia.ctg.application.ActualizarEstadosPorVentanaService;
 import com.aguavigia.ctg.application.ActualizarPerfilVecinoService;
 import com.aguavigia.ctg.application.AutenticarUsuarioService;
 import com.aguavigia.ctg.application.CambiarClaveService;
@@ -10,10 +11,12 @@ import com.aguavigia.ctg.application.RecalcularSectorService;
 import com.aguavigia.ctg.application.RegistrarLecturaDePresionService;
 import com.aguavigia.ctg.application.RegistrarReporteService;
 import com.aguavigia.ctg.application.RegistrarVecinoService;
-import com.aguavigia.ctg.application.RegistroDeAuditoria;
 import com.aguavigia.ctg.application.VerificarBarrioVecinoService;
+import com.aguavigia.ctg.application.RegistroDeAuditoria;
 import com.aguavigia.ctg.domain.EstrategiaConsenso;
+import com.aguavigia.ctg.domain.ReglasDeEstado;
 import com.aguavigia.ctg.domain.ResolutorDeEstadoSector;
+import com.aguavigia.ctg.domain.port.in.RecalcularSectorUseCase;
 import com.aguavigia.ctg.domain.port.in.RegistrarEventoBitacoraUseCase;
 import com.aguavigia.ctg.domain.port.in.RegistrarReporteUseCase;
 import com.aguavigia.ctg.domain.port.in.EvaluarConsensoUseCase;
@@ -24,11 +27,11 @@ import com.aguavigia.ctg.domain.port.out.PropuestaIngestaRepository;
 import com.aguavigia.ctg.domain.port.out.ContadorReportesPort;
 import com.aguavigia.ctg.domain.port.out.ControlIntentosPort;
 import com.aguavigia.ctg.domain.port.out.EmisorDeSesionPort;
+import com.aguavigia.ctg.domain.port.out.HashDeRedPort;
 import com.aguavigia.ctg.domain.port.out.NotificacionCuentaPort;
 import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.ReporteCiudadanoRepository;
 import com.aguavigia.ctg.domain.port.out.ReservaDeEvaluacionPort;
-import com.aguavigia.ctg.domain.port.out.HashDeRedPort;
 import com.aguavigia.ctg.domain.port.out.RevocacionSesionPort;
 import com.aguavigia.ctg.domain.port.out.SectorRepository;
 import com.aguavigia.ctg.domain.port.out.SegundoFactorPort;
@@ -48,7 +51,7 @@ import java.time.Duration;
 /**
  * Registra los casos de uso de {@code application/}, que no llevan anotaciones de Spring: el
  * dominio y la aplicación no saben qué contenedor los hospeda. El escaneo recoge los que solo
- * dependen de otros beans; los nueve que reciben configuración (`aguavigia.*`) se declaran aquí a
+ * dependen de otros beans; los once que reciben configuración (`aguavigia.*`) se declaran aquí a
  * mano y quedan excluidos del escaneo.
  */
 @Configuration
@@ -59,7 +62,8 @@ import java.time.Duration;
                 pattern = "com[.]aguavigia[.]ctg[.]application[.]([A-Za-z]+Service|EmisorDeTokensDeCuenta|RegistroDeAuditoria)"),
         excludeFilters = @Filter(type = FilterType.REGEX,
                 pattern = "com[.]aguavigia[.]ctg[.]application[.]"
-                        + "(ActualizarPerfilVecino|AutenticarUsuario|CambiarClave|ConfirmarSuscripcion|EvaluarConsenso"
+                        + "(ActualizarEstadosPorVentana|ActualizarPerfilVecino|AutenticarUsuario|CambiarClave"
+                        + "|ConfirmarSuscripcion|EvaluarConsenso|ExpirarCortesVencidos|RecalcularSector"
                         + "|RegistrarLecturaDePresion|RegistrarReporte|RegistrarVecino|VerificarBarrioVecino)Service"))
 public class CasosDeUsoConfig {
 
@@ -122,12 +126,18 @@ public class CasosDeUsoConfig {
 
     @Bean
     public EvaluarConsensoService evaluarConsensoService(
-            SectorRepository sectores, ReporteCiudadanoRepository reportes, ContadorReportesPort contadorReportes,
-            ReservaDeEvaluacionPort reserva, EstrategiaConsenso estrategia,
-            RegistrarEventoBitacoraUseCase registrarEvento, RelojPort reloj, TransaccionPort transaccion,
+            SectorRepository sectores, ContadorReportesPort contadorReportes, ReservaDeEvaluacionPort reserva,
+            EstrategiaConsenso estrategia, ReglasDeEstado reglas, RecalcularSectorUseCase recalcular,
             @Value("${aguavigia.consenso.ventana-minutos:30}") long ventanaMinutos) {
-        return new EvaluarConsensoService(sectores, reportes, contadorReportes, reserva, estrategia,
-                registrarEvento, reloj, transaccion, ventanaMinutos);
+        return new EvaluarConsensoService(sectores, contadorReportes, reserva, estrategia, reglas, recalcular,
+                ventanaMinutos);
+    }
+
+    @Bean
+    public ActualizarEstadosPorVentanaService actualizarEstadosPorVentanaService(
+            PropuestaIngestaRepository propuestas, CorteAguaRepository cortes, RecalcularSectorUseCase recalcular,
+            RelojPort reloj, ReglasDeEstado reglas) {
+        return new ActualizarEstadosPorVentanaService(propuestas, cortes, recalcular, reloj, reglas.expiraTrasFin());
     }
 
     @Bean
@@ -135,16 +145,19 @@ public class CasosDeUsoConfig {
             SectorRepository sectores, CorteAguaRepository cortes, PropuestaIngestaRepository propuestas,
             ReporteCiudadanoRepository reportes, EstrategiaConsenso estrategia, ResolutorDeEstadoSector resolutor,
             RegistrarEventoBitacoraUseCase registrarEvento, RelojPort reloj, TransaccionPort transaccion,
-            @Value("${aguavigia.consenso.ventana-minutos:30}") long ventanaMinutos) {
+            @Value("${aguavigia.consenso.ventana-minutos:30}") long ventanaMinutos,
+            @Value("${aguavigia.consenso.redes-minimas:2}") int redesMinimas) {
         return new RecalcularSectorService(sectores, cortes, propuestas, reportes, estrategia, resolutor,
-                registrarEvento, reloj, transaccion, Duration.ofMinutes(ventanaMinutos));
+                registrarEvento, reloj, transaccion, Duration.ofMinutes(ventanaMinutos), redesMinimas);
     }
 
     @Bean
     public RegistrarLecturaDePresionService registrarLecturaDePresionService(
             SectorRepository sectores, RegistrarReporteUseCase registrarReporte,
-            @Value("${aguavigia.iot.umbral-presion-baja-psi:15.0}") double umbralPresionBajaPsi) {
-        return new RegistrarLecturaDePresionService(sectores, registrarReporte, umbralPresionBajaPsi);
+            @Value("${aguavigia.iot.umbral-presion-baja-psi:15.0}") double umbralPresionBajaPsi,
+            @Value("${aguavigia.iot.umbral-presion-normal-psi:20.0}") double umbralPresionNormalPsi) {
+        return new RegistrarLecturaDePresionService(sectores, registrarReporte, umbralPresionBajaPsi,
+                umbralPresionNormalPsi);
     }
 
     @Bean

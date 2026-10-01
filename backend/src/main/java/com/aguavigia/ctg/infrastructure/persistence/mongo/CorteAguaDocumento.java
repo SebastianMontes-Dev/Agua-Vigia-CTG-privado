@@ -40,6 +40,9 @@ public class CorteAguaDocumento {
     /** Solo en un corte ANULADO. */
     private String motivoAnulacion;
 
+    /** Solo en el corte del veedor: desde esta hora deja de afirmar nada. */
+    private Instant caducaEn;
+
     /** Lista y no mapa: un id de sector como clave de documento obligaría a escapar puntos y símbolos. */
     @Getter
     @Setter

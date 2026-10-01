@@ -19,10 +19,11 @@ public class ConsensoConfig {
             @Value("${aguavigia.consenso.estrategia:proporcional}") String estrategia,
             @Value("${aguavigia.consenso.umbral-fijo:3}") long umbralFijo,
             @Value("${aguavigia.consenso.factor-poblacion:0.001}") double factorPoblacion,
-            @Value("${aguavigia.consenso.umbral-minimo:3}") long umbralMinimo) {
+            @Value("${aguavigia.consenso.umbral-minimo:3}") long umbralMinimo,
+            @Value("${aguavigia.consenso.umbral-maximo:15}") long umbralMaximo) {
         return switch (estrategia) {
             case "fijo" -> new UmbralFijoEstrategiaConsenso(umbralFijo);
-            case "proporcional" -> new UmbralProporcionalEstrategiaConsenso(factorPoblacion, umbralMinimo);
+            case "proporcional" -> new UmbralProporcionalEstrategiaConsenso(factorPoblacion, umbralMinimo, umbralMaximo);
             default -> throw new IllegalStateException(
                     "aguavigia.consenso.estrategia debe ser 'fijo' o 'proporcional', no '" + estrategia + "'");
         };

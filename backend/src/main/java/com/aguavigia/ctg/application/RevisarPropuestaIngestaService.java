@@ -1,14 +1,15 @@
 package com.aguavigia.ctg.application;
 
-import com.aguavigia.ctg.domain.EntidadNoEncontradaException;
 import com.aguavigia.ctg.domain.CorteId;
+import com.aguavigia.ctg.domain.AccionAuditada;
+import com.aguavigia.ctg.domain.ContextoDeAccion;
+import com.aguavigia.ctg.domain.EntidadNoEncontradaException;
 import com.aguavigia.ctg.domain.EstadoCorte;
-import com.aguavigia.ctg.domain.EstadoServicio;
 import com.aguavigia.ctg.domain.EventoBitacoraFactory;
 import com.aguavigia.ctg.domain.OrigenCorte;
 import com.aguavigia.ctg.domain.PropuestaId;
 import com.aguavigia.ctg.domain.PropuestaIngesta;
-import com.aguavigia.ctg.domain.Sector;
+import com.aguavigia.ctg.domain.port.in.RecalcularSectorUseCase;
 import com.aguavigia.ctg.domain.port.in.RegistrarEventoBitacoraUseCase;
 import com.aguavigia.ctg.domain.port.in.RevisarPropuestaIngestaUseCase;
 import com.aguavigia.ctg.domain.port.out.CorteAguaRepository;
@@ -20,10 +21,11 @@ import com.aguavigia.ctg.domain.port.out.TransaccionPort;
 /**
  * M9 + M5 — el punto donde una propuesta automatizada se convierte (o no) en dato público.
  *
- * Aprobar es lo único que mueve el mapa: guarda el estado en el sector, lo que publica
- * `SectorActualizadoEvent` y con eso salen correo, push y SSE, y anexa el evento a la bitácora
- * (RF026). Descartar no toca nada: la propuesta se archiva, no se borra — la bitácora es de solo
- * anexado y la cola de revisión debe poder auditarse.
+ * Aprobar guarda la propuesta y el corte del boletín y le pide a {@link RecalcularSectorUseCase} que decida
+ * qué estado corresponde: lo que publica `SectorActualizadoEvent` (correo, push, SSE) y lo que anexa a la
+ * bitácora (RF026) lo decide ese único escritor, con la propuesta ya guardada para que la vea. Descartar no
+ * toca nada: la propuesta se archiva, no se borra, porque la cola de revisión debe poder auditarse. Anular
+ * deshace una aprobación por error: la bitácora es de solo anexado, así que la corrección es un evento nuevo.
  */
 public class RevisarPropuestaIngestaService implements RevisarPropuestaIngestaUseCase {
 
@@ -31,19 +33,25 @@ public class RevisarPropuestaIngestaService implements RevisarPropuestaIngestaUs
     private final SectorRepository sectores;
     private final RegistrarEventoBitacoraUseCase registrarEvento;
     private final CorteAguaRepository cortes;
+    private final RecalcularSectorUseCase recalcular;
     private final RelojPort reloj;
     private final TransaccionPort transaccion;
+    private final RegistroDeAuditoria auditoria;
 
     public RevisarPropuestaIngestaService(PropuestaIngestaRepository propuestas,
                                            SectorRepository sectores,
                                            RegistrarEventoBitacoraUseCase registrarEvento,
                                            CorteAguaRepository cortes,
+                                           RecalcularSectorUseCase recalcular,
                                            RelojPort reloj,
-                                           TransaccionPort transaccion) {
+                                           TransaccionPort transaccion,
+                                           RegistroDeAuditoria auditoria) {
+        this.auditoria = auditoria;
         this.propuestas = propuestas;
         this.sectores = sectores;
         this.registrarEvento = registrarEvento;
         this.cortes = cortes;
+        this.recalcular = recalcular;
         this.reloj = reloj;
         this.transaccion = transaccion;
     }
@@ -51,70 +59,40 @@ public class RevisarPropuestaIngestaService implements RevisarPropuestaIngestaUs
     @Override
     public PropuestaIngesta aprobar(PropuestaId id) {
         PropuestaIngesta propuesta = buscarOLanzar(id);
-        // Antes de tocar el mapa: una propuesta ya descartada lanza aquí y no llega a cambiar nada.
+        // Antes de tocar nada: una propuesta ya descartada o anulada lanza aquí y no cambia nada.
         PropuestaIngesta aprobada = propuesta.aprobar();
 
-        Sector sector = sectores.buscarPorId(propuesta.sectorId())
+        sectores.buscarPorId(propuesta.sectorId())
                 .orElseThrow(() -> new IllegalStateException(
                         "El sector '" + propuesta.sectorId().valor() + "' de la propuesta ya no existe"));
 
-        // Aprobar una propuesta cuyo estado ya rige no debe anexar un evento nuevo a la bitacora:
-        // RF028 prohibe editarla, pero duplicar un evento identico tampoco la hace mas veraz.
-        //
-        // Se fija estadoVigenteEn(ahora), no estadoPropuesto: aprobar() puede correr mucho despues de
-        // detectadaEn (una propuesta de prensa espera al veedor dias o semanas), y para entonces la
-        // ventana declarada puede haber terminado. Fijar el valor congelado en la deteccion dejaba un
-        // barrio en SIN_SERVICIO por un corte que ya se habia restablecido.
-        if (propuesta.puedeFijarEstadoActual()) {
-            EstadoServicio estadoVigente = propuesta.estadoVigenteEn(reloj.ahora());
-            if (sector.estadoActual() != estadoVigente) {
-                // Estado + evento en la misma transacción (Fase 3): si el registro del evento
-                // falla, revierte también el guardado del sector.
-                transaccion.ejecutar(() -> {
-                    sectores.guardar(sector.conEstado(estadoVigente));
-                    registrarEvento.registrar(EventoBitacoraFactory.detectadoPorIngesta(
-                            propuesta.sectorId(), sector.nombre(), estadoVigente,
-                            propuesta.fuente(), propuesta.urlOriginal(), propuesta.imagenUrl(), propuesta.tituloOriginal(),
-                            propuesta.momentoParaLaBitacora(reloj.ahora())));
-                    return null;
-                });
-            } else if (estadoVigente != null) {
-                // Un boletín aprobado que confirma el estado vigente lo verifica, sin evento nuevo (ADR-073).
-                sectores.confirmarEstado(propuesta.sectorId(), estadoVigente);
-            }
-        }
-
-        registrarCorteDelBoletin(propuesta);
-
-        return propuestas.guardar(aprobada);
+        // Propuesta, corte y estado son una sola unidad: si el recálculo falla, la aprobación se revierte entera.
+        return transaccion.ejecutar(() -> {
+            PropuestaIngesta guardada = propuestas.guardar(aprobada);
+            registrarCorteDelBoletin(propuesta);
+            recalcular.recalcular(propuesta.sectorId());
+            return guardada;
+        });
     }
 
     /**
-     * M6/M7 — un boletín con ventana declarada es un corte, y sin corte no hay estadísticas: la
-     * bitácora cuenta qué pasó, pero `sectoresMasAfectados` y `cortesPorDiaDeSemana` agregan sobre
-     * la colección de cortes, que la ingesta nunca alimentaba.
+     * M6/M7 — un boletín con ventana declarada es un corte, y sin corte no hay estadísticas: la bitácora cuenta
+     * qué pasó, pero `sectoresMasAfectados` y `cortesPorDiaDeSemana` agregan sobre la colección de cortes.
      *
-     * **No se fija `finReal`.** El boletín dice cuándo *prometieron* restablecer, no cuándo se
-     * restableció de verdad. Rellenarlo con la promesa daría un Índice de Cumplimiento del 100%
-     * permanente, que es justo la afirmación que este proyecto existe para poder contrastar. El
-     * corte queda abierto hasta que el veedor confirme la hora real (`PATCH /api/veedor/cortes/{id}/cierre`):
-     * hoy ni el consenso ciudadano ni un boletín de restablecimiento lo cierran. Mientras tanto
-     * `CorteAgua.sostieneElEstadoEn` impide que, vencida su ventana, bloquee el retorno a CON_SERVICIO.
+     * **No se cierra el corte.** El boletín dice cuándo *prometieron* restablecer, no cuándo se restableció de
+     * verdad. Rellenarlo con la promesa daría un Índice de Cumplimiento del 100% permanente, que es justo la
+     * afirmación que este proyecto existe para poder contrastar. El corte queda abierto hasta que el veedor
+     * confirme la hora real, los vecinos la sostengan o un boletín de restablecimiento la declare; mientras
+     * tanto `CorteAgua.sostieneElEstadoEn` impide que, vencida su ventana, bloquee el retorno a CON_SERVICIO.
      *
      * Anexa el sector con una escritura atómica (`CorteAguaRepository.anexarSectorAlCorte`), no con
-     * leer→modificar→guardar: un boletín nombra muchos barrios y genera una propuesta por sector,
-     * y desde que el panel admite varios veedores a la vez (`ADR-039`) dos aprobaciones del mismo
-     * boletín pueden procesarse casi simultáneamente. Con lectura en memoria, la segunda escritura
-     * pisaba a la primera y el corte quedaba con menos sectores de los reales.
+     * leer→modificar→guardar: un boletín nombra muchos barrios y genera una propuesta por sector, y con varios
+     * veedores a la vez (`ADR-039`) dos aprobaciones del mismo boletín pueden procesarse casi simultáneamente.
      */
     private void registrarCorteDelBoletin(PropuestaIngesta propuesta) {
         if (propuesta.inicioDeclarado() == null || propuesta.finPrometido() == null) {
             return;
         }
-
-        // Un boletín nombra muchos barrios y genera una propuesta por cada uno. El id se deriva del
-        // boletín y su ventana para que todos caigan en el mismo corte, en vez de inflar la
-        // estadística con un corte por barrio.
         CorteId id = propuesta.idDelCorte();
         String causa = propuesta.citaTextual() == null || propuesta.citaTextual().isBlank()
                 ? "Anuncio de " + propuesta.fuente()
@@ -127,6 +105,23 @@ public class RevisarPropuestaIngestaService implements RevisarPropuestaIngestaUs
     @Override
     public PropuestaIngesta descartar(PropuestaId id) {
         return propuestas.guardar(buscarOLanzar(id).descartar());
+    }
+
+    @Override
+    public PropuestaIngesta anular(PropuestaId id, String motivo, ContextoDeAccion contexto) {
+        PropuestaIngesta propuesta = buscarOLanzar(id);
+        PropuestaIngesta anulada = propuesta.anular(motivo);
+
+        PropuestaIngesta resultado = transaccion.ejecutar(() -> {
+            PropuestaIngesta guardada = propuestas.guardar(anulada);
+            registrarEvento.registrar(EventoBitacoraFactory.boletinAnulado(
+                    propuesta.sectorId(), motivo, propuesta.urlOriginal(), reloj.ahora()));
+            recalcular.recalcular(propuesta.sectorId());
+            return guardada;
+        });
+        auditoria.registrar(AccionAuditada.PROPUESTA_ANULADA, null,
+                "Propuesta '" + id.valor() + "': " + motivo, contexto);
+        return resultado;
     }
 
     private PropuestaIngesta buscarOLanzar(PropuestaId id) {

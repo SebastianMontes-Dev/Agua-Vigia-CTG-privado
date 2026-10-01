@@ -6,7 +6,9 @@ import com.aguavigia.ctg.domain.EventoBitacora;
 import com.aguavigia.ctg.domain.EventoId;
 import com.aguavigia.ctg.domain.FiltroBitacora;
 import com.aguavigia.ctg.domain.Pagina;
+import com.aguavigia.ctg.domain.OrigenEstado;
 import com.aguavigia.ctg.domain.ReporteId;
+import com.aguavigia.ctg.domain.RespaldoVecinal;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.TipoEvento;
 import com.aguavigia.ctg.domain.port.out.EventoBitacoraRepository;
@@ -45,6 +47,9 @@ public class EventoBitacoraMongoAdapter implements EventoBitacoraRepository {
         documento.setUrlOriginal(evento.urlOriginal());
         documento.setImagenUrl(evento.imagenUrl());
         documento.setReportesSustento(evento.reportesSustento().stream().map(ReporteId::valor).toList());
+        documento.setFuente(evento.fuente() != null ? evento.fuente().name() : null);
+        documento.setRespaldoVecinos(evento.respaldo() != null ? evento.respaldo().vecinos() : null);
+        documento.setRespaldoUmbral(evento.respaldo() != null ? evento.respaldo().umbral() : null);
 
         repositorio.save(documento);
         return evento;
@@ -112,6 +117,9 @@ public class EventoBitacoraMongoAdapter implements EventoBitacoraRepository {
                 documento.getUrlOriginal(),
                 documento.getImagenUrl(),
                 documento.getReportesSustento() == null ? List.of()
-                        : documento.getReportesSustento().stream().map(ReporteId::new).toList());
+                        : documento.getReportesSustento().stream().map(ReporteId::new).toList(),
+                documento.getFuente() != null ? OrigenEstado.valueOf(documento.getFuente()) : null,
+                documento.getRespaldoVecinos() != null && documento.getRespaldoUmbral() != null
+                        ? new RespaldoVecinal(documento.getRespaldoVecinos(), documento.getRespaldoUmbral()) : null);
     }
 }

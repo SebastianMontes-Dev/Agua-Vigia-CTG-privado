@@ -42,6 +42,7 @@ public class PropuestaIngestaMongoAdapter implements PropuestaIngestaRepository 
         documento.setImagenUrl(propuesta.imagenUrl());
         documento.setPublicadoEn(propuesta.publicadoEn());
         documento.setTituloOriginal(propuesta.tituloOriginal());
+        documento.setMotivoAnulacion(propuesta.motivoAnulacion());
 
         repositorio.save(documento);
         return propuesta;
@@ -86,7 +87,8 @@ public class PropuestaIngestaMongoAdapter implements PropuestaIngestaRepository 
                 documento.getFinPrometido(),
                 documento.getImagenUrl(),
                 documento.getPublicadoEn(),
-                documento.getTituloOriginal());
+                documento.getTituloOriginal(),
+                documento.getMotivoAnulacion());
     }
 
     @Override

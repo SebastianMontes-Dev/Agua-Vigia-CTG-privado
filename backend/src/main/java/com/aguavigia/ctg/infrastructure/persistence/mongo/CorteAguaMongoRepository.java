@@ -14,4 +14,6 @@ public interface CorteAguaMongoRepository extends MongoRepository<CorteAguaDocum
      * un `findBySectoresAfectadosContaining` por sector dentro de un `for` (GestionarCorteOficialService).
      */
     List<CorteAguaDocumento> findBySectoresAfectadosIn(List<String> sectorIds);
+
+    List<CorteAguaDocumento> findByEstadoIn(List<String> estados);
 }

@@ -140,6 +140,17 @@ class PropuestaIngestaMongoAdapterTest {
     }
 
     @Test
+    void debeConservarElMotivoDeUnaPropuestaAnulada() {
+        adaptador.guardar(propuesta("p-1", "manga", EstadoServicio.SIN_SERVICIO, AHORA).aprobar().anular("Leyó mal el barrio"));
+
+        PropuestaIngesta recuperada = adaptador.buscarPorId(new PropuestaId("p-1")).orElseThrow();
+
+        assertThat(recuperada.estadoRevision()).isEqualTo(EstadoRevision.ANULADA);
+        assertThat(recuperada.motivoAnulacion()).isEqualTo("Leyó mal el barrio");
+        assertThat(adaptador.listarAprobadasPorSector(new SectorId("manga"))).isEmpty();
+    }
+
+    @Test
     void buscarPorIdDebeDevolverVacioCuandoNoExiste() {
         assertThat(adaptador.buscarPorId(new PropuestaId("no-existe"))).isEmpty();
     }

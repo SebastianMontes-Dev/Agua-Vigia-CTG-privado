@@ -15,23 +15,24 @@ class EstadoConfigTest {
 
     @Test
     void debeConvertirLosPlazosEnHorasADuraciones() {
-        ReglasDeEstado reglas = config.reglasDeEstado(72, 6, 24, 2);
+        ReglasDeEstado reglas = config.reglasDeEstado(72, 6, 24, 2, 3);
 
         assertThat(reglas.expiraTrasFin()).isEqualTo(Duration.ofHours(72));
         assertThat(reglas.vecinosSinVerificacion()).isEqualTo(Duration.ofHours(6));
         assertThat(reglas.vecinosCaducan()).isEqualTo(Duration.ofHours(24));
         assertThat(reglas.restablecimientoMinimo()).isEqualTo(2);
+        assertThat(reglas.ventanaDeReapertura()).isEqualTo(Duration.ofHours(3));
     }
 
     /** Los valores iniciales del plan son los que rigen cuando nadie configura nada. */
     @Test
     void losValoresPorDefectoDeLaConfiguracionSonLosDelPlan() {
-        assertThat(config.reglasDeEstado(72, 6, 24, 2)).isEqualTo(ReglasDeEstado.porDefecto());
+        assertThat(config.reglasDeEstado(72, 6, 24, 2, 3)).isEqualTo(ReglasDeEstado.porDefecto());
     }
 
     @Test
     void elResolutorUsaLasReglasConfiguradas() {
-        ReglasDeEstado reglas = config.reglasDeEstado(48, 3, 12, 3);
+        ReglasDeEstado reglas = config.reglasDeEstado(48, 3, 12, 3, 5);
 
         ResolutorDeEstadoSector resolutor = config.resolutorDeEstadoSector(reglas);
 
@@ -40,7 +41,7 @@ class EstadoConfigTest {
 
     @Test
     void debeRechazarUnPlazoNoPositivo() {
-        assertThatThrownBy(() -> config.reglasDeEstado(0, 6, 24, 2)).isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> config.reglasDeEstado(72, 6, -1, 2)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> config.reglasDeEstado(0, 6, 24, 2, 3)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> config.reglasDeEstado(72, 6, -1, 2, 3)).isInstanceOf(IllegalArgumentException.class);
     }
 }

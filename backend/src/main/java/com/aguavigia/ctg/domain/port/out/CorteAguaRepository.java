@@ -21,6 +21,15 @@ public interface CorteAguaRepository {
     /** Todo corte que afecte a CUALQUIERA de estos sectores, en una sola consulta (`$in`). */
     List<CorteAgua> listarPorSectores(List<SectorId> sectorIds);
 
+    /** Los cortes que todavía pueden sostener un estado: anunciados y confirmados, sin el histórico. */
+    List<CorteAgua> listarAbiertos();
+
+    /**
+     * Los cortes con algún cierre provisional —lo que solo sostienen los vecinos o los sensores—, abiertos o ya
+     * restablecidos, sin los anulados: es lo que el veedor debe confirmar o corregir.
+     */
+    List<CorteAgua> listarConCierresProvisionales();
+
     /** Todos los cortes, sin filtrar por sector — insumo del índice global (RF021). */
     List<CorteAgua> listarTodos();
 

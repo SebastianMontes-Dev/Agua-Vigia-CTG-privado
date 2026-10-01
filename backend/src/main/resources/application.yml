@@ -115,16 +115,16 @@ aguavigia:
       - ruta: /api/cuentas/**
         limite: 10
         ventana-segundos: 600
-      # Ingreso de vecinos: misma regla por IP que el registro. Adivinar claves es el riesgo; el bloqueo por cuenta y
-      # direccion (aguavigia.cuentas) es el freno fino, igual que en el ingreso del panel.
-      - ruta: /api/vecino/sesion
-        limite: 10
-        ventana-segundos: 600
       # D7: crear una identidad de dispositivo cuesta una peticion, y esta es la que se limita: 10 por hora por IP.
       # Sin este tope, fabricar identidades para llenar un quorum seria tan barato como cuando la huella la ponia el cliente.
       - ruta: /api/dispositivos
         limite: 10
         ventana-segundos: 3600
+      # Ingreso de vecinos: misma regla por IP que el registro. Adivinar claves es el riesgo; el bloqueo por cuenta y
+      # direccion (aguavigia.cuentas) es el freno fino, igual que en el ingreso del panel.
+      - ruta: /api/vecino/sesion
+        limite: 10
+        ventana-segundos: 600
       # POST /api/suscripciones envia un correo a cualquier direccion que el cliente escriba: sin
       # limite servia para inundar la bandeja de un tercero. /** cubre tambien confirmar y cancelar.
       - ruta: /api/suscripciones/**

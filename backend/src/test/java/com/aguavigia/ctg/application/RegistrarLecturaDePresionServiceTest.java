@@ -34,7 +34,7 @@ class RegistrarLecturaDePresionServiceTest {
     void montar() {
         sectores = mock(SectorRepository.class);
         registrarReporte = mock(RegistrarReporteUseCase.class);
-        servicio = new RegistrarLecturaDePresionService(sectores, registrarReporte, 15.0);
+        servicio = new RegistrarLecturaDePresionService(sectores, registrarReporte, 15.0, 20.0);
         given(sectores.buscarPorId(BOCAGRANDE)).willReturn(
                 Optional.of(new Sector(BOCAGRANDE, "BOCAGRANDE", 12000, EstadoServicio.CON_SERVICIO)));
     }
@@ -49,11 +49,40 @@ class RegistrarLecturaDePresionServiceTest {
                 HuellaDispositivo.deSensor("sensor-1"), true);
     }
 
+    /** Un sensor con presión normal es un voto de que volvió el servicio: antes se ignoraba y nunca lo confirmaba. */
     @Test
-    void unaPresionNormalNoDebeRegistrarNada() {
-        servicio.registrar("sensor-1", BOCAGRANDE, 40.0, null);
+    void unaPresionNormalDebeRegistrarUnReporteDeServicioRestablecido() {
+        Coordenada coordenada = new Coordenada(10.40, -75.55);
+
+        servicio.registrar("sensor-1", BOCAGRANDE, 40.0, coordenada);
+
+        verify(registrarReporte).registrar(BOCAGRANDE, TipoReporte.SERVICIO_RESTABLECIDO, coordenada,
+                HuellaDispositivo.deSensor("sensor-1"), true);
+    }
+
+    /** El umbral normal es «mayor o igual»: justo 20 psi ya cuenta como presión normal. */
+    @Test
+    void unaPresionIgualAlUmbralNormalDebeRegistrarServicioRestablecido() {
+        servicio.registrar("sensor-1", BOCAGRANDE, 20.0, null);
+
+        verify(registrarReporte).registrar(eq(BOCAGRANDE), eq(TipoReporte.SERVICIO_RESTABLECIDO), any(), any(), eq(true));
+    }
+
+    /**
+     * Histéresis: entre 15 y 20 psi el sensor no vota. Sin esta banda un sensor que oscila en torno a 15 psi
+     * votaría «presión baja» y «servicio restablecido» alternadamente y el barrio parpadearía.
+     */
+    @Test
+    void unaPresionEnLaBandaIntermediaNoDebeRegistrarNada() {
+        servicio.registrar("sensor-1", BOCAGRANDE, 17.5, null);
 
         verify(registrarReporte, never()).registrar(any(), any(), any(), any(), anyBoolean());
+    }
+
+    @Test
+    void elUmbralNormalNoPuedeSerMenorQueElDePresionBaja() {
+        assertThatThrownBy(() -> new RegistrarLecturaDePresionService(sectores, registrarReporte, 20.0, 15.0))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     /** El umbral es «menor que»: justo 15 psi todavía es presión normal. */
@@ -73,7 +102,7 @@ class RegistrarLecturaDePresionServiceTest {
 
     @Test
     void elUmbralDebeSerConfigurable() {
-        var servicioConUmbralAlto = new RegistrarLecturaDePresionService(sectores, registrarReporte, 30.0);
+        var servicioConUmbralAlto = new RegistrarLecturaDePresionService(sectores, registrarReporte, 30.0, 40.0);
 
         servicioConUmbralAlto.registrar("sensor-1", BOCAGRANDE, 25.0, null);
 

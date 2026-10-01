@@ -19,10 +19,10 @@ class ReglasDeEstadoTest {
     @Test
     void losPlazosDebenSerPositivos() {
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> new ReglasDeEstado(
-                java.time.Duration.ZERO, java.time.Duration.ofHours(6), java.time.Duration.ofHours(24), 2))
+                java.time.Duration.ZERO, java.time.Duration.ofHours(6), java.time.Duration.ofHours(24), 2, java.time.Duration.ofHours(3)))
                 .isInstanceOf(IllegalArgumentException.class);
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> new ReglasDeEstado(
-                java.time.Duration.ofHours(72), java.time.Duration.ofHours(6), java.time.Duration.ofHours(-1), 2))
+                java.time.Duration.ofHours(72), java.time.Duration.ofHours(6), java.time.Duration.ofHours(-1), 2, java.time.Duration.ofHours(3)))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 

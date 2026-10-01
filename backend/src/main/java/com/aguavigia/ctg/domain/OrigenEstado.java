@@ -5,5 +5,6 @@ public enum OrigenEstado {
     ACUACAR,
     VEEDOR,
     VECINOS,
-    PRENSA
+    PRENSA,
+    SENSOR
 }

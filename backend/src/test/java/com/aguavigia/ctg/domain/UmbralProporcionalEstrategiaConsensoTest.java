@@ -7,7 +7,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class UmbralProporcionalEstrategiaConsensoTest {
 
-    private static final EstrategiaConsenso ESTRATEGIA = new UmbralProporcionalEstrategiaConsenso(0.001, 3);
+    private static final EstrategiaConsenso ESTRATEGIA = new UmbralProporcionalEstrategiaConsenso(0.001, 3, 15);
 
     @Test
     void debeExigirMasReportesEnUnSectorMasPoblado() {
@@ -42,15 +42,37 @@ class UmbralProporcionalEstrategiaConsensoTest {
         assertThat(ESTRATEGIA.umbral(new Sector(new SectorId("isla-fuerte"), "ISLA FUERTE", null, null))).isEqualTo(3);
     }
 
+    /** Participación no es población: 48 vecinos de El Pozón harían inalcanzable el quórum, así que hay un tope. */
+    @Test
+    void debeAplicarElTopeEnUnSectorMuyPoblado() {
+        Sector elPozon = new Sector(new SectorId("el-pozon"), "EL POZON", 47616, null);
+
+        assertThat(ESTRATEGIA.umbral(elPozon)).isEqualTo(15);
+        assertThat(ESTRATEGIA.seAlcanzaConsenso(14, elPozon)).isFalse();
+        assertThat(ESTRATEGIA.seAlcanzaConsenso(15, elPozon)).isTrue();
+    }
+
+    @Test
+    void elTopeNoAfectaAUnSectorQueNoLoAlcanza() {
+        assertThat(ESTRATEGIA.umbral(new Sector(new SectorId("manga"), "MANGA", 10754, null))).isEqualTo(11);
+        assertThat(ESTRATEGIA.umbral(new Sector(new SectorId("limite"), "LIMITE", 15000, null))).isEqualTo(15);
+    }
+
+    @Test
+    void debeRechazarUnTopeMenorQueElPiso() {
+        assertThatThrownBy(() -> new UmbralProporcionalEstrategiaConsenso(0.001, 3, 2))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
     @Test
     void debeRechazarUnFactorNoPositivo() {
-        assertThatThrownBy(() -> new UmbralProporcionalEstrategiaConsenso(0, 3))
+        assertThatThrownBy(() -> new UmbralProporcionalEstrategiaConsenso(0, 3, 15))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     void debeRechazarUnUmbralMinimoNoPositivo() {
-        assertThatThrownBy(() -> new UmbralProporcionalEstrategiaConsenso(0.001, 0))
+        assertThatThrownBy(() -> new UmbralProporcionalEstrategiaConsenso(0.001, 0, 15))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 }

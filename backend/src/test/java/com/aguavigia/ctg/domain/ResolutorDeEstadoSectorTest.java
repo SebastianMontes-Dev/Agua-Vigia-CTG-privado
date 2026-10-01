@@ -87,6 +87,53 @@ class ResolutorDeEstadoSectorTest {
         }
     }
 
+    /** Un boletín que anuncia baja presión con ventana no es un corte: durante la ventana el barrio sigue con presión baja. */
+    @Nested
+    class VentanaDePresionBaja {
+
+        private VentanaOficial presionBajaDeAcuacar() {
+            return new VentanaOficial(INICIO, FIN, null, EstadoServicio.PRESION_BAJA);
+        }
+
+        @Test
+        void duranteLaVentanaPublicaPresionBajaYNoSinServicio() {
+            EstadoPublicado publicado = resolver(INICIO.plusSeconds(3600), presionBajaDeAcuacar());
+
+            assertThat(publicado.estado()).isEqualTo(EstadoServicio.PRESION_BAJA);
+            assertThat(publicado.origen()).isEqualTo(OrigenEstado.ACUACAR);
+        }
+
+        @Test
+        void antesDeQueEmpieceEsCorteProgramadoComoCualquierVentana() {
+            assertThat(resolver(INICIO.minusSeconds(60), presionBajaDeAcuacar()).estado())
+                    .isEqualTo(EstadoServicio.CORTE_PROGRAMADO);
+        }
+
+        @Test
+        void alVencerLaPromesaSigueConPresionBajaYQuedaPorConfirmar() {
+            EstadoPublicado publicado = resolver(FIN.plusSeconds(60), presionBajaDeAcuacar());
+
+            assertThat(publicado.estado()).isEqualTo(EstadoServicio.PRESION_BAJA);
+            assertThat(publicado.restablecimientoPorConfirmar()).isTrue();
+        }
+
+        @Test
+        void unCorteSinServicioPrevaleceSobreUnaPresionBajaEnCualquierOrden() {
+            Instant ahora = INICIO.plusSeconds(3600);
+            PrensaAprobada corte = new PrensaAprobada(INICIO, FIN, null);
+
+            assertThat(resolver(ahora, presionBajaDeAcuacar(), corte).estado()).isEqualTo(EstadoServicio.SIN_SERVICIO);
+            assertThat(resolver(ahora, corte, presionBajaDeAcuacar()).estado()).isEqualTo(EstadoServicio.SIN_SERVICIO);
+        }
+
+        @Test
+        void unaVentanaSoloPuedeDeclararSinServicioOPresionBaja() {
+            org.assertj.core.api.Assertions.assertThatThrownBy(
+                    () -> new VentanaOficial(INICIO, FIN, null, EstadoServicio.CON_SERVICIO))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
+    }
+
     @Nested
     class VentanaDePrensaAprobada {
 

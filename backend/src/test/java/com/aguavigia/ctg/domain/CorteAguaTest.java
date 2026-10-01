@@ -232,6 +232,102 @@ class CorteAguaTest {
     }
 
     @Nested
+    class ConfirmacionDeCierres {
+
+        private final CorteAgua cerradoPorLosVecinos = corteAbierto(OrigenCorte.VEEDOR, MANGA, BOCAGRANDE)
+                .cerrarSector(MANGA, cierre(a(3), OrigenEstado.VECINOS, true));
+
+        /** El veedor confirma o corrige la hora de un cierre que solo sostenían los vecinos. */
+        @Test
+        void elVeedorPuedeConfirmarYCorregirUnCierreProvisional() {
+            CorteAgua confirmado = cerradoPorLosVecinos.confirmarCierre(MANGA, cierre(a(2), OrigenEstado.VEEDOR, false));
+
+            assertThat(confirmado.cierreDe(MANGA)).contains(cierre(a(2), OrigenEstado.VEEDOR, false));
+            assertThat(confirmado.estado()).isEqualTo(EstadoCorte.ANUNCIADO);
+        }
+
+        @Test
+        void confirmarElUltimoCierreProvisionalCambiaLaHoraRealDelCorte() {
+            CorteAgua cerrado = cerradoPorLosVecinos.cerrarSector(BOCAGRANDE, cierre(a(5), OrigenEstado.VECINOS, true));
+
+            CorteAgua confirmado = cerrado.confirmarCierre(BOCAGRANDE, cierre(a(4), OrigenEstado.VEEDOR, false));
+
+            assertThat(confirmado.ventana().finReal()).isEqualTo(a(4));
+        }
+
+        @Test
+        void unCierreYaConfirmadoNoSeVuelveAConfirmar() {
+            CorteAgua confirmado = cerradoPorLosVecinos.confirmarCierre(MANGA, cierre(a(2), OrigenEstado.VEEDOR, false));
+
+            assertThatThrownBy(() -> confirmado.confirmarCierre(MANGA, cierre(a(1), OrigenEstado.VEEDOR, false)))
+                    .isInstanceOf(IllegalStateException.class);
+        }
+
+        @Test
+        void nosePuedeConfirmarUnSectorSinCierre() {
+            assertThatThrownBy(() -> cerradoPorLosVecinos.confirmarCierre(BOCAGRANDE, cierre(a(2), OrigenEstado.VEEDOR, false)))
+                    .isInstanceOf(IllegalStateException.class);
+        }
+
+        @Test
+        void laConfirmacionNoPuedeSerProvisionalNiAnteriorAlInicio() {
+            assertThatThrownBy(() -> cerradoPorLosVecinos.confirmarCierre(MANGA, cierre(a(2), OrigenEstado.VECINOS, true)))
+                    .isInstanceOf(IllegalArgumentException.class);
+            assertThatThrownBy(() -> cerradoPorLosVecinos.confirmarCierre(MANGA,
+                    cierre(inicio.minusSeconds(1), OrigenEstado.VEEDOR, false)))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
+    }
+
+    /** Un restablecimiento que solo sostenían los vecinos puede no ser efectivo: el mismo corte se reabre. */
+    @Nested
+    class Reapertura {
+
+        private final CorteAgua cerradoPorLosVecinos = corteAbierto(OrigenCorte.VEEDOR, MANGA)
+                .cerrarSector(MANGA, cierre(a(3), OrigenEstado.VECINOS, true));
+
+        @Test
+        void unCierreProvisionalSePuedeReabrirYElCorteVuelveAEstarAbierto() {
+            assertThat(cerradoPorLosVecinos.estado()).isEqualTo(EstadoCorte.RESTABLECIDO);
+
+            CorteAgua reabierto = cerradoPorLosVecinos.reabrirSector(MANGA);
+
+            assertThat(reabierto.estado()).isEqualTo(EstadoCorte.ANUNCIADO);
+            assertThat(reabierto.cierreDe(MANGA)).isEmpty();
+            assertThat(reabierto.ventana().estaCerrada()).isFalse();
+            assertThat(reabierto.sostieneElEstadoEn(MANGA, a(4))).isTrue();
+        }
+
+        @Test
+        void reabrirUnBarrioNoAfectaALosDemasCierres() {
+            CorteAgua dosCerrados = corteAbierto(OrigenCorte.VEEDOR, MANGA, BOCAGRANDE)
+                    .cerrarSector(MANGA, cierre(a(3), OrigenEstado.VECINOS, true))
+                    .cerrarSector(BOCAGRANDE, cierre(a(4), OrigenEstado.VEEDOR, false));
+
+            CorteAgua reabierto = dosCerrados.reabrirSector(MANGA);
+
+            assertThat(reabierto.cierreDe(BOCAGRANDE)).contains(cierre(a(4), OrigenEstado.VEEDOR, false));
+            assertThat(reabierto.estado()).isEqualTo(EstadoCorte.ANUNCIADO);
+        }
+
+        /** Lo que el veedor o un boletín confirmaron es definitivo: los vecinos no lo reabren. */
+        @Test
+        void unCierreConfirmadoNoSeReabre() {
+            CorteAgua confirmado = cerradoPorLosVecinos.confirmarCierre(MANGA, cierre(a(3), OrigenEstado.VEEDOR, false));
+
+            assertThatThrownBy(() -> confirmado.reabrirSector(MANGA)).isInstanceOf(IllegalStateException.class);
+        }
+
+        @Test
+        void nosePuedeReabrirUnBarrioSinCierreNiUnCorteAnuladoOExpirado() {
+            assertThatThrownBy(() -> corteAbierto(OrigenCorte.VEEDOR).reabrirSector(MANGA))
+                    .isInstanceOf(IllegalStateException.class);
+            assertThatThrownBy(() -> cerradoPorLosVecinos.anular("Por error").reabrirSector(MANGA))
+                    .isInstanceOf(IllegalStateException.class);
+        }
+    }
+
+    @Nested
     class Expiracion {
 
         @Test
@@ -311,6 +407,47 @@ class CorteAguaTest {
 
             assertThatThrownBy(() -> anulado.cerrar(a(4))).isInstanceOf(IllegalStateException.class);
             assertThatThrownBy(anulado::expirar).isInstanceOf(IllegalStateException.class);
+        }
+    }
+
+    /** El corte del veedor es el override: puede traer una hora tras la cual deja de afirmar nada. */
+    @Nested
+    class Caducidad {
+
+        private CorteAgua.Builder base() {
+            return CorteAgua.builder()
+                    .id(new CorteId("corte-c"))
+                    .sectoresAfectados(List.of(MANGA, BOCAGRANDE))
+                    .inicio(inicio)
+                    .finPrometido(a(6))
+                    .causa("Mantenimiento")
+                    .origen(OrigenCorte.VEEDOR);
+        }
+
+        @Test
+        void sinCaducidadDeclaradaEsNula() {
+            assertThat(base().build().caducaEn()).isNull();
+        }
+
+        @Test
+        void conservaLaCaducidadDeclarada() {
+            assertThat(base().caducaEn(a(4)).build().caducaEn()).isEqualTo(a(4));
+        }
+
+        @Test
+        void unaCaducidadAnteriorAlInicioSeRechaza() {
+            var builder = base().caducaEn(inicio.minusSeconds(1));
+
+            assertThatThrownBy(builder::build).isInstanceOf(IllegalArgumentException.class);
+        }
+
+        @Test
+        void laCaducidadSobreviveACerrarExpirarYAnular() {
+            CorteAgua corte = base().caducaEn(a(4)).build();
+
+            assertThat(corte.cerrarSector(MANGA, new CierreDeCorte(a(2), OrigenEstado.VEEDOR, false)).caducaEn()).isEqualTo(a(4));
+            assertThat(corte.expirar().caducaEn()).isEqualTo(a(4));
+            assertThat(corte.anular("Por error").caducaEn()).isEqualTo(a(4));
         }
     }
 

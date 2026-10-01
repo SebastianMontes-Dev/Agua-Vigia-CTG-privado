@@ -1,14 +1,17 @@
 package com.aguavigia.ctg.application;
 
-import com.aguavigia.ctg.domain.EntidadNoEncontradaException;
+import com.aguavigia.ctg.domain.CierreDeCorte;
+import com.aguavigia.ctg.domain.AccionAuditada;
+import com.aguavigia.ctg.domain.ContextoDeAccion;
 import com.aguavigia.ctg.domain.CorteAgua;
 import com.aguavigia.ctg.domain.CorteId;
-import com.aguavigia.ctg.domain.EstadoServicio;
-import com.aguavigia.ctg.domain.EventoBitacora;
+import com.aguavigia.ctg.domain.EntidadNoEncontradaException;
 import com.aguavigia.ctg.domain.EventoBitacoraFactory;
+import com.aguavigia.ctg.domain.OrigenEstado;
 import com.aguavigia.ctg.domain.Sector;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.port.in.GestionarCorteOficialUseCase;
+import com.aguavigia.ctg.domain.port.in.RecalcularSectorUseCase;
 import com.aguavigia.ctg.domain.port.in.RegistrarEventoBitacoraUseCase;
 import com.aguavigia.ctg.domain.port.out.CorteAguaRepository;
 import com.aguavigia.ctg.domain.port.out.RelojPort;
@@ -16,75 +19,69 @@ import com.aguavigia.ctg.domain.port.out.SectorRepository;
 import com.aguavigia.ctg.domain.port.out.TransaccionPort;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * RF016-RF017 — el veedor registra un corte oficial y lo cierra con la hora real de
- * restablecimiento. `CorteAgua` llega ya construido (el `Builder` del dominio impone sus propias
- * invariantes, como `RegistrarReporteService` deja que el constructor de `ReporteCiudadano`
- * imponga las suyas); este servicio solo aporta la regla que cruza agregados: los sectores
- * afectados tienen que existir.
+ * RF016-RF017 — el veedor registra un corte oficial, lo cierra barrio por barrio, confirma los cierres
+ * provisionales y anula lo que se publicó por error. {@code CorteAgua} llega ya construido (el `Builder`
+ * del dominio impone sus propias invariantes); este servicio solo aporta la regla que cruza agregados:
+ * los sectores afectados tienen que existir.
  *
- * RF026: cada registro y cada cierre anexan un evento a la bitácora pública — uno por sector
- * afectado, porque `EventoBitacora.sectorId` es singular y un corte puede tocar varios sectores a
- * la vez. Misma dependencia de `RegistrarEventoBitacoraUseCase` que `RegistrarReporteService` usa
- * para `EvaluarConsensoUseCase`: un caso de uso dispara a otro, no a su repositorio directamente.
+ * RF026: registrar y cerrar anexan un evento a la bitácora pública por cada barrio, porque
+ * `EventoBitacora.sectorId` es singular y un corte puede tocar varios a la vez.
  *
- * RF001: registrar o cerrar un corte también mueve el estado de los sectores afectados. Antes no
- * lo hacía, y `EstadoServicio.CORTE_PROGRAMADO` no se asignaba en ninguna parte del sistema: el
- * mapa no distinguía un corte anunciado de un barrio con servicio normal.
+ * Este servicio <b>no mueve el estado de los barrios</b>: guarda el corte y sus eventos y le pide a
+ * {@link RecalcularSectorUseCase} —el único escritor— que decida, con el corte ya guardado. Antes cada
+ * operación calculaba aquí el estado a mano, y cerrar un corte mientras otro seguía abierto sobre el mismo
+ * barrio lo dejaba «con servicio» en falso; eso ahora lo resuelve el resolutor para todas las fuentes.
+ *
+ * Cada operación es una sola transacción (corte, eventos y estado de todos los barrios): si algo falla a
+ * mitad no queda un corte guardado con barrios sin mover. `SectorMongoAdapter` difiere el evento que manda
+ * correo y push (y la invalidación de caché) hasta que esa transacción confirme.
  */
 public class GestionarCorteOficialService implements GestionarCorteOficialUseCase {
 
     private final CorteAguaRepository cortes;
     private final SectorRepository sectores;
     private final RegistrarEventoBitacoraUseCase registrarEvento;
+    private final RecalcularSectorUseCase recalcular;
     private final RelojPort reloj;
     private final TransaccionPort transaccion;
+    private final RegistroDeAuditoria auditoria;
 
     public GestionarCorteOficialService(CorteAguaRepository cortes,
                                          SectorRepository sectores,
                                          RegistrarEventoBitacoraUseCase registrarEvento,
+                                         RecalcularSectorUseCase recalcular,
                                          RelojPort reloj,
-                                         TransaccionPort transaccion) {
+                                         TransaccionPort transaccion,
+                                         RegistroDeAuditoria auditoria) {
+        this.auditoria = auditoria;
         this.cortes = cortes;
         this.sectores = sectores;
         this.registrarEvento = registrarEvento;
+        this.recalcular = recalcular;
         this.reloj = reloj;
         this.transaccion = transaccion;
     }
 
     @Override
     public CorteAgua registrar(CorteAgua corte) {
-        // Una sola lectura de todos los sectores (ya cacheada, ver SectorMongoAdapter) en vez de
-        // un buscarPorId por sector afectado — un corte de 20 barrios hacía 20 round-trips solo
-        // para validar existencia.
-        Map<SectorId, Sector> sectoresPorId = indiceDeSectores();
+        // Una sola lectura de todos los sectores (ya cacheada) en vez de un buscarPorId por sector afectado.
+        Set<SectorId> existentes = sectores.listarTodos().stream().map(Sector::id).collect(Collectors.toSet());
         for (SectorId sectorId : corte.sectoresAfectados()) {
-            if (!sectoresPorId.containsKey(sectorId)) {
+            if (!existentes.contains(sectorId)) {
                 throw new IllegalArgumentException("No existe el sector '" + sectorId.valor() + "'");
             }
         }
 
-        // Guardar el corte, el evento y el estado de cada sector es una sola unidad: si algo falla a mitad,
-        // el corte no puede quedar registrado con sus sectores sin mover. Las lecturas van dentro para que un
-        // reintento por conflicto de escritura decida sobre datos frescos y no sobre los del primer intento.
         return transaccion.ejecutar(() -> {
-            Map<SectorId, Sector> sectoresActuales = indiceDeSectores();
             CorteAgua guardado = cortes.guardar(corte);
-            // Un corte anunciado para dentro de tres días no deja el barrio sin agua hoy: es
-            // CORTE_PROGRAMADO hasta que llega su hora. Si el veedor registra uno que ya empezó
-            // (pasa: primero se corta el agua, después alguien lo anuncia), nace SIN_SERVICIO.
-            EstadoServicio estado = guardado.ventana().inicio().isAfter(reloj.ahora())
-                    ? EstadoServicio.CORTE_PROGRAMADO
-                    : EstadoServicio.SIN_SERVICIO;
-            anexarYMoverEstado(guardado, estado, sectoresActuales,
-                    sectorId -> EventoBitacoraFactory.corteAnunciado(guardado, sectorId, reloj.ahora()));
+            guardado.sectoresAfectados().forEach(sectorId ->
+                    registrarEvento.registrar(EventoBitacoraFactory.corteAnunciado(guardado, sectorId, reloj.ahora())));
+            guardado.sectoresAfectados().forEach(recalcular::recalcular);
             return guardado;
         });
     }
@@ -92,87 +89,60 @@ public class GestionarCorteOficialService implements GestionarCorteOficialUseCas
     @Override
     public CorteAgua cerrar(CorteId corteId, Instant horaReal) {
         return transaccion.ejecutar(() -> {
-            CorteAgua corte = cortes.buscarPorId(corteId)
-                    .orElseThrow(() -> new EntidadNoEncontradaException(
-                            "No existe el corte '" + corteId.valor() + "'"));
-
+            CorteAgua corte = buscarOLanzar(corteId);
+            // Solo los barrios que siguen pendientes se restablecen ahora: los demás ya tienen su evento.
+            List<SectorId> pendientes = corte.sectoresAfectados().stream()
+                    .filter(sectorId -> corte.cierreDe(sectorId).isEmpty())
+                    .toList();
             CorteAgua guardado = cortes.guardar(corte.cerrar(horaReal));
-            anexarYMoverEstado(guardado, EstadoServicio.CON_SERVICIO, indiceDeSectores(),
-                    sectorId -> EventoBitacoraFactory.corteRestablecido(guardado, sectorId, reloj.ahora()));
+            pendientes.forEach(sectorId ->
+                    registrarEvento.registrar(EventoBitacoraFactory.corteRestablecido(guardado, sectorId, reloj.ahora())));
+            guardado.sectoresAfectados().forEach(recalcular::recalcular);
             return guardado;
         });
     }
 
-    private Map<SectorId, Sector> indiceDeSectores() {
-        return sectores.listarTodos().stream().collect(Collectors.toMap(Sector::id, Function.identity()));
+    @Override
+    public CorteAgua cerrarSector(CorteId corteId, SectorId sectorId, Instant horaReal) {
+        return transaccion.ejecutar(() -> {
+            CorteAgua corte = buscarOLanzar(corteId);
+            CorteAgua guardado = cortes.guardar(
+                    corte.cerrarSector(sectorId, new CierreDeCorte(horaReal, OrigenEstado.VEEDOR, false)));
+            registrarEvento.registrar(EventoBitacoraFactory.corteRestablecido(guardado, sectorId, reloj.ahora()));
+            recalcular.recalcular(sectorId);
+            return guardado;
+        });
     }
 
-    /**
-     * Anexa el evento a la bitácora y mueve el estado de cada sector afectado. Se llama siempre dentro de la
-     * transacción multi-documento que abren `registrar` y `cerrar` (junto con el guardado del corte): si falla
-     * a mitad del `for`, se revierte todo, incluido el corte — antes quedaban "algunos sectores movidos de
-     * estado y otros no", y el corte ya guardado, sin nada que lo reconciliara.
-     *
-     * No notifica suscriptores aquí: guardar el sector publica `SectorActualizadoEvent` y
-     * `NotificarSuscripcionesService` es su único suscriptor. Este servicio recorría además las
-     * suscripciones a mano, así que cada corte mandaba dos correos al mismo vecino — y con el
-     * estado viejo, porque nadie estaba cambiando el sector: el aviso decía "cambió su estado a:
-     * Desconocido" en cualquier barrio que todavía no tuviera estado registrado. Es la misma
-     * corrección que se le hizo a `EvaluarConsensoService`. `SectorMongoAdapter` difiere ese
-     * evento (y la invalidación de caché) hasta que esta transacción confirme.
-     */
-    private void anexarYMoverEstado(CorteAgua corte, EstadoServicio nuevoEstado, Map<SectorId, Sector> sectoresPorId,
-                                     Function<SectorId, EventoBitacora> eventoDe) {
-        // Una sola consulta ($in) por los cortes que tocan cualquiera de estos sectores, en vez de
-        // un listarPorSector por sector dentro del for — mismo antipatrón que arriba.
-        Map<SectorId, List<CorteAgua>> otrosCortesPorSector = agruparPorSector(
-                cortes.listarPorSectores(corte.sectoresAfectados()));
-
-        for (SectorId sectorId : corte.sectoresAfectados()) {
-            registrarEvento.registrar(eventoDe.apply(sectorId));
-            EstadoServicio estadoReal = sinDegradarPorOtrosCortesAbiertos(
-                    sectorId, corte, nuevoEstado, otrosCortesPorSector.getOrDefault(sectorId, List.of()));
-            Sector sector = sectoresPorId.get(sectorId);
-            if (sector != null && sector.estadoActual() != estadoReal) {
-                sectores.guardar(sector.conEstado(estadoReal));
-            } else if (sector != null) {
-                // El veedor sostuvo el estado que ya regía: sin cambio, pero verificado (ADR-073).
-                sectores.confirmarEstado(sectorId, estadoReal);
-            }
-        }
+    @Override
+    public CorteAgua confirmarCierre(CorteId corteId, SectorId sectorId, Instant horaReal) {
+        return transaccion.ejecutar(() -> {
+            CorteAgua corte = buscarOLanzar(corteId);
+            CorteAgua guardado = cortes.guardar(
+                    corte.confirmarCierre(sectorId, new CierreDeCorte(horaReal, OrigenEstado.VEEDOR, false)));
+            recalcular.recalcular(sectorId);
+            return guardado;
+        });
     }
 
-    private static Map<SectorId, List<CorteAgua>> agruparPorSector(List<CorteAgua> cortesEncontrados) {
-        Map<SectorId, List<CorteAgua>> agrupados = new HashMap<>();
-        for (CorteAgua corte : cortesEncontrados) {
-            for (SectorId sectorId : corte.sectoresAfectados()) {
-                agrupados.computeIfAbsent(sectorId, s -> new ArrayList<>()).add(corte);
-            }
-        }
-        return agrupados;
+    @Override
+    public CorteAgua anular(CorteId corteId, String motivo, ContextoDeAccion contexto) {
+        CorteAgua anulado = transaccion.ejecutar(() -> {
+            CorteAgua corte = buscarOLanzar(corteId);
+            CorteAgua guardado = cortes.guardar(corte.anular(motivo));
+            guardado.sectoresAfectados().forEach(sectorId ->
+                    registrarEvento.registrar(EventoBitacoraFactory.corteAnulado(guardado, sectorId, reloj.ahora())));
+            guardado.sectoresAfectados().forEach(recalcular::recalcular);
+            return guardado;
+        });
+        // Después de confirmar: un asiento de una anulación que se revirtió sería una mentira en la auditoría.
+        auditoria.registrar(AccionAuditada.CORTE_ANULADO, null,
+                "Corte '" + corteId.valor() + "': " + motivo, contexto);
+        return anulado;
     }
 
-    /**
-     * Un sector puede estar afectado por más de un corte a la vez (uno masivo, uno local sobre el
-     * mismo barrio). Cerrar o reprogramar el corte que se está tocando no debe pisar el estado del
-     * sector si otro corte distinto sigue abierto sobre él: cerrar el corte local mientras el
-     * masivo seguía abierto dejaba el sector en `CON_SERVICIO` aunque en la realidad seguía sin
-     * agua — el falso positivo que `ADR-014` prohíbe. Se calcula el estado más severo entre el que
-     * se iba a aplicar y el de cada otro corte todavía abierto sobre el mismo sector.
-     */
-    private EstadoServicio sinDegradarPorOtrosCortesAbiertos(SectorId sectorId, CorteAgua corteActual,
-                                                               EstadoServicio nuevoEstado,
-                                                               List<CorteAgua> otrosCortesDelSector) {
-        EstadoServicio masSevero = nuevoEstado;
-        for (CorteAgua otro : otrosCortesDelSector) {
-            if (otro.equals(corteActual) || !otro.sostieneElEstadoEn(sectorId, reloj.ahora())) {
-                continue;
-            }
-            EstadoServicio estadoOtro = otro.ventana().inicio().isAfter(reloj.ahora())
-                    ? EstadoServicio.CORTE_PROGRAMADO
-                    : EstadoServicio.SIN_SERVICIO;
-            masSevero = EstadoServicio.masSevero(masSevero, estadoOtro);
-        }
-        return masSevero;
+    private CorteAgua buscarOLanzar(CorteId corteId) {
+        return cortes.buscarPorId(corteId)
+                .orElseThrow(() -> new EntidadNoEncontradaException("No existe el corte '" + corteId.valor() + "'"));
     }
 }

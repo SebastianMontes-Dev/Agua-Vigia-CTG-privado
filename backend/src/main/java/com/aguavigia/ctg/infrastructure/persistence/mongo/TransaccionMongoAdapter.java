@@ -4,6 +4,7 @@ import com.aguavigia.ctg.domain.port.out.TransaccionPort;
 import com.mongodb.MongoException;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.function.Supplier;
@@ -32,6 +33,12 @@ public class TransaccionMongoAdapter implements TransaccionPort {
 
     @Override
     public <T> T ejecutar(Supplier<T> accion) {
+        // Ya dentro de una transacción (un caso de uso que llama a otro): se une a ella y no reintenta. Si Mongo marca
+        // la falla como transitoria esa transacción ya está abortada, y repetir aquí gastaría los intentos sobre una
+        // transacción muerta; quien reintenta es la exterior, desde el principio.
+        if (TransactionSynchronizationManager.isActualTransactionActive()) {
+            return accion.get();
+        }
         RuntimeException ultimaFallaTransitoria = null;
         for (int intento = 1; intento <= MAX_INTENTOS; intento++) {
             try {

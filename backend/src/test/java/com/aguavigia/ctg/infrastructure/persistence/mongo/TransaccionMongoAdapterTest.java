@@ -7,6 +7,7 @@ import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.TransactionException;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.SimpleTransactionStatus;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -67,6 +68,46 @@ class TransaccionMongoAdapterTest {
         assertThat(gestor.intentos).isEqualTo(3);
         assertThat(gestor.commits).isEqualTo(1);
         assertThat(gestor.rollbacks).isEqualTo(2);
+    }
+
+    /**
+     * Un caso de uso que ya abrió una transacción y llama a otro que abre la suya: la interior se une a la exterior.
+     * Si Mongo marca la falla como transitoria, esa transacción ya está abortada; repetir la acción dentro de ella gastaría
+     * los reintentos sobre una transacción muerta. Quien debe reintentar es la exterior, desde el principio.
+     */
+    @Test
+    void dentroDeUnaTransaccionYaActivaEjecutaUnaVezYDejaQueLaExteriorReintente() {
+        GestorDeTransaccionesFalso gestor = new GestorDeTransaccionesFalso();
+        TransaccionMongoAdapter adaptador = new TransaccionMongoAdapter(gestor);
+        AtomicInteger llamadas = new AtomicInteger();
+        TransactionSynchronizationManager.setActualTransactionActive(true);
+        try {
+            assertThatThrownBy(() -> adaptador.ejecutar(() -> {
+                llamadas.incrementAndGet();
+                MongoException fallaTransitoria = new MongoException("conflicto de escritura");
+                fallaTransitoria.addLabel(MongoException.TRANSIENT_TRANSACTION_ERROR_LABEL);
+                throw fallaTransitoria;
+            })).isInstanceOf(MongoException.class);
+        } finally {
+            TransactionSynchronizationManager.setActualTransactionActive(false);
+        }
+
+        assertThat(llamadas.get()).isEqualTo(1);
+        assertThat(gestor.intentos).isZero();
+    }
+
+    @Test
+    void dentroDeUnaTransaccionYaActivaDevuelveElResultadoSinAbrirOtra() {
+        GestorDeTransaccionesFalso gestor = new GestorDeTransaccionesFalso();
+        TransaccionMongoAdapter adaptador = new TransaccionMongoAdapter(gestor);
+        TransactionSynchronizationManager.setActualTransactionActive(true);
+        try {
+            assertThat(adaptador.ejecutar(() -> "interior")).isEqualTo("interior");
+        } finally {
+            TransactionSynchronizationManager.setActualTransactionActive(false);
+        }
+
+        assertThat(gestor.intentos).isZero();
     }
 
     @Test

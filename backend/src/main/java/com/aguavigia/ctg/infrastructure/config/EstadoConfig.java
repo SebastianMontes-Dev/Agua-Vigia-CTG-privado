@@ -20,9 +20,10 @@ public class EstadoConfig {
             @Value("${aguavigia.estado.expira-tras-fin-horas:72}") long expiraTrasFinHoras,
             @Value("${aguavigia.estado.vecinos-sin-verificacion-horas:6}") long vecinosSinVerificacionHoras,
             @Value("${aguavigia.estado.vecinos-caducan-horas:24}") long vecinosCaducanHoras,
-            @Value("${aguavigia.estado.restablecimiento-minimo-vecinos:2}") int restablecimientoMinimo) {
+            @Value("${aguavigia.estado.restablecimiento-minimo-vecinos:2}") int restablecimientoMinimo,
+            @Value("${aguavigia.estado.reapertura-horas:3}") long reaperturaHoras) {
         return new ReglasDeEstado(Duration.ofHours(expiraTrasFinHoras), Duration.ofHours(vecinosSinVerificacionHoras),
-                Duration.ofHours(vecinosCaducanHoras), restablecimientoMinimo);
+                Duration.ofHours(vecinosCaducanHoras), restablecimientoMinimo, Duration.ofHours(reaperturaHoras));
     }
 
     @Bean

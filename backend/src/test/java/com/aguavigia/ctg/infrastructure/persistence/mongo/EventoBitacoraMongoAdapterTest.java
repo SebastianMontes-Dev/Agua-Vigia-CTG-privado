@@ -72,6 +72,32 @@ class EventoBitacoraMongoAdapterTest {
         assertThat(leido.reportesSustento()).extracting(r -> r.valor()).containsExactly("r1", "r2");
     }
 
+    @Test
+    void debeGuardarYRecuperarLaFuenteYElRespaldoDelEvento() {
+        adaptador.guardar(new EventoBitacora(new EventoId("e1"), TipoEvento.CORTE_CONFIRMADO_POR_CIUDADANOS,
+                new SectorId("bocagrande"), null, AHORA, "11 reportes confirmaron SIN_SERVICIO",
+                com.aguavigia.ctg.domain.EstadoServicio.SIN_SERVICIO, null, null, List.of(),
+                com.aguavigia.ctg.domain.OrigenEstado.VECINOS, new com.aguavigia.ctg.domain.RespaldoVecinal(11, 12)));
+
+        EventoBitacora leido = adaptador.listar(FiltroBitacora.sinFiltro(), 0, 50).contenido().get(0);
+
+        assertThat(leido.fuente()).isEqualTo(com.aguavigia.ctg.domain.OrigenEstado.VECINOS);
+        assertThat(leido.respaldo()).isEqualTo(new com.aguavigia.ctg.domain.RespaldoVecinal(11, 12));
+    }
+
+    /** Los eventos guardados antes de la fuente y el respaldo no los traen: se leen sin ellos, no fallan. */
+    @Test
+    void unEventoAnteriorALaFuenteDebeLeerseSinFuenteNiRespaldo() {
+        mongoTemplate.getDb().getCollection("eventos_bitacora").insertOne(new org.bson.Document()
+                .append("_id", "viejo").append("tipo", "CORTE_ANUNCIADO").append("sectorId", "manga")
+                .append("timestamp", java.util.Date.from(AHORA)).append("descripcion", "anuncio previo"));
+
+        EventoBitacora leido = adaptador.listar(FiltroBitacora.sinFiltro(), 0, 50).contenido().get(0);
+
+        assertThat(leido.fuente()).isNull();
+        assertThat(leido.respaldo()).isNull();
+    }
+
     /** Los eventos guardados antes de RF011 no traen el campo: deben leerse como sin sustento, no fallar. */
     @Test
     void unEventoAnteriorAlCampoDebeLeerseSinReportesDeSustento() {

@@ -8,5 +8,7 @@ package com.aguavigia.ctg.domain;
 public enum EstadoRevision {
     PENDIENTE,
     APROBADA,
-    DESCARTADA
+    DESCARTADA,
+    /** Se aprobó por error: queda como historia con su motivo y deja de afirmar nada del presente. */
+    ANULADA
 }

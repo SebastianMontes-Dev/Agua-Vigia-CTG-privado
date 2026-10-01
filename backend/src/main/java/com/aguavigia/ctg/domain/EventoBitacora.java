@@ -37,7 +37,31 @@ public record EventoBitacora(
          * RF011 — los reportes ciudadanos que sostuvieron el cambio, cuando el evento nace de un
          * consenso. Vacía (nunca nula) en los demás. Permite contrastar el cambio con la evidencia.
          */
-        List<ReporteId> reportesSustento) {
+        List<ReporteId> reportesSustento,
+        /**
+         * Quién sostiene lo que afirma el evento: ACUACAR o PRENSA si nace de un boletín o una nota, VECINOS si
+         * nace de un quórum, VEEDOR si lo hizo el panel. Nulo en los eventos anteriores al dato.
+         */
+        OrigenEstado fuente,
+        /**
+         * Los vecinos que sostienen el cambio y cuántos hacían falta («11 de 12»). Nulo si el evento no nace
+         * de un quórum, o es anterior al dato.
+         */
+        RespaldoVecinal respaldo) {
+
+    /** Sin fuente ni respaldo declarados: lo que escribían los eventos anteriores a ese dato. */
+    public EventoBitacora(EventoId id, TipoEvento tipo, SectorId sectorId, CorteId corteId,
+                           Instant timestamp, String descripcion, EstadoServicio estado,
+                           String urlOriginal, String imagenUrl, List<ReporteId> reportesSustento) {
+        this(id, tipo, sectorId, corteId, timestamp, descripcion, estado, urlOriginal, imagenUrl, reportesSustento,
+                null, null);
+    }
+
+    /** El mismo evento, con la fuente y el respaldo que lo sostienen. */
+    public EventoBitacora conFuente(OrigenEstado fuente, RespaldoVecinal respaldo) {
+        return new EventoBitacora(id, tipo, sectorId, corteId, timestamp, descripcion, estado, urlOriginal, imagenUrl,
+                reportesSustento, fuente, respaldo);
+    }
 
     /** Para los eventos que no nacen de un consenso: sin reportes que los sustenten. */
     public EventoBitacora(EventoId id, TipoEvento tipo, SectorId sectorId, CorteId corteId,

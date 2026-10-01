@@ -93,6 +93,41 @@ class CorteAguaMongoAdapterTest {
     }
 
     @Test
+    void debeConservarLaCaducidadDelCorteDelVeedor() {
+        CorteAgua conCaducidad = CorteAgua.builder()
+                .id(new CorteId("corte-caduca"))
+                .sectoresAfectados(List.of(new SectorId("manga")))
+                .inicio(INICIO)
+                .finPrometido(INICIO.plus(6, ChronoUnit.HOURS))
+                .caducaEn(INICIO.plus(4, ChronoUnit.HOURS))
+                .causa("Reparación")
+                .origen(OrigenCorte.VEEDOR)
+                .build();
+        adaptador.guardar(conCaducidad);
+
+        assertThat(adaptador.buscarPorId(new CorteId("corte-caduca")).orElseThrow().caducaEn())
+                .isEqualTo(INICIO.plus(4, ChronoUnit.HOURS));
+    }
+
+    @Test
+    void debeListarLosCortesConUnCierreProvisionalParaQueElVeedorLosConfirme() {
+        CierreDeCorte provisional = new CierreDeCorte(INICIO.plus(3, ChronoUnit.HOURS), OrigenEstado.VECINOS, true);
+        CierreDeCorte confirmado = new CierreDeCorte(INICIO.plus(3, ChronoUnit.HOURS), OrigenEstado.VEEDOR, false);
+        adaptador.guardar(corteDePrueba("provisional-parcial", EstadoCorte.CONFIRMADO, List.of("manga", "bocagrande"))
+                .cerrarSector(new SectorId("manga"), provisional));
+        adaptador.guardar(corteDePrueba("provisional-completo", EstadoCorte.ANUNCIADO, List.of("crespo"))
+                .cerrarSector(new SectorId("crespo"), provisional));
+        adaptador.guardar(corteDePrueba("confirmado", EstadoCorte.ANUNCIADO, List.of("albornoz"))
+                .cerrarSector(new SectorId("albornoz"), confirmado));
+        adaptador.guardar(corteDePrueba("sin-cierres", EstadoCorte.ANUNCIADO, List.of("manga")));
+        adaptador.guardar(corteDePrueba("anulado", EstadoCorte.ANUNCIADO, List.of("pozon"))
+                .cerrarSector(new SectorId("pozon"), provisional).anular("Error"));
+
+        assertThat(adaptador.listarConCierresProvisionales()).extracting(c -> c.id().valor())
+                .containsExactlyInAnyOrder("provisional-parcial", "provisional-completo");
+    }
+
+    @Test
     void debeDevolverVacioSiElCorteNoExiste() {
         assertThat(adaptador.buscarPorId(new CorteId("no-existe"))).isEmpty();
     }
@@ -290,6 +325,19 @@ class CorteAguaMongoAdapterTest {
         assertThat(recuperado.estado()).isEqualTo(EstadoCorte.RESTABLECIDO);
         assertThat(recuperado.cierreDe(new SectorId("bocagrande")))
                 .contains(new CierreDeCorte(finReal, OrigenEstado.VEEDOR, false));
+    }
+
+    /** El barrido solo necesita mirar los cortes que todavía pueden sostener un estado, no el histórico entero. */
+    @Test
+    void listarAbiertosDebeTraerSoloLosAnunciadosYConfirmados() {
+        adaptador.guardar(corteDePrueba("anunciado", EstadoCorte.ANUNCIADO, List.of("manga")));
+        adaptador.guardar(corteDePrueba("confirmado", EstadoCorte.CONFIRMADO, List.of("bocagrande")));
+        adaptador.guardar(corteDePrueba("cerrado", EstadoCorte.ANUNCIADO, List.of("crespo")).cerrar(INICIO.plusSeconds(3600)));
+        adaptador.guardar(corteDePrueba("expirado", EstadoCorte.ANUNCIADO, List.of("torices")).expirar());
+        adaptador.guardar(corteDePrueba("anulado", EstadoCorte.ANUNCIADO, List.of("getsemani")).anular("Por error"));
+
+        assertThat(adaptador.listarAbiertos()).extracting(c -> c.id().valor())
+                .containsExactlyInAnyOrder("anunciado", "confirmado");
     }
 
     @Test

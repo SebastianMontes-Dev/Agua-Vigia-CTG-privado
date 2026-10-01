@@ -32,6 +32,12 @@ public record EstadoPublicado(EstadoServicio estado, OrigenEstado origen, Ventan
                 sinVerificacionReciente);
     }
 
+    /** El mismo estado, atribuido a otra fuente: los votos pueden ser de vecinos o de sensores de la red. */
+    public EstadoPublicado conOrigen(OrigenEstado nuevoOrigen) {
+        return new EstadoPublicado(estado, nuevoOrigen, ventanaPrometida, restablecimientoPorConfirmar, enDisputa,
+                reportesEnContra, respaldo, sinVerificacionReciente);
+    }
+
     /** El mismo estado, marcado en disputa porque un quórum de vecinos lo contradice. */
     public EstadoPublicado enDisputaPor(int vecinos) {
         return new EstadoPublicado(estado, origen, ventanaPrometida, restablecimientoPorConfirmar, true, vecinos,

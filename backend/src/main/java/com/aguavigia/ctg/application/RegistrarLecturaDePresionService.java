@@ -9,7 +9,7 @@ import com.aguavigia.ctg.domain.port.in.RegistrarReporteUseCase;
 import com.aguavigia.ctg.domain.port.out.SectorRepository;
 
 /**
- * M13 — telemetría IoT pasiva. Un sensor que reporta presión baja es, para el dominio, un reporte
+ * M13 — telemetría IoT pasiva. Un sensor que reporta presión baja o normal es, para el dominio, un reporte
  * más, con su propia huella y con el cupo de sensor (RF006): por eso reusa
  * {@link RegistrarReporteUseCase}. El umbral que decide qué es «presión baja» vivía en el
  * controlador, que es lo que un controlador no debe decidir.
@@ -19,13 +19,26 @@ public class RegistrarLecturaDePresionService implements RegistrarLecturaDePresi
     private final SectorRepository sectores;
     private final RegistrarReporteUseCase registrarReporte;
     private final double umbralPresionBajaPsi;
+    private final double umbralPresionNormalPsi;
 
+    /**
+     * @param umbralPresionBajaPsi   por debajo de esto el sensor vota «presión baja»
+     * @param umbralPresionNormalPsi desde esto el sensor vota «servicio restablecido»; entre los dos umbrales no vota
+     *                               (histéresis), para que un sensor que oscila en torno a un solo valor no haga
+     *                               parpadear el barrio
+     */
     public RegistrarLecturaDePresionService(SectorRepository sectores,
                                              RegistrarReporteUseCase registrarReporte,
-                                             double umbralPresionBajaPsi) {
+                                             double umbralPresionBajaPsi,
+                                             double umbralPresionNormalPsi) {
+        if (umbralPresionNormalPsi < umbralPresionBajaPsi) {
+            throw new IllegalArgumentException(
+                    "El umbral de presión normal no puede ser menor que el de presión baja");
+        }
         this.sectores = sectores;
         this.registrarReporte = registrarReporte;
         this.umbralPresionBajaPsi = umbralPresionBajaPsi;
+        this.umbralPresionNormalPsi = umbralPresionNormalPsi;
     }
 
     @Override
@@ -38,10 +51,17 @@ public class RegistrarLecturaDePresionService implements RegistrarLecturaDePresi
         sectores.buscarPorId(sectorId).orElseThrow(
                 () -> new IllegalArgumentException("No existe el sector '" + sectorId.valor() + "'"));
 
-        if (presionPsi == null || presionPsi >= umbralPresionBajaPsi) {
+        if (presionPsi == null) {
             return;
         }
-        registrarReporte.registrar(sectorId, TipoReporte.PRESION_BAJA, coordenada,
-                HuellaDispositivo.deSensor(sensorId), true);
+        if (presionPsi < umbralPresionBajaPsi) {
+            votar(sensorId, sectorId, TipoReporte.PRESION_BAJA, coordenada);
+        } else if (presionPsi >= umbralPresionNormalPsi) {
+            votar(sensorId, sectorId, TipoReporte.SERVICIO_RESTABLECIDO, coordenada);
+        }
+    }
+
+    private void votar(String sensorId, SectorId sectorId, TipoReporte tipo, Coordenada coordenada) {
+        registrarReporte.registrar(sectorId, tipo, coordenada, HuellaDispositivo.deSensor(sensorId), true);
     }
 }

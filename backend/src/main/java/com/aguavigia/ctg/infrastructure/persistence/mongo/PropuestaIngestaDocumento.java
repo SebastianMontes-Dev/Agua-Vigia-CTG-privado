@@ -40,4 +40,7 @@ public class PropuestaIngestaDocumento {
     private Instant publicadoEn;
     /** Titular tal como lo publicó la fuente. */
     private String tituloOriginal;
+
+    /** Solo en una propuesta ANULADA. */
+    private String motivoAnulacion;
 }

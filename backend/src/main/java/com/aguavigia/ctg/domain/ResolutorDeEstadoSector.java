@@ -99,7 +99,7 @@ public class ResolutorDeEstadoSector {
         if (ahora.isBefore(ventana.inicio())) {
             return new Candidato(ventana, EstadoServicio.CORTE_PROGRAMADO, false);
         }
-        return new Candidato(ventana, EstadoServicio.SIN_SERVICIO, !ahora.isBefore(ventana.finPrometido()));
+        return new Candidato(ventana, ventana.estadoEnVentana(), !ahora.isBefore(ventana.finPrometido()));
     }
 
     // --- qué aportan los vecinos ------------------------------------------------------------------

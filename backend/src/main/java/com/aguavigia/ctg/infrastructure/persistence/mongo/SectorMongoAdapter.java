@@ -223,6 +223,23 @@ public class SectorMongoAdapter implements SectorRepository {
         return true;
     }
 
+    @Override
+    public boolean abrirDisputaSiEs(SectorId id, EstadoServicio esperado, MarcasDeEstado marcas) {
+        Query condicion = Query.query(Criteria.where("slug").is(id.valor())
+                .and("estadoActual").is(esperado == null ? null : esperado.name())
+                .and("enDisputa").ne(true));
+        Update cambio = new Update();
+        escribirMarcas(cambio, marcas);
+
+        SectorDocumento actualizado = mongoTemplate.findAndModify(
+                condicion, cambio, FindAndModifyOptions.options().returnNew(true), SectorDocumento.class);
+        if (actualizado == null) {
+            return false;
+        }
+        trasConfirmar(this::invalidarCache);
+        return true;
+    }
+
     private static void escribirMarcas(Update cambio, MarcasDeEstado marcas) {
         asignarOQuitar(cambio, "estadoOrigen", marcas.origen() == null ? null : marcas.origen().name());
         asignarOQuitar(cambio, "ventanaPrometidaInicio",

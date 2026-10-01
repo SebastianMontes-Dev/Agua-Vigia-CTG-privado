@@ -10,11 +10,13 @@ import com.aguavigia.ctg.domain.EstrategiaConsenso;
 import com.aguavigia.ctg.domain.EventoBitacora;
 import com.aguavigia.ctg.domain.HuellaDispositivo;
 import com.aguavigia.ctg.domain.MarcasDeEstado;
+import com.aguavigia.ctg.domain.NivelDeVerificacion;
 import com.aguavigia.ctg.domain.OrigenCorte;
 import com.aguavigia.ctg.domain.OrigenEstado;
 import com.aguavigia.ctg.domain.PropuestaId;
 import com.aguavigia.ctg.domain.PropuestaIngesta;
 import com.aguavigia.ctg.domain.ReglasDeEstado;
+import com.aguavigia.ctg.domain.ResultadoDeRecalculo;
 import com.aguavigia.ctg.domain.ReporteCiudadano;
 import com.aguavigia.ctg.domain.ReporteId;
 import com.aguavigia.ctg.domain.RespaldoVecinal;
@@ -90,16 +92,24 @@ class RecalcularSectorServiceTest {
 
         given(cortes.listarPorSector(MANGA)).willReturn(List.of());
         given(propuestas.listarAprobadasPorSector(MANGA)).willReturn(List.of());
+        // Releer un corte dentro de la transacción devuelve lo que el escenario de la prueba haya dejado en el barrio.
+        given(cortes.buscarPorId(any())).willAnswer(invocacion -> cortes.listarPorSector(MANGA).stream()
+                .filter(corte -> corte.id().equals(invocacion.getArgument(0))).findFirst());
         given(reportes.contarVotosRecientes(any(), any())).willReturn(Map.of());
         given(sectores.publicarSiEs(any(), any(), any(), any())).willReturn(true);
+        given(sectores.abrirDisputaSiEs(any(), any(), any())).willReturn(true);
 
         EstrategiaConsenso umbralDeTres = sector -> 3;
         servicio = new RecalcularSectorService(sectores, cortes, propuestas, reportes, umbralDeTres,
                 new ResolutorDeEstadoSector(ReglasDeEstado.porDefecto()), registrarEvento,
-                () -> ahora, transaccion, VENTANA_CONSENSO);
+                () -> ahora, transaccion, VENTANA_CONSENSO, 2);
     }
 
     // --- ayudantes ---------------------------------------------------------------------------------
+
+    private EstadoPublicado recalcular() {
+        return servicio.recalcular(MANGA).publicado();
+    }
 
     private void dadoUnSector(EstadoServicio estado) {
         given(sectores.buscarPorId(MANGA)).willReturn(Optional.of(new Sector(MANGA, "MANGA", 1000, estado)));
@@ -144,7 +154,8 @@ class RecalcularSectorServiceTest {
     }
 
     private static ReporteCiudadano reporte(String id, TipoReporte tipo, Instant cuando) {
-        return new ReporteCiudadano(new ReporteId(id), MANGA, tipo, null, new HuellaDispositivo("h-" + id), cuando);
+        return new ReporteCiudadano(new ReporteId(id), MANGA, tipo, null, new HuellaDispositivo("h-" + id), cuando)
+                .conIdentidad(NivelDeVerificacion.CUENTA_VERIFICADA, "red-" + id);
     }
 
     private void dadosLosVotos(TipoReporte tipo, long votos, ReporteCiudadano... sustento) {
@@ -166,14 +177,14 @@ class RecalcularSectorServiceTest {
     void unBarrioInexistenteSeRechaza() {
         given(sectores.buscarPorId(MANGA)).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> servicio.recalcular(MANGA)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> recalcular()).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     void sinNingunaFuenteYSinEstadoNoEscribeNada() {
         dadoUnSector(null);
 
-        EstadoPublicado publicado = servicio.recalcular(MANGA);
+        EstadoPublicado publicado = recalcular();
 
         assertThat(publicado.estado()).isNull();
         verify(sectores, never()).publicarSiEs(any(), any(), any(), any());
@@ -188,7 +199,7 @@ class RecalcularSectorServiceTest {
             dadoUnSector(EstadoServicio.CON_SERVICIO);
             given(propuestas.listarAprobadasPorSector(MANGA)).willReturn(List.of(boletinDeAcuacar()));
 
-            EstadoPublicado publicado = servicio.recalcular(MANGA);
+            EstadoPublicado publicado = recalcular();
 
             assertThat(publicado.estado()).isEqualTo(EstadoServicio.SIN_SERVICIO);
             verify(sectores).publicarSiEs(MANGA, EstadoServicio.CON_SERVICIO, EstadoServicio.SIN_SERVICIO, marcasDeAcuacar());
@@ -204,7 +215,7 @@ class RecalcularSectorServiceTest {
             dadoUnSector(EstadoServicio.CON_SERVICIO);
             given(propuestas.listarAprobadasPorSector(MANGA)).willReturn(List.of(boletinDeAcuacar()));
 
-            servicio.recalcular(MANGA);
+            recalcular();
 
             verify(transaccion).ejecutar(any());
         }
@@ -215,7 +226,7 @@ class RecalcularSectorServiceTest {
             given(propuestas.listarAprobadasPorSector(MANGA)).willReturn(List.of(boletinDeAcuacar()));
             doThrow(new IllegalStateException("Mongo caído")).when(registrarEvento).registrar(any());
 
-            assertThatThrownBy(() -> servicio.recalcular(MANGA)).isInstanceOf(IllegalStateException.class);
+            assertThatThrownBy(() -> recalcular()).isInstanceOf(IllegalStateException.class);
         }
 
         /** Dos recálculos simultáneos: solo el que gana la escritura anexa el evento. */
@@ -225,7 +236,7 @@ class RecalcularSectorServiceTest {
             given(propuestas.listarAprobadasPorSector(MANGA)).willReturn(List.of(boletinDeAcuacar()));
             given(sectores.publicarSiEs(any(), any(), any(), any())).willReturn(false);
 
-            servicio.recalcular(MANGA);
+            recalcular();
 
             verify(registrarEvento, never()).registrar(any());
         }
@@ -235,7 +246,7 @@ class RecalcularSectorServiceTest {
             dadoUnSector(EstadoServicio.SIN_SERVICIO, ahora, ahora, marcasDeAcuacar());
             given(propuestas.listarAprobadasPorSector(MANGA)).willReturn(List.of(boletinDeAcuacar()));
 
-            servicio.recalcular(MANGA);
+            recalcular();
 
             verify(sectores, never()).publicarSiEs(any(), any(), any(), any());
             verify(registrarEvento, never()).registrar(any());
@@ -248,7 +259,7 @@ class RecalcularSectorServiceTest {
             dadoUnSector(EstadoServicio.SIN_SERVICIO, INICIO, INICIO, marcasDeAcuacar());
             given(propuestas.listarAprobadasPorSector(MANGA)).willReturn(List.of(boletinDeAcuacar()));
 
-            servicio.recalcular(MANGA);
+            recalcular();
 
             MarcasDeEstado porConfirmar = new MarcasDeEstado(OrigenEstado.ACUACAR, new VentanaTiempo(INICIO, FIN),
                     true, false, 0, null);
@@ -263,7 +274,7 @@ class RecalcularSectorServiceTest {
                     EstadoServicio.SIN_SERVICIO, "acuacar", "https://acuacar.com/1", "cita", 0.85, INICIO).aprobar();
             given(propuestas.listarAprobadasPorSector(MANGA)).willReturn(List.of(historica));
 
-            assertThat(servicio.recalcular(MANGA).estado()).isNull();
+            assertThat(recalcular().estado()).isNull();
             verify(sectores, never()).publicarSiEs(any(), any(), any(), any());
         }
 
@@ -275,7 +286,7 @@ class RecalcularSectorServiceTest {
                     ahora.minusSeconds(60)).aprobar();
             given(propuestas.listarAprobadasPorSector(MANGA)).willReturn(List.of(boletinDeAcuacar(), restablecimiento));
 
-            EstadoPublicado publicado = servicio.recalcular(MANGA);
+            EstadoPublicado publicado = recalcular();
 
             assertThat(publicado.estado()).isEqualTo(EstadoServicio.CON_SERVICIO);
             assertThat(publicado.origen()).isEqualTo(OrigenEstado.ACUACAR);
@@ -291,7 +302,7 @@ class RecalcularSectorServiceTest {
                     ahora.minusSeconds(60)).aprobar();
             given(propuestas.listarAprobadasPorSector(MANGA)).willReturn(List.of(boletinDeAcuacar(), deLaPrensa));
 
-            assertThat(servicio.recalcular(MANGA).estado()).isEqualTo(EstadoServicio.SIN_SERVICIO);
+            assertThat(recalcular().estado()).isEqualTo(EstadoServicio.SIN_SERVICIO);
         }
 
         @Test
@@ -300,7 +311,7 @@ class RecalcularSectorServiceTest {
             given(propuestas.listarAprobadasPorSector(MANGA))
                     .willReturn(List.of(boletin("zona-cero", EstadoServicio.SIN_SERVICIO, INICIO, FIN)));
 
-            EstadoPublicado publicado = servicio.recalcular(MANGA);
+            EstadoPublicado publicado = recalcular();
 
             assertThat(publicado.origen()).isEqualTo(OrigenEstado.PRENSA);
             assertThat(eventoRegistrado().tipo()).isEqualTo(TipoEvento.CORTE_DETECTADO_POR_INGESTA);
@@ -315,7 +326,7 @@ class RecalcularSectorServiceTest {
             given(cortes.listarPorSector(MANGA)).willReturn(List.of(corteDeIngesta(boletin,
                     new CierreDeCorte(INICIO.plus(Duration.ofMinutes(30)), OrigenEstado.VEEDOR, false))));
 
-            EstadoPublicado publicado = servicio.recalcular(MANGA);
+            EstadoPublicado publicado = recalcular();
 
             assertThat(publicado.estado()).isEqualTo(EstadoServicio.CON_SERVICIO);
             assertThat(publicado.origen()).isEqualTo(OrigenEstado.VEEDOR);
@@ -332,7 +343,7 @@ class RecalcularSectorServiceTest {
             dadoUnSector(null);
             given(cortes.listarPorSector(MANGA)).willReturn(List.of(corteDelVeedor()));
 
-            EstadoPublicado publicado = servicio.recalcular(MANGA);
+            EstadoPublicado publicado = recalcular();
 
             assertThat(publicado.estado()).isEqualTo(EstadoServicio.SIN_SERVICIO);
             assertThat(publicado.origen()).isEqualTo(OrigenEstado.VEEDOR);
@@ -347,7 +358,30 @@ class RecalcularSectorServiceTest {
                     CorteAgua.builder().id(new CorteId("viejo")).sectoresAfectados(List.of(MANGA))
                             .inicio(INICIO).finPrometido(FIN).causa("x").origen(OrigenCorte.VEEDOR).build().expirar()));
 
-            assertThat(servicio.recalcular(MANGA).estado()).isNull();
+            assertThat(recalcular().estado()).isNull();
+        }
+
+        /** El override del veedor puede traer su propia caducidad: pasada, el barrio deja de afirmarse por él. */
+        @Test
+        void unCorteDelVeedorCaducadoNoAfirmaNada() {
+            dadoUnSector(null);
+            CorteAgua conCaducidad = CorteAgua.builder().id(new CorteId("caduca")).sectoresAfectados(List.of(MANGA))
+                    .inicio(INICIO).finPrometido(FIN).caducaEn(ahora.minusSeconds(1))
+                    .causa("x").origen(OrigenCorte.VEEDOR).build();
+            given(cortes.listarPorSector(MANGA)).willReturn(List.of(conCaducidad));
+
+            assertThat(recalcular().estado()).isNull();
+        }
+
+        @Test
+        void unCorteDelVeedorConCaducidadFuturaSigueAfirmando() {
+            dadoUnSector(null);
+            CorteAgua conCaducidad = CorteAgua.builder().id(new CorteId("caduca")).sectoresAfectados(List.of(MANGA))
+                    .inicio(INICIO).finPrometido(FIN).caducaEn(ahora.plusSeconds(60))
+                    .causa("x").origen(OrigenCorte.VEEDOR).build();
+            given(cortes.listarPorSector(MANGA)).willReturn(List.of(conCaducidad));
+
+            assertThat(recalcular().estado()).isEqualTo(EstadoServicio.SIN_SERVICIO);
         }
 
         @Test
@@ -359,7 +393,7 @@ class RecalcularSectorServiceTest {
                     .cerrarSector(bocagrande, new CierreDeCorte(INICIO.plusSeconds(1800), OrigenEstado.VEEDOR, false));
             given(cortes.listarPorSector(MANGA)).willReturn(List.of(dosBarrios));
 
-            assertThat(servicio.recalcular(MANGA).estado()).isEqualTo(EstadoServicio.SIN_SERVICIO);
+            assertThat(recalcular().estado()).isEqualTo(EstadoServicio.SIN_SERVICIO);
         }
     }
 
@@ -374,7 +408,7 @@ class RecalcularSectorServiceTest {
                     reporte("r2", TipoReporte.SIN_AGUA, ahora.minusSeconds(200)),
                     reporte("r3", TipoReporte.SIN_AGUA, ahora.minusSeconds(100)));
 
-            EstadoPublicado publicado = servicio.recalcular(MANGA);
+            EstadoPublicado publicado = recalcular();
 
             assertThat(publicado.estado()).isEqualTo(EstadoServicio.SIN_SERVICIO);
             assertThat(publicado.respaldo()).isEqualTo(new RespaldoVecinal(3, 3));
@@ -382,8 +416,91 @@ class RecalcularSectorServiceTest {
             verify(sectores).publicarSiEs(MANGA, EstadoServicio.CON_SERVICIO, EstadoServicio.SIN_SERVICIO, marcas);
             EventoBitacora evento = eventoRegistrado();
             assertThat(evento.tipo()).isEqualTo(TipoEvento.CORTE_CONFIRMADO_POR_CIUDADANOS);
+            assertThat(evento.fuente()).isEqualTo(OrigenEstado.VECINOS);
+            assertThat(evento.respaldo()).isEqualTo(new RespaldoVecinal(3, 3));
             assertThat(evento.reportesSustento()).containsExactlyInAnyOrder(
                     new ReporteId("r1"), new ReporteId("r2"), new ReporteId("r3"));
+        }
+
+        // --- composición del quórum (D9, D16) ---
+
+        private ReporteCiudadano deLaRed(String id, NivelDeVerificacion nivel, String red) {
+            return new ReporteCiudadano(new ReporteId(id), MANGA, TipoReporte.SIN_AGUA, null,
+                    new HuellaDispositivo("h-" + id), ahora.minusSeconds(100)).conIdentidad(nivel, red);
+        }
+
+        /** Escenario 10: un vecino verificado más dos anónimos de redes distintas bastan en un barrio de umbral 3. */
+        @Test
+        void unQuorumConUnTercioVerificadoYDosRedesCambiaElEstado() {
+            dadoUnSector(null);
+            dadosLosVotos(TipoReporte.SIN_AGUA, 3,
+                    deLaRed("r1", NivelDeVerificacion.CUENTA_VERIFICADA, "red-a"),
+                    deLaRed("r2", NivelDeVerificacion.NINGUNA, "red-b"),
+                    deLaRed("r3", NivelDeVerificacion.NINGUNA, "red-b"));
+
+            EstadoPublicado publicado = recalcular();
+
+            assertThat(publicado.estado()).isEqualTo(EstadoServicio.SIN_SERVICIO);
+            assertThat(publicado.origen()).isEqualTo(OrigenEstado.VECINOS);
+        }
+
+        /** Escenario 9: tres huellas desde una misma red no cambian el mapa, aunque lleguen al umbral. */
+        @Test
+        void tresReportesDeUnaSolaRedNoCambianElEstado() {
+            dadoUnSector(null);
+            dadosLosVotos(TipoReporte.SIN_AGUA, 3,
+                    deLaRed("r1", NivelDeVerificacion.CUENTA_VERIFICADA, "red-a"),
+                    deLaRed("r2", NivelDeVerificacion.CUENTA_VERIFICADA, "red-a"),
+                    deLaRed("r3", NivelDeVerificacion.CUENTA_VERIFICADA, "red-a"));
+
+            assertThat(recalcular().estado()).isNull();
+            verify(sectores, never()).publicarSiEs(any(), any(), any(), any());
+        }
+
+        /** Tres anónimos sin ninguna prueba de ubicación, aunque de redes distintas, no mueven el mapa solos. */
+        @Test
+        void tresAnonimosSinVerificacionNoCambianElEstado() {
+            dadoUnSector(null);
+            dadosLosVotos(TipoReporte.SIN_AGUA, 3,
+                    deLaRed("r1", NivelDeVerificacion.NINGUNA, "red-a"),
+                    deLaRed("r2", NivelDeVerificacion.NINGUNA, "red-b"),
+                    deLaRed("r3", NivelDeVerificacion.NINGUNA, "red-c"));
+
+            assertThat(recalcular().estado()).isNull();
+        }
+
+        /** Escenario 18: con `redes-minimas=1`, dicho abiertamente, una sala con un solo WiFi sí alcanza el quórum. */
+        @Test
+        void conUnaSolaRedMinimaUnaSolaRedBasta() {
+            servicio = new RecalcularSectorService(sectores, cortes, propuestas, reportes, sector -> 3,
+                    new ResolutorDeEstadoSector(ReglasDeEstado.porDefecto()), registrarEvento,
+                    () -> ahora, transaccion, VENTANA_CONSENSO, 1);
+            dadoUnSector(null);
+            dadosLosVotos(TipoReporte.SIN_AGUA, 3,
+                    deLaRed("r1", NivelDeVerificacion.CUENTA_VERIFICADA, "red-a"),
+                    deLaRed("r2", NivelDeVerificacion.CUENTA_VERIFICADA, "red-a"),
+                    deLaRed("r3", NivelDeVerificacion.CUENTA_VERIFICADA, "red-a"));
+
+            assertThat(recalcular().estado()).isEqualTo(EstadoServicio.SIN_SERVICIO);
+        }
+
+        /**
+         * Un quórum fresco sin composición válida no puede borrar lo que el barrio ya recuerda con una composición
+         * que sí lo era: el estado sostenido por los vecinos sigue, y no se publica nada nuevo.
+         */
+        @Test
+        void unQuorumFrescoDeComposicionInvalidaNoBorraLoQueElBarrioRecuerda() {
+            MarcasDeEstado deLosVecinos = new MarcasDeEstado(OrigenEstado.VECINOS, null, false, false, 0, new RespaldoVecinal(3, 3));
+            dadoUnSector(EstadoServicio.SIN_SERVICIO, ahora.minus(Duration.ofHours(2)), ahora.minus(Duration.ofHours(2)), deLosVecinos);
+            dadosLosVotos(TipoReporte.SIN_AGUA, 3,
+                    deLaRed("r1", NivelDeVerificacion.NINGUNA, "red-a"),
+                    deLaRed("r2", NivelDeVerificacion.NINGUNA, "red-a"),
+                    deLaRed("r3", NivelDeVerificacion.NINGUNA, "red-a"));
+
+            EstadoPublicado publicado = recalcular();
+
+            assertThat(publicado.estado()).isEqualTo(EstadoServicio.SIN_SERVICIO);
+            assertThat(publicado.respaldo()).isEqualTo(new RespaldoVecinal(3, 3));
         }
 
         /** En una avería masiva no se cargan los reportes de la ventana en cada petición: primero se cuentan. */
@@ -392,7 +509,7 @@ class RecalcularSectorServiceTest {
             dadoUnSector(null);
             given(reportes.contarVotosRecientes(any(), any())).willReturn(Map.of(TipoReporte.SIN_AGUA, 1L));
 
-            assertThat(servicio.recalcular(MANGA).estado()).isNull();
+            assertThat(recalcular().estado()).isNull();
 
             verify(reportes, never()).listarRecientesPorSector(any(), any());
         }
@@ -401,14 +518,16 @@ class RecalcularSectorServiceTest {
         void cadaDispositivoCuentaUnaVezConSuReporteMasReciente() {
             dadoUnSector(null);
             ReporteCiudadano viejoDeH1 = new ReporteCiudadano(new ReporteId("a"), MANGA, TipoReporte.SERVICIO_RESTABLECIDO,
-                    null, new HuellaDispositivo("h1"), ahora.minusSeconds(900));
+                    null, new HuellaDispositivo("h1"), ahora.minusSeconds(900))
+                    .conIdentidad(NivelDeVerificacion.CUENTA_VERIFICADA, "red-a");
             ReporteCiudadano nuevoDeH1 = new ReporteCiudadano(new ReporteId("b"), MANGA, TipoReporte.SIN_AGUA,
-                    null, new HuellaDispositivo("h1"), ahora.minusSeconds(100));
+                    null, new HuellaDispositivo("h1"), ahora.minusSeconds(100))
+                    .conIdentidad(NivelDeVerificacion.CUENTA_VERIFICADA, "red-b");
             dadosLosVotos(TipoReporte.SIN_AGUA, 3, nuevoDeH1, viejoDeH1,
                     reporte("r2", TipoReporte.SIN_AGUA, ahora.minusSeconds(200)),
                     reporte("r3", TipoReporte.SIN_AGUA, ahora.minusSeconds(300)));
 
-            servicio.recalcular(MANGA);
+            recalcular();
 
             assertThat(eventoRegistrado().reportesSustento()).containsExactlyInAnyOrder(
                     new ReporteId("b"), new ReporteId("r2"), new ReporteId("r3"));
@@ -420,7 +539,7 @@ class RecalcularSectorServiceTest {
             MarcasDeEstado deLosVecinos = new MarcasDeEstado(OrigenEstado.VECINOS, null, false, false, 0, new RespaldoVecinal(3, 3));
             dadoUnSector(EstadoServicio.SIN_SERVICIO, ahora.minus(Duration.ofHours(2)), ahora.minus(Duration.ofHours(2)), deLosVecinos);
 
-            EstadoPublicado publicado = servicio.recalcular(MANGA);
+            EstadoPublicado publicado = recalcular();
 
             assertThat(publicado.estado()).isEqualTo(EstadoServicio.SIN_SERVICIO);
             assertThat(publicado.origen()).isEqualTo(OrigenEstado.VECINOS);
@@ -429,13 +548,33 @@ class RecalcularSectorServiceTest {
             verify(sectores, never()).confirmarEstado(any(), any());
         }
 
+        /**
+         * Los reportes que fijaron el estado envejecen y salen de la ventana de uno en uno: los pocos que quedan
+         * forman un quórum fresco que ya no llega al umbral. Eso no puede borrar lo que el barrio ya recuerda:
+         * el estado caduca a las 24 h sin reportes nuevos, no cuando el primer reporte sale de la ventana.
+         */
+        @Test
+        void unQuorumFrescoQueNoLlegaAlUmbralNoBorraLaMemoriaDelBarrio() {
+            MarcasDeEstado deLosVecinos = new MarcasDeEstado(OrigenEstado.VECINOS, null, false, false, 0, new RespaldoVecinal(3, 3));
+            dadoUnSector(EstadoServicio.SIN_SERVICIO, ahora.minus(Duration.ofHours(1)), ahora.minus(Duration.ofHours(1)), deLosVecinos);
+            dadosLosVotos(TipoReporte.SIN_AGUA, 2,
+                    reporte("r2", TipoReporte.SIN_AGUA, ahora.minusSeconds(200)),
+                    reporte("r3", TipoReporte.SIN_AGUA, ahora.minusSeconds(100)));
+
+            EstadoPublicado publicado = recalcular();
+
+            assertThat(publicado.estado()).isEqualTo(EstadoServicio.SIN_SERVICIO);
+            assertThat(publicado.origen()).isEqualTo(OrigenEstado.VECINOS);
+            verify(sectores, never()).publicarSiEs(any(), any(), any(), any());
+        }
+
         @Test
         void unEstadoDeLosVecinosSinRenovarVuelveASinDatosALas24HorasSinAvisarANadie() {
             MarcasDeEstado deLosVecinos = new MarcasDeEstado(OrigenEstado.VECINOS, null, false, false, 0, new RespaldoVecinal(3, 3));
             Instant hace24h = ahora.minus(Duration.ofHours(24));
             dadoUnSector(EstadoServicio.SIN_SERVICIO, hace24h, hace24h, deLosVecinos);
 
-            EstadoPublicado publicado = servicio.recalcular(MANGA);
+            EstadoPublicado publicado = recalcular();
 
             assertThat(publicado.estado()).isNull();
             verify(sectores).publicarSiEs(MANGA, EstadoServicio.SIN_SERVICIO, null, MarcasDeEstado.ninguna());
@@ -452,14 +591,14 @@ class RecalcularSectorServiceTest {
                     reporte("r2", TipoReporte.SIN_AGUA, ahora.minusSeconds(200)),
                     reporte("r3", TipoReporte.SIN_AGUA, ahora.minusSeconds(100)));
 
-            servicio.recalcular(MANGA);
+            recalcular();
 
             verify(sectores).confirmarEstado(MANGA, EstadoServicio.SIN_SERVICIO);
             verify(sectores, never()).publicarSiEs(any(), any(), any(), any());
         }
 
         @Test
-        void unQuorumQueContradiceAAcuacarMarcaLaDisputaSinCambiarElEstadoNiAvisar() {
+        void unQuorumQueContradiceAAcuacarMarcaLaDisputaSinCambiarElEstadoYLaDejaEnLaBitacora() {
             dadoUnSector(EstadoServicio.SIN_SERVICIO, INICIO, INICIO, marcasDeAcuacar());
             given(propuestas.listarAprobadasPorSector(MANGA)).willReturn(List.of(boletinDeAcuacar()));
             dadosLosVotos(TipoReporte.SERVICIO_RESTABLECIDO, 3,
@@ -467,10 +606,46 @@ class RecalcularSectorServiceTest {
                     reporte("r2", TipoReporte.SERVICIO_RESTABLECIDO, ahora.minusSeconds(200)),
                     reporte("r3", TipoReporte.SERVICIO_RESTABLECIDO, ahora.minusSeconds(100)));
 
-            servicio.recalcular(MANGA);
+            recalcular();
 
             MarcasDeEstado enDisputa = new MarcasDeEstado(OrigenEstado.ACUACAR, new VentanaTiempo(INICIO, FIN), false, true, 3, null);
-            verify(sectores).publicarSiEs(MANGA, EstadoServicio.SIN_SERVICIO, EstadoServicio.SIN_SERVICIO, enDisputa);
+            verify(sectores).abrirDisputaSiEs(MANGA, EstadoServicio.SIN_SERVICIO, enDisputa);
+            // El estado no cambia, así que no hay correo ni push (eso lo publica el adaptador); la disputa sí queda anotada.
+            EventoBitacora evento = eventoRegistrado();
+            assertThat(evento.tipo()).isEqualTo(TipoEvento.ESTADO_EN_DISPUTA);
+            assertThat(evento.estado()).isEqualTo(EstadoServicio.SIN_SERVICIO);
+        }
+
+        /** Dos recálculos simultáneos: solo el que abre la disputa la anota; la bitácora no admite retirar un duplicado. */
+        @Test
+        void siOtroProcesoAbrioLaDisputaAntesNoAnexaNingunEvento() {
+            dadoUnSector(EstadoServicio.SIN_SERVICIO, INICIO, INICIO, marcasDeAcuacar());
+            given(propuestas.listarAprobadasPorSector(MANGA)).willReturn(List.of(boletinDeAcuacar()));
+            given(sectores.abrirDisputaSiEs(any(), any(), any())).willReturn(false);
+            dadosLosVotos(TipoReporte.SERVICIO_RESTABLECIDO, 3,
+                    reporte("r1", TipoReporte.SERVICIO_RESTABLECIDO, ahora.minusSeconds(300)),
+                    reporte("r2", TipoReporte.SERVICIO_RESTABLECIDO, ahora.minusSeconds(200)),
+                    reporte("r3", TipoReporte.SERVICIO_RESTABLECIDO, ahora.minusSeconds(100)));
+
+            recalcular();
+
+            verify(registrarEvento, never()).registrar(any());
+        }
+
+        /** La disputa se anota al abrirse, no en cada minuto que sigue abierta. */
+        @Test
+        void unaDisputaQueYaEstabaAbiertaNoVuelveAAnotarse() {
+            MarcasDeEstado yaEnDisputa = new MarcasDeEstado(OrigenEstado.ACUACAR, new VentanaTiempo(INICIO, FIN), false, true, 3, null);
+            dadoUnSector(EstadoServicio.SIN_SERVICIO, INICIO, ahora, yaEnDisputa);
+            given(propuestas.listarAprobadasPorSector(MANGA)).willReturn(List.of(boletinDeAcuacar()));
+            dadosLosVotos(TipoReporte.SERVICIO_RESTABLECIDO, 3,
+                    reporte("r1", TipoReporte.SERVICIO_RESTABLECIDO, ahora.minusSeconds(300)),
+                    reporte("r2", TipoReporte.SERVICIO_RESTABLECIDO, ahora.minusSeconds(200)),
+                    reporte("r3", TipoReporte.SERVICIO_RESTABLECIDO, ahora.minusSeconds(100)));
+
+            recalcular();
+
+            verify(sectores, never()).publicarSiEs(any(), any(), any(), any());
             verify(registrarEvento, never()).registrar(any());
         }
 
@@ -484,11 +659,514 @@ class RecalcularSectorServiceTest {
                     reporte("r1", TipoReporte.SERVICIO_RESTABLECIDO, ahora.minusSeconds(200)),
                     reporte("r2", TipoReporte.SERVICIO_RESTABLECIDO, ahora.minusSeconds(100)));
 
-            EstadoPublicado publicado = servicio.recalcular(MANGA);
+            EstadoPublicado publicado = recalcular();
 
             assertThat(publicado.estado()).isEqualTo(EstadoServicio.CON_SERVICIO);
             assertThat(publicado.origen()).isEqualTo(OrigenEstado.VECINOS);
+            assertThat(eventoRegistrado().tipo()).isEqualTo(TipoEvento.RESTABLECIMIENTO_POR_VECINOS);
+        }
+    }
+
+    @Nested
+    class BajaDePresionOficial {
+
+        /** Un boletín que anuncia baja presión con ventana no es un corte: no debe endurecerse a «sin servicio». */
+        @Test
+        void unBoletinDeBajaPresionConVentanaPublicaPresionBaja() {
+            dadoUnSector(null);
+            given(propuestas.listarAprobadasPorSector(MANGA))
+                    .willReturn(List.of(boletin("acuacar", EstadoServicio.PRESION_BAJA, INICIO, FIN)));
+
+            assertThat(recalcular().estado()).isEqualTo(EstadoServicio.PRESION_BAJA);
+        }
+    }
+
+    @Nested
+    class Resultado {
+
+        @Test
+        void avisaQueCambioElEstadoYTraeLosReportesQueLoSustentan() {
+            dadoUnSector(EstadoServicio.CON_SERVICIO);
+            dadosLosVotos(TipoReporte.SIN_AGUA, 3,
+                    reporte("r1", TipoReporte.SIN_AGUA, ahora.minusSeconds(300)),
+                    reporte("r2", TipoReporte.SIN_AGUA, ahora.minusSeconds(200)),
+                    reporte("r3", TipoReporte.SIN_AGUA, ahora.minusSeconds(100)));
+
+            ResultadoDeRecalculo resultado = servicio.recalcular(MANGA);
+
+            assertThat(resultado.cambioElEstado()).isTrue();
+            assertThat(resultado.reportesQueSustentan()).containsExactlyInAnyOrder(
+                    new ReporteId("r1"), new ReporteId("r2"), new ReporteId("r3"));
+        }
+
+        @Test
+        void unCambioDeUnBoletinNoTraeReportes() {
+            dadoUnSector(EstadoServicio.CON_SERVICIO);
+            given(propuestas.listarAprobadasPorSector(MANGA)).willReturn(List.of(boletinDeAcuacar()));
+
+            ResultadoDeRecalculo resultado = servicio.recalcular(MANGA);
+
+            assertThat(resultado.cambioElEstado()).isTrue();
+            assertThat(resultado.reportesQueSustentan()).isEmpty();
+        }
+
+        @Test
+        void sinCambioDeEstadoNoHayCambioNiReportesQueSustenten() {
+            dadoUnSector(EstadoServicio.SIN_SERVICIO, ahora, ahora, marcasDeAcuacar());
+            given(propuestas.listarAprobadasPorSector(MANGA)).willReturn(List.of(boletinDeAcuacar()));
+
+            ResultadoDeRecalculo resultado = servicio.recalcular(MANGA);
+
+            assertThat(resultado.cambioElEstado()).isFalse();
+            assertThat(resultado.reportesQueSustentan()).isEmpty();
+        }
+
+        @Test
+        void siSoloCambianLasMarcasElEstadoNoCambio() {
+            ahora = FIN.plusSeconds(60);
+            dadoUnSector(EstadoServicio.SIN_SERVICIO, INICIO, INICIO, marcasDeAcuacar());
+            given(propuestas.listarAprobadasPorSector(MANGA)).willReturn(List.of(boletinDeAcuacar()));
+
+            assertThat(servicio.recalcular(MANGA).cambioElEstado()).isFalse();
+        }
+
+        /** Quien pierde la carrera no cambió nada: otro proceso lo hizo, y a él le toca el evento. */
+        @Test
+        void siPerdioLaCarreraNoCambioElEstadoNiSustentaNada() {
+            dadoUnSector(EstadoServicio.CON_SERVICIO);
+            dadosLosVotos(TipoReporte.SIN_AGUA, 3,
+                    reporte("r1", TipoReporte.SIN_AGUA, ahora.minusSeconds(300)),
+                    reporte("r2", TipoReporte.SIN_AGUA, ahora.minusSeconds(200)),
+                    reporte("r3", TipoReporte.SIN_AGUA, ahora.minusSeconds(100)));
+            given(sectores.publicarSiEs(any(), any(), any(), any())).willReturn(false);
+
+            ResultadoDeRecalculo resultado = servicio.recalcular(MANGA);
+
+            assertThat(resultado.cambioElEstado()).isFalse();
+            assertThat(resultado.reportesQueSustentan()).isEmpty();
+        }
+    }
+
+    /**
+     * Si los vecinos confirman que volvió el agua pero el corte sigue «abierto» en el barrio, a las 24 horas
+     * —cuando su memoria caduca— el barrio volvería a «sin servicio por confirmar». El cierre provisional lo evita.
+     */
+    @Nested
+    class CierreProvisionalPorVecinos {
+
+        private CorteAgua guardado() {
+            ArgumentCaptor<CorteAgua> captor = ArgumentCaptor.forClass(CorteAgua.class);
+            verify(cortes).guardar(captor.capture());
+            return captor.getValue();
+        }
+
+        @Test
+        void alConfirmarLosVecinosElRestablecimientoCierraProvisionalmenteElCorteConLaHoraDelPrimerReporte() {
+            ahora = FIN.plusSeconds(1800);
+            dadoUnSector(EstadoServicio.SIN_SERVICIO, INICIO, INICIO, marcasDeAcuacar());
+            PropuestaIngesta boletin = boletinDeAcuacar();
+            given(propuestas.listarAprobadasPorSector(MANGA)).willReturn(List.of(boletin));
+            given(cortes.listarPorSector(MANGA)).willReturn(List.of(corteDeIngesta(boletin, null)));
+            dadosLosVotos(TipoReporte.SERVICIO_RESTABLECIDO, 2,
+                    reporte("r1", TipoReporte.SERVICIO_RESTABLECIDO, ahora.minusSeconds(200)),
+                    reporte("r2", TipoReporte.SERVICIO_RESTABLECIDO, ahora.minusSeconds(100)));
+
+            recalcular();
+
+            assertThat(guardado().cierreDe(MANGA))
+                    .contains(new CierreDeCorte(ahora.minusSeconds(200), OrigenEstado.VECINOS, true));
+        }
+
+        /** El cierre no puede ser anterior al inicio del corte aunque el primer reporte de la ventana lo sea. */
+        @Test
+        void laHoraDelCierreNuncaPrecedeAlInicioDelCorte() {
+            Instant inicioCorto = FIN.minusSeconds(600);
+            ahora = FIN.plusSeconds(600);
+            PropuestaIngesta boletin = boletin("acuacar", EstadoServicio.SIN_SERVICIO, inicioCorto, FIN);
+            dadoUnSector(EstadoServicio.SIN_SERVICIO, inicioCorto, inicioCorto,
+                    new MarcasDeEstado(OrigenEstado.ACUACAR, new VentanaTiempo(inicioCorto, FIN), true, false, 0, null));
+            given(propuestas.listarAprobadasPorSector(MANGA)).willReturn(List.of(boletin));
+            given(cortes.listarPorSector(MANGA)).willReturn(List.of(corteDeIngesta(boletin, null)));
+            dadosLosVotos(TipoReporte.SERVICIO_RESTABLECIDO, 2,
+                    reporte("r1", TipoReporte.SERVICIO_RESTABLECIDO, FIN.minusSeconds(900)),
+                    reporte("r2", TipoReporte.SERVICIO_RESTABLECIDO, ahora.minusSeconds(100)));
+
+            recalcular();
+
+            assertThat(guardado().cierreDe(MANGA).orElseThrow().hora()).isEqualTo(inicioCorto);
+        }
+
+        @Test
+        void tambienCierraUnCorteDelVeedorCuyaPromesaYaVencio() {
+            ahora = FIN.plusSeconds(1800);
+            dadoUnSector(EstadoServicio.SIN_SERVICIO, INICIO, INICIO,
+                    new MarcasDeEstado(OrigenEstado.VEEDOR, new VentanaTiempo(INICIO, FIN), true, false, 0, null));
+            given(cortes.listarPorSector(MANGA)).willReturn(List.of(corteDelVeedor()));
+            dadosLosVotos(TipoReporte.SERVICIO_RESTABLECIDO, 2,
+                    reporte("r1", TipoReporte.SERVICIO_RESTABLECIDO, ahora.minusSeconds(200)),
+                    reporte("r2", TipoReporte.SERVICIO_RESTABLECIDO, ahora.minusSeconds(100)));
+
+            recalcular();
+
+            assertThat(guardado().estado()).isEqualTo(EstadoCorte.RESTABLECIDO);
+        }
+
+        @Test
+        void elCorteSeCierraEnLaMismaTransaccionQueElEstado() {
+            ahora = FIN.plusSeconds(1800);
+            dadoUnSector(EstadoServicio.SIN_SERVICIO, INICIO, INICIO, marcasDeAcuacar());
+            PropuestaIngesta boletin = boletinDeAcuacar();
+            given(propuestas.listarAprobadasPorSector(MANGA)).willReturn(List.of(boletin));
+            given(cortes.listarPorSector(MANGA)).willReturn(List.of(corteDeIngesta(boletin, null)));
+            dadosLosVotos(TipoReporte.SERVICIO_RESTABLECIDO, 2,
+                    reporte("r1", TipoReporte.SERVICIO_RESTABLECIDO, ahora.minusSeconds(200)),
+                    reporte("r2", TipoReporte.SERVICIO_RESTABLECIDO, ahora.minusSeconds(100)));
+
+            recalcular();
+
+            verify(transaccion).ejecutar(any());
+        }
+
+        /** Un corte cuya promesa sigue vigente no se cierra porque los vecinos digan que «ya volvió»: eso es una disputa. */
+        @Test
+        void noCierraUnCorteCuyaPromesaTodaviaNoVencio() {
+            dadoUnSector(EstadoServicio.SIN_SERVICIO, INICIO, INICIO, marcasDeAcuacar());
+            PropuestaIngesta boletin = boletinDeAcuacar();
+            given(propuestas.listarAprobadasPorSector(MANGA)).willReturn(List.of(boletin));
+            given(cortes.listarPorSector(MANGA)).willReturn(List.of(corteDeIngesta(boletin, null)));
+            dadosLosVotos(TipoReporte.SERVICIO_RESTABLECIDO, 3,
+                    reporte("r1", TipoReporte.SERVICIO_RESTABLECIDO, ahora.minusSeconds(300)),
+                    reporte("r2", TipoReporte.SERVICIO_RESTABLECIDO, ahora.minusSeconds(200)),
+                    reporte("r3", TipoReporte.SERVICIO_RESTABLECIDO, ahora.minusSeconds(100)));
+
+            recalcular();
+
+            verify(cortes, never()).guardar(any());
+        }
+    }
+
+    /** Un restablecimiento que solo sostenían los vecinos puede no ser efectivo: el mismo corte se reabre (D15). */
+    @Nested
+    class ReaperturaDelMismoCorte {
+
+        private final Instant cierreA = FIN.plusSeconds(1800);
+
+        private void dadoUnCierreDe(OrigenEstado fuente, boolean provisional, Instant hora) {
+            PropuestaIngesta boletin = boletinDeAcuacar();
+            given(propuestas.listarAprobadasPorSector(MANGA)).willReturn(List.of(boletin));
+            given(cortes.listarPorSector(MANGA)).willReturn(List.of(
+                    corteDeIngesta(boletin, new CierreDeCorte(hora, fuente, provisional))));
+            MarcasDeEstado deLosVecinos = new MarcasDeEstado(OrigenEstado.VECINOS, null, false, false, 0, new RespaldoVecinal(2, 3));
+            dadoUnSector(EstadoServicio.CON_SERVICIO, hora, hora, deLosVecinos);
+        }
+
+        private void dadosReportesDeSinAguaPosterioresA(Instant cierre) {
+            dadosLosVotos(TipoReporte.SIN_AGUA, 3,
+                    reporte("r1", TipoReporte.SIN_AGUA, cierre.plusSeconds(600)),
+                    reporte("r2", TipoReporte.SIN_AGUA, cierre.plusSeconds(700)),
+                    reporte("r3", TipoReporte.SIN_AGUA, cierre.plusSeconds(800)));
+        }
+
+        @Test
+        void unQuorumDeSinAguaDentroDeLas3HorasReabreElMismoCorte() {
+            ahora = cierreA.plus(Duration.ofHours(1));
+            dadoUnCierreDe(OrigenEstado.VECINOS, true, cierreA);
+            dadosReportesDeSinAguaPosterioresA(cierreA);
+
+            recalcular();
+
+            ArgumentCaptor<CorteAgua> captor = ArgumentCaptor.forClass(CorteAgua.class);
+            verify(cortes).guardar(captor.capture());
+            assertThat(captor.getValue().cierreDe(MANGA)).isEmpty();
+            assertThat(captor.getValue().estado()).isEqualTo(EstadoCorte.ANUNCIADO);
+        }
+
+        @Test
+        void trasReabrirElBarrioVuelveAAfirmarloLaFuenteOficial() {
+            ahora = cierreA.plus(Duration.ofHours(1));
+            dadoUnCierreDe(OrigenEstado.VECINOS, true, cierreA);
+            dadosReportesDeSinAguaPosterioresA(cierreA);
+
+            EstadoPublicado publicado = recalcular();
+
+            assertThat(publicado.estado()).isEqualTo(EstadoServicio.SIN_SERVICIO);
+            assertThat(publicado.origen()).isEqualTo(OrigenEstado.ACUACAR);
+            assertThat(publicado.restablecimientoPorConfirmar()).isTrue();
+        }
+
+        /** Pasado ese plazo una intermitencia ya es otro evento: el cierre se respeta y los vecinos lo contradicen. */
+        @Test
+        void pasadasLas3HorasNoSeReabreYLosVecinosContradicenElRestablecimiento() {
+            ahora = cierreA.plus(Duration.ofHours(4));
+            dadoUnCierreDe(OrigenEstado.VECINOS, true, cierreA);
+            dadosReportesDeSinAguaPosterioresA(cierreA.plus(Duration.ofHours(3)));
+
+            EstadoPublicado publicado = recalcular();
+
+            verify(cortes, never()).guardar(any());
+            assertThat(publicado.estado()).isEqualTo(EstadoServicio.SIN_SERVICIO);
+            assertThat(publicado.origen()).isEqualTo(OrigenEstado.VECINOS);
+        }
+
+        @Test
+        void unCierreConfirmadoPorElVeedorNoSeReabre() {
+            ahora = cierreA.plus(Duration.ofHours(1));
+            dadoUnCierreDe(OrigenEstado.VEEDOR, false, cierreA);
+            dadosReportesDeSinAguaPosterioresA(cierreA);
+
+            recalcular();
+
+            verify(cortes, never()).guardar(any());
+        }
+
+        private void dadosVotosEnContraYAFavorDelRestablecimiento(int sinAgua, int restablecido, Instant cierre) {
+            List<ReporteCiudadano> sinAguaReportes = java.util.stream.IntStream.range(0, sinAgua)
+                    .mapToObj(i -> reporte("a" + i, TipoReporte.SIN_AGUA, cierre.plusSeconds(600 + i))).toList();
+            List<ReporteCiudadano> restablecidoReportes = java.util.stream.IntStream.range(0, restablecido)
+                    .mapToObj(i -> reporte("b" + i, TipoReporte.SERVICIO_RESTABLECIDO, cierre.plusSeconds(100 + i))).toList();
+            given(reportes.contarVotosRecientes(any(), any())).willReturn(
+                    Map.of(TipoReporte.SIN_AGUA, (long) sinAgua, TipoReporte.SERVICIO_RESTABLECIDO, (long) restablecido));
+            given(reportes.listarRecientesPorSector(any(), any())).willReturn(
+                    java.util.stream.Stream.concat(sinAguaReportes.stream(), restablecidoReportes.stream()).toList());
+        }
+
+        /**
+         * Si hay tantos vecinos que dicen «ya volvió» como «sigue sin agua», ninguno gana: reabrir el corte por
+         * un empate dejaría el barrio con el corte abierto y «con servicio» a la vez.
+         */
+        @Test
+        void unQuorumContrarioQueNoSuperaAlDeRestablecimientoNoReabreElCorte() {
+            ahora = cierreA.plus(Duration.ofHours(1));
+            dadoUnCierreDe(OrigenEstado.VECINOS, true, cierreA);
+            dadosVotosEnContraYAFavorDelRestablecimiento(3, 3, cierreA);
+
+            recalcular();
+
+            verify(cortes, never()).guardar(any());
+        }
+
+        @Test
+        void unQuorumContrarioMayorQueElDeRestablecimientoReabreElCorteYElBarrioVuelveASinServicio() {
+            ahora = cierreA.plus(Duration.ofHours(1));
+            dadoUnCierreDe(OrigenEstado.VECINOS, true, cierreA);
+            dadosVotosEnContraYAFavorDelRestablecimiento(4, 3, cierreA);
+
+            EstadoPublicado publicado = recalcular();
+
+            verify(cortes).guardar(any(CorteAgua.class));
+            assertThat(publicado.estado()).isEqualTo(EstadoServicio.SIN_SERVICIO);
             assertThat(eventoRegistrado().tipo()).isEqualTo(TipoEvento.CORTE_CONFIRMADO_POR_CIUDADANOS);
+        }
+
+        /** Reabrir un corte es un hecho de la bitácora aunque el estado ya fuera el que corresponde. */
+        @Test
+        void reabrirUnCorteDejaSuEventoAunqueElEstadoNoCambie() {
+            ahora = cierreA.plus(Duration.ofHours(1));
+            PropuestaIngesta boletin = boletinDeAcuacar();
+            given(propuestas.listarAprobadasPorSector(MANGA)).willReturn(List.of(boletin));
+            given(cortes.listarPorSector(MANGA)).willReturn(List.of(
+                    corteDeIngesta(boletin, new CierreDeCorte(cierreA, OrigenEstado.VECINOS, true))));
+            // El barrio ya figuraba sin servicio por Acuacar (la promesa venció): el estado no se mueve al reabrir.
+            dadoUnSector(EstadoServicio.SIN_SERVICIO, cierreA, cierreA,
+                    new MarcasDeEstado(OrigenEstado.ACUACAR, new VentanaTiempo(INICIO, FIN), true, false, 0, null));
+            dadosReportesDeSinAguaPosterioresA(cierreA);
+
+            recalcular();
+
+            verify(cortes).guardar(any(CorteAgua.class));
+            assertThat(eventoRegistrado().tipo()).isEqualTo(TipoEvento.CORTE_CONFIRMADO_POR_CIUDADANOS);
+        }
+
+        /**
+         * El recálculo lee el corte, decide y escribe: en medio un veedor pudo confirmar el cierre o anular el
+         * corte. Reabrirlo con la copia vieja deshacería lo que el veedor ya recibió como hecho, así que el corte se
+         * vuelve a leer dentro de la transacción y, si ya no admite el cambio, no se escribe nada.
+         */
+        @Test
+        void siElVeedorConfirmoElCierreEntreLaLecturaYLaEscrituraNoSeReabreNiSeEscribeNada() {
+            ahora = cierreA.plus(Duration.ofHours(1));
+            dadoUnCierreDe(OrigenEstado.VECINOS, true, cierreA);
+            dadosReportesDeSinAguaPosterioresA(cierreA);
+            PropuestaIngesta boletin = boletinDeAcuacar();
+            CorteAgua yaConfirmado = corteDeIngesta(boletin, new CierreDeCorte(cierreA, OrigenEstado.VEEDOR, false));
+            org.mockito.Mockito.doReturn(Optional.of(yaConfirmado)).when(cortes).buscarPorId(boletin.idDelCorte());
+
+            ResultadoDeRecalculo resultado = servicio.recalcular(MANGA);
+
+            verify(cortes, never()).guardar(any());
+            verify(sectores, never()).publicarSiEs(any(), any(), any(), any());
+            verify(registrarEvento, never()).registrar(any());
+            assertThat(resultado.cambioElEstado()).isFalse();
+        }
+
+        @Test
+        void siElCorteYaNoExisteAlEscribirNoSeEscribeNada() {
+            ahora = cierreA.plus(Duration.ofHours(1));
+            dadoUnCierreDe(OrigenEstado.VECINOS, true, cierreA);
+            dadosReportesDeSinAguaPosterioresA(cierreA);
+            org.mockito.Mockito.doReturn(Optional.empty()).when(cortes).buscarPorId(any());
+
+            servicio.recalcular(MANGA);
+
+            verify(cortes, never()).guardar(any());
+            verify(sectores, never()).publicarSiEs(any(), any(), any(), any());
+        }
+
+        @Test
+        void unQuorumAnteriorAlCierreNoLoReabre() {
+            ahora = cierreA.plus(Duration.ofHours(1));
+            dadoUnCierreDe(OrigenEstado.VECINOS, true, cierreA);
+            dadosLosVotos(TipoReporte.SIN_AGUA, 3,
+                    reporte("r1", TipoReporte.SIN_AGUA, cierreA.minusSeconds(900)),
+                    reporte("r2", TipoReporte.SIN_AGUA, cierreA.minusSeconds(800)),
+                    reporte("r3", TipoReporte.SIN_AGUA, cierreA.minusSeconds(700)));
+
+            recalcular();
+
+            verify(cortes, never()).guardar(any());
+        }
+    }
+
+    /** Descartar reportes de un abusador no puede dejar publicado un estado que solo ellos sostenían (D23). */
+    @Nested
+    class TrasDescartarReportes {
+
+        private MarcasDeEstado marcasDeLosVecinos(int respaldo) {
+            return new MarcasDeEstado(OrigenEstado.VECINOS, null, false, false, 0, new RespaldoVecinal(respaldo, 3));
+        }
+
+        private ResultadoDeRecalculo reevaluar() {
+            return servicio.reevaluarTrasDescarte(MANGA);
+        }
+
+        @Test
+        void siLosReportesQueQuedanNoSostienenElQuorumElBarrioVuelveASinDatosYQuedaElEventoDeReversion() {
+            dadoUnSector(EstadoServicio.SIN_SERVICIO, ahora.minus(Duration.ofHours(2)), ahora.minus(Duration.ofHours(2)),
+                    marcasDeLosVecinos(3));
+            given(reportes.listarRecientesPorSector(any(), any())).willReturn(List.of(
+                    reporte("r1", TipoReporte.SIN_AGUA, ahora.minus(Duration.ofHours(2)))));
+
+            ResultadoDeRecalculo resultado = reevaluar();
+
+            assertThat(resultado.publicado().estado()).isNull();
+            assertThat(resultado.cambioElEstado()).isTrue();
+            verify(sectores).publicarSiEs(MANGA, EstadoServicio.SIN_SERVICIO, null, MarcasDeEstado.ninguna());
+            assertThat(eventoRegistrado().tipo()).isEqualTo(TipoEvento.CONSENSO_REVERTIDO);
+        }
+
+        @Test
+        void siLosReportesValidosSiguenSosteniendoElQuorumNoCambiaNada() {
+            dadoUnSector(EstadoServicio.SIN_SERVICIO, ahora.minus(Duration.ofHours(2)), ahora.minus(Duration.ofHours(2)),
+                    marcasDeLosVecinos(3));
+            given(reportes.listarRecientesPorSector(any(), any())).willReturn(List.of(
+                    reporte("r1", TipoReporte.SIN_AGUA, ahora.minus(Duration.ofHours(2))),
+                    reporte("r2", TipoReporte.SIN_AGUA, ahora.minus(Duration.ofHours(2)).plusSeconds(60)),
+                    reporte("r3", TipoReporte.SIN_AGUA, ahora.minus(Duration.ofHours(2)).plusSeconds(120))));
+
+            ResultadoDeRecalculo resultado = reevaluar();
+
+            assertThat(resultado.publicado().estado()).isEqualTo(EstadoServicio.SIN_SERVICIO);
+            assertThat(resultado.cambioElEstado()).isFalse();
+            verify(sectores, never()).publicarSiEs(any(), any(), any(), any());
+        }
+
+        /** Un restablecimiento que los vecinos confirmaron con el quórum reducido se vuelve a comprobar con ese mismo listón. */
+        @Test
+        void unRestablecimientoConfirmadoConElQuorumReducidoSeCompruebaConElReducido() {
+            dadoUnSector(EstadoServicio.CON_SERVICIO, ahora.minus(Duration.ofHours(2)), ahora.minus(Duration.ofHours(2)),
+                    marcasDeLosVecinos(2));
+            given(reportes.listarRecientesPorSector(any(), any())).willReturn(List.of(
+                    reporte("r1", TipoReporte.SERVICIO_RESTABLECIDO, ahora.minus(Duration.ofHours(2))),
+                    reporte("r2", TipoReporte.SERVICIO_RESTABLECIDO, ahora.minus(Duration.ofHours(2)).plusSeconds(60))));
+
+            assertThat(reevaluar().publicado().estado()).isEqualTo(EstadoServicio.CON_SERVICIO);
+        }
+
+        /** Recalcular por otro motivo (un boletín, el barrido) no vuelve a auditar los reportes: la memoria se respeta. */
+        @Test
+        void unRecalculoNormalNoRevisaLosReportesDeLaMemoria() {
+            dadoUnSector(EstadoServicio.SIN_SERVICIO, ahora.minus(Duration.ofHours(2)), ahora.minus(Duration.ofHours(2)),
+                    marcasDeLosVecinos(3));
+
+            recalcular();
+
+            verify(reportes, never()).listarRecientesPorSector(any(), any());
+        }
+    }
+
+    /**
+     * Los sensores votan como los vecinos (D-sensores), pero se dice quién sostiene el estado: «según los sensores
+     * de la red» no es «según N vecinos». Solo cuenta como sensor lo que entró por el endpoint de sensores.
+     */
+    @Nested
+    class OrigenSensor {
+
+        private ReporteCiudadano deSensor(String id, TipoReporte tipo, Instant cuando) {
+            return reporte(id, tipo, cuando).comoDeSensor();
+        }
+
+        @Test
+        void unQuorumDeSoloSensoresPublicaConOrigenSensor() {
+            dadoUnSector(EstadoServicio.CON_SERVICIO);
+            dadosLosVotos(TipoReporte.PRESION_BAJA, 3,
+                    deSensor("s1", TipoReporte.PRESION_BAJA, ahora.minusSeconds(300)),
+                    deSensor("s2", TipoReporte.PRESION_BAJA, ahora.minusSeconds(200)),
+                    deSensor("s3", TipoReporte.PRESION_BAJA, ahora.minusSeconds(100)));
+
+            EstadoPublicado publicado = recalcular();
+
+            assertThat(publicado.estado()).isEqualTo(EstadoServicio.PRESION_BAJA);
+            assertThat(publicado.origen()).isEqualTo(OrigenEstado.SENSOR);
+            MarcasDeEstado marcas = new MarcasDeEstado(OrigenEstado.SENSOR, null, false, false, 0, new RespaldoVecinal(3, 3));
+            verify(sectores).publicarSiEs(MANGA, EstadoServicio.CON_SERVICIO, EstadoServicio.PRESION_BAJA, marcas);
+            assertThat(eventoRegistrado().fuente()).isEqualTo(OrigenEstado.SENSOR);
+        }
+
+        /** Con un solo vecino de por medio el estado lo sostienen vecinos y sensores juntos: se llama VECINOS. */
+        @Test
+        void siHayUnVecinoDeporMedioElOrigenEsVecinos() {
+            dadoUnSector(EstadoServicio.CON_SERVICIO);
+            dadosLosVotos(TipoReporte.PRESION_BAJA, 3,
+                    deSensor("s1", TipoReporte.PRESION_BAJA, ahora.minusSeconds(300)),
+                    deSensor("s2", TipoReporte.PRESION_BAJA, ahora.minusSeconds(200)),
+                    reporte("v1", TipoReporte.PRESION_BAJA, ahora.minusSeconds(100)));
+
+            assertThat(recalcular().origen()).isEqualTo(OrigenEstado.VECINOS);
+        }
+
+        @Test
+        void unEstadoQueSostienenLosSensoresSeRecuerdaConSuOrigenSinReportesNuevos() {
+            MarcasDeEstado deLosSensores = new MarcasDeEstado(OrigenEstado.SENSOR, null, false, false, 0, new RespaldoVecinal(3, 3));
+            dadoUnSector(EstadoServicio.PRESION_BAJA, ahora.minus(Duration.ofHours(2)), ahora.minus(Duration.ofHours(2)),
+                    deLosSensores);
+
+            EstadoPublicado publicado = recalcular();
+
+            assertThat(publicado.estado()).isEqualTo(EstadoServicio.PRESION_BAJA);
+            assertThat(publicado.origen()).isEqualTo(OrigenEstado.SENSOR);
+            verify(sectores, never()).publicarSiEs(any(), any(), any(), any());
+        }
+
+        /** El cierre por presión normal sostenida es provisional y lleva su fuente: sensor, no vecinos. */
+        @Test
+        void unRestablecimientoSostenidoSoloPorSensoresCierraElCorteConFuenteSensor() {
+            ahora = FIN.plusSeconds(1800);
+            dadoUnSector(EstadoServicio.SIN_SERVICIO, INICIO, INICIO, marcasDeAcuacar());
+            PropuestaIngesta boletin = boletinDeAcuacar();
+            given(propuestas.listarAprobadasPorSector(MANGA)).willReturn(List.of(boletin));
+            given(cortes.listarPorSector(MANGA)).willReturn(List.of(corteDeIngesta(boletin, null)));
+            dadosLosVotos(TipoReporte.SERVICIO_RESTABLECIDO, 2,
+                    deSensor("s1", TipoReporte.SERVICIO_RESTABLECIDO, ahora.minusSeconds(200)),
+                    deSensor("s2", TipoReporte.SERVICIO_RESTABLECIDO, ahora.minusSeconds(100)));
+
+            EstadoPublicado publicado = recalcular();
+
+            assertThat(publicado.estado()).isEqualTo(EstadoServicio.CON_SERVICIO);
+            assertThat(publicado.origen()).isEqualTo(OrigenEstado.SENSOR);
+            ArgumentCaptor<CorteAgua> captor = ArgumentCaptor.forClass(CorteAgua.class);
+            verify(cortes).guardar(captor.capture());
+            assertThat(captor.getValue().cierreDe(MANGA))
+                    .contains(new CierreDeCorte(ahora.minusSeconds(200), OrigenEstado.SENSOR, true));
         }
     }
 
@@ -501,7 +1179,7 @@ class RecalcularSectorServiceTest {
             dadoUnSector(EstadoServicio.SIN_SERVICIO, INICIO, ahora.minus(Duration.ofMinutes(10)), marcasDeAcuacar());
             given(propuestas.listarAprobadasPorSector(MANGA)).willReturn(List.of(boletinDeAcuacar()));
 
-            servicio.recalcular(MANGA);
+            recalcular();
             verify(sectores).confirmarEstado(MANGA, EstadoServicio.SIN_SERVICIO);
         }
 
@@ -510,7 +1188,7 @@ class RecalcularSectorServiceTest {
             dadoUnSector(EstadoServicio.SIN_SERVICIO, INICIO, ahora.minus(Duration.ofMinutes(2)), marcasDeAcuacar());
             given(propuestas.listarAprobadasPorSector(MANGA)).willReturn(List.of(boletinDeAcuacar()));
 
-            servicio.recalcular(MANGA);
+            recalcular();
 
             verify(sectores, never()).confirmarEstado(any(), any());
         }

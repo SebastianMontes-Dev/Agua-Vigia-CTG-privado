@@ -279,6 +279,35 @@ class SectorMongoAdapterTest {
         assertThat(eventosDeActualizacion()).isZero();
     }
 
+    /**
+     * La disputa se anota en la bitácora al abrirse, y la bitácora es de solo anexado: dos recálculos simultáneos no pueden
+     * abrirla los dos. Solo el primero escribe; el segundo ve que ya está abierta y no anexa nada.
+     */
+    @Test
+    void abrirDisputaSiEsSoloEscribeSiElBarrioAunNoEstabaEnDisputa() {
+        sembrar("manga", "MANGA", 5000);
+        mongoTemplate.getDb().getCollection("sectores").updateOne(
+                new org.bson.Document("slug", "manga"),
+                new org.bson.Document("$set", new org.bson.Document("estadoActual", "SIN_SERVICIO")));
+
+        boolean primero = adaptador.abrirDisputaSiEs(new SectorId("manga"), EstadoServicio.SIN_SERVICIO, marcasDeAcuacarEnDisputa());
+        boolean segundo = adaptador.abrirDisputaSiEs(new SectorId("manga"), EstadoServicio.SIN_SERVICIO, marcasDeAcuacarEnDisputa());
+
+        assertThat(primero).isTrue();
+        assertThat(segundo).isFalse();
+        assertThat(adaptador.buscarPorId(new SectorId("manga")).orElseThrow().marcas().enDisputa()).isTrue();
+    }
+
+    @Test
+    void abrirDisputaSiEsNoTocaNadaSiElEstadoYaNoEsElEsperado() {
+        sembrar("manga", "MANGA", 5000);
+
+        boolean abierta = adaptador.abrirDisputaSiEs(new SectorId("manga"), EstadoServicio.SIN_SERVICIO, marcasDeAcuacarEnDisputa());
+
+        assertThat(abierta).isFalse();
+        assertThat(adaptador.buscarPorId(new SectorId("manga")).orElseThrow().marcas().enDisputa()).isFalse();
+    }
+
     /** Las marcas cambian sin que cambie el estado (p. ej. se abre una disputa): ni avisa ni mueve la fecha del estado. */
     @Test
     void publicarSiEsConElMismoEstadoSoloActualizaLasMarcasSinAvisar() {

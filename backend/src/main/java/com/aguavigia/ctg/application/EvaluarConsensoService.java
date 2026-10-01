@@ -1,75 +1,60 @@
 package com.aguavigia.ctg.application;
 
-import com.aguavigia.ctg.domain.EstadoServicio;
 import com.aguavigia.ctg.domain.EstrategiaConsenso;
-import com.aguavigia.ctg.domain.EventoBitacoraFactory;
-import com.aguavigia.ctg.domain.ReporteCiudadano;
-import com.aguavigia.ctg.domain.ReporteId;
+import com.aguavigia.ctg.domain.ReglasDeEstado;
+import com.aguavigia.ctg.domain.ResultadoConsenso;
+import com.aguavigia.ctg.domain.ResultadoDeRecalculo;
 import com.aguavigia.ctg.domain.Sector;
 import com.aguavigia.ctg.domain.SectorId;
-import com.aguavigia.ctg.domain.ResultadoConsenso;
-import com.aguavigia.ctg.domain.TipoReporte;
 import com.aguavigia.ctg.domain.port.in.EvaluarConsensoUseCase;
-import com.aguavigia.ctg.domain.port.in.RegistrarEventoBitacoraUseCase;
+import com.aguavigia.ctg.domain.port.in.RecalcularSectorUseCase;
 import com.aguavigia.ctg.domain.port.out.ContadorReportesPort;
-import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.ReservaDeEvaluacionPort;
-import com.aguavigia.ctg.domain.port.out.ReporteCiudadanoRepository;
 import com.aguavigia.ctg.domain.port.out.SectorRepository;
-import com.aguavigia.ctg.domain.port.out.TransaccionPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 /**
- * RF009-RF011 — cambia el estado de un sector cuando suficientes reportes independientes
- * coinciden en una ventana de tiempo. "Coinciden" no exige el mismo `TipoReporte` exacto: el
- * nuevo estado es el que sostiene la mayoría de los reportes recientes, para que un reporte
- * aislado de signo contrario no bloquee el consenso.
+ * RF009-RF011 — el punto de entrada del consenso de vecinos: cada reporte pregunta aquí si vale la pena
+ * volver a mirar el barrio. Ya no decide el estado ni lo escribe: eso lo hace {@link RecalcularSectorUseCase},
+ * el único escritor, que reúne también los boletines y los cortes para que el consenso no los pise.
  *
- * No notifica suscriptores directamente: sectores.guardar() publica SectorActualizadoEvent
- * cuando el estado cambia, y NotificarSuscripcionesService es su único suscriptor. Ese evento
- * también alimenta SSE y push, así que es el único disparador — duplicarlo aquí mandaba dos
- * correos por cada cambio de estado.
+ * Lo que sí conserva es lo que evita recalcular de más: la reserva de Redis (una evaluación por intervalo y
+ * sector; el resto queda pendiente) y un prefiltro sobre el contador de Redis, que es barato. El listón es el
+ * menor de los dos que puede exigir el recálculo —el umbral, o el reducido con que se confirma que volvió el
+ * agua—, para que confirmar un restablecimiento no quede tapado por el prefiltro.
+ *
+ * No notifica suscriptores directamente: el cambio de estado publica SectorActualizadoEvent y
+ * NotificarSuscripcionesService es su único suscriptor; duplicarlo aquí mandaba dos correos por cada cambio.
  */
 public class EvaluarConsensoService implements EvaluarConsensoUseCase {
 
     private static final Logger log = LoggerFactory.getLogger(EvaluarConsensoService.class);
-    private static final Duration INTERVALO_ENTRE_VERIFICACIONES = Duration.ofMinutes(5);
 
     private final SectorRepository sectores;
-    private final ReporteCiudadanoRepository reportes;
     private final ContadorReportesPort contadorReportes;
     private final ReservaDeEvaluacionPort reserva;
     private final EstrategiaConsenso estrategia;
-    private final RegistrarEventoBitacoraUseCase registrarEvento;
-    private final RelojPort reloj;
-    private final TransaccionPort transaccion;
+    private final ReglasDeEstado reglas;
+    private final RecalcularSectorUseCase recalcular;
     private final Duration ventanaConsenso;
 
     public EvaluarConsensoService(SectorRepository sectores,
-                                   ReporteCiudadanoRepository reportes,
-                                   ContadorReportesPort contadorReportes,
-                                   ReservaDeEvaluacionPort reserva,
-                                   EstrategiaConsenso estrategia,
-                                   RegistrarEventoBitacoraUseCase registrarEvento,
-                                   RelojPort reloj,
-                                   TransaccionPort transaccion,
-                                   long ventanaMinutos) {
+                                  ContadorReportesPort contadorReportes,
+                                  ReservaDeEvaluacionPort reserva,
+                                  EstrategiaConsenso estrategia,
+                                  ReglasDeEstado reglas,
+                                  RecalcularSectorUseCase recalcular,
+                                  long ventanaMinutos) {
         this.sectores = sectores;
-        this.reportes = reportes;
         this.contadorReportes = contadorReportes;
         this.reserva = reserva;
         this.estrategia = estrategia;
-        this.registrarEvento = registrarEvento;
-        this.reloj = reloj;
-        this.transaccion = transaccion;
+        this.reglas = reglas;
+        this.recalcular = recalcular;
         this.ventanaConsenso = Duration.ofMinutes(ventanaMinutos);
     }
 
@@ -77,7 +62,7 @@ public class EvaluarConsensoService implements EvaluarConsensoUseCase {
     public ResultadoConsenso evaluar(SectorId sectorId) {
         if (!reserva.reservar(sectorId)) {
             reserva.dejarPendiente(sectorId);
-            return new ResultadoConsenso(sectorId, false, null, List.of());
+            return noAlcanzado(sectorId);
         }
         return evaluarAhora(sectorId);
     }
@@ -99,127 +84,20 @@ public class EvaluarConsensoService implements EvaluarConsensoUseCase {
         Sector sector = sectores.buscarPorId(sectorId)
                 .orElseThrow(() -> new IllegalArgumentException("No existe el sector '" + sectorId.valor() + "'"));
 
-        long reportesRecientes = contadorReportes.contarRecientes(sectorId, ventanaConsenso);
-        if (!estrategia.seAlcanzaConsenso(reportesRecientes, sector)) {
-            return new ResultadoConsenso(sectorId, false, null, List.of());
+        int umbral = (int) estrategia.umbral(sector);
+        long liston = Math.min(umbral, reglas.quorumReducido(umbral));
+        if (contadorReportes.contarRecientes(sectorId, ventanaConsenso) < liston) {
+            return noAlcanzado(sectorId);
         }
 
-        // Mongo cuenta los votos por tipo (una fila por tipo) y solo si el estado va a cambiar se traen
-        // los reportes que lo sustentan. En una avería masiva casi todos los POST llegan con el sector
-        // ya al umbral y sin nada nuevo que decidir; cargar entonces los miles de reportes de la ventana
-        // en cada uno agotaba el pool de conexiones.
-        Map<TipoReporte, Long> votos = reportes.contarVotosRecientes(sectorId, ventanaConsenso);
-        long vecinos = votos.values().stream().mapToLong(Long::longValue).sum();
-        if (!estrategia.seAlcanzaConsenso(vecinos, sector)) {
-            return new ResultadoConsenso(sectorId, false, null, List.of());
+        ResultadoDeRecalculo resultado = recalcular.recalcular(sectorId);
+        if (!resultado.cambioElEstado()) {
+            return noAlcanzado(sectorId);
         }
-        if (estadoPorMayoria(votos, sector.estadoActual()) == sector.estadoActual()) {
-            if (confirmaElEstadoActual(votos, sector) && tocaVerificar(sector)) {
-                confirmarSiLosVecinosLoSostienen(sector, sustentoSinRepetir(sectorId));
-            }
-            return new ResultadoConsenso(sectorId, false, null, List.of());
-        }
-
-        List<ReporteCiudadano> sustento = sustentoSinRepetir(sectorId);
-
-        // Redis es un prefiltro rapido, pero Mongo contiene la evidencia moderada y duradera. Esta
-        // segunda comprobacion evita que reportes repetidos o ya descartados sostengan un cambio.
-        if (!estrategia.seAlcanzaConsenso(sustento.size(), sector)) {
-            return new ResultadoConsenso(sectorId, false, null, List.of());
-        }
-        EstadoServicio nuevoEstado = estadoPorMayoria(votosDe(sustento), sector.estadoActual());
-
-        // Sin cambio real de estado no hay evento nuevo que anexar a la bitácora (RF028: no editar,
-        // pero tampoco duplicar un evento idéntico cada vez que alguien vuelve a evaluar el mismo sector).
-        if (nuevoEstado == sector.estadoActual()) {
-            if (tocaVerificar(sector)) {
-                confirmarSiLosVecinosLoSostienen(sector, sustento);
-            }
-            return new ResultadoConsenso(sectorId, false, null, List.of());
-        }
-
-        List<ReporteId> ids = sustento.stream().map(ReporteCiudadano::id).toList();
-
-        // Compare-and-set + anexo a la bitácora en la misma transacción (Fase 3): si el registro del
-        // evento falla, revierte también el cambio de estado — sin esto un fallo a mitad de camino
-        // dejaba un sector movido sin el evento que lo sustenta en la bitácora (RF028).
-        boolean cambiado = transaccion.ejecutar(() -> {
-            if (!sectores.cambiarEstadoSiEs(sectorId, sector.estadoActual(), nuevoEstado)) {
-                return false;
-            }
-            registrarEvento.registrar(EventoBitacoraFactory.consensoConfirmado(sectorId, nuevoEstado, ids, reloj.ahora()));
-            return true;
-        });
-        if (!cambiado) {
-            return new ResultadoConsenso(sectorId, false, null, List.of());
-        }
-
-        return new ResultadoConsenso(sectorId, true, nuevoEstado, ids);
+        return new ResultadoConsenso(sectorId, true, resultado.publicado().estado(), resultado.reportesQueSustentan());
     }
 
-    /** Un reporte por dispositivo, el más reciente: un vecino que reporta tres veces sigue siendo un vecino. */
-    private List<ReporteCiudadano> sustentoSinRepetir(SectorId sectorId) {
-        return reportes.listarRecientesPorSector(sectorId, ventanaConsenso).stream()
-                .collect(Collectors.toMap(
-                        reporte -> reporte.huella().hash(),
-                        Function.identity(),
-                        (primero, segundo) -> primero.timestamp().isAfter(segundo.timestamp()) ? primero : segundo,
-                        LinkedHashMap::new))
-                .values().stream()
-                .toList();
-    }
-
-    /**
-     * En una avería masiva cada reporte llega con el sector ya al umbral: verificar en cada uno cargaría
-     * los reportes de la ventana y escribiría en Mongo por cada POST. Una vez cada pocos minutos basta
-     * para una advertencia que salta a las 24 horas (ADR-073).
-     */
-    private boolean tocaVerificar(Sector sector) {
-        return sector.verificadoAntesDe(reloj.ahora().minus(INTERVALO_ENTRE_VERIFICACIONES));
-    }
-
-    /** Un empate no confirma nada: es evidencia ambigua, igual que para cambiar el estado. */
-    private static boolean confirmaElEstadoActual(Map<TipoReporte, Long> votos, Sector sector) {
-        return sector.estadoActual() != null && mayoriaClara(votos) == sector.estadoActual();
-    }
-
-    private void confirmarSiLosVecinosLoSostienen(Sector sector, List<ReporteCiudadano> sustento) {
-        if (estrategia.seAlcanzaConsenso(sustento.size(), sector)
-                && confirmaElEstadoActual(votosDe(sustento), sector)) {
-            sectores.confirmarEstado(sector.id(), sector.estadoActual());
-        }
-    }
-
-    private static Map<TipoReporte, Long> votosDe(List<ReporteCiudadano> sustento) {
-        return sustento.stream().collect(Collectors.groupingBy(ReporteCiudadano::tipo, Collectors.counting()));
-    }
-
-    // Empate entre tipos de reporte = evidencia ambigua, no motivo para cambiar el estado publicado
-    // (CLAUDE.md, ética de datos: nada se publica sin poder sustentarlo). El orden de iteración de
-    // un HashMap sobre una enum no está garantizado por el JLS, así que resolver el empate por el
-    // primer máximo encontrado no era determinista — quedaba a merced del hashing de la JVM.
-    private static EstadoServicio estadoPorMayoria(Map<TipoReporte, Long> conteoPorTipo, EstadoServicio estadoActual) {
-        EstadoServicio mayoria = mayoriaClara(conteoPorTipo);
-        return mayoria != null ? mayoria : estadoActual;
-    }
-
-    /** El estado que sostiene la mayoría, o nulo si hay empate entre tipos. */
-    private static EstadoServicio mayoriaClara(Map<TipoReporte, Long> conteoPorTipo) {
-        long maximo = conteoPorTipo.values().stream()
-                .mapToLong(Long::longValue)
-                .max()
-                .orElseThrow(() -> new IllegalStateException("No hay reportes para sustentar el consenso"));
-        List<TipoReporte> mayoritarios = conteoPorTipo.entrySet().stream()
-                .filter(entrada -> entrada.getValue() == maximo)
-                .map(Map.Entry::getKey)
-                .toList();
-        if (mayoritarios.size() > 1) {
-            return null;
-        }
-        return switch (mayoritarios.get(0)) {
-            case SIN_AGUA -> EstadoServicio.SIN_SERVICIO;
-            case PRESION_BAJA -> EstadoServicio.PRESION_BAJA;
-            case SERVICIO_RESTABLECIDO -> EstadoServicio.CON_SERVICIO;
-        };
+    private static ResultadoConsenso noAlcanzado(SectorId sectorId) {
+        return new ResultadoConsenso(sectorId, false, null, List.of());
     }
 }

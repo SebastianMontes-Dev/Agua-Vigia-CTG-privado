@@ -10,6 +10,12 @@ import java.util.Objects;
 public sealed interface Afirmacion
         permits Afirmacion.ConVentana, Afirmacion.RestablecimientoOficial, Afirmacion.QuorumVecinos {
 
+    private static void exigirCorteOPresionBaja(EstadoServicio estado) {
+        if (estado != EstadoServicio.SIN_SERVICIO && estado != EstadoServicio.PRESION_BAJA) {
+            throw new IllegalArgumentException("Una ventana solo declara un corte o una baja de presión, no " + estado);
+        }
+    }
+
     /** Una afirmación que declara una ventana de corte: desde cuándo y hasta cuándo se promete. */
     sealed interface ConVentana extends Afirmacion permits CorteVeedor, VentanaOficial, PrensaAprobada {
         Instant inicio();
@@ -20,6 +26,9 @@ public sealed interface Afirmacion
         CierreDeCorte cierre();
 
         OrigenEstado origen();
+
+        /** Lo que la ventana afirma mientras dura: un corte (SIN_SERVICIO) o una baja de presión. */
+        EstadoServicio estadoEnVentana();
     }
 
     /**
@@ -36,6 +45,12 @@ public sealed interface Afirmacion
         @Override
         public OrigenEstado origen() {
             return OrigenEstado.VEEDOR;
+        }
+
+        /** El corte del veedor siempre es un corte. */
+        @Override
+        public EstadoServicio estadoEnVentana() {
+            return EstadoServicio.SIN_SERVICIO;
         }
     }
 
@@ -89,10 +104,17 @@ public sealed interface Afirmacion
     }
 
     /** El boletín de Acuacar aprobado con su ventana declarada. */
-    record VentanaOficial(Instant inicio, Instant finPrometido, CierreDeCorte cierre) implements ConVentana {
+    record VentanaOficial(Instant inicio, Instant finPrometido, CierreDeCorte cierre, EstadoServicio estadoEnVentana)
+            implements ConVentana {
 
         public VentanaOficial {
             new VentanaTiempo(inicio, finPrometido);
+            exigirCorteOPresionBaja(estadoEnVentana);
+        }
+
+        /** Un corte: lo habitual en un boletín con ventana. */
+        public VentanaOficial(Instant inicio, Instant finPrometido, CierreDeCorte cierre) {
+            this(inicio, finPrometido, cierre, EstadoServicio.SIN_SERVICIO);
         }
 
         @Override
@@ -102,10 +124,17 @@ public sealed interface Afirmacion
     }
 
     /** Una nota de prensa que el veedor aprobó, con la ventana que declara. */
-    record PrensaAprobada(Instant inicio, Instant finPrometido, CierreDeCorte cierre) implements ConVentana {
+    record PrensaAprobada(Instant inicio, Instant finPrometido, CierreDeCorte cierre, EstadoServicio estadoEnVentana)
+            implements ConVentana {
 
         public PrensaAprobada {
             new VentanaTiempo(inicio, finPrometido);
+            exigirCorteOPresionBaja(estadoEnVentana);
+        }
+
+        /** Un corte: lo habitual en una nota con ventana. */
+        public PrensaAprobada(Instant inicio, Instant finPrometido, CierreDeCorte cierre) {
+            this(inicio, finPrometido, cierre, EstadoServicio.SIN_SERVICIO);
         }
 
         @Override

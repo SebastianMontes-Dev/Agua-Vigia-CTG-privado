@@ -33,7 +33,19 @@ public record PropuestaIngesta(
         /** Cuándo publicó la fuente el boletín. Es la fecha del hecho cuando no hay ventana declarada. */
         Instant publicadoEn,
         /** Titular tal como lo publicó la fuente. Es lo que la bitácora enseña al vecino. */
-        String tituloOriginal) {
+        String tituloOriginal,
+        /** Por qué se anuló. Obligatorio si la propuesta está ANULADA, y solo entonces. */
+        String motivoAnulacion) {
+
+    /** Sin motivo de anulación: lo que existía antes de poder anular. */
+    public PropuestaIngesta(PropuestaId id, SectorId sectorId, EstadoServicio estadoPropuesto,
+                             String fuente, String urlOriginal, String citaTextual, double confianza,
+                             Instant detectadaEn, EstadoRevision estadoRevision,
+                             Instant inicioDeclarado, Instant finPrometido,
+                             String imagenUrl, Instant publicadoEn, String tituloOriginal) {
+        this(id, sectorId, estadoPropuesto, fuente, urlOriginal, citaTextual, confianza, detectadaEn,
+                estadoRevision, inicioDeclarado, finPrometido, imagenUrl, publicadoEn, tituloOriginal, null);
+    }
 
     /** Sin portada: las fuentes de prensa no la traen. */
     public PropuestaIngesta(PropuestaId id, SectorId sectorId, EstadoServicio estadoPropuesto,
@@ -67,6 +79,9 @@ public record PropuestaIngesta(
         }
         if (estadoRevision == null) {
             throw new IllegalArgumentException("La propuesta debe tener un estado de revisión");
+        }
+        if ((estadoRevision == EstadoRevision.ANULADA) != (motivoAnulacion != null && !motivoAnulacion.isBlank())) {
+            throw new IllegalArgumentException("El motivo de anulación es obligatorio si la propuesta está ANULADA, y solo entonces");
         }
     }
 
@@ -182,6 +197,9 @@ public record PropuestaIngesta(
         if (estadoRevision == EstadoRevision.DESCARTADA) {
             throw new IllegalStateException("La propuesta ya fue descartada y no se puede aprobar");
         }
+        if (estadoRevision == EstadoRevision.ANULADA) {
+            throw new IllegalStateException("La propuesta fue anulada y no se puede aprobar");
+        }
         return conRevision(EstadoRevision.APROBADA);
     }
 
@@ -190,11 +208,30 @@ public record PropuestaIngesta(
         if (estadoRevision == EstadoRevision.APROBADA) {
             throw new IllegalStateException("La propuesta ya fue aprobada y no se puede descartar");
         }
+        if (estadoRevision == EstadoRevision.ANULADA) {
+            throw new IllegalStateException("La propuesta fue anulada y no se puede descartar");
+        }
         return conRevision(EstadoRevision.DESCARTADA);
+    }
+
+    /**
+     * Anular lo que ya movió el mapa: la propuesta deja de afirmar nada del presente y queda con su motivo.
+     * Solo se anula una aprobada, porque una pendiente o descartada nunca lo movió.
+     */
+    public PropuestaIngesta anular(String motivo) {
+        if (motivo == null || motivo.isBlank()) {
+            throw new IllegalArgumentException("Anular una propuesta exige un motivo");
+        }
+        if (estadoRevision != EstadoRevision.APROBADA) {
+            throw new IllegalStateException("Solo se anula una propuesta aprobada, y esta está " + estadoRevision);
+        }
+        return new PropuestaIngesta(id, sectorId, estadoPropuesto, fuente, urlOriginal, citaTextual,
+                confianza, detectadaEn, EstadoRevision.ANULADA, inicioDeclarado, finPrometido, imagenUrl, publicadoEn,
+                tituloOriginal, motivo);
     }
 
     private PropuestaIngesta conRevision(EstadoRevision nueva) {
         return new PropuestaIngesta(id, sectorId, estadoPropuesto, fuente, urlOriginal, citaTextual,
-                confianza, detectadaEn, nueva, inicioDeclarado, finPrometido, imagenUrl, publicadoEn, tituloOriginal);
+                confianza, detectadaEn, nueva, inicioDeclarado, finPrometido, imagenUrl, publicadoEn, tituloOriginal, null);
     }
 }
