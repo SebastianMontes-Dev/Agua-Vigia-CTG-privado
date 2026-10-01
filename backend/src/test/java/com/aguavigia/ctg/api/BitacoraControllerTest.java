@@ -28,6 +28,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -138,6 +139,34 @@ class BitacoraControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].cantidadReportesSustento").value(2))
                 .andExpect(jsonPath("$[0].reportesSustento").doesNotExist());
+    }
+
+    @Test
+    void laListaDebePublicarLaFuenteYElRespaldoDelEvento() throws Exception {
+        given(eventos.listar(any(), anyInt(), anyInt())).willReturn(pagina(List.of(
+                new EventoBitacora(new EventoId("evento-3"), TipoEvento.CORTE_CONFIRMADO_POR_CIUDADANOS,
+                        new SectorId("manga"), null, TIMESTAMP, "11 reportes confirmaron SIN_SERVICIO",
+                        com.aguavigia.ctg.domain.EstadoServicio.SIN_SERVICIO, null, null, List.of(),
+                        com.aguavigia.ctg.domain.OrigenEstado.VECINOS,
+                        new com.aguavigia.ctg.domain.RespaldoVecinal(11, 12)))));
+
+        mockMvc.perform(get("/api/bitacora"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].fuente").value("VECINOS"))
+                .andExpect(jsonPath("$[0].respaldo.vecinos").value(11))
+                .andExpect(jsonPath("$[0].respaldo.umbral").value(12));
+    }
+
+    @Test
+    void sinFuenteNiRespaldoViajanNulosYNoOmitidos() throws Exception {
+        given(eventos.listar(any(), anyInt(), anyInt())).willReturn(pagina(List.of(
+                new EventoBitacora(new EventoId("evento-4"), TipoEvento.CORTE_ANUNCIADO,
+                        new SectorId("manga"), null, TIMESTAMP, "anuncio"))));
+
+        mockMvc.perform(get("/api/bitacora"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("\"fuente\":null")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("\"respaldo\":null")));
     }
 
     private static EventoBitacora eventoConSustento(int cantidad) {

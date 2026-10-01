@@ -17,6 +17,8 @@ public interface EventoBitacoraApiMapper {
     @Mapping(target = "tipo", expression = "java(evento.tipo().name())")
     @Mapping(target = "estado", expression = "java(evento.estado() == null ? null : evento.estado().name())")
     @Mapping(target = "cantidadReportesSustento", expression = "java(evento.reportesSustento().size())")
+    @Mapping(target = "fuente", expression = "java(evento.fuente() == null ? null : evento.fuente().name())")
+    @Mapping(target = "respaldo", expression = "java(evento.respaldo() == null ? null : new com.aguavigia.ctg.api.dto.EventoBitacoraRespuesta.RespaldoRespuesta(evento.respaldo().vecinos(), evento.respaldo().umbral()))")
     EventoBitacoraRespuesta aRespuesta(EventoBitacora evento);
 
     List<EventoBitacoraRespuesta> aRespuestas(List<EventoBitacora> eventos);

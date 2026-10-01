@@ -23,5 +23,9 @@ public record SolicitudCorte(
 
         @NotBlank
         @Schema(example = "Mantenimiento planta El Bosque")
-        String causa) {
+        String causa,
+
+        @Schema(description = "Opcional. El corte del veedor es el override: desde esta hora deja de afirmar nada, "
+                + "aunque nadie lo haya cerrado.", nullable = true)
+        Instant caducaEn) {
 }

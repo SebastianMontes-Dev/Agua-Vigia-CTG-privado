@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -125,6 +126,43 @@ class IngestaRevisionControllerTest {
         mockMvc.perform(patch("/api/veedor/ingesta/propuestas/p-1/descartar").header("Authorization", TOKEN))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.estadoRevision").value("DESCARTADA"));
+    }
+
+    @Test
+    void debeAnularUnaPropuestaAprobadaConSuMotivo() throws Exception {
+        autenticarComoVeedor();
+        given(revisarPropuesta.anular(eq(new PropuestaId("p-1")), eq("El extractor leyó mal el barrio"), any()))
+                .willReturn(propuesta().aprobar().anular("El extractor leyó mal el barrio"));
+
+        mockMvc.perform(patch("/api/veedor/ingesta/propuestas/p-1/anulacion")
+                        .header("Authorization", TOKEN)
+                        .contentType("application/json")
+                        .content("""
+                                {"motivo":"El extractor leyó mal el barrio"}"""))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.estadoRevision").value("ANULADA"));
+    }
+
+    @Test
+    void anularUnaPropuestaSinMotivoEsUnaPeticionInvalida() throws Exception {
+        autenticarComoVeedor();
+
+        mockMvc.perform(patch("/api/veedor/ingesta/propuestas/p-1/anulacion")
+                        .header("Authorization", TOKEN).contentType("application/json").content("""
+                                {"motivo":""}"""))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void anularUnaPropuestaQueNoEstabaAprobadaResponde409() throws Exception {
+        autenticarComoVeedor();
+        given(revisarPropuesta.anular(any(), any(), any()))
+                .willThrow(new IllegalStateException("Solo se anula una propuesta aprobada"));
+
+        mockMvc.perform(patch("/api/veedor/ingesta/propuestas/p-1/anulacion")
+                        .header("Authorization", TOKEN).contentType("application/json").content("""
+                                {"motivo":"Por error"}"""))
+                .andExpect(status().isConflict());
     }
 
     @Test

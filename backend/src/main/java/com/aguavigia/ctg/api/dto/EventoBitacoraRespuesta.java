@@ -26,5 +26,15 @@ public record EventoBitacoraRespuesta(
         @Schema(description = "RF011 — cuántos reportes ciudadanos sostuvieron el cambio, en los eventos de consenso; "
                 + "0 en los demás. Los ids no viajan en el listado (pesaban cientos de KB por página): se piden "
                 + "con GET /api/bitacora/{id}/sustento.")
-        int cantidadReportesSustento) {
+        int cantidadReportesSustento,
+        @Schema(description = "Quién sostiene el evento: ACUACAR o PRENSA (boletín o nota), VECINOS (quórum) o VEEDOR "
+                + "(panel). Nulo en los eventos anteriores a este dato.", nullable = true)
+        String fuente,
+        @Schema(description = "Los vecinos que sostienen el cambio y cuántos hacían falta («11 de 12»). Nulo si el "
+                + "evento no nace de un quórum.", nullable = true)
+        RespaldoRespuesta respaldo) {
+
+    @Schema(description = "Cuántos vecinos respaldan un cambio y cuántos hacían falta")
+    public record RespaldoRespuesta(int vecinos, int umbral) {
+    }
 }

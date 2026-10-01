@@ -7,18 +7,22 @@ import com.aguavigia.ctg.domain.PropuestaId;
 import com.aguavigia.ctg.domain.PropuestaIngesta;
 import com.aguavigia.ctg.domain.port.in.RevisarPropuestaIngestaUseCase;
 import com.aguavigia.ctg.domain.port.out.PropuestaIngestaRepository;
+import com.aguavigia.ctg.api.dto.SolicitudAnulacion;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -105,5 +109,29 @@ public class IngestaRevisionController {
     @PatchMapping("/{id}/descartar")
     public PropuestaIngestaRespuesta descartar(@PathVariable String id) {
         return mapper.aRespuesta(revisarPropuesta.descartar(new PropuestaId(id)));
+    }
+
+    @Operation(operationId = "anularPropuesta", summary = "Anular una propuesta ya aprobada",
+            description = """
+                    Deshace una aprobación por error: la propuesta queda ANULADA con su motivo, deja de afirmar nada
+                    del presente, la bitácora anexa una corrección que cita el boletín y el barrio se recalcula.
+                    Queda constancia en la auditoría.""")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Propuesta anulada"),
+            @ApiResponse(responseCode = "400", description = "Falta el motivo",
+                    content = @Content(mediaType = "application/problem+json",
+                            schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "404", description = "La propuesta no existe",
+                    content = @Content(mediaType = "application/problem+json",
+                            schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "409", description = "La propuesta no estaba aprobada",
+                    content = @Content(mediaType = "application/problem+json",
+                            schema = @Schema(implementation = ProblemDetail.class)))
+    })
+    @PreAuthorize("hasAuthority('PERM_REVISAR_INGESTA')")
+    @PatchMapping("/{id}/anulacion")
+    public PropuestaIngestaRespuesta anular(@PathVariable String id, @Valid @RequestBody SolicitudAnulacion solicitud,
+                                            HttpServletRequest peticion) {
+        return mapper.aRespuesta(revisarPropuesta.anular(new PropuestaId(id), solicitud.motivo(), ContextoHttp.de(peticion)));
     }
 }

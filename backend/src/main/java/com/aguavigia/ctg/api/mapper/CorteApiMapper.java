@@ -23,13 +23,23 @@ public interface CorteApiMapper {
     @Mapping(target = "sectoresAfectados", expression = "java(idsComoTexto(corte.sectoresAfectados()))")
     @Mapping(target = "inicio", expression = "java(corte.ventana().inicio())")
     @Mapping(target = "finPrometido", expression = "java(corte.ventana().finPrometido())")
-    @Mapping(target = "finReal", expression = "java(corte.ventana().finReal())")
     @Mapping(target = "causa", expression = "java(corte.causa())")
     @Mapping(target = "origen", expression = "java(corte.origen().name())")
     @Mapping(target = "estado", expression = "java(corte.estado().name())")
+    @Mapping(target = "cierres", expression = "java(cierresComoRespuesta(corte))")
+    @Mapping(target = "motivoAnulacion", expression = "java(corte.motivoAnulacion())")
+    @Mapping(target = "caducaEn", expression = "java(corte.caducaEn())")
     CorteRespuesta aRespuesta(CorteAgua corte);
 
     List<CorteRespuesta> aRespuestas(List<CorteAgua> cortes);
+
+    default List<CorteRespuesta.CierreRespuesta> cierresComoRespuesta(CorteAgua corte) {
+        return corte.cierres().entrySet().stream()
+                .sorted(java.util.Map.Entry.comparingByKey(java.util.Comparator.comparing(SectorId::valor)))
+                .map(entrada -> new CorteRespuesta.CierreRespuesta(entrada.getKey().valor(), entrada.getValue().hora(),
+                        entrada.getValue().fuente().name(), entrada.getValue().provisional()))
+                .toList();
+    }
 
     default List<String> idsComoTexto(List<SectorId> sectoresAfectados) {
         return sectoresAfectados.stream().map(SectorId::valor).toList();
@@ -46,6 +56,7 @@ public interface CorteApiMapper {
                 .inicio(solicitud.inicio())
                 .finPrometido(solicitud.finPrometido())
                 .causa(solicitud.causa())
+                .caducaEn(solicitud.caducaEn())
                 .origen(OrigenCorte.VEEDOR)
                 .build();
     }
