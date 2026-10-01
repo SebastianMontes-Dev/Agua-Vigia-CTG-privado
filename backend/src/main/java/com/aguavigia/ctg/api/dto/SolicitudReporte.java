@@ -3,9 +3,12 @@ package com.aguavigia.ctg.api.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.PositiveOrZero;
 
-@Schema(description = "Reporte ciudadano sin registro (RF005-RF008)")
+@Schema(description = """
+        Reporte ciudadano (RF005-RF008). La identidad de quien reporta no va en el cuerpo: viaja en la
+        cabecera `X-Dispositivo` (token de `POST /api/dispositivos`) o en la sesion de un vecino
+        (`Authorization: Bearer`). Un campo `huella` en el cuerpo, como el de versiones anteriores, se ignora.""")
 public record SolicitudReporte(
 
         @Schema(description = """
@@ -18,16 +21,16 @@ public record SolicitudReporte(
         @Schema(description = "SIN_AGUA, PRESION_BAJA o SERVICIO_RESTABLECIDO", example = "SIN_AGUA")
         String tipo,
 
-        @NotBlank
-        @Size(min = 32, max = 128, message = "La huella debe tener entre 32 y 128 caracteres")
-        @Schema(description = """
-                Huella anónima del dispositivo (ADR-007) — no es una cuenta ni un identificador
-                personal. El cliente la genera una vez (p. ej. un UUID persistido en el dispositivo,
-                hasheado) y la reutiliza en cada reporte; es lo único que permite RF006 (límite de
-                reportes por dispositivo) sin pedir registro.""")
-        String huella,
-
         @Valid
-        @Schema(description = "Opcional — solo si el usuario autorizó compartir su ubicación (RF007)")
-        CoordenadaDTO coordenada) {
+        @Schema(description = """
+                Opcional — solo si el usuario autorizo compartir su ubicacion (RF007). El servidor la usa para
+                verificar el reporte y guarda solo una aproximacion de unos 110 m.""")
+        CoordenadaDTO coordenada,
+
+        @PositiveOrZero
+        @Schema(description = """
+                Precision de la coordenada en metros (`coords.accuracy` del navegador). Sin ella, o si es peor que
+                200 m, la ubicacion no verifica el reporte.""",
+                example = "25.5", nullable = true)
+        Double precisionMetros) {
 }

@@ -51,7 +51,7 @@ class RegistrarReporteServiceUbicacionTest {
         evaluarConsenso = mock(EvaluarConsensoUseCase.class);
         RelojPort reloj = () -> AHORA;
         servicio = new RegistrarReporteService(sectores, reportes, contadorReportes, evaluarConsenso, reloj,
-                3, 30, 30);
+                3, 30, 30, mock(com.aguavigia.ctg.domain.port.out.HashDeRedPort.class), 200.0, 5);
 
         given(reportes.guardar(any(ReporteCiudadano.class))).willAnswer(i -> i.getArgument(0));
         given(reportes.contarRecientesPorSectorYDispositivo(any(), any(), any())).willReturn(0L);

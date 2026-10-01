@@ -5,6 +5,7 @@ import com.aguavigia.ctg.domain.EstadoModeracion;
 import com.aguavigia.ctg.domain.EvidenciaVencida;
 import com.aguavigia.ctg.domain.HuellaDispositivo;
 import com.aguavigia.ctg.domain.Pagina;
+import com.aguavigia.ctg.domain.NivelDeVerificacion;
 import com.aguavigia.ctg.domain.ReporteCiudadano;
 import com.aguavigia.ctg.domain.ReporteId;
 import com.aguavigia.ctg.domain.SectorId;
@@ -60,6 +61,9 @@ public class ReporteCiudadanoMongoAdapter implements ReporteCiudadanoRepository 
         documento.setEstadoModeracion(reporte.estadoModeracion().name());
         documento.setFotoUrl(reporte.fotoUrl());
         documento.setHuellasConfirmacion(reporte.huellasConfirmacion());
+        documento.setEsSensor(reporte.esSensor());
+        documento.setVerificacion(reporte.verificacion().name());
+        documento.setRedHash(reporte.redHash());
 
         repositorio.save(documento);
         return reporte;
@@ -182,6 +186,11 @@ public class ReporteCiudadanoMongoAdapter implements ReporteCiudadanoRepository 
                 documento.getTimestamp(),
                 estado,
                 documento.getFotoUrl(),
-                confirmaciones);
+                confirmaciones,
+                documento.isEsSensor(),
+                documento.getVerificacion() == null
+                        ? NivelDeVerificacion.NINGUNA
+                        : NivelDeVerificacion.valueOf(documento.getVerificacion()),
+                documento.getRedHash());
     }
 }

@@ -33,5 +33,14 @@ public class ReporteCiudadanoDocumento {
 
     private String fotoUrl;
 
+    /** El reporte lo envió un sensor de la red por `/api/iot/presion`. Falso en los documentos anteriores al dato. */
+    private boolean esSensor;
+
+    /** D16 — CUENTA_VERIFICADA, UBICACION_VERIFICADA o NINGUNA. Nulo en los documentos anteriores, que se leen como NINGUNA. */
+    private String verificacion;
+
+    /** D16 — resumen diario de la red de origen. Nulo si no se conoce (sensores, documentos anteriores). */
+    private String redHash;
+
     private java.util.Set<String> huellasConfirmacion = new java.util.HashSet<>();
 }

@@ -28,6 +28,7 @@ import com.aguavigia.ctg.domain.port.out.NotificacionCuentaPort;
 import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.ReporteCiudadanoRepository;
 import com.aguavigia.ctg.domain.port.out.ReservaDeEvaluacionPort;
+import com.aguavigia.ctg.domain.port.out.HashDeRedPort;
 import com.aguavigia.ctg.domain.port.out.RevocacionSesionPort;
 import com.aguavigia.ctg.domain.port.out.SectorRepository;
 import com.aguavigia.ctg.domain.port.out.SegundoFactorPort;
@@ -152,8 +153,12 @@ public class CasosDeUsoConfig {
             EvaluarConsensoUseCase evaluarConsenso, RelojPort reloj,
             @Value("${aguavigia.reportes.limite-por-dispositivo:3}") int limitePorDispositivo,
             @Value("${aguavigia.reportes.limite-por-sensor:30}") int limitePorSensor,
-            @Value("${aguavigia.reportes.ventana-limite-minutos:30}") long ventanaLimiteMinutos) {
+            @Value("${aguavigia.reportes.ventana-limite-minutos:30}") long ventanaLimiteMinutos,
+            @Value("${aguavigia.reportes.limite-por-vecino:5}") int limitePorVecino,
+            @Value("${aguavigia.reportes.precision-maxima-metros:200}") double precisionMaximaMetros,
+            HashDeRedPort hashDeRed) {
         return new RegistrarReporteService(sectores, reportes, contadorReportes, evaluarConsenso, reloj,
-                limitePorDispositivo, limitePorSensor, ventanaLimiteMinutos);
+                limitePorDispositivo, limitePorSensor, ventanaLimiteMinutos, hashDeRed, precisionMaximaMetros,
+                limitePorVecino);
     }
 }

@@ -1,6 +1,7 @@
 package com.aguavigia.ctg.infrastructure.ratelimit;
 
 import com.aguavigia.ctg.domain.LimiteDePeticionesExcedidoException;
+import com.aguavigia.ctg.domain.RedDeOrigen;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
@@ -55,7 +56,7 @@ public class RateLimitingInterceptor implements HandlerInterceptor {
     public boolean preHandle(@NonNull HttpServletRequest request,
                               @NonNull HttpServletResponse response,
                               @NonNull Object handler) {
-        String clave = "rate-limit:" + regla.ruta() + ":" + request.getRemoteAddr();
+        String clave = "rate-limit:" + regla.ruta() + ":" + RedDeOrigen.de(request.getRemoteAddr());
 
         List<?> resultado;
         try {

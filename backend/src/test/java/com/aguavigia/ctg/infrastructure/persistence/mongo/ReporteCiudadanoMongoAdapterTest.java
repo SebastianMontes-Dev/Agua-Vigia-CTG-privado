@@ -72,6 +72,45 @@ class ReporteCiudadanoMongoAdapterTest {
         assertThat(guardado.getDouble("latitud")).isEqualTo(10.39);
     }
 
+    /** Sin esto el quórum no podría saber, tras leer los reportes de la ventana, cuáles venían verificados ni de qué red. */
+    @Test
+    void debeConservarLaVerificacionYLaRedDelReporte() {
+        adaptador.guardar(new ReporteCiudadano(new ReporteId("r-v"), new SectorId("manga"), TipoReporte.SIN_AGUA, null,
+                new HuellaDispositivo("hash-v"), AHORA)
+                .conIdentidad(com.aguavigia.ctg.domain.NivelDeVerificacion.UBICACION_VERIFICADA, "red-a"));
+
+        ReporteCiudadano leido = adaptador.buscarPorId(new ReporteId("r-v")).orElseThrow();
+
+        assertThat(leido.verificacion()).isEqualTo(com.aguavigia.ctg.domain.NivelDeVerificacion.UBICACION_VERIFICADA);
+        assertThat(leido.redHash()).isEqualTo("red-a");
+    }
+
+    /** Los reportes guardados antes de D16 no traen estos campos: se leen sin verificación y sin red conocida. */
+    @Test
+    void unReporteAnteriorALaVerificacionDebeLeerseSinVerificacionNiRed() {
+        mongoTemplate.getDb().getCollection("reportes").insertOne(new org.bson.Document()
+                .append("_id", "r-viejo").append("sectorId", "manga").append("tipo", "SIN_AGUA")
+                .append("huella", "hash-viejo").append("timestamp", java.util.Date.from(AHORA)));
+
+        ReporteCiudadano leido = adaptador.buscarPorId(new ReporteId("r-viejo")).orElseThrow();
+
+        assertThat(leido.verificacion()).isEqualTo(com.aguavigia.ctg.domain.NivelDeVerificacion.NINGUNA);
+        assertThat(leido.redHash()).isNull();
+    }
+
+    /** El origen sensor se persiste tal cual: sin él, un recálculo posterior no sabría de quién es el voto. */
+    @Test
+    void debeConservarSiElReporteEsDeSensorYLosAnterioresAlDatoSonCiudadanos() {
+        adaptador.guardar(new ReporteCiudadano(new ReporteId("s1"), new SectorId("bocagrande"), TipoReporte.PRESION_BAJA,
+                null, HuellaDispositivo.deSensor("sensor-1"), AHORA).comoDeSensor());
+        mongoTemplate.getDb().getCollection("reportes").insertOne(new org.bson.Document()
+                .append("_id", "viejo").append("sectorId", "bocagrande").append("tipo", "SIN_AGUA")
+                .append("huella", "h").append("timestamp", java.util.Date.from(AHORA)));
+
+        assertThat(adaptador.buscarPorId(new ReporteId("s1")).orElseThrow().esSensor()).isTrue();
+        assertThat(adaptador.buscarPorId(new ReporteId("viejo")).orElseThrow().esSensor()).isFalse();
+    }
+
     @Test
     void debeGuardarUnReporteSinCoordenada() {
         ReporteCiudadano reporte = new ReporteCiudadano(

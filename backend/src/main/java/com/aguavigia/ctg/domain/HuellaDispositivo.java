@@ -1,8 +1,12 @@
 package com.aguavigia.ctg.domain;
 
 /**
- * Identificador anónimo del aparato que reporta (ADR-007). No es una cuenta ni un dato personal:
- * es lo único que permite RF006 (límite de reportes por dispositivo) sin pedir registro.
+ * Identidad con la que vota un reporte (ADR-007, ADR-090): el SHA-256 del id de un dispositivo que el servidor
+ * emitió, o de una cuenta de vecino. Permite RF006 (límite de reportes) y un voto por identidad en el quórum.
+ *
+ * Ya no la elige el cliente. Ojo con la de cuenta: se deriva solo del id de usuario, sin secreto, así que quien
+ * conozca ese id (un ADMIN que lista cuentas) puede recalcularla y enlazar los reportes de esa cuenta. Es lo que
+ * hace que una cuenta vote como una persona, pero no es anónima.
  *
  * El prefijo `IoT-` marca una huella de sensor (M13) solo como *forma*, para que quede legible en
  * Mongo — no es la fuente de verdad de si un reporte viene de un sensor. Esa decisión la toma
@@ -19,6 +23,34 @@ public record HuellaDispositivo(String hash) {
     public HuellaDispositivo {
         if (hash == null || hash.isBlank()) {
             throw new IllegalArgumentException("La huella de dispositivo no puede estar vacía");
+        }
+    }
+
+    /**
+     * D7 — la huella de quien reporta con un token de dispositivo: el SHA-256 del id que firmó el servidor. Ya no
+     * la inventa el cliente, así que no se puede fabricar una por reporte; y no contiene el id, que no tiene por qué
+     * repetirse en cada reporte guardado.
+     */
+    public static HuellaDispositivo deDispositivo(DispositivoId dispositivo) {
+        return new HuellaDispositivo(sha256("dispositivo:" + dispositivo.valor()));
+    }
+
+    /**
+     * Quien reporta desde su cuenta vota como una sola persona aunque use varios aparatos. El espacio de nombres
+     * («cuenta:» frente a «dispositivo:») impide que un id de cuenta y uno de dispositivo con el mismo texto sean el
+     * mismo votante.
+     */
+    public static HuellaDispositivo deCuenta(UsuarioId cuenta) {
+        return new HuellaDispositivo(sha256("cuenta:" + cuenta.valor()));
+    }
+
+    private static String sha256(String texto) {
+        try {
+            java.security.MessageDigest resumen = java.security.MessageDigest.getInstance("SHA-256");
+            return java.util.HexFormat.of().formatHex(
+                    resumen.digest(texto.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        } catch (java.security.NoSuchAlgorithmException imposibleEnCualquierJvm) {
+            throw new IllegalStateException("SHA-256 no disponible", imposibleEnCualquierJvm);
         }
     }
 

@@ -90,6 +90,21 @@ class ModeracionReporteControllerTest {
                 .andExpect(jsonPath("$[0].estadoModeracion").value("PENDIENTE"));
     }
 
+    /** D16: el veedor ve cuánto respalda el servidor a cada reporte, sin la red de origen (que no sale de la base). */
+    @Test
+    void laColaDebeMostrarElNivelDeVerificacionSinLaRed() throws Exception {
+        autenticarComoVeedor();
+        given(reportes.listarPendientes(anyInt(), anyInt())).willReturn(new Pagina<>(List.of(
+                reporte(EstadoModeracion.PENDIENTE)
+                        .conIdentidad(com.aguavigia.ctg.domain.NivelDeVerificacion.CUENTA_VERIFICADA, "red-secreta")),
+                0, 50, 1));
+
+        mockMvc.perform(get("/api/veedor/reportes/pendientes").header("Authorization", TOKEN))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].verificacion").value("CUENTA_VERIFICADA"))
+                .andExpect(jsonPath("$[0].redHash").doesNotExist());
+    }
+
     @Test
     void debeAprobarUnReporte() throws Exception {
         autenticarComoVeedor();

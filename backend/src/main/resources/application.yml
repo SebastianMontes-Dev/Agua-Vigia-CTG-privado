@@ -75,6 +75,11 @@ aguavigia:
     # cada pocos minutos por diseno: con el cupo ciudadano se autobloqueaba al cuarto envio.
     limite-por-dispositivo: 3
     limite-por-sensor: 30
+    # Plan §2: un vecino registrado reporta hasta 5 veces por sector en la ventana (3 el anonimo). Tiene cuenta, se
+    # le puede suspender, y su reporte vale mas porque lleva verificacion.
+    limite-por-vecino: 5
+    # Una ubicacion peor que esto (aproximada por red) no verifica el reporte: decenas de metros bastan para un barrio.
+    precision-maxima-metros: 200
     ventana-limite-minutos: 30
   cache:
     ttl-segundos-por-cache:

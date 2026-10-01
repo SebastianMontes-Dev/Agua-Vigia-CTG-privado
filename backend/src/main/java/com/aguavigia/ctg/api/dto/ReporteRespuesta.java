@@ -11,5 +11,10 @@ public record ReporteRespuesta(
         String tipo,
         Instant timestamp,
         String fotoUrl,
-        Integer confirmaciones) {
+        Integer confirmaciones,
+
+        @Schema(description = """
+                Cuanto respalda el servidor que quien reporta esta en el barrio: CUENTA_VERIFICADA, UBICACION_VERIFICADA
+                o NINGUNA. Lo decide el servidor; el cliente solo lo muestra.""")
+        String verificacion) {
 }

@@ -53,7 +53,7 @@ class RegistrarReporteServiceTest {
         evaluarConsenso = mock(EvaluarConsensoUseCase.class);
         RelojPort reloj = () -> AHORA;
         servicio = new RegistrarReporteService(sectores, reportes, contadorReportes, evaluarConsenso, reloj,
-                LIMITE, LIMITE_SENSOR, 30);
+                LIMITE, LIMITE_SENSOR, 30, mock(com.aguavigia.ctg.domain.port.out.HashDeRedPort.class), 200.0, 5);
 
         given(reportes.guardar(any(ReporteCiudadano.class)))
                 .willAnswer(invocacion -> invocacion.getArgument(0));
@@ -75,6 +75,21 @@ class RegistrarReporteServiceTest {
         assertThat(reporte.timestamp()).isEqualTo(AHORA);
         verify(contadorReportes).registrar(new SectorId("bocagrande"), HUELLA);
         verify(evaluarConsenso).evaluar(new SectorId("bocagrande"));
+    }
+
+    /** El origen sensor lo decide el endpoint por el que entró la petición, no la huella: queda guardado en el reporte. */
+    @Test
+    void unReporteDeSensorQuedaMarcadoComoDeSensorYUnoCiudadanoNo() {
+        Sector bocagrande = new Sector(new SectorId("bocagrande"), "BOCAGRANDE", 12000, EstadoServicio.SIN_SERVICIO);
+        given(sectores.buscarPorId(new SectorId("bocagrande"))).willReturn(Optional.of(bocagrande));
+
+        ReporteCiudadano deSensor = servicio.registrar(
+                new SectorId("bocagrande"), TipoReporte.PRESION_BAJA, null, HuellaDispositivo.deSensor("s1"), true);
+        ReporteCiudadano deCiudadano = servicio.registrar(
+                new SectorId("bocagrande"), TipoReporte.PRESION_BAJA, null, HUELLA, false);
+
+        assertThat(deSensor.esSensor()).isTrue();
+        assertThat(deCiudadano.esSensor()).isFalse();
     }
 
     @Test

@@ -64,6 +64,19 @@ class RateLimitingInterceptorTest {
         return request;
     }
 
+    /** Sin esto, quien tenga un /64 IPv6 tendría un cupo por cada una de sus 2^64 direcciones. */
+    @Test
+    void lasDireccionesIpv6DeUnMismoPrefijo64DebenCompartirElCupo() {
+        for (int i = 1; i <= 3; i++) {
+            assertThat(interceptor.preHandle(peticionDesde("2800:484:1234:5678::" + i),
+                    new MockHttpServletResponse(), new Object())).isTrue();
+        }
+
+        assertThatThrownBy(() -> interceptor.preHandle(peticionDesde("2800:484:1234:5678:ffff::9"),
+                new MockHttpServletResponse(), new Object()))
+                .isInstanceOf(LimiteDePeticionesExcedidoException.class);
+    }
+
     @Test
     void debePermitirPeticionesDentroDelLimite() {
         for (int i = 0; i < 3; i++) {
