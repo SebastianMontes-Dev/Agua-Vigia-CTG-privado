@@ -87,6 +87,17 @@ public class AutenticarUsuarioService implements AutenticarUsuarioUseCase {
     @Override
     public SesionEmitida autenticar(CorreoElectronico correo, String claveEnClaro, String codigoTotp,
                                     ContextoDeAccion contexto) {
+        return autenticarComo(false, correo, claveEnClaro, codigoTotp, contexto);
+    }
+
+    @Override
+    public SesionEmitida autenticarVecino(CorreoElectronico correo, String claveEnClaro,
+                                          ContextoDeAccion contexto) {
+        return autenticarComo(true, correo, claveEnClaro, null, contexto);
+    }
+
+    private SesionEmitida autenticarComo(boolean comoVecino, CorreoElectronico correo, String claveEnClaro,
+                                         String codigoTotp, ContextoDeAccion contexto) {
         String cuenta = correo.normalizado().valor();
         String clave = cuenta + "|" + contexto.ip();
 
@@ -111,6 +122,16 @@ public class AutenticarUsuarioService implements AutenticarUsuarioUseCase {
 
         if (usuario.claveHash() == null || !cifrador.coincide(claveEnClaro, usuario.claveHash())) {
             fallar(usuario, "Clave incorrecta", clave, contexto);
+            throw new CredencialInvalidaException("Correo o clave incorrectos.");
+        }
+
+        // Cada ingreso solo abre su propia puerta. Se responde igual que a una clave mala: si no, el
+        // ingreso diría qué correos son de vecinos y cuáles del panel. Va tras validar la clave por
+        // la misma razón que el estado de la cuenta (punto 3 de la cabecera).
+        if (usuario.esVecino() != comoVecino) {
+            fallar(usuario, comoVecino
+                    ? "Cuenta del panel en el ingreso de vecinos"
+                    : "Cuenta de vecino en el ingreso del panel", clave, contexto);
             throw new CredencialInvalidaException("Correo o clave incorrectos.");
         }
 

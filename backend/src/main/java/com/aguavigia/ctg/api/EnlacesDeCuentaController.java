@@ -1,6 +1,7 @@
 package com.aguavigia.ctg.api;
 
 import com.aguavigia.ctg.domain.ClaveEnClaro;
+import com.aguavigia.ctg.domain.Usuario;
 import com.aguavigia.ctg.domain.port.in.AceptarInvitacionUseCase;
 import com.aguavigia.ctg.domain.port.in.RestablecerClaveUseCase;
 import com.aguavigia.ctg.domain.port.in.VerificarCorreoUseCase;
@@ -58,9 +59,11 @@ public class EnlacesDeCuentaController {
     @PostMapping(value = "/verificar", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
     public ResponseEntity<String> verificarCorreo(@RequestParam String token, HttpServletRequest peticion) {
         try {
-            verificar.verificar(token, ContextoHttp.de(peticion));
-            return PaginaDeCortesia.resultado("Correo confirmado",
-                    "Listo. Un administrador revisará tu solicitud y te avisaremos por correo cuando decida.", true);
+            Usuario verificado = verificar.verificar(token, ContextoHttp.de(peticion));
+            return PaginaDeCortesia.resultado("Correo confirmado", verificado.esVecino()
+                    ? "Listo. Tu cuenta ya está activa: puedes iniciar sesión."
+                    : "Listo. Un administrador revisará tu solicitud y te avisaremos por correo cuando decida.",
+                    true);
         } catch (IllegalArgumentException enlaceInvalido) {
             return PaginaDeCortesia.resultado("No pudimos confirmar tu correo", enlaceInvalido.getMessage(), false);
         }

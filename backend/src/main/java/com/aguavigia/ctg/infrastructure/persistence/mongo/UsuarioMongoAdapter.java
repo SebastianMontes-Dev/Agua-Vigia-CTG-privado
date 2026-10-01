@@ -1,7 +1,9 @@
 package com.aguavigia.ctg.infrastructure.persistence.mongo;
 
 import com.aguavigia.ctg.domain.ClaveHash;
+import com.aguavigia.ctg.domain.Consentimiento;
 import com.aguavigia.ctg.domain.CorreoElectronico;
+import com.aguavigia.ctg.domain.TipoConsentimiento;
 import com.aguavigia.ctg.domain.EstadoCuenta;
 import com.aguavigia.ctg.domain.Pagina;
 import com.aguavigia.ctg.domain.Permiso;
@@ -50,6 +52,10 @@ public class UsuarioMongoAdapter implements UsuarioRepository {
                 ? null : usuario.segundoFactor().confirmadoEn());
         documento.setCreadoEn(usuario.creadoEn());
         documento.setActualizadoEn(usuario.actualizadoEn());
+        documento.setConsentimientos(usuario.consentimientos().stream()
+                .map(UsuarioMongoAdapter::aDocumento).toList());
+        documento.setBarrioVerificado(usuario.barrioVerificado());
+        documento.setBarrioVerificadoEn(usuario.barrioVerificadoEn());
 
         try {
             repositorio.save(documento);
@@ -146,6 +152,24 @@ public class UsuarioMongoAdapter implements UsuarioRepository {
                 segundoFactor,
                 documento.getCreadoEn(),
                 documento.getActualizadoEn(),
-                documento.getBarrio() == null ? null : new SectorId(documento.getBarrio()));
+                documento.getBarrio() == null ? null : new SectorId(documento.getBarrio()),
+                documento.getConsentimientos() == null
+                        ? List.of()
+                        : documento.getConsentimientos().stream().map(UsuarioMongoAdapter::aDominio).toList(),
+                documento.isBarrioVerificado(),
+                documento.getBarrioVerificadoEn());
+    }
+
+    private static UsuarioDocumento.ConsentimientoDocumento aDocumento(Consentimiento consentimiento) {
+        UsuarioDocumento.ConsentimientoDocumento documento = new UsuarioDocumento.ConsentimientoDocumento();
+        documento.setTipo(consentimiento.tipo().name());
+        documento.setVersion(consentimiento.version());
+        documento.setFecha(consentimiento.fecha());
+        return documento;
+    }
+
+    private static Consentimiento aDominio(UsuarioDocumento.ConsentimientoDocumento documento) {
+        return new Consentimiento(TipoConsentimiento.valueOf(documento.getTipo()), documento.getVersion(),
+                documento.getFecha());
     }
 }

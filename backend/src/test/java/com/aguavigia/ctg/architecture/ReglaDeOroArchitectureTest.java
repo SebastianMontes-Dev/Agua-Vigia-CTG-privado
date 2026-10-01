@@ -203,6 +203,42 @@ class ReglaDeOroArchitectureTest {
         regla.check(CLASES_PRODUCCION);
     }
 
+    /** Rutas del vecino sin permiso a propósito: solo el ingreso, que nadie puede tener antes de hacerlo. */
+    private static final Set<String> RUTAS_DEL_VECINO_SIN_PERMISO = Set.of("/api/vecino/sesion");
+
+    /**
+     * Igual que el panel: SecurityConfig pide sesión para todo /api/vecino/**, pero qué puede hacer esa sesión lo dice
+     * @PreAuthorize. Sin él, una sesión de cualquier otro rol (un OBSERVADOR, por ejemplo) llegaría a estas rutas.
+     */
+    @Test
+    void todaRutaDelVecinoDebeExigirUnPermiso() {
+        DescribedPredicate<JavaMethod> atiendeRutaDelVecino = new DescribedPredicate<>("atienden una ruta de /api/vecino/**") {
+            @Override
+            public boolean test(JavaMethod metodo) {
+                return rutasDe(metodo).stream().anyMatch(ruta -> ruta.startsWith("/api/vecino")
+                        && !RUTAS_DEL_VECINO_SIN_PERMISO.contains(ruta));
+            }
+        };
+        ArchCondition<JavaMethod> llevaPreAuthorize = new ArchCondition<>("llevar @PreAuthorize en el método o en su clase") {
+            @Override
+            public void check(JavaMethod metodo, ConditionEvents eventos) {
+                boolean lleva = metodo.isAnnotatedWith(PreAuthorize.class)
+                        || metodo.getOwner().isAnnotatedWith(PreAuthorize.class);
+                if (!lleva) {
+                    eventos.add(SimpleConditionEvent.violated(metodo, metodo.getFullName()
+                            + " atiende " + rutasDe(metodo) + " sin @PreAuthorize"));
+                }
+            }
+        };
+
+        ArchRule regla = methods()
+                .that().areDeclaredInClassesThat().areAnnotatedWith(RestController.class)
+                .and(atiendeRutaDelVecino)
+                .should(llevaPreAuthorize);
+
+        regla.check(CLASES_PRODUCCION);
+    }
+
     /** Las rutas completas (la de la clase más la del método) que atiende un método de controlador. */
     private static List<String> rutasDe(JavaMethod metodo) {
         Method reflejado = metodo.reflect();

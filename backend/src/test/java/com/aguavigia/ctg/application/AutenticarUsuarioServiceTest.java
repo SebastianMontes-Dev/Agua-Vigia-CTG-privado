@@ -8,6 +8,7 @@ import com.aguavigia.ctg.domain.CredencialInvalidaException;
 import com.aguavigia.ctg.domain.CuentaBloqueadaException;
 import com.aguavigia.ctg.domain.CuentaNoHabilitadaException;
 import com.aguavigia.ctg.domain.EstadoCuenta;
+import com.aguavigia.ctg.domain.Permiso;
 import com.aguavigia.ctg.domain.PermisosEfectivos;
 import com.aguavigia.ctg.domain.RolVeedor;
 import com.aguavigia.ctg.domain.SecretoTotp;
@@ -87,6 +88,106 @@ class AutenticarUsuarioServiceTest {
 
     private void laClaveEsCorrecta() {
         given(cifrador.coincide(eq(CLAVE), any())).willReturn(true);
+    }
+
+    @Test
+    void unVecinoActivoDebeObtenerSesionCompletaSoloConSuPermisoDePerfil() {
+        existeLaCuenta(cuenta(EstadoCuenta.ACTIVA, RolVeedor.VECINO));
+        laClaveEsCorrecta();
+
+        var sesion = servicio.autenticarVecino(CORREO, CLAVE, CONTEXTO);
+
+        assertThat(sesion.token()).isEqualTo("token-emitido");
+        assertThat(sesion.alcance()).isEqualTo(AlcanceSesion.COMPLETO);
+        assertThat(sesion.rol()).isEqualTo(RolVeedor.VECINO);
+        assertThat(sesion.permisos()).containsExactly(Permiso.GESTIONAR_PERFIL_PROPIO);
+    }
+
+    /** Un vecino no entra por el ingreso del panel, ni siquiera con su clave correcta. */
+    @Test
+    void unVecinoNoDebeObtenerSesionPorElIngresoDelPanel() {
+        existeLaCuenta(cuenta(EstadoCuenta.ACTIVA, RolVeedor.VECINO));
+        laClaveEsCorrecta();
+
+        assertThatExceptionOfType(CredencialInvalidaException.class)
+                .isThrownBy(() -> servicio.autenticar(CORREO, CLAVE, null, CONTEXTO));
+
+        verify(emisor, never()).emitir(any(), any());
+    }
+
+    /** Y al revés: el ingreso de vecinos no sirve para abrir una sesión del panel. */
+    @Test
+    void unaCuentaDelPanelNoDebeObtenerSesionPorElIngresoDeVecinos() {
+        existeLaCuenta(cuenta(EstadoCuenta.ACTIVA, RolVeedor.ADMIN));
+        laClaveEsCorrecta();
+
+        assertThatExceptionOfType(CredencialInvalidaException.class)
+                .isThrownBy(() -> servicio.autenticarVecino(CORREO, CLAVE, CONTEXTO));
+
+        verify(emisor, never()).emitir(any(), any());
+    }
+
+    /** Si el rechazo por rol se distinguiera del de clave mala, el ingreso diría qué correos son de vecinos. */
+    @Test
+    void elRechazoPorRolDebeSerIgualAlDeUnaClaveEquivocada() {
+        existeLaCuenta(cuenta(EstadoCuenta.ACTIVA, RolVeedor.ADMIN));
+        given(cifrador.coincide(anyString(), any())).willReturn(false);
+        String mensajeClaveMala = mensajeAlIngresarComoVecino();
+
+        laClaveEsCorrecta();
+        String mensajeRolEquivocado = mensajeAlIngresarComoVecino();
+
+        assertThat(mensajeRolEquivocado).isEqualTo(mensajeClaveMala);
+    }
+
+    private String mensajeAlIngresarComoVecino() {
+        try {
+            servicio.autenticarVecino(CORREO, CLAVE, CONTEXTO);
+            throw new AssertionError("Debía rechazar la credencial");
+        } catch (CredencialInvalidaException esperada) {
+            return esperada.getMessage();
+        }
+    }
+
+    @Test
+    void elRechazoPorRolDebeContarComoIntentoFallido() {
+        existeLaCuenta(cuenta(EstadoCuenta.ACTIVA, RolVeedor.ADMIN));
+        laClaveEsCorrecta();
+
+        assertThatExceptionOfType(CredencialInvalidaException.class)
+                .isThrownBy(() -> servicio.autenticarVecino(CORREO, CLAVE, CONTEXTO));
+
+        verify(intentos).registrarFallo(eq("ana@ejemplo.org|10.0.0.1"), any(), anyInt(), any());
+    }
+
+    @Test
+    void unVecinoQueNoVerificoSuCorreoNoDebeEntrar() {
+        existeLaCuenta(cuenta(EstadoCuenta.PENDIENTE_VERIFICACION, RolVeedor.VECINO));
+        laClaveEsCorrecta();
+
+        assertThatExceptionOfType(CuentaNoHabilitadaException.class)
+                .isThrownBy(() -> servicio.autenticarVecino(CORREO, CLAVE, CONTEXTO));
+    }
+
+    @Test
+    void unVecinoConClaveEquivocadaDebeSumarAlBloqueoDeLaCuenta() {
+        existeLaCuenta(cuenta(EstadoCuenta.ACTIVA, RolVeedor.VECINO));
+        given(cifrador.coincide(anyString(), any())).willReturn(false);
+
+        assertThatExceptionOfType(CredencialInvalidaException.class)
+                .isThrownBy(() -> servicio.autenticarVecino(CORREO, "otra-clave-larga", CONTEXTO));
+
+        verify(intentos).registrarFallo(eq("ana@ejemplo.org|10.0.0.1"), any(), anyInt(), any());
+    }
+
+    @Test
+    void unIngresoDeVecinoDebeRespetarElBloqueoVigente() {
+        given(intentos.bloqueoVigente("ana@ejemplo.org|10.0.0.1")).willReturn(Optional.of(Duration.ofMinutes(10)));
+
+        assertThatExceptionOfType(CuentaBloqueadaException.class)
+                .isThrownBy(() -> servicio.autenticarVecino(CORREO, CLAVE, CONTEXTO));
+
+        verify(usuarios, never()).buscarPorCorreo(any());
     }
 
     @Test

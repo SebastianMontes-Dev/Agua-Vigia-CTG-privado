@@ -64,6 +64,28 @@ class MailCuentaAdapterTest {
         assertThat(cuerpoEnviado()).contains(URL_PUBLICA + "/api/cuentas/enlaces/verificar?token=tok-verif");
     }
 
+    private static Usuario vecino(String nombre) {
+        return Usuario.registradoComoVecino(new UsuarioId("v-1"), new CorreoElectronico("vecina@correo.com"),
+                nombre, new com.aguavigia.ctg.domain.ClaveHash(
+                        "$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy"),
+                new com.aguavigia.ctg.domain.SectorId("manga"),
+                java.util.List.of(new com.aguavigia.ctg.domain.Consentimiento(
+                        com.aguavigia.ctg.domain.TipoConsentimiento.PRIVACIDAD, "v1", AHORA)), AHORA);
+    }
+
+    /** A un vecino nadie le revisa la solicitud ni le da acceso al panel: el correo no debe prometerlo. */
+    @Test
+    void elCorreoDeVerificacionDeUnVecinoNoDebeHablarDelPanelNiDeAprobacion() throws Exception {
+        adaptador.enviarVerificacionDeCorreo(vecino("Vecina"), "tok-verif");
+
+        ArgumentCaptor<MimeMessage> captor = ArgumentCaptor.forClass(MimeMessage.class);
+        verify(mailSender).send(captor.capture());
+        String cuerpo = captor.getValue().getContent().toString();
+        assertThat(cuerpo).contains(URL_PUBLICA + "/api/cuentas/enlaces/verificar?token=tok-verif")
+                .doesNotContain("panel").doesNotContain("administrador");
+        assertThat(captor.getValue().getSubject()).doesNotContain("panel");
+    }
+
     @Test
     void elCorreoDeInvitacionDebeApuntarALaPantallaDelBackend() throws Exception {
         adaptador.enviarInvitacion(usuario("Beto"), usuario("Ana"), "tok-invit");

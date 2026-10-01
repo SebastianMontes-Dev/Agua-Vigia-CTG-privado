@@ -56,6 +56,175 @@ class UsuarioTest {
         assertThat(invitado.barrio()).isEqualTo(new SectorId("crespo"));
     }
 
+    /** El rol VECINO nace del registro abierto; desde el panel no se puede invitar, aprobar ni asignar. */
+    @Test
+    void debeRechazarInvitarComoVecino() {
+        assertThatIllegalArgumentException().isThrownBy(() -> Usuario.invitado(
+                new UsuarioId("u-4"), new CorreoElectronico("i@ejemplo.org"), "Invitada",
+                RolVeedor.VECINO, AHORA));
+    }
+
+    @Test
+    void debeRechazarAprobarUnaCuentaDelPanelComoVecino() {
+        Usuario pendiente = registrado().verificarCorreo(AHORA);
+
+        assertThatIllegalArgumentException().isThrownBy(
+                () -> pendiente.aprobar(PermisosEfectivos.deRol(RolVeedor.VECINO), DESPUES));
+    }
+
+    @Test
+    void debeRechazarConvertirUnaCuentaDelPanelEnVecino() {
+        assertThatIllegalArgumentException().isThrownBy(
+                () -> activo().cambiarPermisos(PermisosEfectivos.deRol(RolVeedor.VECINO), DESPUES));
+    }
+
+    @Test
+    void debeRechazarAscenderUnVecinoAUnRolDePanel() {
+        Usuario vecino = new Usuario(new UsuarioId("u-5"), new CorreoElectronico("v@ejemplo.org"),
+                "Vecina", HASH, EstadoCuenta.ACTIVA, PermisosEfectivos.deRol(RolVeedor.VECINO),
+                null, AHORA, AHORA);
+
+        assertThatIllegalArgumentException().isThrownBy(
+                () -> vecino.cambiarPermisos(PermisosEfectivos.deRol(RolVeedor.VEEDOR), DESPUES));
+    }
+
+    private static final SectorId MANGA = new SectorId("manga");
+
+    private static Usuario vecino() {
+        return Usuario.registradoComoVecino(new UsuarioId("v-1"), new CorreoElectronico("vecina@ejemplo.org"),
+                "Vecina", HASH, MANGA,
+                java.util.List.of(new Consentimiento(TipoConsentimiento.PRIVACIDAD, "v1", AHORA)), AHORA);
+    }
+
+    private static Usuario vecinoActivo() {
+        return vecino().verificarCorreo(AHORA);
+    }
+
+    @Test
+    void unVecinoDebeNacerConRolVecinoSinPoderEntrarYConSuBarrioSinVerificar() {
+        Usuario nuevo = vecino();
+
+        assertThat(nuevo.permisos().rol()).isEqualTo(RolVeedor.VECINO);
+        assertThat(nuevo.estado()).isEqualTo(EstadoCuenta.PENDIENTE_VERIFICACION);
+        assertThat(nuevo.barrio()).isEqualTo(MANGA);
+        assertThat(nuevo.barrioVerificado()).isFalse();
+        assertThat(nuevo.barrioVerificadoEn()).isNull();
+        assertThat(nuevo.consentimientos()).hasSize(1);
+        assertThat(nuevo.recibeAvisos()).isFalse();
+    }
+
+    @Test
+    void debeExigirBarrioAlRegistrarUnVecino() {
+        assertThatIllegalArgumentException().isThrownBy(() -> Usuario.registradoComoVecino(
+                new UsuarioId("v-1"), new CorreoElectronico("vecina@ejemplo.org"), "Vecina", HASH, null,
+                java.util.List.of(new Consentimiento(TipoConsentimiento.PRIVACIDAD, "v1", AHORA)), AHORA));
+    }
+
+    @Test
+    void debeExigirElConsentimientoDePrivacidadAlRegistrarUnVecino() {
+        assertThatIllegalArgumentException().isThrownBy(() -> Usuario.registradoComoVecino(
+                new UsuarioId("v-1"), new CorreoElectronico("vecina@ejemplo.org"), "Vecina", HASH, MANGA,
+                java.util.List.of(new Consentimiento(TipoConsentimiento.AVISOS, "v1", AHORA)), AHORA));
+    }
+
+    @Test
+    void debeRechazarUnVecinoSinClave() {
+        assertThatIllegalArgumentException().isThrownBy(() -> Usuario.registradoComoVecino(
+                new UsuarioId("v-1"), new CorreoElectronico("vecina@ejemplo.org"), "Vecina", null, MANGA,
+                java.util.List.of(new Consentimiento(TipoConsentimiento.PRIVACIDAD, "v1", AHORA)), AHORA));
+    }
+
+    /** El panel necesita aprobación humana; un vecino no pide nada que la requiera. */
+    @Test
+    void verificarElCorreoDeUnVecinoDebeActivarloSinAprobacionDeAdmin() {
+        Usuario verificado = vecino().verificarCorreo(DESPUES);
+
+        assertThat(verificado.estado()).isEqualTo(EstadoCuenta.ACTIVA);
+        assertThat(verificado.estado().permiteIniciarSesion()).isTrue();
+        assertThat(verificado.permisosEfectivos()).containsExactly(Permiso.GESTIONAR_PERFIL_PROPIO);
+    }
+
+    @Test
+    void verificarElCorreoDeUnaCuentaDelPanelDebeSeguirEsperandoAprobacion() {
+        assertThat(registrado().verificarCorreo(AHORA).estado())
+                .isEqualTo(EstadoCuenta.PENDIENTE_APROBACION);
+    }
+
+    @Test
+    void verificarElBarrioDebeMarcarloConSuFecha() {
+        Usuario verificado = vecinoActivo().verificarBarrio(DESPUES);
+
+        assertThat(verificado.barrioVerificado()).isTrue();
+        assertThat(verificado.barrioVerificadoEn()).isEqualTo(DESPUES);
+    }
+
+    @Test
+    void debeRechazarVerificarElBarrioDeUnaCuentaQueNoEsDeVecino() {
+        assertThatIllegalStateException().isThrownBy(() -> activo().verificarBarrio(DESPUES));
+    }
+
+    /** Verificar es probar que vive en ese barrio: al mudarse a otro, la prueba ya no vale. */
+    @Test
+    void mudarseDeBarrioDebeQuitarLaVerificacion() {
+        Usuario mudado = vecinoActivo().verificarBarrio(AHORA).mudarDeBarrio(new SectorId("crespo"), DESPUES);
+
+        assertThat(mudado.barrio()).isEqualTo(new SectorId("crespo"));
+        assertThat(mudado.barrioVerificado()).isFalse();
+        assertThat(mudado.barrioVerificadoEn()).isNull();
+    }
+
+    @Test
+    void declararElMismoBarrioNoDebeQuitarLaVerificacion() {
+        Usuario igual = vecinoActivo().verificarBarrio(AHORA).mudarDeBarrio(MANGA, DESPUES);
+
+        assertThat(igual.barrioVerificado()).isTrue();
+    }
+
+    @Test
+    void renombrarDebeConservarLaVerificacionDelBarrio() {
+        Usuario renombrado = vecinoActivo().verificarBarrio(AHORA).renombrar("  Ana María  ", DESPUES);
+
+        assertThat(renombrado.nombre()).isEqualTo("Ana María");
+        assertThat(renombrado.barrioVerificado()).isTrue();
+    }
+
+    @Test
+    void consentirAvisosDebeRegistrarLaVersionYLaFecha() {
+        Usuario conAvisos = vecinoActivo().consentirAvisos("v2", DESPUES);
+
+        assertThat(conAvisos.recibeAvisos()).isTrue();
+        assertThat(conAvisos.consentimientos()).contains(
+                new Consentimiento(TipoConsentimiento.AVISOS, "v2", DESPUES));
+    }
+
+    @Test
+    void consentirAvisosDosVecesNoDebeDuplicarElConsentimiento() {
+        Usuario conAvisos = vecinoActivo().consentirAvisos("v2", DESPUES).consentirAvisos("v3", DESPUES.plusSeconds(5));
+
+        assertThat(conAvisos.consentimientos().stream()
+                .filter(c -> c.tipo() == TipoConsentimiento.AVISOS)).hasSize(1);
+        assertThat(conAvisos.consentimientos()).contains(
+                new Consentimiento(TipoConsentimiento.AVISOS, "v3", DESPUES.plusSeconds(5)));
+    }
+
+    @Test
+    void retirarElConsentimientoDeAvisosDebeDejarElDePrivacidad() {
+        Usuario sinAvisos = vecinoActivo().consentirAvisos("v2", DESPUES)
+                .retirarConsentimientoDeAvisos(DESPUES.plusSeconds(5));
+
+        assertThat(sinAvisos.recibeAvisos()).isFalse();
+        assertThat(sinAvisos.consentimientos()).extracting(Consentimiento::tipo)
+                .containsExactly(TipoConsentimiento.PRIVACIDAD);
+    }
+
+    @Test
+    void debeRechazarUnBarrioVerificadoSinSuFecha() {
+        assertThatIllegalArgumentException().isThrownBy(() -> new Usuario(new UsuarioId("v-9"),
+                new CorreoElectronico("v@ejemplo.org"), "Vecina", HASH, EstadoCuenta.ACTIVA,
+                PermisosEfectivos.deRol(RolVeedor.VECINO), null, AHORA, AHORA, MANGA,
+                java.util.List.of(), true, null));
+    }
+
     @Test
     void debeRechazarUnRegistroSinClave() {
         assertThatIllegalArgumentException().isThrownBy(() -> Usuario.registrado(

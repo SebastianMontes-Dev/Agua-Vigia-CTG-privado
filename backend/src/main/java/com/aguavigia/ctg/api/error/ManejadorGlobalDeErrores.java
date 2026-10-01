@@ -8,6 +8,8 @@ import com.aguavigia.ctg.domain.LimiteDePeticionesExcedidoException;
 import com.aguavigia.ctg.domain.LimiteReportesExcedidoException;
 import com.aguavigia.ctg.domain.SegundoFactorRequeridoException;
 import com.aguavigia.ctg.domain.SesionSinCuentaException;
+import com.aguavigia.ctg.domain.UbicacionFueraDelBarrioException;
+import com.aguavigia.ctg.domain.UbicacionImprecisaException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
@@ -174,6 +176,27 @@ public class ManejadorGlobalDeErrores {
         problema.setTitle("Cuenta bloqueada temporalmente");
         problema.setType(URI.create(BASE_TIPO + "cuenta-bloqueada"));
         problema.setProperty("segundosRestantes", e.esperaRestante().toSeconds());
+        return problema;
+    }
+
+    /**
+     * 422 y no 400: la petición está bien formada, pero lo que dice no se puede cumplir (la ubicación
+     * no cae en el barrio declarado). El frontend reacciona por `type`, no por el texto.
+     */
+    @ExceptionHandler(UbicacionFueraDelBarrioException.class)
+    public ProblemDetail ubicacionFueraDelBarrio(UbicacionFueraDelBarrioException e) {
+        ProblemDetail problema = ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
+        problema.setTitle("La ubicación no está en tu barrio");
+        problema.setType(URI.create(BASE_TIPO + "ubicacion-fuera-del-barrio"));
+        return problema;
+    }
+
+    /** La lectura es demasiado aproximada para juzgarla; se puede reintentar con GPS. */
+    @ExceptionHandler(UbicacionImprecisaException.class)
+    public ProblemDetail ubicacionImprecisa(UbicacionImprecisaException e) {
+        ProblemDetail problema = ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
+        problema.setTitle("Ubicación demasiado imprecisa");
+        problema.setType(URI.create(BASE_TIPO + "ubicacion-imprecisa"));
         return problema;
     }
 

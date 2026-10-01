@@ -56,6 +56,10 @@ public class MailCuentaAdapter implements NotificacionCuentaPort {
     @Async
     @Override
     public void enviarVerificacionDeCorreo(Usuario usuario, String tokenEnClaro) {
+        if (usuario.esVecino()) {
+            enviarVerificacionDeVecino(usuario, tokenEnClaro);
+            return;
+        }
         String html = plantillaConEnlace.renderizar(Map.of(
                 "titulo", "Confirma tu correo",
                 "preencabezado", "Falta un paso para que tu solicitud de acceso llegue a un administrador.",
@@ -68,6 +72,21 @@ public class MailCuentaAdapter implements NotificacionCuentaPort {
                 "vigencia", vigenciaLegible(TipoTokenCuenta.VERIFICACION_CORREO)));
 
         enviar(usuario, "Confirma tu correo para acceder al panel de AguaVigía", html);
+    }
+
+    /** Un vecino no espera a ningún administrador: confirmar el correo activa su cuenta. */
+    private void enviarVerificacionDeVecino(Usuario vecino, String tokenEnClaro) {
+        String html = plantillaConEnlace.renderizar(Map.of(
+                "titulo", "Confirma tu correo",
+                "preencabezado", "Un paso para activar tu cuenta de AguaVigía.",
+                "nombre", escapar(vecino.nombre()),
+                "mensaje", "Recibimos tu registro en AguaVigía, el monitoreo ciudadano del agua en "
+                        + "Cartagena. Confirma que esta dirección es tuya y tu cuenta quedará activa.",
+                "textoBoton", "Confirmar mi correo",
+                "urlAccion", enlace("verificar", tokenEnClaro),
+                "vigencia", vigenciaLegible(TipoTokenCuenta.VERIFICACION_CORREO)));
+
+        enviar(vecino, "Confirma tu correo en AguaVigía", html);
     }
 
     @Override

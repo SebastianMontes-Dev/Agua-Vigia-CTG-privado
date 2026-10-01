@@ -2,7 +2,14 @@ package com.aguavigia.ctg.api;
 
 import com.aguavigia.ctg.api.error.ManejadorGlobalDeErrores;
 import com.aguavigia.ctg.domain.ClaveEnClaro;
+import com.aguavigia.ctg.domain.ClaveHash;
+import com.aguavigia.ctg.domain.Consentimiento;
 import com.aguavigia.ctg.domain.ContextoDeAccion;
+import com.aguavigia.ctg.domain.CorreoElectronico;
+import com.aguavigia.ctg.domain.SectorId;
+import com.aguavigia.ctg.domain.TipoConsentimiento;
+import com.aguavigia.ctg.domain.Usuario;
+import com.aguavigia.ctg.domain.UsuarioId;
 import com.aguavigia.ctg.domain.port.in.AceptarInvitacionUseCase;
 import com.aguavigia.ctg.domain.port.in.RestablecerClaveUseCase;
 import com.aguavigia.ctg.domain.port.in.VerificarCorreoUseCase;
@@ -19,8 +26,12 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.Instant;
+import java.util.List;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -75,15 +86,49 @@ class EnlacesDeCuentaControllerTest {
         verifyNoInteractions(verificar);
     }
 
+    private static final Instant AHORA = Instant.parse("2026-10-01T15:00:00Z");
+    private static final ClaveHash HASH =
+            new ClaveHash("$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy");
+
+    private static Usuario cuentaDelPanelVerificada() {
+        return Usuario.registrado(new UsuarioId("u-1"), new CorreoElectronico("ana@ejemplo.org"), "Ana", HASH, AHORA)
+                .verificarCorreo(AHORA);
+    }
+
+    private static Usuario vecinoVerificado() {
+        return Usuario.registradoComoVecino(new UsuarioId("v-1"), new CorreoElectronico("vecina@ejemplo.org"),
+                        "Vecina", HASH, new SectorId("manga"),
+                        List.of(new Consentimiento(TipoConsentimiento.PRIVACIDAD, "v1", AHORA)), AHORA)
+                .verificarCorreo(AHORA);
+    }
+
     @Test
     void enviarElFormularioDeVerificacionDebeConfirmarElCorreo() throws Exception {
+        given(verificar.verificar(eq(TOKEN), any(ContextoDeAccion.class))).willReturn(cuentaDelPanelVerificada());
+
         mockMvc.perform(post("/api/cuentas/enlaces/verificar")
                         .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                         .param("token", TOKEN))
                 .andExpect(status().isOk())
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("Correo confirmado")));
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Correo confirmado")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Un administrador revisará")));
 
         verify(verificar).verificar(eq(TOKEN), any(ContextoDeAccion.class));
+    }
+
+    /** Un vecino queda activo al confirmar: la página no debe decirle que espera a un administrador. */
+    @Test
+    void confirmarElCorreoDeUnVecinoDebeDecirleQueSuCuentaYaEstaActiva() throws Exception {
+        given(verificar.verificar(eq(TOKEN), any(ContextoDeAccion.class))).willReturn(vecinoVerificado());
+
+        mockMvc.perform(post("/api/cuentas/enlaces/verificar")
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                        .param("token", TOKEN))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Correo confirmado")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("ya está activa")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(
+                        org.hamcrest.Matchers.containsString("administrador"))));
     }
 
     @Test

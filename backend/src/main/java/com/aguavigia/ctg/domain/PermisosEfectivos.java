@@ -28,6 +28,18 @@ public record PermisosEfectivos(RolVeedor rol, Set<Permiso> concedidos, Set<Perm
                     "Un permiso no puede estar concedido y revocado a la vez: " + enConflicto);
         }
 
+        // El registro de vecinos es abierto: si un permiso de panel pudiera concederse a un VECINO,
+        // una cuenta creada por cualquiera acabaría con acceso al panel.
+        if (rol == RolVeedor.VECINO) {
+            Set<Permiso> deMas = EnumSet.noneOf(Permiso.class);
+            deMas.addAll(concedidos);
+            deMas.removeAll(rol.permisosBase());
+            if (!deMas.isEmpty()) {
+                throw new IllegalArgumentException(
+                        "Un vecino no puede recibir permisos de panel: " + deMas);
+            }
+        }
+
         // Sin esta guarda, revocar CONFIGURAR_SEGUNDO_FACTOR a un ADMIN lo deja fuera para siempre:
         // no puede entrar porque le falta el TOTP, y no puede darlo de alta porque le falta este
         // permiso. Es la única puerta que el propio modelo no permite cerrar.

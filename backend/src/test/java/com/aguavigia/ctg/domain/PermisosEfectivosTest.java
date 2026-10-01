@@ -84,6 +84,44 @@ class PermisosEfectivosTest {
     }
 
     @Test
+    void elVecinoDebeTenerSoloElPermisoDeGestionarSuPropioPerfil() {
+        assertThat(RolVeedor.VECINO.permisosBase())
+                .containsExactly(Permiso.GESTIONAR_PERFIL_PROPIO);
+        assertThat(RolVeedor.VECINO.exigeSegundoFactor()).isFalse();
+    }
+
+    @Test
+    void ningunRolDelPanelSalvoElAdminDebeGestionarPerfilDeVecino() {
+        assertThat(RolVeedor.VEEDOR.permisosBase()).doesNotContain(Permiso.GESTIONAR_PERFIL_PROPIO);
+        assertThat(RolVeedor.OBSERVADOR.permisosBase()).doesNotContain(Permiso.GESTIONAR_PERFIL_PROPIO);
+    }
+
+    /** Un vecino se registra solo: si pudiera recibir un permiso de panel, el registro abierto sería una puerta al panel. */
+    @Test
+    void debeRechazarConcederUnPermisoDePanelAUnVecino() {
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> new PermisosEfectivos(RolVeedor.VECINO,
+                        Set.of(Permiso.VER_PANEL), Set.of()))
+                .withMessageContaining("VER_PANEL");
+    }
+
+    @Test
+    void debeRechazarConcederAUnVecinoElSegundoFactorDelPanel() {
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> new PermisosEfectivos(RolVeedor.VECINO,
+                        Set.of(Permiso.CONFIGURAR_SEGUNDO_FACTOR), Set.of()));
+    }
+
+    @Test
+    void elVecinoNuncaDebeResolverPermisosDePanel() {
+        PermisosEfectivos permisos = PermisosEfectivos.deRol(RolVeedor.VECINO);
+
+        assertThat(permisos.incluye(Permiso.GESTIONAR_PERFIL_PROPIO)).isTrue();
+        assertThat(permisos.incluye(Permiso.VER_PANEL)).isFalse();
+        assertThat(permisos.incluye(Permiso.GESTIONAR_USUARIOS)).isFalse();
+    }
+
+    @Test
     void ningunRolSalvoElAdminDebePoderGestionarUsuarios() {
         assertThat(RolVeedor.VEEDOR.permisosBase()).doesNotContain(Permiso.GESTIONAR_USUARIOS);
         assertThat(RolVeedor.OBSERVADOR.permisosBase()).doesNotContain(Permiso.GESTIONAR_USUARIOS);

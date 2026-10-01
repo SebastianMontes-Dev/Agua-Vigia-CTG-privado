@@ -39,6 +39,17 @@ server:
   # rate limit por IP.
 
 aguavigia:
+  privacidad:
+    # Version del aviso de privacidad vigente. Se sella en cada consentimiento que da un vecino (registro y casilla
+    # de avisos) para poder saber que texto acepto cada cuenta. "borrador" mientras el texto legal este pendiente (D19):
+    # subirla cuando cambie el texto.
+    version: 2026-10-borrador
+  vecino:
+    verificacion-barrio:
+      # D8: la ubicacion se usa en el momento y se descarta. Valores iniciales, a calibrar con datos reales (F6).
+      intentos-por-dia: 3
+      # Peor que esto es una ubicacion aproximada por red (decenas de metros bastan para un barrio; cientos no).
+      precision-maxima-metros: 200
   telegram:
     # RF041 (ADR-066). Sin token el canal queda armado pero apagado; con token, el backend sondea el bot cada
     # `intervalo-ms`. Solo una instancia puede sondear el mismo bot.
@@ -97,6 +108,11 @@ aguavigia:
       # y cada llamada puede acabar en un correo saliente. El limite es por IP igual que el resto;
       # el freno por cuenta, que es el que para el ataque distribuido, vive en aguavigia.cuentas.
       - ruta: /api/cuentas/**
+        limite: 10
+        ventana-segundos: 600
+      # Ingreso de vecinos: misma regla por IP que el registro. Adivinar claves es el riesgo; el bloqueo por cuenta y
+      # direccion (aguavigia.cuentas) es el freno fino, igual que en el ingreso del panel.
+      - ruta: /api/vecino/sesion
         limite: 10
         ventana-segundos: 600
       # POST /api/suscripciones envia un correo a cualquier direccion que el cliente escriba: sin

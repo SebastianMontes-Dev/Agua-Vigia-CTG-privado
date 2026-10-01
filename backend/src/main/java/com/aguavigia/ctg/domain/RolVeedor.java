@@ -23,7 +23,13 @@ public enum RolVeedor {
             Permiso.CONFIGURAR_SEGUNDO_FACTOR)),
 
     /** Todo lo anterior más la gestión de cuentas y la auditoría. Exige segundo factor. */
-    ADMIN(Set.of(Permiso.values()));
+    ADMIN(Set.of(Permiso.values())),
+
+    /**
+     * Cuenta ciudadana que se registra sola (D11). Solo gestiona su propio perfil: nunca recibe
+     * permisos de panel, ni por el rol ni concedidos a mano (lo impide PermisosEfectivos).
+     */
+    VECINO(Set.of(Permiso.GESTIONAR_PERFIL_PROPIO));
 
     private final Set<Permiso> permisosBase;
 

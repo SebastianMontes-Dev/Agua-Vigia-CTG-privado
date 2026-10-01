@@ -291,6 +291,28 @@ class AltaYRecuperacionDeCuentaTest {
         assertThat(verificado.estado()).isEqualTo(EstadoCuenta.PENDIENTE_APROBACION);
     }
 
+    private static Usuario vecinoPendienteDeVerificar() {
+        return Usuario.registradoComoVecino(new UsuarioId("v-1"), CORREO, "Vecina", HASH, new SectorId("manga"),
+                java.util.List.of(new com.aguavigia.ctg.domain.Consentimiento(
+                        com.aguavigia.ctg.domain.TipoConsentimiento.PRIVACIDAD, "v1", AHORA)), AHORA);
+    }
+
+    /** Un vecino no espera a un admin: probar el correo basta, y la auditoría no debe decir lo contrario. */
+    @Test
+    void verificarElCorreoDeUnVecinoDebeDejarlaActivaYAuditarlo() {
+        given(emisorDeTokens.consumir("token-en-claro", TipoTokenCuenta.VERIFICACION_CORREO))
+                .willReturn(vecinoPendienteDeVerificar());
+
+        Usuario verificado = new VerificarCorreoService(usuarios, emisorDeTokens, auditoria, () -> AHORA)
+                .verificar("token-en-claro", CONTEXTO);
+
+        assertThat(verificado.estado()).isEqualTo(EstadoCuenta.ACTIVA);
+        ArgumentCaptor<String> detalle = ArgumentCaptor.forClass(String.class);
+        verify(auditoria).registrarConAutor(eq(com.aguavigia.ctg.domain.AccionAuditada.CORREO_VERIFICADO),
+                any(), any(), detalle.capture(), any());
+        assertThat(detalle.getValue()).doesNotContain("aprobación").contains("activa");
+    }
+
     @Test
     void aceptarLaInvitacionDebeDejarLaCuentaActiva() {
         given(emisorDeTokens.consumir("token-en-claro", TipoTokenCuenta.INVITACION))

@@ -43,4 +43,19 @@ public class UsuarioDocumento {
 
     private Instant creadoEn;
     private Instant actualizadoEn;
+
+    /** Solo vecinos. Ausente en los documentos anteriores, que se leen como «sin consentimientos». */
+    private List<ConsentimientoDocumento> consentimientos;
+
+    /** Solo vecinos: probó con su ubicación que vive en `barrio`. Ausente equivale a falso. */
+    private boolean barrioVerificado;
+    private Instant barrioVerificadoEn;
+
+    @Getter
+    @Setter
+    public static class ConsentimientoDocumento {
+        private String tipo;
+        private String version;
+        private Instant fecha;
+    }
 }

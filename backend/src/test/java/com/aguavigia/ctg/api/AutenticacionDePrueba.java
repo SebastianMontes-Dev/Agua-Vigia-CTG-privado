@@ -21,6 +21,30 @@ final class AutenticacionDePrueba {
     private AutenticacionDePrueba() {
     }
 
+    /** La sesión de un vecino registrado: el rol VECINO y su único permiso. */
+    static SesionAutenticada sesionDeVecino() {
+        return new SesionAutenticada(
+                USUARIO_ID,
+                "vecina@aguavigia.test",
+                "Vecina de prueba",
+                "VECINO",
+                Set.of(Permiso.GESTIONAR_PERFIL_PROPIO),
+                AlcanceSesion.COMPLETO,
+                Instant.parse("2026-08-09T20:00:00Z"));
+    }
+
+    /** Un ADMIN: tiene GESTIONAR_PERFIL_PROPIO por heredar todos los permisos, pero no es un vecino. */
+    static SesionAutenticada sesionDeAdmin() {
+        return new SesionAutenticada(
+                USUARIO_ID,
+                "admin@aguavigia.test",
+                "Admin de prueba",
+                "ADMIN",
+                Set.of(Permiso.values()),
+                AlcanceSesion.COMPLETO,
+                Instant.parse("2026-08-09T20:00:00Z"));
+    }
+
     static SesionAutenticada sesionCon(Permiso... permisos) {
         return new SesionAutenticada(
                 USUARIO_ID,

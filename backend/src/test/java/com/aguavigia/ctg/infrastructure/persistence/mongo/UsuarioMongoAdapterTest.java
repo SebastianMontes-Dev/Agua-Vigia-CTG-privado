@@ -1,7 +1,9 @@
 package com.aguavigia.ctg.infrastructure.persistence.mongo;
 
 import com.aguavigia.ctg.domain.ClaveHash;
+import com.aguavigia.ctg.domain.Consentimiento;
 import com.aguavigia.ctg.domain.CorreoElectronico;
+import com.aguavigia.ctg.domain.TipoConsentimiento;
 import com.aguavigia.ctg.domain.EstadoCuenta;
 import com.aguavigia.ctg.domain.Pagina;
 import com.aguavigia.ctg.domain.PermisosEfectivos;
@@ -77,6 +79,49 @@ class UsuarioMongoAdapterTest {
         assertThat(leido.segundoFactor().confirmadoEn()).isEqualTo(T0.plusSeconds(60));
         assertThat(leido.barrio()).isEqualTo(new SectorId("manga"));
         assertThat(leido.creadoEn()).isEqualTo(T0);
+    }
+
+    @Test
+    void debeGuardarYRecuperarLaCuentaDeVecinoConConsentimientosYBarrioVerificado() {
+        Usuario vecino = Usuario.registradoComoVecino(new UsuarioId("v-1"), new CorreoElectronico("vecina@ejemplo.org"),
+                        "Vecina", HASH, new SectorId("manga"),
+                        List.of(new Consentimiento(TipoConsentimiento.PRIVACIDAD, "2026-10-v1", T0),
+                                new Consentimiento(TipoConsentimiento.AVISOS, "2026-10-v1", T0)), T0)
+                .verificarCorreo(T0.plusSeconds(30))
+                .verificarBarrio(T0.plusSeconds(60));
+
+        adaptador.guardar(vecino);
+        Usuario leido = adaptador.buscarPorId(new UsuarioId("v-1")).orElseThrow();
+
+        assertThat(leido.permisos().rol()).isEqualTo(RolVeedor.VECINO);
+        assertThat(leido.estado()).isEqualTo(EstadoCuenta.ACTIVA);
+        assertThat(leido.barrio()).isEqualTo(new SectorId("manga"));
+        assertThat(leido.barrioVerificado()).isTrue();
+        assertThat(leido.barrioVerificadoEn()).isEqualTo(T0.plusSeconds(60));
+        assertThat(leido.consentimientos()).containsExactly(
+                new Consentimiento(TipoConsentimiento.PRIVACIDAD, "2026-10-v1", T0),
+                new Consentimiento(TipoConsentimiento.AVISOS, "2026-10-v1", T0));
+        assertThat(leido.recibeAvisos()).isTrue();
+    }
+
+    /** Las cuentas guardadas antes de los vecinos (como el ADMIN inicial) no traen estos campos y deben seguir legibles. */
+    @Test
+    void unDocumentoAnteriorALosVecinosDebeLeerseSinConsentimientosNiBarrioVerificado() {
+        mongoTemplate.getDb().getCollection("usuarios").insertOne(new org.bson.Document()
+                .append("_id", "u-viejo")
+                .append("correo", "viejo@ejemplo.org")
+                .append("nombre", "Cuenta anterior")
+                .append("claveHash", HASH.valor())
+                .append("estado", "ACTIVA")
+                .append("rol", "VEEDOR")
+                .append("creadoEn", java.util.Date.from(T0))
+                .append("actualizadoEn", java.util.Date.from(T0)));
+
+        Usuario leido = adaptador.buscarPorId(new UsuarioId("u-viejo")).orElseThrow();
+
+        assertThat(leido.consentimientos()).isEmpty();
+        assertThat(leido.barrioVerificado()).isFalse();
+        assertThat(leido.barrioVerificadoEn()).isNull();
     }
 
     @Test

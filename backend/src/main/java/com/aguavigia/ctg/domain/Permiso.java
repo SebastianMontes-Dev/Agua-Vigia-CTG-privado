@@ -29,5 +29,11 @@ public enum Permiso {
      * Dar de alta o rehacer el propio segundo factor. Lo tienen todos los roles: es la única
      * acción que una sesión con alcance restringido (ADMIN sin TOTP todavía) puede ejecutar.
      */
-    CONFIGURAR_SEGUNDO_FACTOR
+    CONFIGURAR_SEGUNDO_FACTOR,
+
+    /**
+     * Ver y editar el perfil propio de un vecino registrado: barrio, consentimientos, verificación
+     * de barrio. Es el único permiso del rol VECINO y no abre nada del panel.
+     */
+    GESTIONAR_PERFIL_PROPIO
 }

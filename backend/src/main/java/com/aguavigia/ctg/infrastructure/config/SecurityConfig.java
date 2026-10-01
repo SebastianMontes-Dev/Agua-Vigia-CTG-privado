@@ -143,6 +143,10 @@ public class SecurityConfig {
                         // enlace que solo llega al correo del titular.
                         .requestMatchers(HttpMethod.POST, "/api/veedor/sesion").permitAll()
                         .requestMatchers("/api/cuentas/**").permitAll()
+                        // Ingreso de vecinos: igual que el del panel, nadie tiene sesion todavia.
+                        // El resto de /api/vecino/** exige sesion y, ademas, GESTIONAR_PERFIL_PROPIO.
+                        .requestMatchers(HttpMethod.POST, "/api/vecino/sesion").permitAll()
+                        .requestMatchers("/api/vecino/**").authenticated()
                         .requestMatchers("/api/veedor/**").authenticated()
                         .requestMatchers(RUTAS_PUBLICAS).permitAll()
                         .anyRequest().denyAll())
