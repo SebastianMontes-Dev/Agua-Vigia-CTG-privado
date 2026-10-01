@@ -7,6 +7,7 @@ import com.aguavigia.ctg.application.CambiarClaveService;
 import com.aguavigia.ctg.application.ConfirmarSuscripcionService;
 import com.aguavigia.ctg.application.EmisorDeTokensDeCuenta;
 import com.aguavigia.ctg.application.EvaluarConsensoService;
+import com.aguavigia.ctg.application.ExpirarCortesVencidosService;
 import com.aguavigia.ctg.application.RecalcularSectorService;
 import com.aguavigia.ctg.application.RegistrarLecturaDePresionService;
 import com.aguavigia.ctg.application.RegistrarReporteService;
@@ -138,6 +139,14 @@ public class CasosDeUsoConfig {
             PropuestaIngestaRepository propuestas, CorteAguaRepository cortes, RecalcularSectorUseCase recalcular,
             RelojPort reloj, ReglasDeEstado reglas) {
         return new ActualizarEstadosPorVentanaService(propuestas, cortes, recalcular, reloj, reglas.expiraTrasFin());
+    }
+
+    @Bean
+    public ExpirarCortesVencidosService expirarCortesVencidosService(
+            CorteAguaRepository cortes, RegistrarEventoBitacoraUseCase registrarEvento,
+            RecalcularSectorUseCase recalcular, RelojPort reloj, TransaccionPort transaccion, ReglasDeEstado reglas) {
+        return new ExpirarCortesVencidosService(cortes, registrarEvento, recalcular, reloj, transaccion,
+                reglas.expiraTrasFin());
     }
 
     @Bean
