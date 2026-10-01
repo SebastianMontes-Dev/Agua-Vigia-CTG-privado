@@ -4,6 +4,10 @@ import com.aguavigia.ctg.domain.port.out.CanalEnVivoPort;
 import com.aguavigia.ctg.api.error.ManejadorGlobalDeErrores;
 import com.aguavigia.ctg.api.mapper.SectorApiMapperImpl;
 import com.aguavigia.ctg.domain.EstadoServicio;
+import com.aguavigia.ctg.domain.MarcasDeEstado;
+import com.aguavigia.ctg.domain.OrigenEstado;
+import com.aguavigia.ctg.domain.RespaldoVecinal;
+import com.aguavigia.ctg.domain.VentanaTiempo;
 import com.aguavigia.ctg.domain.Sector;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.GeometriaSector;
@@ -123,6 +127,46 @@ class SectorControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("\"estado\":null")))
                 .andExpect(jsonPath("$.sectores[0].estado").value(org.hamcrest.Matchers.nullValue()));
+    }
+
+    /** El mapa decide cuánto mostrar: de quién es el estado, qué prometió Acuacar y cuántos vecinos lo respaldan. */
+    @Test
+    void debeExponerDeDondeSaleElEstadoYSuRespaldo() throws Exception {
+        given(reloj.ahora()).willReturn(INSTANTE_FIJO);
+        Instant inicio = Instant.parse("2026-08-08T14:00:00Z");
+        Instant fin = Instant.parse("2026-08-08T23:00:00Z");
+        MarcasDeEstado marcas = new MarcasDeEstado(OrigenEstado.ACUACAR, new VentanaTiempo(inicio, fin), true, true, 4,
+                new RespaldoVecinal(11, 12));
+        given(sectores.listarTodos()).willReturn(List.of(new Sector(new SectorId("bocagrande"), "BOCAGRANDE", 12000,
+                EstadoServicio.SIN_SERVICIO, INSTANTE_FIJO, INSTANTE_FIJO, marcas)));
+
+        mockMvc.perform(get("/api/sectores"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.sectores[0].origen").value("ACUACAR"))
+                .andExpect(jsonPath("$.sectores[0].ventanaPrometida.inicio").value("2026-08-08T14:00:00Z"))
+                .andExpect(jsonPath("$.sectores[0].ventanaPrometida.fin").value("2026-08-08T23:00:00Z"))
+                .andExpect(jsonPath("$.sectores[0].restablecimientoPorConfirmar").value(true))
+                .andExpect(jsonPath("$.sectores[0].enDisputa").value(true))
+                .andExpect(jsonPath("$.sectores[0].reportesEnContra").value(4))
+                .andExpect(jsonPath("$.sectores[0].respaldo.vecinos").value(11))
+                .andExpect(jsonPath("$.sectores[0].respaldo.umbral").value(12));
+    }
+
+    /** Sin estado o sin marcas no hay nada que explicar: las claves viajan presentes y vacías, no inventadas. */
+    @Test
+    void sinMarcasElOrigenYElRespaldoViajanNulosYLasBanderasApagadas() throws Exception {
+        given(reloj.ahora()).willReturn(INSTANTE_FIJO);
+        given(sectores.listarTodos()).willReturn(List.of(
+                new Sector(new SectorId("isla-fuerte"), "ISLA FUERTE", null, null)));
+
+        mockMvc.perform(get("/api/sectores"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("\"origen\":null")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("\"ventanaPrometida\":null")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("\"respaldo\":null")))
+                .andExpect(jsonPath("$.sectores[0].restablecimientoPorConfirmar").value(false))
+                .andExpect(jsonPath("$.sectores[0].enDisputa").value(false))
+                .andExpect(jsonPath("$.sectores[0].reportesEnContra").value(0));
     }
 
     @Test

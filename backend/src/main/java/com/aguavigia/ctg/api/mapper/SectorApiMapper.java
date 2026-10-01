@@ -1,7 +1,9 @@
 package com.aguavigia.ctg.api.mapper;
 
 import com.aguavigia.ctg.api.dto.SectorRespuesta;
+import com.aguavigia.ctg.domain.RespaldoVecinal;
 import com.aguavigia.ctg.domain.Sector;
+import com.aguavigia.ctg.domain.VentanaTiempo;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
@@ -23,7 +25,18 @@ public interface SectorApiMapper {
     @Mapping(target = "estado", source = "estadoActual")
     @Mapping(target = "actualizadoEn", source = "estadoActualizadoEn")
     @Mapping(target = "verificadoEn", source = "estadoVerificadoEn")
+    @Mapping(target = "origen", source = "marcas.origen")
+    @Mapping(target = "ventanaPrometida", source = "marcas.ventanaPrometida")
+    @Mapping(target = "restablecimientoPorConfirmar", source = "marcas.porConfirmar")
+    @Mapping(target = "enDisputa", source = "marcas.enDisputa")
+    @Mapping(target = "reportesEnContra", source = "marcas.reportesEnContra")
+    @Mapping(target = "respaldo", source = "marcas.respaldo")
     SectorRespuesta aRespuesta(Sector sector);
 
     List<SectorRespuesta> aRespuestas(List<Sector> sectores);
+
+    @Mapping(target = "fin", source = "finPrometido")
+    SectorRespuesta.VentanaPrometidaRespuesta aVentanaPrometida(VentanaTiempo ventana);
+
+    SectorRespuesta.RespaldoVecinalRespuesta aRespaldo(RespaldoVecinal respaldo);
 }

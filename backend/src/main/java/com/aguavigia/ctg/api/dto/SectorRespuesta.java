@@ -1,6 +1,7 @@
 package com.aguavigia.ctg.api.dto;
 
 import com.aguavigia.ctg.domain.EstadoServicio;
+import com.aguavigia.ctg.domain.OrigenEstado;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.Instant;
@@ -41,5 +42,43 @@ public record SectorRespuesta(
                 `actualizadoEn`. Nulo si el sector no tiene estado. Confirmar sin cambiar no emite
                 evento SSE: el valor se renueva al volver a pedir la lista.""",
                 nullable = true)
-        Instant verificadoEn) {
+        Instant verificadoEn,
+
+        @Schema(description = """
+                Quién sostiene el estado: ACUACAR (boletín oficial), PRENSA (nota aprobada por el veedor),
+                VEEDOR (corte o cierre del veedor), VECINOS (quórum de reportes) o SENSOR. Nulo si el sector
+                no tiene estado.""", nullable = true)
+        OrigenEstado origen,
+
+        @Schema(description = """
+                La ventana que prometió la fuente oficial, cuando el estado sale de una. Permite mostrar
+                «Acuacar prometió hasta…». Nulo si el estado no sale de una ventana.""", nullable = true)
+        VentanaPrometidaRespuesta ventanaPrometida,
+
+        @Schema(description = """
+                La promesa ya venció y nadie confirmó que volvió el agua: el barrio sigue como estaba, pero
+                por confirmar. Un restablecimiento pide menos vecinos que reportar una avería.""")
+        boolean restablecimientoPorConfirmar,
+
+        @Schema(description = """
+                Un quórum de vecinos contradice a la fuente oficial. El color no cambia: la contradicción
+                se muestra como una insignia y llega a la cola del veedor.""")
+        boolean enDisputa,
+
+        @Schema(description = "Cuántos vecinos sostienen esa contradicción. 0 si no hay disputa.")
+        int reportesEnContra,
+
+        @Schema(description = """
+                Los vecinos que sostienen el estado y cuántos hacían falta («11 de 12»). Nulo si el estado
+                no sale de los vecinos. La afectación parcial de un barrio no se modela: un barrio tiene un
+                solo estado.""", nullable = true)
+        RespaldoVecinalRespuesta respaldo) {
+
+    @Schema(description = "Desde cuándo y hasta cuándo prometió la fuente oficial la afectación")
+    public record VentanaPrometidaRespuesta(Instant inicio, Instant fin) {
+    }
+
+    @Schema(description = "Cuántos vecinos respaldan un estado y cuántos hacían falta")
+    public record RespaldoVecinalRespuesta(int vecinos, int umbral) {
+    }
 }
