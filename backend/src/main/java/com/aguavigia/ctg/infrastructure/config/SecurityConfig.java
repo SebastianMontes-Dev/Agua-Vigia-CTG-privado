@@ -55,7 +55,7 @@ public class SecurityConfig {
     /** Lectura y reporte ciudadano, avisos, telemetría y salud: lo que existe sin sesión. */
     private static final String[] RUTAS_PUBLICAS = {
             "/api/sectores/**", "/api/reportes/**", "/api/cumplimiento/**", "/api/estadisticas/**",
-            "/api/bitacora/**", "/api/suscripciones/**", "/api/iot/**", "/api/v2/**",
+            "/api/bitacora/**", "/api/suscripciones/**", "/api/iot/**", "/api/v2/**", "/api/dispositivos/**",
             "/actuator/health", "/actuator/health/**",
             // Páginas de error del contenedor: sin esto un 404 o un 500 saldrían como 401.
             "/error",
@@ -105,7 +105,7 @@ public class SecurityConfig {
         CorsConfiguration configuracion = new CorsConfiguration();
         configuracion.setAllowedOrigins(propiedades.origenesPermitidos());
         configuracion.setAllowedMethods(List.of("GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"));
-        configuracion.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-IoT-Key"));
+        configuracion.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-IoT-Key", "X-Dispositivo"));
         // El token del veedor viaja en la cabecera Authorization, no en cookie: no hace falta
         // permitir credenciales, y no permitirlas evita el combo prohibido con origenes amplios.
         configuracion.setAllowCredentials(false);

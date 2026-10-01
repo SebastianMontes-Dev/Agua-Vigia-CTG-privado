@@ -115,6 +115,11 @@ aguavigia:
       - ruta: /api/vecino/sesion
         limite: 10
         ventana-segundos: 600
+      # D7: crear una identidad de dispositivo cuesta una peticion, y esta es la que se limita: 10 por hora por IP.
+      # Sin este tope, fabricar identidades para llenar un quorum seria tan barato como cuando la huella la ponia el cliente.
+      - ruta: /api/dispositivos
+        limite: 10
+        ventana-segundos: 3600
       # POST /api/suscripciones envia un correo a cualquier direccion que el cliente escriba: sin
       # limite servia para inundar la bandeja de un tercero. /** cubre tambien confirmar y cancelar.
       - ruta: /api/suscripciones/**

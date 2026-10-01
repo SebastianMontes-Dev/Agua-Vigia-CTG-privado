@@ -41,6 +41,7 @@ class IndicesMongoTest {
     @BeforeEach
     void partirDeUnaColeccionSinIndices() {
         mongoTemplate.getDb().getCollection("reportes").drop();
+        mongoTemplate.getDb().getCollection("dispositivos").drop();
     }
 
     private static Set<String> nombresDeIndices(List<IndexInfo> indices) {
@@ -118,9 +119,31 @@ class IndicesMongoTest {
 
     @Test
     void conRetencionCeroLosReportesNoDebenExpirar() {
-        new IndicesMongo(mongoTemplate, 0).asegurarIndices();
+        new IndicesMongo(mongoTemplate, 0, 365).asegurarIndices();
 
         Set<String> indicesReportes = nombresDeIndices(mongoTemplate.indexOps(ReporteCiudadanoDocumento.class).getIndexInfo());
         assertThat(indicesReportes).doesNotContain("timestamp_1");
+    }
+
+    /**
+     * Un dispositivo no tiene dueño que lo reclame ni utilidad una vez inactivo: Mongo lo borra solo 12 meses
+     * después de su último uso (D19), contados desde `ultimoVisto` y no desde su creación.
+     */
+    @Test
+    void debeExpirarLosDispositivosAlAnoDeSuUltimoUsoPorDefecto() {
+        indicesMongo.asegurarIndices();
+
+        var ttl = mongoTemplate.indexOps(DispositivoDocumento.class).getIndexInfo().stream()
+                .filter(indice -> "ultimoVisto_1".equals(indice.getName())).findFirst();
+        assertThat(ttl).isPresent();
+        assertThat(ttl.get().getExpireAfter()).contains(java.time.Duration.ofDays(365));
+    }
+
+    @Test
+    void conRetencionDeDispositivosCeroNoDebenExpirar() {
+        new IndicesMongo(mongoTemplate, 365, 0).asegurarIndices();
+
+        Set<String> indicesDispositivos = nombresDeIndices(mongoTemplate.indexOps(DispositivoDocumento.class).getIndexInfo());
+        assertThat(indicesDispositivos).doesNotContain("ultimoVisto_1");
     }
 }

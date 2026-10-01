@@ -7,6 +7,7 @@ import com.aguavigia.ctg.domain.CuentaNoHabilitadaException;
 import com.aguavigia.ctg.domain.LimiteDePeticionesExcedidoException;
 import com.aguavigia.ctg.domain.LimiteReportesExcedidoException;
 import com.aguavigia.ctg.domain.SegundoFactorRequeridoException;
+import com.aguavigia.ctg.domain.DispositivoInvalidoException;
 import com.aguavigia.ctg.domain.SesionSinCuentaException;
 import com.aguavigia.ctg.domain.UbicacionFueraDelBarrioException;
 import com.aguavigia.ctg.domain.UbicacionImprecisaException;
@@ -176,6 +177,18 @@ public class ManejadorGlobalDeErrores {
         problema.setTitle("Cuenta bloqueada temporalmente");
         problema.setType(URI.create(BASE_TIPO + "cuenta-bloqueada"));
         problema.setProperty("segundosRestantes", e.esperaRestante().toSeconds());
+        return problema;
+    }
+
+    /**
+     * 401 y no 403: el servidor no sabe quién reporta, no es que no se le permita. El cliente reacciona por `type`:
+     * pide otro token con `POST /api/dispositivos`.
+     */
+    @ExceptionHandler(DispositivoInvalidoException.class)
+    public ProblemDetail dispositivoInvalido(DispositivoInvalidoException e) {
+        ProblemDetail problema = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, e.getMessage());
+        problema.setTitle("Dispositivo no identificado");
+        problema.setType(URI.create(BASE_TIPO + "dispositivo-invalido"));
         return problema;
     }
 

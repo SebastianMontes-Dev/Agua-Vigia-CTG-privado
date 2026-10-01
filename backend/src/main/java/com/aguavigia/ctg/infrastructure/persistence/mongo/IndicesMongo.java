@@ -33,11 +33,14 @@ public class IndicesMongo {
 
     private final MongoTemplate mongoTemplate;
     private final long diasRetencionReportes;
+    private final long diasRetencionDispositivos;
 
     public IndicesMongo(MongoTemplate mongoTemplate,
-                        @Value("${aguavigia.retencion.reportes-dias:365}") long diasRetencionReportes) {
+                        @Value("${aguavigia.retencion.reportes-dias:365}") long diasRetencionReportes,
+                        @Value("${aguavigia.retencion.dispositivos-dias:365}") long diasRetencionDispositivos) {
         this.mongoTemplate = mongoTemplate;
         this.diasRetencionReportes = diasRetencionReportes;
+        this.diasRetencionDispositivos = diasRetencionDispositivos;
     }
 
     @EventListener(ApplicationReadyEvent.class)
@@ -143,6 +146,19 @@ public class IndicesMongo {
             var indicesAuditoria = mongoTemplate.indexOps(EventoAuditoriaDocumento.class);
             indicesAuditoria.ensureIndex(new Index().on("ocurrioEn", Sort.Direction.DESC));
             log.info("Indices de `auditoria_cuentas` asegurados: ocurrioEn");
+        });
+
+            // Retencion de dispositivos (D19): sin dueño que los reclame ni utilidad una vez inactivos, Mongo
+            // los borra solo `diasRetencionDispositivos` despues de su ultimo uso. 0 desactiva la retencion.
+        intentar("Dispositivos", () -> {
+            if (diasRetencionDispositivos <= 0) {
+                return;
+            }
+            mongoTemplate.indexOps(DispositivoDocumento.class).ensureIndex(
+                    new Index().on("ultimoVisto", Sort.Direction.ASC)
+                            .expire(Duration.ofDays(diasRetencionDispositivos)));
+            log.info("Retencion de `dispositivos`: se borran solos a los {} dias de su ultimo uso",
+                    diasRetencionDispositivos);
         });
 
             // RNF006/BUG-091 — la cola de fallidos del veedor se lee ordenada por el ultimo intento.
