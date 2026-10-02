@@ -60,3 +60,44 @@ y algunos DTO se arman con métodos estáticos `de(...)` en vez de MapStruct. Es
 | Guardar un corte, su bitácora y el estado de sus sectores es **una sola transacción** | Un fallo a medias dejaba el corte registrado con los sectores sin mover |
 | El secreto TOTP sigue en claro en Mongo (riesgo aceptado) | Cifrarlo exige una clave persistente que rompe el arranque sin configuración; Mongo solo escucha en `127.0.0.1` |
 | El historial de git no se reescribe | Obligaría a Yordy a volver a clonar; las claves expuestas se tratan como comprometidas y no se reutilizan |
+
+## 4. Estado de un barrio y cierre de cortes (2026-10-01)
+
+Decisiones de la fase F1 del plan de estados de barrio. Los números de ADR continúan los del registro histórico.
+
+### ADR-087 — Un solo resolutor decide el estado de un barrio
+
+**Estado: aceptada.**
+
+El estado público de un barrio (`estadoActual` y sus marcas: origen, ventana prometida, por confirmar, disputa, respaldo) lo decide
+**únicamente** `RecalcularSectorService`, que reúne lo que afirma cada fuente y se lo entrega a `ResolutorDeEstadoSector` (dominio puro,
+función de las afirmaciones y de la hora). Las fuentes —boletín de Acuacar, nota de prensa aprobada, corte o cierre del veedor, quórum de
+vecinos, sensores— solo aportan afirmaciones. Un reporte, un boletín aprobado, un corte, una moderación y el paso del tiempo son motivos para
+volver a preguntar, no escritores.
+
+- **Gana:** desaparece el «parpadeo» entre el consenso y el barrido por ventana, y los cortes de ingesta ya no dejan al barrio en «sin servicio»
+  para siempre; el resolutor se prueba con una tabla de verdad, sin mocks.
+- **Pierde:** `RecalcularSectorService` concentra mucho (afirmaciones, reapertura y cierre de cortes, escritura, bitácora); es candidato a
+  dividirse más adelante.
+- **Reglas que se fijaron:** las malas noticias viajan rápido y las buenas despacio (la promesa vencida no prueba que volvió el agua; confirmar un
+  restablecimiento pide `max(2, ceil(umbral/2))` vecinos); un estado que solo sostienen los vecinos se recuerda y caduca a las 24 h sin reportes
+  nuevos; un quórum contrario solo reabre el corte si **supera** al de restablecimiento; los sensores votan como los vecinos y se declaran
+  `SENSOR` solo si el reporte entró por `/api/iot/presion`. Los sensores quedan construidos pero **inactivos** (el proyecto no usa sensores físicos y la ruta responde 503 sin `X-IoT-Key`).
+- **Escritura:** compare-and-set del estado más una transacción para corte, estado y evento. Los cortes se vuelven a leer **dentro** de la
+  transacción: si un veedor los cambió entre la lectura y la escritura, no se escribe nada. La disputa se anota una sola vez (`abrirDisputaSiEs`).
+- **Se revierte** devolviendo la escritura a cada fuente; no se recomienda: reabre el problema que esta decisión cierra.
+
+### ADR-088 — Un corte se cierra barrio por barrio, y lo que nadie confirma expira
+
+**Estado: aceptada.**
+
+Un corte agrupa varios barrios pero se restablece a horas distintas: cada barrio tiene su `CierreDeCorte` (hora, fuente, provisional) y el corte
+pasa a `RESTABLECIDO` cuando todos están cerrados. `finReal` deja de existir como dato propio: es la hora del último cierre. Un cierre que solo
+sostienen vecinos o sensores es **provisional** y lo confirma o corrige el veedor. Un corte que nadie cierra pasa a `EXPIRADO` a las 72 h del fin
+prometido (configurable) y uno publicado por error se **anula** (`ANULADO`, con motivo y auditoría): ninguno entra al Índice de Cumplimiento.
+
+- **Gana:** el Índice deja de tener sesgo a favor de Acuacar (los cortes más largos, que nadie cerraba, quedaban fuera); se puede representar un
+  restablecimiento barrio por barrio y corregir un boletín mal leído sin falsear el histórico (la bitácora anexa la corrección, no se edita).
+- **Pierde:** rompe el contrato (`finReal` → `cierres[]`); está documentado en `docs/api/cambios-para-frontend.md`.
+- **Reapertura:** un cierre provisional se reabre en el mismo corte si un quórum mayor lo contradice dentro de 3 h; pasado ese plazo, o si lo
+  confirmó el veedor, el cierre se respeta.

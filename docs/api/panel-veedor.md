@@ -11,12 +11,12 @@ Cómo se obtiene el token: [Cuentas y sesión](cuentas-y-sesion.md).
 
 | Ruta | Permiso |
 |---|---|
-| `GET /api/veedor/cortes?sectorId=…` · `GET /api/veedor/cortes/{id}` | `VER_PANEL` |
-| `POST /api/veedor/cortes` · `PATCH /api/veedor/cortes/{id}/cierre` | `GESTIONAR_CORTES` |
+| `GET /api/veedor/cortes?sectorId=…` · `GET /api/veedor/cortes/{id}` · `GET /api/veedor/cortes/vencidos` · `GET /api/veedor/disputas` | `VER_PANEL` |
+| `POST /api/veedor/cortes` · `PATCH /api/veedor/cortes/{id}/cierre` · `PATCH …/cortes/{id}/sectores/{sectorId}/{cierre,confirmacion}` · `PATCH …/cortes/{id}/anulacion` | `GESTIONAR_CORTES` |
 | `GET /api/veedor/reportes/pendientes` | `VER_PANEL` |
 | `PATCH /api/veedor/reportes/{id}/aprobar` · `…/descartar` | `MODERAR_REPORTES` |
 | `GET /api/veedor/ingesta/propuestas` · `GET /api/veedor/ingesta/salud` · `GET /api/veedor/ingesta/fallidos` | `VER_PANEL` |
-| `PATCH /api/veedor/ingesta/propuestas/{id}/aprobar` · `…/descartar` | `REVISAR_INGESTA` |
+| `PATCH /api/veedor/ingesta/propuestas/{id}/aprobar` · `…/descartar` · `…/anulacion` | `REVISAR_INGESTA` |
 | `GET /api/veedor/usuarios` · `POST …/usuarios/invitaciones` · `POST …/usuarios/{id}/invitacion/reenvio` · `PATCH …/usuarios/{id}/{aprobacion,rechazo,suspension,reactivacion,permisos}` | `GESTIONAR_USUARIOS` |
 | `GET /api/veedor/auditoria` | `VER_AUDITORIA` |
 | `POST /api/veedor/segundo-factor/{alta,confirmacion,baja}` | `CONFIGURAR_SEGUNDO_FACTOR` |
@@ -42,19 +42,39 @@ Efecto sobre los sectores:
 - Si `inicio` **ya ocurrió**, pasan a `SIN_SERVICIO`.
 - Se anexa un evento `CORTE_ANUNCIADO` a la [bitácora](bitacora-estadisticas-cumplimiento.md).
 
-`PATCH /api/veedor/cortes/{id}/cierre` `{ "horaReal": "2026-08-10T23:30:00Z" }` cierra el corte:
-- Fija `finReal`, y **desde ese momento el corte cuenta para el Índice de Cumplimiento**.
-- Los sectores vuelven a `CON_SERVICIO`, **salvo** los que sigan en otro corte abierto.
-- Se anexa `CORTE_RESTABLECIDO`.
+`PATCH /api/veedor/cortes/{id}/cierre` `{ "horaReal": "2026-08-10T23:30:00Z" }` es el atajo que cierra **todos los barrios
+que siguen pendientes** de una vez (los ya cerrados se respetan):
+- Cada barrio queda con su cierre (`fuente: VEEDOR`, definitivo) y **cuando todos están cerrados el corte pasa a
+  `RESTABLECIDO` y cuenta para el Índice de Cumplimiento**.
+- El estado del barrio lo recalcula el resolutor: vuelve a `CON_SERVICIO` **salvo** que otro corte o boletín siga
+  afirmando lo contrario sobre ese mismo barrio.
+- Se anexa `CORTE_RESTABLECIDO` por barrio.
 
-Respuesta (`CorteRespuesta`): `id`, `sectoresAfectados[]`, `inicio`, `finPrometido`, `finReal` (nulo si está
-abierto), `causa`, `origen` (quién lo creó: un veedor o la ingesta) y `estado`.
+Los barrios de un corte se restablecen a horas distintas, así que lo normal es cerrarlos uno por uno:
+
+- `PATCH …/cortes/{id}/sectores/{sectorId}/cierre` `{ "horaReal": … }` cierra un solo barrio.
+- `PATCH …/cortes/{id}/sectores/{sectorId}/confirmacion` `{ "horaReal": … }` confirma —o corrige la hora de— un cierre
+  **provisional** (el que pusieron los vecinos o los sensores al confirmar que volvió el agua). Un cierre ya confirmado
+  responde `409`.
+- `PATCH …/cortes/{id}/anulacion` `{ "motivo": … }` anula un corte publicado por error: queda como historia con su motivo,
+  fuera del Índice y de las estadísticas, y la bitácora anexa la corrección. Queda constancia en la auditoría
+  (`CORTE_ANULADO`).
+- `GET …/cortes/vencidos` es la cola de trabajo: cortes con la promesa vencida sin cierre y cortes con un cierre
+  provisional por confirmar, del más antiguo al más reciente.
+
+`POST /api/veedor/cortes` acepta además `caducaEn` (opcional): el corte del veedor es el *override* y, a esa hora, deja
+de afirmar nada aunque nadie lo haya cerrado.
+
+Respuesta (`CorteRespuesta`): `id`, `sectoresAfectados[]`, `inicio`, `finPrometido`, `causa`, `origen` (quién lo creó: un
+veedor o la ingesta), `estado` (`ANUNCIADO`, `CONFIRMADO`, `RESTABLECIDO`, `EXPIRADO` o `ANULADO`), `cierres[]` (uno por
+barrio ya restablecido: `sectorId`, `hora`, `fuente`, `provisional`), `motivoAnulacion` y `caducaEn`. **Ya no hay `finReal`.**
+Un corte que nadie cierra ni confirma pasa a `EXPIRADO` a las 72 h del fin prometido y el barrio vuelve a «sin datos».
 
 | Código | Cuándo |
 |---|---|
 | `400` | Datos inválidos, `finPrometido` anterior a `inicio`, o algún sector no existe. |
 | `404` | El corte (en `cierre` o `GET`) no existe. |
-| `409` | Cerrar un corte que ya estaba cerrado. |
+| `409` | Cerrar un corte o un barrio que ya estaba cerrado, confirmar un cierre ya confirmado, o anular lo ya anulado. |
 
 `GET /api/veedor/cortes?sectorId=…` — el `sectorId` es **obligatorio**. Lista los cortes de ese sector.
 
@@ -87,6 +107,9 @@ de qué fuente, el enlace al original, la **`citaTextual`** exacta que la respal
 - `PATCH …/propuestas/{id}/descartar` la rechaza.
 - `404` si la propuesta no existe. `409` si el sector de la propuesta ya no existe.
 - Repetir la misma decisión sobre una propuesta es idempotente (`200`); contradecirla responde `409`: aprobar una
+- `PATCH …/propuestas/{id}/anulacion` `{ "motivo": … }` deshace una aprobación por error: la propuesta queda `ANULADA`, deja de
+  afirmar nada del presente, la bitácora anexa la corrección (cita el boletín y el motivo) y el barrio se recalcula. Queda
+  constancia en la auditoría (`PROPUESTA_ANULADA`). `409` si la propuesta no estaba aprobada; `400` si falta el motivo.
   descartada o descartar una aprobada (#96). Aprobar una propuesta de prensa **sin ventana horaria
   declarada** responde `200` pero **no cambia el estado del sector**: la interfaz debe deshabilitar los botones de
   una propuesta ya resuelta y no fiarse de que un `200` implique que el mapa cambió; vuelve a pedir `GET /api/sectores`.

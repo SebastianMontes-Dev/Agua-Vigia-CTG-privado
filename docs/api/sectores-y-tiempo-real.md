@@ -34,6 +34,12 @@ Esquemas exactos en [`referencia-de-rutas.md`](referencia-de-rutas.md).
   *sostuvo*, aunque no cambiara. Nunca es anterior a `actualizadoEn`. Un barrio con servicio estable puede
   llevar días sin cambiar y estar verificado hace una hora: muestra las dos y calcula la advertencia de
   «Sin verificación reciente» (24 horas) sobre `verificadoEn`, **sin cambiar el estado publicado**.
+- **De dónde sale el estado.** Cada sector trae, siempre presentes: `origen` (`ACUACAR`, `PRENSA`, `VEEDOR`, `VECINOS` o
+  `SENSOR`; `null` sin estado), `ventanaPrometida {inicio, fin}` (lo que prometió la fuente oficial, o `null`),
+  `restablecimientoPorConfirmar` (la promesa venció y nadie confirmó que volvió el agua), `enDisputa` y
+  `reportesEnContra` (un quórum de vecinos contradice a la fuente oficial: **el color no cambia**, solo se marca) y
+  `respaldo {vecinos, umbral}` («11 de 12»; `null` si el estado no sale de los vecinos). Un barrio tiene un solo estado: la
+  afectación parcial de un barrio no se modela.
 - Verificar sin cambiar **no emite evento SSE** (no hay nada que avisar): `verificadoEn` se renueva cuando
   vuelves a pedir la lista, por un evento o al volver a la pestaña.
 - Va ordenado por nombre.
@@ -45,7 +51,8 @@ Esquemas exactos en [`referencia-de-rutas.md`](referencia-de-rutas.md).
 
 Público, sin sesión. Los cortes oficiales que afectaron al sector, **del más reciente al más antiguo**, abiertos y
 cerrados. Es un arreglo de objetos con la misma forma que los del panel (`id`, `sectoresAfectados`, `inicio`,
-`finPrometido`, `finReal`, `causa`, `origen`, `estado`; `finReal` es `null` mientras el corte sigue abierto).
+`finPrometido`, `causa`, `origen`, `estado`, `cierres[]`, `motivoAnulacion`, `caducaEn`; ya no hay `finReal`: cada barrio restablecido
+tiene su cierre en `cierres[]`).
 Paginado por cabeceras (`?pagina=0&tamano=50`, máximo 200). Un sector sin cortes devuelve `[]`, no `404`; un
 sector inexistente, `404`. Pídelo **al abrir la ficha del sector**, no en segundo plano.
 

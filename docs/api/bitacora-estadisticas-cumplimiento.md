@@ -73,7 +73,8 @@ cabeceras (ver [Errores y límites §Paginación](errores-y-limites.md#paginaci�
   "timestamp": "2026-08-08T15:30:00Z",
   "descripcion": "3 reportes ciudadanos independientes confirmaron SIN_SERVICIO en 'manga'",
   "estado": "SIN_SERVICIO", "urlOriginal": null, "imagenUrl": null,
-  "cantidadReportesSustento": 3
+  "cantidadReportesSustento": 3,
+  "fuente": "VECINOS", "respaldo": { "vecinos": 3, "umbral": 3 }
 }
 ```
 
@@ -83,9 +84,17 @@ cabeceras (ver [Errores y límites §Paginación](errores-y-limites.md#paginaci�
 | `CORTE_RESTABLECIDO` | Se cerró un corte. |
 | `CORTE_CONFIRMADO_POR_CIUDADANOS` | El consenso de reportes cambió el estado. Trae `cantidadReportesSustento`. |
 | `CORTE_DETECTADO_POR_INGESTA` | Un boletín de Acuacar detectado y aprobado. Trae `urlOriginal`. |
+| `CORTE_EXPIRADO` | Un corte venció sin que nadie confirmara el restablecimiento: el barrio vuelve a «sin datos». |
+| `CORTE_ANULADO` | Un veedor anuló un corte o un boletín publicados por error. Es una corrección: lo ya publicado no se edita. |
+| `RESTABLECIMIENTO_POR_VECINOS` | Los vecinos confirmaron que volvió el agua. Trae `cantidadReportesSustento`. |
+| `ESTADO_EN_DISPUTA` | Un quórum de vecinos contradice el estado oficial; el color del barrio no cambia. |
+| `CONSENSO_REVERTIDO` | Un estado fijado por vecinos se cayó al descartar los reportes que lo sostenían. |
 
 Campos que **pueden ser nulos** y que la interfaz debe tolerar: `sectorId`, `corteId`, `estado`,
-`urlOriginal`, `imagenUrl`. `cantidadReportesSustento` nunca es nulo (0 si el evento no es de consenso).
+`urlOriginal`, `imagenUrl`, `fuente` y `respaldo`. `cantidadReportesSustento` nunca es nulo (0 si el evento no es de consenso).
+
+- **`fuente`** dice quién sostiene el evento (`ACUACAR`, `PRENSA`, `VEEDOR`, `VECINOS` o `SENSOR`, que no se produce: no hay sensores físicos); es nula en los eventos
+  anteriores a este dato. **`respaldo`** (`{vecinos, umbral}`, «11 de 12») solo viene en los eventos que nacen de un quórum.
 
 - **`estado`** permite darle color y filtro al evento. Un evento con `estado: null` es **informativo**:
   píntalo neutro, sin color de estado.
