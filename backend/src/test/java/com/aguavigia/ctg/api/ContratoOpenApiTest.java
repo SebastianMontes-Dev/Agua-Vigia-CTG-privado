@@ -87,16 +87,16 @@ class ContratoOpenApiTest {
         org.junit.jupiter.api.Assumptions.assumeTrue(System.getProperty("openapi.regenerar") != null,
                 "Se regenera solo con -Dopenapi.regenerar=true");
 
-        String yaml = mockMvc.perform(get("/v3/api-docs.yaml"))
+        // `/v3/api-docs.yaml` no está entre las rutas públicas de SecurityConfig (responde 401): se pide el JSON, que sí
+        // lo está, y el YAML se serializa aquí con el mismo mapper con que `elContrato…Semanticamente…` lo vuelve a leer.
+        String json = mockMvc.perform(get("/v3/api-docs"))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        String yaml = Yaml.pretty(Json.mapper().readValue(json, OpenAPI.class));
         Files.writeString(CONTRATO, yaml, java.nio.charset.StandardCharsets.UTF_8);
 
         // Copia en JSON, sin versionar (target/): la lee scripts/generar-referencia-api.mjs, que no
         // trae un parser de YAML.
-        String json = mockMvc.perform(get("/v3/api-docs"))
-                .andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
         Files.createDirectories(Path.of("target"));
         Files.writeString(Path.of("target", "openapi.json"), json, java.nio.charset.StandardCharsets.UTF_8);
     }
@@ -139,14 +139,17 @@ class ContratoOpenApiTest {
     void losErroresPublicosDeReporteEHistorialDebenDeclararProblemDetail() throws Exception {
         var contrato = Json.mapper().readTree(mockMvc.perform(get("/v3/api-docs"))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+        // ruta -> método y códigos de error que debe declarar como ProblemDetail. Confirmar no tiene cuerpo
+        // (la identidad viaja en cabecera), así que no hay 400 y sí 401 `dispositivo-invalido`.
+        record ErroresPublicos(String metodo, java.util.List<String> codigos) {}
         var rutas = java.util.Map.of(
-                "/api/reportes/{id}/foto", "post",
-                "/api/reportes/{id}/confirmar", "post",
-                "/api/sectores/{sectorId}/cortes", "get",
-                "/api/bitacora/{id}/sustento", "get");
+                "/api/reportes/{id}/foto", new ErroresPublicos("post", java.util.List.of("400", "404")),
+                "/api/reportes/{id}/confirmar", new ErroresPublicos("post", java.util.List.of("401", "404")),
+                "/api/sectores/{sectorId}/cortes", new ErroresPublicos("get", java.util.List.of("404")),
+                "/api/bitacora/{id}/sustento", new ErroresPublicos("get", java.util.List.of("404")));
         for (var ruta : rutas.entrySet()) {
-            var respuestas = contrato.path("paths").path(ruta.getKey()).path(ruta.getValue()).path("responses");
-            for (String codigo : ruta.getValue().equals("post") ? java.util.List.of("400", "404") : java.util.List.of("404")) {
+            var respuestas = contrato.path("paths").path(ruta.getKey()).path(ruta.getValue().metodo()).path("responses");
+            for (String codigo : ruta.getValue().codigos()) {
                 var contenido = respuestas.path(codigo).path("content");
                 assertThat(contenido.has("application/json")).as(ruta.getKey() + " " + codigo).isFalse();
                 assertThat(contenido.path("application/problem+json").path("schema").path("$ref").asText())

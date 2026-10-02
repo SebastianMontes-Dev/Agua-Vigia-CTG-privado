@@ -29,6 +29,8 @@ tags:
   description: Salud de los colectores del pipeline de ingesta (RNF007)
 - name: Cumplimiento
   description: Índice de Cumplimiento — prometido vs. real (RF020-RF022)
+- name: Dispositivos
+  description: Identidad pseudonima de quien reporta sin cuenta
 - name: Estadisticas
   description: M7 — Estadísticas Públicas (RF023)
 - name: Veedor - Ingesta
@@ -43,8 +45,12 @@ tags:
   description: Estado del servicio de agua por sector de Cartagena
 - name: Veedor - Cuenta propia
   description: Cambios que una persona hace sobre su propia cuenta
+- name: Vecinos
+  description: "Registro, ingreso y perfil de los vecinos"
 - name: Veedor - Cortes
   description: Registro y cierre de cortes oficiales (RF016-RF017)
+- name: Veedor - Disputas
+  description: Barrios cuyo estado oficial contradicen los vecinos
 - name: Reportes
   description: "Reportes ciudadanos de estado del servicio, sin registro"
 - name: Veedor - Ingesta
@@ -443,6 +449,110 @@ paths:
                 $ref: "#/components/schemas/ProblemDetail"
       security:
       - bearerAuth: []
+  /api/vecino/verificacion-barrio:
+    post:
+      tags:
+      - Vecinos
+      summary: Verificar el barrio con la ubicacion del momento
+      description: |-
+        Compara la coordenada con el poligono del barrio que declaraste. Si cae dentro, el
+        barrio queda verificado con su fecha; la coordenada se descarta y no se guarda.
+        Maximo 3 intentos por dia (429 con `Retry-After`). Si ya estaba verificado, no hace
+        nada y devuelve el perfil. Es una senal blanda: sube el costo de votar desde un
+        barrio ajeno, no prueba identidad.
+      operationId: verificarBarrio
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SolicitudVerificacionBarrio"
+        required: true
+      responses:
+        "200":
+          description: Perfil con el barrio verificado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PerfilVecinoRespuesta"
+        "400":
+          description: Coordenada fuera de rango o precision ausente o negativa
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PerfilVecinoRespuesta"
+        "422":
+          description: '`ubicacion-fuera-del-barrio` (la ubicacion no cae en tu barrio
+            declarado) o `ubicacion-imprecisa` (precision peor que 200 m; reintenta
+            con GPS)'
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PerfilVecinoRespuesta"
+        "429":
+          description: Ya usaste los 3 intentos de hoy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PerfilVecinoRespuesta"
+  /api/vecino/sesion:
+    post:
+      tags:
+      - Vecinos
+      summary: Iniciar sesion como vecino
+      description: |-
+        Devuelve un token JWT valido por 8 horas que sirve en `/api/vecino/**` (y, del panel, solo en `GET /api/veedor/yo` y `POST /api/veedor/sesion/cierre`). Una
+        cuenta del panel no entra por aqui, ni una de vecino por `/api/veedor/sesion`:
+        en los dos casos la respuesta es la misma 401 que ante una clave incorrecta.
+      operationId: iniciarSesion_1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CredencialVecino"
+        required: true
+      responses:
+        "200":
+          description: "Credencial correcta, token emitido"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SesionVecino"
+        "401":
+          description: Credencial incorrecta
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SesionVecino"
+        "403":
+          description: La cuenta existe pero aun no esta activa (correo sin confirmar)
+            o esta suspendida
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SesionVecino"
+        "423":
+          description: Cuenta bloqueada por intentos fallidos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SesionVecino"
+        "429":
+          description: Demasiados intentos desde esta IP
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SesionVecino"
+  /api/vecino/sesion/cierre:
+    post:
+      tags:
+      - Vecinos
+      summary: Cerrar sesion
+      description: "Revoca en el servidor todas las sesiones vivas de la cuenta, no\
+        \ solo la de este navegador."
+      operationId: cerrar_1
+      responses:
+        "204":
+          description: No Content
   /api/suscripciones:
     post:
       tags:
@@ -596,12 +706,21 @@ paths:
       - Reportes
       summary: Registrar un reporte ciudadano
       description: |-
-        Sin registro ni cuenta (RF005). Limita automáticamente los reportes por
-        dispositivo en la ventana vigente (RF006) — ver 429. Hace falta el `sectorId`, la
-        `coordenada` o ambos (RF007): con solo la coordenada el servidor infiere el sector
-        que la contiene y responde 400 si cae fuera de todo barrio de Cartagena. La
-        coordenada se envía solo si el usuario autorizó compartir su ubicación.
+        Sin registro ni cuenta (RF005), pero con identidad: la cabecera `X-Dispositivo` (token de
+        `POST /api/dispositivos`) o la sesion de un vecino. Sin ninguna de las dos responde 401
+        `dispositivo-invalido`. Limita automaticamente los reportes por identidad en la ventana vigente
+        (RF006, 3 para un dispositivo y 5 para un vecino) — ver 429. Hace falta el `sectorId`, la
+        `coordenada` o ambos (RF007): con solo la coordenada el servidor infiere el sector que la
+        contiene y responde 400 si cae fuera de todo barrio de Cartagena. La coordenada se envia solo si
+        el usuario autorizo compartir su ubicacion; con su `precisionMetros` el servidor verifica el
+        reporte (campo `verificacion` de la respuesta) y guarda solo una aproximacion de ella.
       operationId: registrar_1
+      parameters:
+      - name: X-Dispositivo
+        in: header
+        required: false
+        schema:
+          type: string
       requestBody:
         content:
           application/json:
@@ -616,14 +735,21 @@ paths:
               schema:
                 $ref: "#/components/schemas/ReporteRespuesta"
         "400":
-          description: "Sector inexistente, tipo inválido, huella fuera de 32-128\
-            \ caracteres, coordenada fuera de Cartagena o sin sector ni coordenada"
+          description: "Sector inexistente, tipo inválido, coordenada fuera de Cartagena\
+            \ o sin sector ni coordenada"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: "Falta `X-Dispositivo`, no lo firmó este servidor o el dispositivo\
+            \ ya no existe (type `dispositivo-invalido`): pide otro con POST /api/dispositivos"
           content:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
         "429":
-          description: El dispositivo superó el límite de reportes para este sector
+          description: La identidad superó el límite de reportes para este sector
           content:
             application/problem+json:
               schema:
@@ -676,7 +802,9 @@ paths:
       tags:
       - Reportes
       summary: Confirmar un reporte
-      description: Permite a otro vecino confirmar un reporte ciudadano (M11).
+      description: |-
+        Permite a otro vecino confirmar un reporte ciudadano (M11). Sin cuerpo: la identidad de quien
+        confirma viaja en `X-Dispositivo` o en la sesion de un vecino, igual que al reportar.
       operationId: confirmar_2
       parameters:
       - name: id
@@ -684,12 +812,11 @@ paths:
         required: true
         schema:
           type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/SolicitudConfirmar"
-        required: true
+      - name: X-Dispositivo
+        in: header
+        required: false
+        schema:
+          type: string
       responses:
         "200":
           description: Reporte confirmado
@@ -697,8 +824,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ReporteRespuesta"
-        "400":
-          description: Error en la solicitud
+        "401":
+          description: Falta o no es válida la identidad del dispositivo (type `dispositivo-invalido`)
           content:
             application/problem+json:
               schema:
@@ -753,6 +880,30 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
+  /api/dispositivos:
+    post:
+      tags:
+      - Dispositivos
+      summary: Pedir una identidad de dispositivo
+      description: |-
+        Crea un dispositivo nuevo y devuelve su token firmado. Pidelo la primera vez, guardalo y
+        enviarlo en `X-Dispositivo` en cada reporte y confirmacion. Cada llamada crea una
+        identidad distinta: no la pidas en cada reporte. Si un reporte responde 401
+        `dispositivo-invalido`, pide otro. Maximo 10 por hora por IP.
+      operationId: pedir
+      responses:
+        "201":
+          description: Token emitido
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenDeDispositivoRespuesta"
+        "429":
+          description: Demasiados tokens pedidos desde esta IP
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenDeDispositivoRespuesta"
   /api/cuentas/verificacion:
     post:
       tags:
@@ -793,6 +944,30 @@ paths:
           description: "Si había algo que reenviar, el correo va en camino"
         "400":
           description: Correo mal formado
+  /api/cuentas/vecino:
+    post:
+      tags:
+      - Vecinos
+      summary: Registrarse como vecino
+      description: |-
+        Crea la cuenta en PENDIENTE_VERIFICACION y envia el enlace de confirmacion. Al
+        confirmar el correo la cuenta queda ACTIVA, sin aprobacion de un administrador.
+        Exige el barrio y aceptar el aviso de privacidad; la casilla de avisos es aparte.
+        Responde 202 aunque el correo ya tenga cuenta, para no revelar que direcciones
+        estan registradas.
+      operationId: registrarse
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SolicitudRegistroVecino"
+        required: true
+      responses:
+        "202":
+          description: Solicitud recibida; revisa tu correo
+        "400":
+          description: "Correo mal formado, clave que no cumple la politica, barrio\
+            \ ausente o inexistente, o privacidad no aceptada"
   /api/cuentas/restablecimiento:
     post:
       tags:
@@ -820,7 +995,7 @@ paths:
         Registrarse no concede ningun permiso: hace falta verificar el correo y que un
         ADMIN apruebe. Responde 202 aunque el correo ya tenga cuenta, para no revelar
         que direcciones estan registradas.
-      operationId: registrarse
+      operationId: registrarse_1
       requestBody:
         content:
           application/json:
@@ -1385,12 +1560,189 @@ paths:
                 $ref: "#/components/schemas/ProblemDetail"
       security:
       - bearerAuth: []
+  /api/veedor/ingesta/propuestas/{id}/anulacion:
+    patch:
+      tags:
+      - Veedor - Ingesta
+      summary: Anular una propuesta ya aprobada
+      description: |-
+        Deshace una aprobación por error: la propuesta queda ANULADA con su motivo, deja de afirmar nada
+        del presente, la bitácora anexa una corrección que cita el boletín y el barrio se recalcula.
+        Queda constancia en la auditoría.
+      operationId: anularPropuesta
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SolicitudAnulacion"
+        required: true
+      responses:
+        "200":
+          description: Propuesta anulada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PropuestaIngestaRespuesta"
+        "400":
+          description: Falta el motivo
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: La propuesta no existe
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: La propuesta no estaba aprobada
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: "Sin sesión, token inválido, caducado o revocado"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: La sesión no tiene el permiso que exige esta operación
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+      security:
+      - bearerAuth: []
+  /api/veedor/cortes/{id}/sectores/{sectorId}/confirmacion:
+    patch:
+      tags:
+      - Veedor - Cortes
+      summary: Confirmar —o corregir la hora de— un cierre provisional
+      description: Un cierre que solo sostenían los vecinos o los sensores pasa a
+        definitivo con la hora que fije el veedor.
+      operationId: confirmarCierre
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: sectorId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SolicitudCierreCorte"
+        required: true
+      responses:
+        "200":
+          description: Cierre confirmado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CorteRespuesta"
+        "404":
+          description: El corte no existe
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: El barrio no tiene cierre o ya estaba confirmado
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: "Sin sesión, token inválido, caducado o revocado"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: La sesión no tiene el permiso que exige esta operación
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+      security:
+      - bearerAuth: []
+  /api/veedor/cortes/{id}/sectores/{sectorId}/cierre:
+    patch:
+      tags:
+      - Veedor - Cortes
+      summary: Cerrar un solo barrio del corte
+      description: Los barrios de un corte se restablecen a horas distintas. El corte
+        pasa a RESTABLECIDO cuando todos sus barrios tienen cierre.
+      operationId: cerrarSector
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: sectorId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SolicitudCierreCorte"
+        required: true
+      responses:
+        "200":
+          description: Barrio cerrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CorteRespuesta"
+        "404":
+          description: El corte no existe
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: El corte ya no está abierto o el barrio ya estaba cerrado
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: "Sin sesión, token inválido, caducado o revocado"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: La sesión no tiene el permiso que exige esta operación
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+      security:
+      - bearerAuth: []
   /api/veedor/cortes/{id}/cierre:
     patch:
       tags:
       - Veedor - Cortes
       summary: Cerrar un corte con la hora real de restablecimiento (RF017)
-      operationId: cerrar_1
+      operationId: cerrar_2
       parameters:
       - name: id
         in: path
@@ -1436,6 +1788,94 @@ paths:
                 $ref: "#/components/schemas/ProblemDetail"
       security:
       - bearerAuth: []
+  /api/veedor/cortes/{id}/anulacion:
+    patch:
+      tags:
+      - Veedor - Cortes
+      summary: Anular un corte publicado por error
+      description: "Queda como historia con su motivo, fuera del Índice y de las estadí\
+        sticas; los barrios se recalculan y la bitácora anexa la corrección (no se\
+        \ edita lo ya publicado)."
+      operationId: anularCorte
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SolicitudAnulacion"
+        required: true
+      responses:
+        "200":
+          description: Corte anulado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CorteRespuesta"
+        "400":
+          description: Falta el motivo
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: El corte no existe
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: El corte ya estaba anulado
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: "Sin sesión, token inválido, caducado o revocado"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: La sesión no tiene el permiso que exige esta operación
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+      security:
+      - bearerAuth: []
+  /api/vecino/perfil:
+    patch:
+      tags:
+      - Vecinos
+      summary: Actualizar el perfil
+      description: |-
+        Cambia nombre, barrio y la casilla de avisos; solo se aplica lo que viene. Cambiar
+        de barrio anula la verificacion de barrio anterior.
+      operationId: actualizarPerfil
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SolicitudPerfilVecino"
+        required: true
+      responses:
+        "200":
+          description: Perfil actualizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PerfilVecinoRespuesta"
+        "400":
+          description: Nombre invalido o barrio inexistente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PerfilVecinoRespuesta"
   /api/veedor/yo:
     get:
       tags:
@@ -1682,6 +2122,37 @@ paths:
                 $ref: "#/components/schemas/ProblemDetail"
       security:
       - bearerAuth: []
+  /api/veedor/disputas:
+    get:
+      tags:
+      - Veedor - Disputas
+      summary: "Listar los barrios en disputa, los más contradichos primero"
+      description: "Cada barrio trae `reportesEnContra`: cuántos vecinos sostienen\
+        \ que el estado oficial no es el real."
+      operationId: listarDisputas
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SectorRespuesta"
+        "401":
+          description: "Sin sesión, token inválido, caducado o revocado"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: La sesión no tiene el permiso que exige esta operación
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+      security:
+      - bearerAuth: []
   /api/veedor/cortes/{id}:
     get:
       tags:
@@ -1707,6 +2178,37 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: "Sin sesión, token inválido, caducado o revocado"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: La sesión no tiene el permiso que exige esta operación
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+      security:
+      - bearerAuth: []
+  /api/veedor/cortes/vencidos:
+    get:
+      tags:
+      - Veedor - Cortes
+      summary: Cola de cortes vencidos
+      description: "Los cortes cuya promesa ya pasó sin cierre y los que tienen un\
+        \ cierre provisional que nadie ha confirmado, del más antiguo al más reciente."
+      operationId: listarCortesVencidos
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CorteRespuesta"
         "401":
           description: "Sin sesión, token inválido, caducado o revocado"
           content:
@@ -1765,6 +2267,21 @@ paths:
                 $ref: "#/components/schemas/ProblemDetail"
       security:
       - bearerAuth: []
+  /api/vecino/yo:
+    get:
+      tags:
+      - Vecinos
+      summary: Perfil del vecino con la sesion
+      description: "Devuelve el estado vigente en la base de datos, no lo que dice\
+        \ el token."
+      operationId: yo_1
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PerfilVecinoRespuesta"
   /api/v2/requests.json:
     get:
       tags:
@@ -2377,6 +2894,12 @@ components:
           minLength: 1
           type: string
           example: Mantenimiento planta El Bosque
+        caducaEn:
+          type: string
+          description: "Opcional. El corte del veedor es el override: desde esta hora\
+            \ deja de afirmar nada, aunque nadie lo haya cerrado."
+          format: date-time
+          nullable: true
       description: Registro de un corte oficial por el veedor (RF016)
     ProblemDetail:
       type: object
@@ -2402,6 +2925,22 @@ components:
           additionalProperties:
             type: object
           nullable: true
+    CierreRespuesta:
+      type: object
+      properties:
+        sectorId:
+          type: string
+        hora:
+          type: string
+          format: date-time
+        fuente:
+          type: string
+          description: "Quién lo sostiene: VEEDOR, ACUACAR, VECINOS, SENSOR o PRENSA"
+        provisional:
+          type: boolean
+          description: "Un cierre que solo sostienen los vecinos o los sensores: un\
+            \ veedor o un boletín puede confirmarlo o corregirlo"
+      description: Cómo y cuándo se restableció un barrio dentro del corte
     CorteRespuesta:
       type: object
       properties:
@@ -2417,17 +2956,161 @@ components:
         finPrometido:
           type: string
           format: date-time
-        finReal:
-          type: string
-          description: Nulo mientras el corte sigue abierto
-          format: date-time
         causa:
           type: string
         origen:
           type: string
         estado:
           type: string
+          description: "ANUNCIADO, CONFIRMADO, RESTABLECIDO, EXPIRADO o ANULADO. RESTABLECIDO\
+            \ solo cuando todos sus barrios tienen cierre; EXPIRADO nadie lo confirmó\
+            \ a tiempo y no cuenta en el Índice."
+        cierres:
+          type: array
+          description: Un cierre por cada barrio ya restablecido; los pendientes no
+            aparecen. Vacío mientras ningún barrio se haya restablecido.
+          items:
+            $ref: "#/components/schemas/CierreRespuesta"
+        motivoAnulacion:
+          type: string
+          description: "Solo en un corte ANULADO: por qué se anuló"
+          nullable: true
+        caducaEn:
+          type: string
+          description: "Solo en el corte del veedor, que es el override: desde esta\
+            \ hora deja de afirmar nada. Nulo si dura hasta que alguien lo cierre\
+            \ o expire."
+          format: date-time
+          nullable: true
       description: Corte oficial (RF016-RF017)
+    CoordenadaDTO:
+      required:
+      - latitud
+      - longitud
+      type: object
+      properties:
+        latitud:
+          maximum: 90
+          exclusiveMaximum: false
+          minimum: -90
+          exclusiveMinimum: false
+          type: number
+          format: double
+        longitud:
+          maximum: 180
+          exclusiveMaximum: false
+          minimum: -180
+          exclusiveMinimum: false
+          type: number
+          format: double
+      description: "Coordenada GPS del reporte, solo cuando el usuario la autoriza\
+        \ (RF007)"
+    SolicitudVerificacionBarrio:
+      required:
+      - coordenada
+      - precisionMetros
+      type: object
+      properties:
+        coordenada:
+          $ref: "#/components/schemas/CoordenadaDTO"
+        precisionMetros:
+          minimum: 0
+          type: number
+          description: |-
+            Precision de la lectura en metros (`coords.accuracy` del navegador). Una precision peor que 200 m
+            (ubicacion aproximada por red) no verifica y responde 422 `ubicacion-imprecisa`.
+          format: double
+          example: 25.5
+      description: |-
+        La ubicacion del momento. El servidor la compara con el barrio que declaraste y la descarta: no se
+        guarda ni se audita; solo queda que el barrio quedo verificado.
+    ConsentimientoRespuesta:
+      type: object
+      properties:
+        tipo:
+          type: string
+          description: PRIVACIDAD o AVISOS
+        version:
+          type: string
+        fecha:
+          type: string
+          format: date-time
+      description: "Lo que acepto, con la version del texto y la fecha"
+    PerfilVecinoRespuesta:
+      type: object
+      properties:
+        id:
+          type: string
+        correo:
+          type: string
+        nombre:
+          type: string
+        estado:
+          type: string
+          description: ACTIVA mientras pueda iniciar sesion
+        barrioId:
+          type: string
+          description: Slug del barrio que declaro
+        barrioVerificado:
+          type: boolean
+          description: true si probo con su ubicacion que vive en `barrioId`
+        barrioVerificadoEn:
+          type: string
+          format: date-time
+          nullable: true
+        recibeAvisos:
+          type: boolean
+          description: true si acepto recibir avisos de cortes de su barrio
+        consentimientos:
+          type: array
+          description: "Lo que acepto, con la version del texto y la fecha"
+          items:
+            $ref: "#/components/schemas/ConsentimientoRespuesta"
+        creadoEn:
+          type: string
+          format: date-time
+        actualizadoEn:
+          type: string
+          format: date-time
+      description: Perfil del vecino con sesion
+    CredencialVecino:
+      required:
+      - clave
+      - correo
+      type: object
+      properties:
+        correo:
+          minLength: 1
+          type: string
+          description: Correo de la cuenta
+          format: email
+          example: vecina@ejemplo.org
+        clave:
+          minLength: 1
+          type: string
+          description: Clave de la cuenta
+      description: Credencial de un vecino registrado
+    SesionVecino:
+      type: object
+      properties:
+        token:
+          type: string
+          description: "Token JWT. Se envia como 'Authorization: Bearer <token>'"
+        usuarioId:
+          type: string
+        nombre:
+          type: string
+        correo:
+          type: string
+        permisos:
+          type: array
+          description: Siempre `GESTIONAR_PERFIL_PROPIO`
+          items:
+            type: string
+            description: Siempre `GESTIONAR_PERFIL_PROPIO`
+      description: "Sesion de un vecino. Sirve en `/api/vecino/**`; del panel solo\
+        \ abre `GET /api/veedor/yo` y `POST /api/veedor/sesion/cierre`, que muestran\
+        \ o cierran lo propio."
     SolicitudSuscripcion:
       required:
       - correo
@@ -2466,31 +3149,8 @@ components:
           type: string
           format: date-time
       description: "Suscripción creada, pendiente de confirmación por correo (RF013)"
-    CoordenadaDTO:
-      required:
-      - latitud
-      - longitud
-      type: object
-      properties:
-        latitud:
-          maximum: 90
-          exclusiveMaximum: false
-          minimum: -90
-          exclusiveMinimum: false
-          type: number
-          format: double
-        longitud:
-          maximum: 180
-          exclusiveMaximum: false
-          minimum: -180
-          exclusiveMinimum: false
-          type: number
-          format: double
-      description: "Coordenada GPS del reporte, solo cuando el usuario la autoriza\
-        \ (RF007)"
     SolicitudReporte:
       required:
-      - huella
       - tipo
       type: object
       properties:
@@ -2506,18 +3166,21 @@ components:
           type: string
           description: "SIN_AGUA, PRESION_BAJA o SERVICIO_RESTABLECIDO"
           example: SIN_AGUA
-        huella:
-          maxLength: 128
-          minLength: 32
-          type: string
-          description: |-
-            Huella anónima del dispositivo (ADR-007) — no es una cuenta ni un identificador
-            personal. El cliente la genera una vez (p. ej. un UUID persistido en el dispositivo,
-            hasheado) y la reutiliza en cada reporte; es lo único que permite RF006 (límite de
-            reportes por dispositivo) sin pedir registro.
         coordenada:
           $ref: "#/components/schemas/CoordenadaDTO"
-      description: Reporte ciudadano sin registro (RF005-RF008)
+        precisionMetros:
+          minimum: 0
+          type: number
+          description: |-
+            Precision de la coordenada en metros (`coords.accuracy` del navegador). Sin ella, o si es peor que
+            200 m, la ubicacion no verifica el reporte.
+          format: double
+          nullable: true
+          example: 25.5
+      description: |-
+        Reporte ciudadano (RF005-RF008). La identidad de quien reporta no va en el cuerpo: viaja en la
+        cabecera `X-Dispositivo` (token de `POST /api/dispositivos`) o en la sesion de un vecino
+        (`Authorization: Bearer`). Un campo `huella` en el cuerpo, como el de versiones anteriores, se ignora.
     ReporteRespuesta:
       type: object
       properties:
@@ -2535,40 +3198,61 @@ components:
         confirmaciones:
           type: integer
           format: int32
-      description: Reporte ciudadano registrado
-    SolicitudConfirmar:
-      required:
-      - huella
-      type: object
-      properties:
-        huella:
-          maxLength: 128
-          minLength: 32
+        verificacion:
           type: string
-          description: Huella hash del dispositivo del usuario que confirma (ADR-007)
-          example: 3a7b9c...
-      description: Solicitud para confirmar un reporte ciudadano por otro vecino
+          description: |-
+            Cuanto respalda el servidor que quien reporta esta en el barrio: CUENTA_VERIFICADA, UBICACION_VERIFICADA
+            o NINGUNA. Lo decide el servidor; el cliente solo lo muestra.
+      description: Reporte ciudadano registrado
     IotCoordenada:
       type: object
       properties:
         lat:
+          maximum: 90.0
+          exclusiveMaximum: false
+          minimum: -90.0
+          exclusiveMinimum: false
           type: number
           format: double
         lon:
+          maximum: 180.0
+          exclusiveMaximum: false
+          minimum: -180.0
+          exclusiveMinimum: false
           type: number
           format: double
     IotPresionRequest:
+      required:
+      - sectorId
+      - sensorId
       type: object
       properties:
         sensorId:
+          maxLength: 64
+          minLength: 0
+          pattern: "[A-Za-z0-9._:-]+"
           type: string
         sectorId:
+          maxLength: 100
+          minLength: 0
           type: string
         presionPsi:
+          maximum: 1000.0
+          exclusiveMaximum: false
+          minimum: 0.0
+          exclusiveMinimum: false
           type: number
           format: double
         coordenada:
           $ref: "#/components/schemas/IotCoordenada"
+    TokenDeDispositivoRespuesta:
+      type: object
+      properties:
+        token:
+          type: string
+          description: "Se envia en la cabecera `X-Dispositivo` de `POST /api/reportes`\
+            \ y de `/confirmar`. Guardalo: perderlo es perder la identidad."
+      description: Identidad de dispositivo emitida por el servidor
     SolicitudReenvioVerificacion:
       required:
       - correo
@@ -2580,6 +3264,51 @@ components:
           format: email
       description: "Pedir de nuevo el correo de verificación. Responde siempre 202,\
         \ exista o no la cuenta."
+    Consentimiento:
+      type: object
+      properties:
+        privacidad:
+          type: boolean
+          description: Acepta el aviso de privacidad vigente. Debe ser true.
+        avisos:
+          type: boolean
+          description: Acepta recibir avisos de cortes de su barrio
+          default: false
+      description: |-
+        Las dos casillas son independientes: aceptar la privacidad es obligatorio para registrarse;
+        `avisos` autoriza recibir avisos de cortes de tu barrio y por defecto es falso.
+    SolicitudRegistroVecino:
+      required:
+      - barrioId
+      - clave
+      - consentimiento
+      - correo
+      - nombre
+      type: object
+      properties:
+        correo:
+          minLength: 1
+          type: string
+          format: email
+        nombre:
+          maxLength: 80
+          minLength: 2
+          type: string
+        clave:
+          minLength: 1
+          type: string
+          description: Minimo 12 caracteres. La politica completa vive en ClaveEnClaro.
+        barrioId:
+          minLength: 1
+          type: string
+          description: Slug del barrio donde vives (uno de `GET /api/sectores`). 400
+            si no existe.
+          example: manga
+        consentimiento:
+          $ref: "#/components/schemas/Consentimiento"
+      description: |-
+        Registro de un vecino. Confirmar el correo activa la cuenta: no hay aprobacion de un administrador
+        porque un vecino solo gestiona su propio perfil.
     SolicitudRestablecer:
       required:
       - correo
@@ -2670,6 +3399,10 @@ components:
         estadoModeracion:
           type: string
           description: "PENDIENTE, APROBADO o DESCARTADO"
+        verificacion:
+          type: string
+          description: "CUENTA_VERIFICADA, UBICACION_VERIFICADA o NINGUNA: cuánto\
+            \ respalda el servidor que quien reporta está en el barrio"
       description: Reporte ciudadano en la cola de moderación del veedor (RF018)
     PropuestaIngestaRespuesta:
       type: object
@@ -2724,6 +3457,18 @@ components:
       description: |-
         Propuesta de cambio de estado detectada por la ingesta automatizada (M9), esperando la
         revisión de un veedor. No afecta el mapa público hasta que se apruebe.
+    SolicitudAnulacion:
+      required:
+      - motivo
+      type: object
+      properties:
+        motivo:
+          minLength: 1
+          type: string
+          description: Por qué se anula. Queda en la bitácora pública y en la auditoría.
+          example: El boletín hablaba de otro barrio
+      description: Anulación de un corte o de una propuesta de la ingesta que se publicó
+        por error
     SolicitudCierreCorte:
       required:
       - horaReal
@@ -2733,6 +3478,26 @@ components:
           type: string
           format: date-time
       description: Cierre de un corte con la hora real de restablecimiento (RF017)
+    SolicitudPerfilVecino:
+      type: object
+      properties:
+        nombre:
+          maxLength: 80
+          minLength: 2
+          type: string
+        barrioId:
+          type: string
+          description: Slug del barrio donde vives. Cambiarlo anula la verificacion
+            de barrio anterior. 400 si no existe.
+          nullable: true
+          example: crespo
+        recibirAvisos:
+          type: boolean
+          description: true acepta avisos de cortes de tu barrio; false retira ese
+            consentimiento
+          nullable: true
+      description: Cambios al perfil. Solo se aplica lo que viene; un campo ausente
+        no se toca.
     SaludColectorRespuesta:
       type: object
       properties:
@@ -2795,6 +3560,105 @@ components:
           format: int32
       description: Documento de la ingesta que falló al procesarse y sigue en cola
         de reintento
+    RespaldoVecinalRespuesta:
+      type: object
+      properties:
+        vecinos:
+          type: integer
+          format: int32
+        umbral:
+          type: integer
+          format: int32
+      description: Cuántos vecinos respaldan un estado y cuántos hacían falta
+      nullable: true
+    SectorRespuesta:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Identificador estable del sector
+          example: bocagrande
+        nombre:
+          type: string
+          description: Nombre del barrio segun el GeoJSON oficial
+          example: BOCAGRANDE
+        poblacion:
+          type: integer
+          description: |-
+            Habitantes según el censo. **Nulo cuando el barrio no tiene dato censal** (27 de los 211): no es 0,
+            y no debe mostrarse como «0 habitantes».
+          format: int32
+          nullable: true
+          example: 12000
+        estado:
+          type: string
+          description: |-
+            Estado conocido del servicio. **Nulo cuando no hay dato verificado**: no se asume
+            CON_SERVICIO por omision, porque publicar servicio normal sin verificarlo es el
+            falso positivo que el proyecto evita (ADR-014). Presentarlo como "sin datos".
+          nullable: true
+          enum:
+          - CON_SERVICIO
+          - SIN_SERVICIO
+          - PRESION_BAJA
+          - CORTE_PROGRAMADO
+        actualizadoEn:
+          type: string
+          description: Cuando se registro ese estado. Nulo si el sector no tiene estado.
+          format: date-time
+          nullable: true
+        verificadoEn:
+          type: string
+          description: |-
+            Última vez que una fuente con autoridad (consenso de vecinos, corte del veedor o boletín
+            aprobado) sostuvo ese estado, haya cambiado o no (ADR-073). Nunca anterior a
+            `actualizadoEn`. Nulo si el sector no tiene estado. Confirmar sin cambiar no emite
+            evento SSE: el valor se renueva al volver a pedir la lista.
+          format: date-time
+          nullable: true
+        origen:
+          type: string
+          description: |-
+            Quién sostiene el estado: ACUACAR (boletín oficial), PRENSA (nota aprobada por el veedor),
+            VEEDOR (corte o cierre del veedor), VECINOS (quórum de reportes) o SENSOR. Nulo si el sector
+            no tiene estado.
+          nullable: true
+          enum:
+          - ACUACAR
+          - VEEDOR
+          - VECINOS
+          - PRENSA
+          - SENSOR
+        ventanaPrometida:
+          $ref: "#/components/schemas/VentanaPrometidaRespuesta"
+        restablecimientoPorConfirmar:
+          type: boolean
+          description: |-
+            La promesa ya venció y nadie confirmó que volvió el agua: el barrio sigue como estaba, pero
+            por confirmar. Un restablecimiento pide menos vecinos que reportar una avería.
+        enDisputa:
+          type: boolean
+          description: |-
+            Un quórum de vecinos contradice a la fuente oficial. El color no cambia: la contradicción
+            se muestra como una insignia y llega a la cola del veedor.
+        reportesEnContra:
+          type: integer
+          description: Cuántos vecinos sostienen esa contradicción. 0 si no hay disputa.
+          format: int32
+        respaldo:
+          $ref: "#/components/schemas/RespaldoVecinalRespuesta"
+      description: Sector de Cartagena con el estado conocido de su servicio de agua
+    VentanaPrometidaRespuesta:
+      type: object
+      properties:
+        inicio:
+          type: string
+          format: date-time
+        fin:
+          type: string
+          format: date-time
+      description: Desde cuándo y hasta cuándo prometió la fuente oficial la afectación
+      nullable: true
     EventoAuditoriaRespuesta:
       type: object
       properties:
@@ -2861,52 +3725,6 @@ components:
           description: Instante en que el servidor genero esta respuesta (UTC)
           format: date-time
       description: Listado de sectores con la hora en que el servidor genero la respuesta
-    SectorRespuesta:
-      type: object
-      properties:
-        id:
-          type: string
-          description: Identificador estable del sector
-          example: bocagrande
-        nombre:
-          type: string
-          description: Nombre del barrio segun el GeoJSON oficial
-          example: BOCAGRANDE
-        poblacion:
-          type: integer
-          description: |-
-            Habitantes según el censo. **Nulo cuando el barrio no tiene dato censal** (27 de los 211): no es 0,
-            y no debe mostrarse como «0 habitantes».
-          format: int32
-          nullable: true
-          example: 12000
-        estado:
-          type: string
-          description: |-
-            Estado conocido del servicio. **Nulo cuando no hay dato verificado**: no se asume
-            CON_SERVICIO por omision, porque publicar servicio normal sin verificarlo es el
-            falso positivo que el proyecto evita (ADR-014). Presentarlo como "sin datos".
-          nullable: true
-          enum:
-          - CON_SERVICIO
-          - SIN_SERVICIO
-          - PRESION_BAJA
-          - CORTE_PROGRAMADO
-        actualizadoEn:
-          type: string
-          description: Cuando se registro ese estado. Nulo si el sector no tiene estado.
-          format: date-time
-          nullable: true
-        verificadoEn:
-          type: string
-          description: |-
-            Última vez que una fuente con autoridad (consenso de vecinos, corte del veedor o boletín
-            aprobado) sostuvo ese estado, haya cambiado o no (ADR-073). Nunca anterior a
-            `actualizadoEn`. Nulo si el sector no tiene estado. Confirmar sin cambiar no emite
-            evento SSE: el valor se renueva al volver a pedir la lista.
-          format: date-time
-          nullable: true
-      description: Sector de Cartagena con el estado conocido de su servicio de agua
     EstadisticaSectorRespuesta:
       type: object
       properties:
@@ -3026,7 +3844,26 @@ components:
             \ en los eventos de consenso; 0 en los demás. Los ids no viajan en el\
             \ listado (pesaban cientos de KB por página): se piden con GET /api/bitacora/{id}/sustento."
           format: int32
+        fuente:
+          type: string
+          description: "Quién sostiene el evento: ACUACAR o PRENSA (boletín o nota),\
+            \ VECINOS (quórum) o VEEDOR (panel). Nulo en los eventos anteriores a\
+            \ este dato."
+          nullable: true
+        respaldo:
+          $ref: "#/components/schemas/RespaldoRespuesta"
       description: "Evento de la bitácora pública, de solo anexado (RF026-RF028)"
+    RespaldoRespuesta:
+      type: object
+      properties:
+        vecinos:
+          type: integer
+          format: int32
+        umbral:
+          type: integer
+          format: int32
+      description: Cuántos vecinos respaldan un cambio y cuántos hacían falta
+      nullable: true
   securitySchemes:
     bearerAuth:
       type: http

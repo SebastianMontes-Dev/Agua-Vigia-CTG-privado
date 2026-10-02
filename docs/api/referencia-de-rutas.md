@@ -6,7 +6,7 @@
 >
 > Las **guías** de esta carpeta explican el porqué y los flujos; esta página es el catálogo exacto.
 
-**64 operaciones** en 58 rutas, más las páginas HTML de cortesía y el SSE.
+**77 operaciones** en 71 rutas, más las páginas HTML de cortesía y el SSE.
 
 Leyenda de **Acceso**: *Público* no exige token · *Sesión + `PERMISO`* exige `Authorization: Bearer <token>` de una
 cuenta que tenga ese permiso · *Sesión (cualquier cuenta)* exige token pero ningún permiso concreto.
@@ -17,17 +17,20 @@ Todo error sale en RFC 7807: ver [Errores y límites](errores-y-limites.md).
 - [Bitácora](#bit-cora) (2)
 - [Cuentas](#cuentas) (13)
 - [Cumplimiento](#cumplimiento) (5)
+- [Dispositivos](#dispositivos) (1)
 - [Estadisticas](#estadisticas) (2)
 - [IoT](#iot) (1)
 - [Open311](#open311) (1)
 - [Reportes](#reportes) (3)
 - [Sectores](#sectores) (5)
 - [Suscripciones](#suscripciones) (5)
+- [Vecinos](#vecinos) (6)
 - [Veedor](#veedor) (3)
-- [Veedor - Cortes](#veedor-cortes) (4)
+- [Veedor - Cortes](#veedor-cortes) (8)
 - [Veedor - Cuenta propia](#veedor-cuenta-propia) (1)
 - [Veedor - Cuentas](#veedor-cuentas) (8)
-- [Veedor - Ingesta](#veedor-ingesta) (5)
+- [Veedor - Disputas](#veedor-disputas) (1)
+- [Veedor - Ingesta](#veedor-ingesta) (6)
 - [Veedor - Moderación](#veedor-moderaci-n) (3)
 - [Veedor - Segundo factor](#veedor-segundo-factor) (3)
 - [Esquemas](#esquemas)
@@ -298,6 +301,23 @@ Separador `;` y BOM UTF-8, para que Excel en español la abra sin romper las til
 | **Cuerpo** | — |
 | **Respuestas** | `200` CSV generado → string |
 
+## Dispositivos
+
+Identidad pseudonima de quien reporta sin cuenta
+
+### `POST /api/dispositivos`
+
+**Pedir una identidad de dispositivo**
+
+Crea un dispositivo nuevo y devuelve su token firmado. Pidelo la primera vez, guardalo y enviarlo en `X-Dispositivo` en cada reporte y confirmacion. Cada llamada crea una identidad distinta: no la pidas en cada reporte. Si un reporte responde 401 `dispositivo-invalido`, pide otro. Maximo 10 por hora por IP.
+
+| | |
+|---|---|
+| **Acceso** | Público |
+| **Parámetros** | — |
+| **Cuerpo** | — |
+| **Respuestas** | `201` Token emitido → [TokenDeDispositivoRespuesta](#esquema-tokendedispositivorespuesta)<br>`429` Demasiados tokens pedidos desde esta IP → [TokenDeDispositivoRespuesta](#esquema-tokendedispositivorespuesta) |
+
 ## Estadisticas
 
 M7 — Estadísticas Públicas (RF023)
@@ -368,27 +388,27 @@ Reportes ciudadanos de estado del servicio, sin registro
 
 **Registrar un reporte ciudadano**
 
-Sin registro ni cuenta (RF005). Limita automáticamente los reportes por dispositivo en la ventana vigente (RF006) — ver 429. Hace falta el `sectorId`, la `coordenada` o ambos (RF007): con solo la coordenada el servidor infiere el sector que la contiene y responde 400 si cae fuera de todo barrio de Cartagena. La coordenada se envía solo si el usuario autorizó compartir su ubicación.
+Sin registro ni cuenta (RF005), pero con identidad: la cabecera `X-Dispositivo` (token de `POST /api/dispositivos`) o la sesion de un vecino. Sin ninguna de las dos responde 401 `dispositivo-invalido`. Limita automaticamente los reportes por identidad en la ventana vigente (RF006, 3 para un dispositivo y 5 para un vecino) — ver 429. Hace falta el `sectorId`, la `coordenada` o ambos (RF007): con solo la coordenada el servidor infiere el sector que la contiene y responde 400 si cae fuera de todo barrio de Cartagena. La coordenada se envia solo si el usuario autorizo compartir su ubicacion; con su `precisionMetros` el servidor verifica el reporte (campo `verificacion` de la respuesta) y guarda solo una aproximacion de ella.
 
 | | |
 |---|---|
 | **Acceso** | Público |
-| **Parámetros** | — |
+| **Parámetros** | `X-Dispositivo` (header) |
 | **Cuerpo** | [SolicitudReporte](#esquema-solicitudreporte) (`application/json`) |
-| **Respuestas** | `201` Reporte registrado → [ReporteRespuesta](#esquema-reporterespuesta)<br>`400` Sector inexistente, tipo inválido, huella fuera de 32-128 caracteres, coordenada fuera de Cartagena o sin sector ni coo… → [ProblemDetail](#esquema-problemdetail)<br>`429` El dispositivo superó el límite de reportes para este sector → [ProblemDetail](#esquema-problemdetail) |
+| **Respuestas** | `201` Reporte registrado → [ReporteRespuesta](#esquema-reporterespuesta)<br>`400` Sector inexistente, tipo inválido, coordenada fuera de Cartagena o sin sector ni coordenada → [ProblemDetail](#esquema-problemdetail)<br>`401` Falta `X-Dispositivo`, no lo firmó este servidor o el dispositivo ya no existe (type `dispositivo-invalido`): pide otro… → [ProblemDetail](#esquema-problemdetail)<br>`429` La identidad superó el límite de reportes para este sector → [ProblemDetail](#esquema-problemdetail) |
 
 ### `POST /api/reportes/{id}/confirmar`
 
 **Confirmar un reporte**
 
-Permite a otro vecino confirmar un reporte ciudadano (M11).
+Permite a otro vecino confirmar un reporte ciudadano (M11). Sin cuerpo: la identidad de quien confirma viaja en `X-Dispositivo` o en la sesion de un vecino, igual que al reportar.
 
 | | |
 |---|---|
 | **Acceso** | Público |
-| **Parámetros** | `id` (path, obligatorio) |
-| **Cuerpo** | [SolicitudConfirmar](#esquema-solicitudconfirmar) (`application/json`) |
-| **Respuestas** | `200` Reporte confirmado → [ReporteRespuesta](#esquema-reporterespuesta)<br>`400` Error en la solicitud → [ProblemDetail](#esquema-problemdetail)<br>`404` Reporte no encontrado → [ProblemDetail](#esquema-problemdetail) |
+| **Parámetros** | `id` (path, obligatorio)<br>`X-Dispositivo` (header) |
+| **Cuerpo** | — |
+| **Respuestas** | `200` Reporte confirmado → [ReporteRespuesta](#esquema-reporterespuesta)<br>`401` Falta o no es válida la identidad del dispositivo (type `dispositivo-invalido`) → [ProblemDetail](#esquema-problemdetail)<br>`404` Reporte no encontrado → [ProblemDetail](#esquema-problemdetail) |
 
 ### `POST /api/reportes/{id}/foto`
 
@@ -539,6 +559,88 @@ Acción del botón de la página de confirmación (o de un cliente de API). El t
 | **Cuerpo** | — |
 | **Respuestas** | `200` Suscripción confirmada → object<br>`400` Token inválido, inexistente o de una suscripción ya cancelada → [ProblemDetail](#esquema-problemdetail) |
 
+## Vecinos
+
+Registro, ingreso y perfil de los vecinos
+
+### `POST /api/cuentas/vecino`
+
+**Registrarse como vecino**
+
+Crea la cuenta en PENDIENTE_VERIFICACION y envia el enlace de confirmacion. Al confirmar el correo la cuenta queda ACTIVA, sin aprobacion de un administrador. Exige el barrio y aceptar el aviso de privacidad; la casilla de avisos es aparte. Responde 202 aunque el correo ya tenga cuenta, para no revelar que direcciones estan registradas.
+
+| | |
+|---|---|
+| **Acceso** | Público |
+| **Parámetros** | — |
+| **Cuerpo** | [SolicitudRegistroVecino](#esquema-solicitudregistrovecino) (`application/json`) |
+| **Respuestas** | `202` Solicitud recibida; revisa tu correo<br>`400` Correo mal formado, clave que no cumple la politica, barrio ausente o inexistente, o privacidad no aceptada |
+
+### `PATCH /api/vecino/perfil`
+
+**Actualizar el perfil**
+
+Cambia nombre, barrio y la casilla de avisos; solo se aplica lo que viene. Cambiar de barrio anula la verificacion de barrio anterior.
+
+| | |
+|---|---|
+| **Acceso** | Público |
+| **Parámetros** | — |
+| **Cuerpo** | [SolicitudPerfilVecino](#esquema-solicitudperfilvecino) (`application/json`) |
+| **Respuestas** | `200` Perfil actualizado → [PerfilVecinoRespuesta](#esquema-perfilvecinorespuesta)<br>`400` Nombre invalido o barrio inexistente → [PerfilVecinoRespuesta](#esquema-perfilvecinorespuesta) |
+
+### `POST /api/vecino/sesion`
+
+**Iniciar sesion como vecino**
+
+Devuelve un token JWT valido por 8 horas que sirve en `/api/vecino/**` (y, del panel, solo en `GET /api/veedor/yo` y `POST /api/veedor/sesion/cierre`). Una cuenta del panel no entra por aqui, ni una de vecino por `/api/veedor/sesion`: en los dos casos la respuesta es la misma 401 que ante una clave incorrecta.
+
+| | |
+|---|---|
+| **Acceso** | Público |
+| **Parámetros** | — |
+| **Cuerpo** | [CredencialVecino](#esquema-credencialvecino) (`application/json`) |
+| **Respuestas** | `200` Credencial correcta, token emitido → [SesionVecino](#esquema-sesionvecino)<br>`401` Credencial incorrecta → [SesionVecino](#esquema-sesionvecino)<br>`403` La cuenta existe pero aun no esta activa (correo sin confirmar) o esta suspendida → [SesionVecino](#esquema-sesionvecino)<br>`423` Cuenta bloqueada por intentos fallidos → [SesionVecino](#esquema-sesionvecino)<br>`429` Demasiados intentos desde esta IP → [SesionVecino](#esquema-sesionvecino) |
+
+### `POST /api/vecino/sesion/cierre`
+
+**Cerrar sesion**
+
+Revoca en el servidor todas las sesiones vivas de la cuenta, no solo la de este navegador.
+
+| | |
+|---|---|
+| **Acceso** | Público |
+| **Parámetros** | — |
+| **Cuerpo** | — |
+| **Respuestas** | `204` No Content |
+
+### `POST /api/vecino/verificacion-barrio`
+
+**Verificar el barrio con la ubicacion del momento**
+
+Compara la coordenada con el poligono del barrio que declaraste. Si cae dentro, el barrio queda verificado con su fecha; la coordenada se descarta y no se guarda. Maximo 3 intentos por dia (429 con `Retry-After`). Si ya estaba verificado, no hace nada y devuelve el perfil. Es una senal blanda: sube el costo de votar desde un barrio ajeno, no prueba identidad.
+
+| | |
+|---|---|
+| **Acceso** | Público |
+| **Parámetros** | — |
+| **Cuerpo** | [SolicitudVerificacionBarrio](#esquema-solicitudverificacionbarrio) (`application/json`) |
+| **Respuestas** | `200` Perfil con el barrio verificado → [PerfilVecinoRespuesta](#esquema-perfilvecinorespuesta)<br>`400` Coordenada fuera de rango o precision ausente o negativa → [PerfilVecinoRespuesta](#esquema-perfilvecinorespuesta)<br>`422` `ubicacion-fuera-del-barrio` (la ubicacion no cae en tu barrio declarado) o `ubicacion-imprecisa` (precision peor que 2… → [PerfilVecinoRespuesta](#esquema-perfilvecinorespuesta)<br>`429` Ya usaste los 3 intentos de hoy → [PerfilVecinoRespuesta](#esquema-perfilvecinorespuesta) |
+
+### `GET /api/vecino/yo`
+
+**Perfil del vecino con la sesion**
+
+Devuelve el estado vigente en la base de datos, no lo que dice el token.
+
+| | |
+|---|---|
+| **Acceso** | Público |
+| **Parámetros** | — |
+| **Cuerpo** | — |
+| **Respuestas** | `200` OK → [PerfilVecinoRespuesta](#esquema-perfilvecinorespuesta) |
+
 ## Veedor
 
 Autenticacion del panel del veedor
@@ -621,6 +723,19 @@ Sectores afectados, inicio, fin prometido y causa (RF016). Origen VEEDOR.
 | **Cuerpo** | — |
 | **Respuestas** | `200` Corte encontrado → [CorteRespuesta](#esquema-corterespuesta)<br>`401` Sin sesión, token inválido, caducado o revocado → [ProblemDetail](#esquema-problemdetail)<br>`403` La sesión no tiene el permiso que exige esta operación → [ProblemDetail](#esquema-problemdetail)<br>`404` No existe un corte con ese id → [ProblemDetail](#esquema-problemdetail) |
 
+### `PATCH /api/veedor/cortes/{id}/anulacion`
+
+**Anular un corte publicado por error**
+
+Queda como historia con su motivo, fuera del Índice y de las estadísticas; los barrios se recalculan y la bitácora anexa la corrección (no se edita lo ya publicado).
+
+| | |
+|---|---|
+| **Acceso** | Sesión + `GESTIONAR_CORTES` |
+| **Parámetros** | `id` (path, obligatorio) |
+| **Cuerpo** | [SolicitudAnulacion](#esquema-solicitudanulacion) (`application/json`) |
+| **Respuestas** | `200` Corte anulado → [CorteRespuesta](#esquema-corterespuesta)<br>`400` Falta el motivo → [ProblemDetail](#esquema-problemdetail)<br>`401` Sin sesión, token inválido, caducado o revocado → [ProblemDetail](#esquema-problemdetail)<br>`403` La sesión no tiene el permiso que exige esta operación → [ProblemDetail](#esquema-problemdetail)<br>`404` El corte no existe → [ProblemDetail](#esquema-problemdetail)<br>`409` El corte ya estaba anulado → [ProblemDetail](#esquema-problemdetail) |
+
 ### `PATCH /api/veedor/cortes/{id}/cierre`
 
 **Cerrar un corte con la hora real de restablecimiento (RF017)**
@@ -631,6 +746,45 @@ Sectores afectados, inicio, fin prometido y causa (RF016). Origen VEEDOR.
 | **Parámetros** | `id` (path, obligatorio) |
 | **Cuerpo** | [SolicitudCierreCorte](#esquema-solicitudcierrecorte) (`application/json`) |
 | **Respuestas** | `200` Corte cerrado → [CorteRespuesta](#esquema-corterespuesta)<br>`401` Sin sesión, token inválido, caducado o revocado → [ProblemDetail](#esquema-problemdetail)<br>`403` La sesión no tiene el permiso que exige esta operación → [ProblemDetail](#esquema-problemdetail)<br>`404` El corte no existe → [ProblemDetail](#esquema-problemdetail)<br>`409` El corte ya estaba cerrado → [ProblemDetail](#esquema-problemdetail) |
+
+### `PATCH /api/veedor/cortes/{id}/sectores/{sectorId}/cierre`
+
+**Cerrar un solo barrio del corte**
+
+Los barrios de un corte se restablecen a horas distintas. El corte pasa a RESTABLECIDO cuando todos sus barrios tienen cierre.
+
+| | |
+|---|---|
+| **Acceso** | Sesión + `GESTIONAR_CORTES` |
+| **Parámetros** | `id` (path, obligatorio)<br>`sectorId` (path, obligatorio) |
+| **Cuerpo** | [SolicitudCierreCorte](#esquema-solicitudcierrecorte) (`application/json`) |
+| **Respuestas** | `200` Barrio cerrado → [CorteRespuesta](#esquema-corterespuesta)<br>`401` Sin sesión, token inválido, caducado o revocado → [ProblemDetail](#esquema-problemdetail)<br>`403` La sesión no tiene el permiso que exige esta operación → [ProblemDetail](#esquema-problemdetail)<br>`404` El corte no existe → [ProblemDetail](#esquema-problemdetail)<br>`409` El corte ya no está abierto o el barrio ya estaba cerrado → [ProblemDetail](#esquema-problemdetail) |
+
+### `PATCH /api/veedor/cortes/{id}/sectores/{sectorId}/confirmacion`
+
+**Confirmar —o corregir la hora de— un cierre provisional**
+
+Un cierre que solo sostenían los vecinos o los sensores pasa a definitivo con la hora que fije el veedor.
+
+| | |
+|---|---|
+| **Acceso** | Sesión + `GESTIONAR_CORTES` |
+| **Parámetros** | `id` (path, obligatorio)<br>`sectorId` (path, obligatorio) |
+| **Cuerpo** | [SolicitudCierreCorte](#esquema-solicitudcierrecorte) (`application/json`) |
+| **Respuestas** | `200` Cierre confirmado → [CorteRespuesta](#esquema-corterespuesta)<br>`401` Sin sesión, token inválido, caducado o revocado → [ProblemDetail](#esquema-problemdetail)<br>`403` La sesión no tiene el permiso que exige esta operación → [ProblemDetail](#esquema-problemdetail)<br>`404` El corte no existe → [ProblemDetail](#esquema-problemdetail)<br>`409` El barrio no tiene cierre o ya estaba confirmado → [ProblemDetail](#esquema-problemdetail) |
+
+### `GET /api/veedor/cortes/vencidos`
+
+**Cola de cortes vencidos**
+
+Los cortes cuya promesa ya pasó sin cierre y los que tienen un cierre provisional que nadie ha confirmado, del más antiguo al más reciente.
+
+| | |
+|---|---|
+| **Acceso** | Sesión + `VER_PANEL` |
+| **Parámetros** | — |
+| **Cuerpo** | — |
+| **Respuestas** | `200` OK → lista de [CorteRespuesta](#esquema-corterespuesta)<br>`401` Sin sesión, token inválido, caducado o revocado → [ProblemDetail](#esquema-problemdetail)<br>`403` La sesión no tiene el permiso que exige esta operación → [ProblemDetail](#esquema-problemdetail) |
 
 ## Veedor - Cuenta propia
 
@@ -751,6 +905,23 @@ Crea la cuenta en INVITADA y le envia un enlace para que fije su clave. Al acept
 | **Cuerpo** | [SolicitudInvitacion](#esquema-solicitudinvitacion) (`application/json`) |
 | **Respuestas** | `201` Invitacion enviada → [UsuarioRespuesta](#esquema-usuariorespuesta)<br>`400` Datos invalidos o barrio inexistente → [UsuarioRespuesta](#esquema-usuariorespuesta)<br>`401` Sin sesión, token inválido, caducado o revocado → [ProblemDetail](#esquema-problemdetail)<br>`403` La sesión no tiene el permiso que exige esta operación → [ProblemDetail](#esquema-problemdetail)<br>`409` Ya existe una cuenta con ese correo → [UsuarioRespuesta](#esquema-usuariorespuesta) |
 
+## Veedor - Disputas
+
+Barrios cuyo estado oficial contradicen los vecinos
+
+### `GET /api/veedor/disputas`
+
+**Listar los barrios en disputa, los más contradichos primero**
+
+Cada barrio trae `reportesEnContra`: cuántos vecinos sostienen que el estado oficial no es el real.
+
+| | |
+|---|---|
+| **Acceso** | Sesión + `VER_PANEL` |
+| **Parámetros** | — |
+| **Cuerpo** | — |
+| **Respuestas** | `200` OK → lista de [SectorRespuesta](#esquema-sectorrespuesta)<br>`401` Sin sesión, token inválido, caducado o revocado → [ProblemDetail](#esquema-problemdetail)<br>`403` La sesión no tiene el permiso que exige esta operación → [ProblemDetail](#esquema-problemdetail) |
+
 ## Veedor - Ingesta
 
 Salud de los colectores del pipeline de ingesta (RNF007)
@@ -780,6 +951,19 @@ Paginado, con el total y el enlace a la siguiente página en las cabeceras `X-To
 | **Parámetros** | `pagina` (query)<br>`tamano` (query) |
 | **Cuerpo** | — |
 | **Respuestas** | `200` Listado generado → lista de [PropuestaIngestaRespuesta](#esquema-propuestaingestarespuesta)<br>`401` Sin sesión, token inválido, caducado o revocado → [ProblemDetail](#esquema-problemdetail)<br>`403` La sesión no tiene el permiso que exige esta operación → [ProblemDetail](#esquema-problemdetail) |
+
+### `PATCH /api/veedor/ingesta/propuestas/{id}/anulacion`
+
+**Anular una propuesta ya aprobada**
+
+Deshace una aprobación por error: la propuesta queda ANULADA con su motivo, deja de afirmar nada del presente, la bitácora anexa una corrección que cita el boletín y el barrio se recalcula. Queda constancia en la auditoría.
+
+| | |
+|---|---|
+| **Acceso** | Sesión + `REVISAR_INGESTA` |
+| **Parámetros** | `id` (path, obligatorio) |
+| **Cuerpo** | [SolicitudAnulacion](#esquema-solicitudanulacion) (`application/json`) |
+| **Respuestas** | `200` Propuesta anulada → [PropuestaIngestaRespuesta](#esquema-propuestaingestarespuesta)<br>`400` Falta el motivo → [ProblemDetail](#esquema-problemdetail)<br>`401` Sin sesión, token inválido, caducado o revocado → [ProblemDetail](#esquema-problemdetail)<br>`403` La sesión no tiene el permiso que exige esta operación → [ProblemDetail](#esquema-problemdetail)<br>`404` La propuesta no existe → [ProblemDetail](#esquema-problemdetail)<br>`409` La propuesta no estaba aprobada → [ProblemDetail](#esquema-problemdetail) |
 
 ### `PATCH /api/veedor/ingesta/propuestas/{id}/aprobar`
 
@@ -918,6 +1102,42 @@ Datos para dar de alta el segundo factor. El secreto solo se muestra aqui, una v
 | `uri` | string |  |  | URI otpauth:// para pintar el QR |
 | `secreto` | string |  |  | El mismo secreto en Base32, para teclearlo si la camara falla |
 
+<a id="esquema-cierrerespuesta"></a>
+
+### CierreRespuesta
+
+Cómo y cuándo se restableció un barrio dentro del corte
+
+| Campo | Tipo | Oblig. | Nulo | Descripción |
+|---|---|---|---|---|
+| `sectorId` | string |  |  |  |
+| `hora` | string (date-time) |  |  |  |
+| `fuente` | string |  |  | Quién lo sostiene: VEEDOR, ACUACAR, VECINOS, SENSOR o PRENSA |
+| `provisional` | boolean |  |  | Un cierre que solo sostienen los vecinos o los sensores: un veedor o un boletín puede confirmarlo o corregirlo |
+
+<a id="esquema-consentimiento"></a>
+
+### Consentimiento
+
+Las dos casillas son independientes: aceptar la privacidad es obligatorio para registrarse; `avisos` autoriza recibir avisos de cortes de tu barrio y por defecto es falso.
+
+| Campo | Tipo | Oblig. | Nulo | Descripción |
+|---|---|---|---|---|
+| `privacidad` | boolean |  |  | Acepta el aviso de privacidad vigente. Debe ser true. |
+| `avisos` | boolean |  |  | Acepta recibir avisos de cortes de su barrio |
+
+<a id="esquema-consentimientorespuesta"></a>
+
+### ConsentimientoRespuesta
+
+Lo que acepto, con la version del texto y la fecha
+
+| Campo | Tipo | Oblig. | Nulo | Descripción |
+|---|---|---|---|---|
+| `tipo` | string |  |  | PRIVACIDAD o AVISOS |
+| `version` | string |  |  |  |
+| `fecha` | string (date-time) |  |  |  |
+
 <a id="esquema-coordenadadto"></a>
 
 ### CoordenadaDTO
@@ -941,10 +1161,23 @@ Corte oficial (RF016-RF017)
 | `sectoresAfectados` | lista de string |  |  |  |
 | `inicio` | string (date-time) |  |  |  |
 | `finPrometido` | string (date-time) |  |  |  |
-| `finReal` | string (date-time) |  |  | Nulo mientras el corte sigue abierto |
 | `causa` | string |  |  |  |
 | `origen` | string |  |  |  |
-| `estado` | string |  |  |  |
+| `estado` | string |  |  | ANUNCIADO, CONFIRMADO, RESTABLECIDO, EXPIRADO o ANULADO. RESTABLECIDO solo cuando todos sus barrios tienen cierre; EXPIRADO nadie lo confirmó a tiempo y no cuenta en el Índice. |
+| `cierres` | lista de [CierreRespuesta](#esquema-cierrerespuesta) |  |  | Un cierre por cada barrio ya restablecido; los pendientes no aparecen. Vacío mientras ningún barrio se haya restablecido. |
+| `motivoAnulacion` | string |  | sí | Solo en un corte ANULADO: por qué se anuló |
+| `caducaEn` | string (date-time) |  | sí | Solo en el corte del veedor, que es el override: desde esta hora deja de afirmar nada. Nulo si dura hasta que alguien lo cierre o expire. |
+
+<a id="esquema-credencialvecino"></a>
+
+### CredencialVecino
+
+Credencial de un vecino registrado
+
+| Campo | Tipo | Oblig. | Nulo | Descripción |
+|---|---|---|---|---|
+| `correo` | string (email) | sí |  | Correo de la cuenta |
+| `clave` | string | sí |  | Clave de la cuenta |
 
 <a id="esquema-credencialveedor"></a>
 
@@ -1032,6 +1265,8 @@ Evento de la bitácora pública, de solo anexado (RF026-RF028)
 | `urlOriginal` | string |  |  | Boletín o nota que respalda el evento. Nulo si la fuente no lo trae. |
 | `imagenUrl` | string |  |  | Portada del boletín. Nula si la fuente no la trae. |
 | `cantidadReportesSustento` | integer (int32) |  |  | RF011 — cuántos reportes ciudadanos sostuvieron el cambio, en los eventos de consenso; 0 en los demás. Los ids no viajan en el listado (pesaban cientos de KB por página): se piden con GET /api/bitacora/{id}/sustento. |
+| `fuente` | string |  | sí | Quién sostiene el evento: ACUACAR o PRENSA (boletín o nota), VECINOS (quórum) o VEEDOR (panel). Nulo en los eventos anteriores a este dato. |
+| `respaldo` | [RespaldoRespuesta](#esquema-respaldorespuesta) |  |  |  |
 
 <a id="esquema-indicecumplimientorespuesta"></a>
 
@@ -1062,8 +1297,8 @@ Evento de la bitácora pública, de solo anexado (RF026-RF028)
 
 | Campo | Tipo | Oblig. | Nulo | Descripción |
 |---|---|---|---|---|
-| `sensorId` | string |  |  |  |
-| `sectorId` | string |  |  |  |
+| `sensorId` | string | sí |  |  |
+| `sectorId` | string | sí |  |  |
 | `presionPsi` | number (double) |  |  |  |
 | `coordenada` | [IotCoordenada](#esquema-iotcoordenada) |  |  |  |
 
@@ -1083,6 +1318,26 @@ service_request de Open311 GeoReport v2
 | `address` | string |  |  | Nombre del barrio. La unidad geográfica es el sector, no un punto (ADR-026) |
 | `requested_datetime` | string (date-time) |  | sí | Cuándo se registró el estado actual del sector |
 | `updated_datetime` | string (date-time) |  | sí | Igual a requested_datetime: el estado del sector es su propia actualización |
+
+<a id="esquema-perfilvecinorespuesta"></a>
+
+### PerfilVecinoRespuesta
+
+Perfil del vecino con sesion
+
+| Campo | Tipo | Oblig. | Nulo | Descripción |
+|---|---|---|---|---|
+| `id` | string |  |  |  |
+| `correo` | string |  |  |  |
+| `nombre` | string |  |  |  |
+| `estado` | string |  |  | ACTIVA mientras pueda iniciar sesion |
+| `barrioId` | string |  |  | Slug del barrio que declaro |
+| `barrioVerificado` | boolean |  |  | true si probo con su ubicacion que vive en `barrioId` |
+| `barrioVerificadoEn` | string (date-time) |  | sí |  |
+| `recibeAvisos` | boolean |  |  | true si acepto recibir avisos de cortes de su barrio |
+| `consentimientos` | lista de [ConsentimientoRespuesta](#esquema-consentimientorespuesta) |  |  | Lo que acepto, con la version del texto y la fecha |
+| `creadoEn` | string (date-time) |  |  |  |
+| `actualizadoEn` | string (date-time) |  |  |  |
 
 <a id="esquema-problemdetail"></a>
 
@@ -1146,6 +1401,7 @@ Reporte ciudadano en la cola de moderación del veedor (RF018)
 | `coordenada` | [CoordenadaDTO](#esquema-coordenadadto) |  |  |  |
 | `timestamp` | string (date-time) |  |  |  |
 | `estadoModeracion` | string |  |  | PENDIENTE, APROBADO o DESCARTADO |
+| `verificacion` | string |  |  | CUENTA_VERIFICADA, UBICACION_VERIFICADA o NINGUNA: cuánto respalda el servidor que quien reporta está en el barrio |
 
 <a id="esquema-reporterespuesta"></a>
 
@@ -1161,6 +1417,29 @@ Reporte ciudadano registrado
 | `timestamp` | string (date-time) |  |  |  |
 | `fotoUrl` | string |  |  |  |
 | `confirmaciones` | integer (int32) |  |  |  |
+| `verificacion` | string |  |  | Cuanto respalda el servidor que quien reporta esta en el barrio: CUENTA_VERIFICADA, UBICACION_VERIFICADA o NINGUNA. Lo decide el servidor; el cliente solo lo muestra. |
+
+<a id="esquema-respaldorespuesta"></a>
+
+### RespaldoRespuesta
+
+Cuántos vecinos respaldan un cambio y cuántos hacían falta
+
+| Campo | Tipo | Oblig. | Nulo | Descripción |
+|---|---|---|---|---|
+| `vecinos` | integer (int32) |  |  |  |
+| `umbral` | integer (int32) |  |  |  |
+
+<a id="esquema-respaldovecinalrespuesta"></a>
+
+### RespaldoVecinalRespuesta
+
+Cuántos vecinos respaldan un estado y cuántos hacían falta
+
+| Campo | Tipo | Oblig. | Nulo | Descripción |
+|---|---|---|---|---|
+| `vecinos` | integer (int32) |  |  |  |
+| `umbral` | integer (int32) |  |  |  |
 
 <a id="esquema-respuestasectores"></a>
 
@@ -1203,6 +1482,26 @@ Sector de Cartagena con el estado conocido de su servicio de agua
 | `estado` | enum(CON_SERVICIO, SIN_SERVICIO, PRESION_BAJA, CORTE_PROGRAMADO) |  | sí | Estado conocido del servicio. **Nulo cuando no hay dato verificado**: no se asume CON_SERVICIO por omision, porque publicar servicio normal sin verificarlo es el falso positivo que el proyecto evita (ADR-014). Presentarlo como "sin datos". |
 | `actualizadoEn` | string (date-time) |  | sí | Cuando se registro ese estado. Nulo si el sector no tiene estado. |
 | `verificadoEn` | string (date-time) |  | sí | Última vez que una fuente con autoridad (consenso de vecinos, corte del veedor o boletín aprobado) sostuvo ese estado, haya cambiado o no (ADR-073). Nunca anterior a `actualizadoEn`. Nulo si el sector no tiene estado. Confirmar sin cambiar… |
+| `origen` | enum(ACUACAR, VEEDOR, VECINOS, PRENSA, SENSOR) |  | sí | Quién sostiene el estado: ACUACAR (boletín oficial), PRENSA (nota aprobada por el veedor), VEEDOR (corte o cierre del veedor), VECINOS (quórum de reportes) o SENSOR. Nulo si el sector no tiene estado. |
+| `ventanaPrometida` | [VentanaPrometidaRespuesta](#esquema-ventanaprometidarespuesta) |  |  |  |
+| `restablecimientoPorConfirmar` | boolean |  |  | La promesa ya venció y nadie confirmó que volvió el agua: el barrio sigue como estaba, pero por confirmar. Un restablecimiento pide menos vecinos que reportar una avería. |
+| `enDisputa` | boolean |  |  | Un quórum de vecinos contradice a la fuente oficial. El color no cambia: la contradicción se muestra como una insignia y llega a la cola del veedor. |
+| `reportesEnContra` | integer (int32) |  |  | Cuántos vecinos sostienen esa contradicción. 0 si no hay disputa. |
+| `respaldo` | [RespaldoVecinalRespuesta](#esquema-respaldovecinalrespuesta) |  |  |  |
+
+<a id="esquema-sesionvecino"></a>
+
+### SesionVecino
+
+Sesion de un vecino. Sirve en `/api/vecino/**`; del panel solo abre `GET /api/veedor/yo` y `POST /api/veedor/sesion/cierre`, que muestran o cierran lo propio.
+
+| Campo | Tipo | Oblig. | Nulo | Descripción |
+|---|---|---|---|---|
+| `token` | string |  |  | Token JWT. Se envia como 'Authorization: Bearer <token>' |
+| `usuarioId` | string |  |  |  |
+| `nombre` | string |  |  |  |
+| `correo` | string |  |  |  |
+| `permisos` | lista de string |  |  | Siempre `GESTIONAR_PERFIL_PROPIO` |
 
 <a id="esquema-sesionveedor"></a>
 
@@ -1219,6 +1518,16 @@ Sesion emitida para el panel del veedor (RNF011: expira en 8 horas)
 | `rol` | string |  |  | ADMIN, VEEDOR u OBSERVADOR |
 | `permisos` | lista de string |  |  | Permisos efectivos ya resueltos: rol mas concedidos menos revocados |
 | `alcance` | string |  |  | COMPLETO, o ALTA_SEGUNDO_FACTOR cuando la cuenta es ADMIN y todavia no dio de alta su TOTP. Con ese alcance el token solo sirve para /api/veedor/segundo-factor. |
+
+<a id="esquema-solicitudanulacion"></a>
+
+### SolicitudAnulacion
+
+Anulación de un corte o de una propuesta de la ingesta que se publicó por error
+
+| Campo | Tipo | Oblig. | Nulo | Descripción |
+|---|---|---|---|---|
+| `motivo` | string | sí |  | Por qué se anula. Queda en la bitácora pública y en la auditoría. |
 
 <a id="esquema-solicitudcambioclave"></a>
 
@@ -1251,16 +1560,6 @@ Codigo de 6 digitos de la app de autenticacion
 |---|---|---|---|---|
 | `codigo` | string | sí |  |  |
 
-<a id="esquema-solicitudconfirmar"></a>
-
-### SolicitudConfirmar
-
-Solicitud para confirmar un reporte ciudadano por otro vecino
-
-| Campo | Tipo | Oblig. | Nulo | Descripción |
-|---|---|---|---|---|
-| `huella` | string | sí |  | Huella hash del dispositivo del usuario que confirma (ADR-007) |
-
 <a id="esquema-solicitudcorte"></a>
 
 ### SolicitudCorte
@@ -1273,6 +1572,7 @@ Registro de un corte oficial por el veedor (RF016)
 | `inicio` | string (date-time) | sí |  |  |
 | `finPrometido` | string (date-time) | sí |  |  |
 | `causa` | string | sí |  |  |
+| `caducaEn` | string (date-time) |  | sí | Opcional. El corte del veedor es el override: desde esta hora deja de afirmar nada, aunque nadie lo haya cerrado. |
 
 <a id="esquema-solicitudfijarclave"></a>
 
@@ -1297,6 +1597,18 @@ Invitacion emitida por un ADMIN: crea la cuenta con su rol y manda el enlace
 | `nombre` | string | sí |  |  |
 | `rol` | string | sí |  | ADMIN, VEEDOR u OBSERVADOR |
 | `barrioId` | string |  | sí | Opcional: slug del barrio de la persona. 400 si no existe. |
+
+<a id="esquema-solicitudperfilvecino"></a>
+
+### SolicitudPerfilVecino
+
+Cambios al perfil. Solo se aplica lo que viene; un campo ausente no se toca.
+
+| Campo | Tipo | Oblig. | Nulo | Descripción |
+|---|---|---|---|---|
+| `nombre` | string |  |  |  |
+| `barrioId` | string |  | sí | Slug del barrio donde vives. Cambiarlo anula la verificacion de barrio anterior. 400 si no existe. |
+| `recibirAvisos` | boolean |  | sí | true acepta avisos de cortes de tu barrio; false retira ese consentimiento |
 
 <a id="esquema-solicitudpermisos"></a>
 
@@ -1333,18 +1645,32 @@ Solicitud de acceso al panel. No concede nada: exige verificar el correo y que u
 | `clave` | string | sí |  | Minimo 12 caracteres. La politica completa vive en ClaveEnClaro. |
 | `barrioId` | string |  | sí | Opcional: slug del barrio donde vives (uno de `GET /api/sectores`). 400 si no existe. |
 
+<a id="esquema-solicitudregistrovecino"></a>
+
+### SolicitudRegistroVecino
+
+Registro de un vecino. Confirmar el correo activa la cuenta: no hay aprobacion de un administrador porque un vecino solo gestiona su propio perfil.
+
+| Campo | Tipo | Oblig. | Nulo | Descripción |
+|---|---|---|---|---|
+| `correo` | string (email) | sí |  |  |
+| `nombre` | string | sí |  |  |
+| `clave` | string | sí |  | Minimo 12 caracteres. La politica completa vive en ClaveEnClaro. |
+| `barrioId` | string | sí |  | Slug del barrio donde vives (uno de `GET /api/sectores`). 400 si no existe. |
+| `consentimiento` | [Consentimiento](#esquema-consentimiento) | sí |  |  |
+
 <a id="esquema-solicitudreporte"></a>
 
 ### SolicitudReporte
 
-Reporte ciudadano sin registro (RF005-RF008)
+Reporte ciudadano (RF005-RF008). La identidad de quien reporta no va en el cuerpo: viaja en la cabecera `X-Dispositivo` (token de `POST /api/dispositivos`) o en la sesion de un vecino (`Authorization: Bearer`). Un campo `huella` en el cuerpo, como el de versiones anteriores, se ignora.
 
 | Campo | Tipo | Oblig. | Nulo | Descripción |
 |---|---|---|---|---|
 | `sectorId` | string |  | sí | Identificador del sector reportado. Opcional si viaja la coordenada: entonces el servidor infiere el barrio que la contiene (RF007). Si no viaja ninguno, 400. |
 | `tipo` | string | sí |  | SIN_AGUA, PRESION_BAJA o SERVICIO_RESTABLECIDO |
-| `huella` | string | sí |  | Huella anónima del dispositivo (ADR-007) — no es una cuenta ni un identificador personal. El cliente la genera una vez (p. ej. un UUID persistido en el dispositivo, hasheado) y la reutiliza en cada reporte; es lo único que permite RF006 (l… |
 | `coordenada` | [CoordenadaDTO](#esquema-coordenadadto) |  |  |  |
+| `precisionMetros` | number (double) |  | sí | Precision de la coordenada en metros (`coords.accuracy` del navegador). Sin ella, o si es peor que 200 m, la ubicacion no verifica el reporte. |
 
 <a id="esquema-solicitudrestablecer"></a>
 
@@ -1367,6 +1693,17 @@ Solicitud para suscribirse a los avisos de uno o más sectores
 | `correo` | string (email) | sí |  | Correo al que llegarán los avisos |
 | `sectorIds` | lista de string | sí |  | Identificadores de los sectores a seguir |
 
+<a id="esquema-solicitudverificacionbarrio"></a>
+
+### SolicitudVerificacionBarrio
+
+La ubicacion del momento. El servidor la compara con el barrio que declaraste y la descarta: no se guarda ni se audita; solo queda que el barrio quedo verificado.
+
+| Campo | Tipo | Oblig. | Nulo | Descripción |
+|---|---|---|---|---|
+| `coordenada` | [CoordenadaDTO](#esquema-coordenadadto) | sí |  |  |
+| `precisionMetros` | number (double) | sí |  | Precision de la lectura en metros (`coords.accuracy` del navegador). Una precision peor que 200 m (ubicacion aproximada por red) no verifica y responde 422 `ubicacion-imprecisa`. |
+
 <a id="esquema-suscripcionrespuesta"></a>
 
 ### SuscripcionRespuesta
@@ -1380,6 +1717,16 @@ Suscripción creada, pendiente de confirmación por correo (RF013)
 | `sectorIds` | lista de string |  |  |  |
 | `estado` | string |  |  | PENDIENTE_CONFIRMACION, CONFIRMADA o CANCELADA |
 | `creadaEn` | string (date-time) |  |  |  |
+
+<a id="esquema-tokendedispositivorespuesta"></a>
+
+### TokenDeDispositivoRespuesta
+
+Identidad de dispositivo emitida por el servidor
+
+| Campo | Tipo | Oblig. | Nulo | Descripción |
+|---|---|---|---|---|
+| `token` | string |  |  | Se envia en la cabecera `X-Dispositivo` de `POST /api/reportes` y de `/confirmar`. Guardalo: perderlo es perder la identidad. |
 
 <a id="esquema-usuariorespuesta"></a>
 
@@ -1401,4 +1748,15 @@ Cuenta del panel, tal como la ve un ADMIN
 | `segundoFactorActivo` | boolean |  |  |  |
 | `creadoEn` | string (date-time) |  |  |  |
 | `actualizadoEn` | string (date-time) |  |  |  |
+
+<a id="esquema-ventanaprometidarespuesta"></a>
+
+### VentanaPrometidaRespuesta
+
+Desde cuándo y hasta cuándo prometió la fuente oficial la afectación
+
+| Campo | Tipo | Oblig. | Nulo | Descripción |
+|---|---|---|---|---|
+| `inicio` | string (date-time) |  |  |  |
+| `fin` | string (date-time) |  |  |  |
 
