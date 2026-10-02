@@ -85,13 +85,15 @@ el token solo sirve para configurarlo).
 
 | Regla | Valor |
 |---|---|
-| Cupo de reportes por dispositivo y sector | **3** cada **30 min** (RF006) |
+| Cupo de reportes por identidad y sector | **3** (dispositivo) o **5** (vecino registrado) cada **30 min** (RF006) |
 | Cupo de un sensor IoT | **30** cada 30 min |
 | Ventana del consenso | **30 min** |
-| Umbral del consenso | `max(3, ceil(población × 0,001))` vecinos distintos (configurable) |
+| Umbral del consenso | `clamp(ceil(población × 0,001), 3, 15)` identidades distintas (configurable) |
+| Composición del sustento | ≥ ⅓ (mínimo 1) con `verificacion` ≠ `NINGUNA` y ≥ 2 redes distintas |
+| Precisión máxima para verificar con ubicación | **200 m** |
+| Intentos de verificar el barrio | **3** por día y cuenta |
 | Empate entre tipos de reporte | No cambia el estado |
 | Índice de Cumplimiento | `prometido × 100 / real`, tope 100; solo cortes **cerrados** |
-| Longitud de la huella | 32 a 128 caracteres |
 | Foto | JPEG o PNG · máx. **10 MB** · lado máx. **1600 px** · sin EXIF |
 | Vigencia de sesión del panel | **8 h**, sin renovación |
 | Vigencia de enlaces | verificar cuenta 48 h · invitación 7 d · restablecer clave 30 min · confirmar suscripción 48 h |

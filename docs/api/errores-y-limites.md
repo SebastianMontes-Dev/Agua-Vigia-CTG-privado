@@ -41,7 +41,8 @@ se pueda visitar**.
 | Slug | Código | Significa |
 |---|---|---|
 | `peticion-invalida` | 400 | Datos mal formados, campo inválido, JSON ilegible o valor fuera de rango. |
-| `credencial-invalida` | 401 | Correo o clave incorrectos, o clave de sensor IoT incorrecta. |
+| `credencial-invalida` | 401 | Correo o clave incorrectos (del panel o de un vecino), o clave de sensor IoT incorrecta. |
+| `dispositivo-invalido` | 401 | Reportar o confirmar sin un `X-Dispositivo` válido: falta, no lo firmó este servidor o el dispositivo ya no existe. **Pedir otro con `POST /api/dispositivos` y reintentar una vez.** No cierra la sesión de un vecino. |
 | `segundo-factor-requerido` | 401 | La clave era correcta pero falta el código TOTP. **Reintentar con `codigoTotp`.** |
 | `sesion-sin-cuenta` | 401 | El token es válido pero su cuenta ya no existe. **Cerrar sesión.** |
 | *(sin type propio)* | 401 | Sin token, token inválido, caducado o revocado. **Cerrar sesión.** |
@@ -51,11 +52,13 @@ se pueda visitar**.
 | `metodo-no-permitido` | 405 | La ruta existe, pero no con ese verbo. |
 | `formato-no-aceptable` | 406 | El `Accept` pide un formato que la ruta no produce (p. ej. JSON en el `GET` de una página HTML). Trae `tiposSoportados`. |
 | `conflicto-de-estado` | 409 | La petición está bien formada, pero no aplica al estado actual del recurso. |
+| `ubicacion-fuera-del-barrio` | 422 | La coordenada no cae dentro del barrio declarado por el vecino. |
+| `ubicacion-imprecisa` | 422 | La lectura tiene una precisión peor que 200 m (ubicación aproximada por red). **No gasta un intento.** |
 | `tipo-de-contenido-no-soportado` | 415 | El cuerpo no es JSON (o no es del tipo que la ruta acepta). |
 | `archivo-demasiado-grande` | 413 | La foto pasa de 10 MB. |
 | `cuenta-bloqueada` | 423 | Demasiados intentos fallidos contra esa cuenta. Ver `segundosRestantes`. |
-| `limite-reportes-excedido` | 429 | El dispositivo agotó su cupo (RF006). |
-| `limite-de-peticiones-excedido` | 429 | Demasiadas peticiones desde la misma IP. **Trae `Retry-After`.** |
+| `limite-reportes-excedido` | 429 | La identidad (dispositivo o vecino) agotó su cupo de reportes en ese barrio (RF006). |
+| `limite-de-peticiones-excedido` | 429 | Demasiadas peticiones desde la misma IP, o los 3 intentos diarios de verificar el barrio agotados. **Trae `Retry-After`.** |
 | `error-interno` | 500 | Fallo inesperado. Mensaje genérico a propósito. |
 | `servicio-no-disponible` | 503 | El servidor no está configurado para esa ruta (p. ej. sensores IoT sin clave). |
 | `base-de-datos-no-disponible` | 503 | Mongo no responde. Reintentar. |
@@ -72,28 +75,32 @@ se pueda visitar**.
 
 ## Límites de velocidad (rate limiting)
 
-Por **IP**, con ventana fija, contados en Redis. Al excederlos: `429` con la cabecera **`Retry-After`** (en
+Por **IP**, con ventana fija, contados en Redis. En IPv6 la «IP» es el prefijo /64 del abonado, no cada dirección. Al excederlos: `429` con la cabecera **`Retry-After`** (en
 segundos) y `type: limite-de-peticiones-excedido`.
 
 | Ruta | Límite | Ventana |
 |---|---|---|
-| `POST /api/veedor/sesion` | 5 | 5 min |
+| `POST /api/veedor/sesion` | 10 | 5 min |
 | `/api/veedor/segundo-factor/**` | 10 | 5 min |
 | `/api/veedor/cuenta/**` | 10 | 5 min |
 | `/api/reportes/**` | 30 | 1 min |
 | `/api/iot/presion` | 60 | 1 min |
-| `/api/cuentas/**` | 10 | 10 min |
+| `/api/cuentas/**` (incluye el registro de vecinos) | 10 | 10 min |
+| `/api/vecino/sesion` | 10 | 10 min |
+| `/api/dispositivos` | 10 | 1 hora |
 | `/api/suscripciones/**` | 10 | 10 min |
 
 Hay **tres frenos distintos que dan `429` o `423`**, y no son lo mismo:
 
 1. **Por IP** (la tabla de arriba): protege contra inundaciones.
-2. **Por dispositivo** (`limite-reportes-excedido`): 3 reportes por sector cada 30 minutos.
+2. **Por identidad** (`limite-reportes-excedido`): 3 reportes por sector cada 30 minutos para un dispositivo y 5 para un vecino registrado.
 3. **Por cuenta** (`423 cuenta-bloqueada`): 5 fallos de login en 15 minutos bloquean esa cuenta 15 minutos.
+
+Además, **verificar el barrio** (`POST /api/vecino/verificacion-barrio`) tiene un cupo propio de **3 intentos por día y por cuenta**: al agotarlo responde `429 limite-de-peticiones-excedido` con `Retry-After`. Una lectura imprecisa (`ubicacion-imprecisa`) no gasta intento. Si Redis no responde, ese cupo falla abierto, igual que el límite por IP.
 
 > **NAT y barrios enteros.** Un edificio o una antena móvil entera sale por una sola IP. Los límites son
 > holgados a propósito para no castigar a un barrio sin agua que reporta a la vez; el límite fino por
-> persona es el de dispositivo.
+> persona es el de identidad.
 
 Si Redis no responde, **el límite por IP se salta** (no se le niega servicio a nadie por un problema de
 infraestructura), pero **la sesión del panel se rechaza** (falla cerrado).

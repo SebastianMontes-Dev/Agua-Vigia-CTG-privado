@@ -93,5 +93,6 @@ docker compose up -d --build --wait
    cliente ni calcular el `id`.
 4. **El SSE solo avisa, no envía datos.** Al recibir el aviso, el cliente pide `GET /api/sectores`.
    Ver [Sectores y tiempo real](sectores-y-tiempo-real.md).
-5. **Los reportes ciudadanos no llevan cuenta.** El cliente genera una *huella* anónima una vez y la
-   reutiliza. Ver [Reportes](reportes.md).
+5. **Los reportes ciudadanos no exigen cuenta, pero sí una identidad que pone el servidor.** El cliente pide un
+   token de dispositivo una vez (`POST /api/dispositivos`) y lo envía en `X-Dispositivo`; un vecino registrado
+   reporta con su sesión. Ver [Reportes](reportes.md) y [Cambios para el frontend](cambios-para-frontend.md).

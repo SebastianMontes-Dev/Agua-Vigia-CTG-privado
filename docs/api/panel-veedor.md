@@ -86,7 +86,9 @@ Un corte que nadie cierra ni confirma pasa a `EXPIRADO` a las 72 h del fin prome
 
 `GET /api/veedor/reportes/pendientes` — la cola. **Los más antiguos primero**, paginada
 (ver [Errores y límites §Paginación](errores-y-limites.md#paginación)). Cada elemento trae `id`, `sectorId`,
-`tipo`, `coordenada` (opcional), `timestamp` y `estadoModeracion`.
+`tipo`, `coordenada` (opcional, aproximada a unos 110 m), `timestamp`, `estadoModeracion` y `verificacion`
+(`CUENTA_VERIFICADA`, `UBICACION_VERIFICADA` o `NINGUNA`: cuánto respalda el servidor que quien reportó está en el barrio).
+La red de origen no sale por la API. Aún no hay señal de ráfagas por red (`senalRed`).
 
 - `PATCH …/{id}/aprobar` y `…/descartar` → el reporte con su estado nuevo. `404` si no existe.
 - **Un reporte descartado deja de contar** para el consenso y para las confirmaciones, pero **sigue
@@ -105,11 +107,11 @@ de qué fuente, el enlace al original, la **`citaTextual`** exacta que la respal
 
 - `PATCH …/propuestas/{id}/aprobar` aplica el cambio y anexa el evento a la bitácora.
 - `PATCH …/propuestas/{id}/descartar` la rechaza.
-- `404` si la propuesta no existe. `409` si el sector de la propuesta ya no existe.
-- Repetir la misma decisión sobre una propuesta es idempotente (`200`); contradecirla responde `409`: aprobar una
 - `PATCH …/propuestas/{id}/anulacion` `{ "motivo": … }` deshace una aprobación por error: la propuesta queda `ANULADA`, deja de
   afirmar nada del presente, la bitácora anexa la corrección (cita el boletín y el motivo) y el barrio se recalcula. Queda
   constancia en la auditoría (`PROPUESTA_ANULADA`). `409` si la propuesta no estaba aprobada; `400` si falta el motivo.
+- `404` si la propuesta no existe. `409` si el sector de la propuesta ya no existe.
+- Repetir la misma decisión sobre una propuesta es idempotente (`200`); contradecirla responde `409`: aprobar una
   descartada o descartar una aprobada (#96). Aprobar una propuesta de prensa **sin ventana horaria
   declarada** responde `200` pero **no cambia el estado del sector**: la interfaz debe deshabilitar los botones de
   una propuesta ya resuelta y no fiarse de que un `200` implique que el mapa cambió; vuelve a pedir `GET /api/sectores`.

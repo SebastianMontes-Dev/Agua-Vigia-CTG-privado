@@ -32,21 +32,24 @@ Es el flujo principal: **debe responderse en menos de 5 segundos, en un celular,
 ### Reportar que no hay agua
 
 ```
-1. (una vez por dispositivo) generar y guardar una huella anónima de 32 a 128 caracteres
-2. POST /api/reportes                  { sectorId | coordenada, tipo, huella }   → 201
-3. (opcional) POST /api/reportes/{id}/foto   multipart, parte "foto"             → 200
+1. (una vez por dispositivo) POST /api/dispositivos → 201 { token }; guardarlo y enviarlo como X-Dispositivo
+   (o, si el vecino inició sesión, enviar su Authorization: Bearer)
+2. POST /api/reportes                  { sectorId | coordenada, tipo, precisionMetros }   → 201
+3. (opcional) POST /api/reportes/{id}/foto   multipart, parte "foto"                       → 200
 ```
 
 - Basta con el `sectorId`, **o** con la `coordenada` (el servidor infiere el barrio, RF007). Si el usuario
-  concede la ubicación, no hace falta que elija sector a mano.
-- Reportar cuesta como mucho dos toques (RF005). No hay registro ni captcha.
-- Un mismo dispositivo puede reportar **3 veces por sector cada 30 minutos**; a la cuarta, `429`.
+  concede la ubicación, no hace falta que elija sector a mano. Con `precisionMetros` (≤ 200 m) y la coordenada dentro del
+  barrio, el reporte queda `UBICACION_VERIFICADA`.
+- Reportar cuesta como mucho dos toques (RF005). No hay registro ni captcha. Ante `401 dispositivo-invalido`, pedir otro token
+  y reintentar una vez.
+- Un dispositivo puede reportar **3 veces por sector cada 30 minutos** y un vecino registrado **5**; a la siguiente, `429`.
 - Detalle: [Reportes ciudadanos](reportes.md).
 
 ### Confirmar el reporte de un vecino
 
 ```
-POST /api/reportes/{id}/confirmar     { huella }    → 200
+POST /api/reportes/{id}/confirmar     (sin cuerpo; identidad en X-Dispositivo o sesión de vecino)    → 200
 ```
 
 Las confirmaciones **no** cuentan para el consenso: son señal social, no evidencia que cambie el estado.

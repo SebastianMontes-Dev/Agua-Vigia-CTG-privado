@@ -1,7 +1,8 @@
 # Cuentas y sesión
 
-Solo el **panel** (`/api/veedor/**`) exige sesión. Las cuentas son de veedores, observadores y
-administradores; el ciudadano no tiene cuenta.
+El **panel** (`/api/veedor/**`) exige sesión; sus cuentas son de veedores, observadores y administradores. El ciudadano
+puede reportar sin cuenta (con un token de dispositivo) o **registrarse como vecino** (rol `VECINO`, ver más abajo): la
+sesión de un vecino sirve en `/api/vecino/**` y no abre ninguna ruta del panel con permiso.
 
 ## Rutas
 
@@ -10,8 +11,10 @@ administradores; el ciudadano no tiene cuenta.
 | Método y ruta | Para qué | Respuesta |
 |---|---|---|
 | `POST /api/veedor/sesion` | Iniciar sesión. | `200` con la sesión |
-| `POST /api/cuentas/registro` | Pedir una cuenta. | `202`, sin cuerpo |
-| `POST /api/cuentas/verificacion?token=…` | Verificar el correo. | `204` |
+| `POST /api/cuentas/registro` | Pedir una cuenta del panel. | `202`, sin cuerpo |
+| `POST /api/cuentas/vecino` | Registrarse como vecino (ver [Vecino registrado](#vecino-registrado)). | `202`, siempre |
+| `POST /api/vecino/sesion` | Iniciar sesión como vecino. | `200` con la sesión |
+| `POST /api/cuentas/verificacion?token=…` | Verificar el correo (panel o vecino). | `204` |
 | `POST /api/cuentas/verificacion/reenvio` | Reenviar el correo de verificación (`{ correo }`). | `202`, siempre |
 | `POST /api/cuentas/invitacion` | Aceptar una invitación y fijar la clave. | `204` |
 | `POST /api/cuentas/restablecimiento` | Pedir restablecer la clave. | `202`, siempre |
@@ -179,10 +182,30 @@ código válido, y **cierra todas las sesiones**.
 
 Límite: `/api/veedor/segundo-factor/**` admite 10 peticiones por IP cada 5 minutos.
 
+## Vecino registrado
+
+Un vecino se registra con correo, nombre, clave, **barrio** y consentimiento (`POST /api/cuentas/vecino`). Al confirmar el
+correo la cuenta queda **ACTIVA sin aprobación de un administrador**: solo gestiona su propio perfil. Ya no hay «ciudadano sin
+cuenta» obligado: reportar sigue siendo posible sin cuenta, y la cuenta añade `CUENTA_VERIFICADA` a sus reportes cuando prueba
+su barrio.
+
+| Método y ruta | Permiso | Para qué |
+|---|---|---|
+| `POST /api/vecino/sesion` | pública | Iniciar sesión (8 h). Una cuenta del panel no entra por aquí: da la misma `401` que una clave mala |
+| `GET /api/vecino/yo` | `GESTIONAR_PERFIL_PROPIO` | Perfil con el estado vigente en base |
+| `PATCH /api/vecino/perfil` | `GESTIONAR_PERFIL_PROPIO` | Nombre, barrio y casilla de avisos; cambiar de barrio anula la verificación |
+| `POST /api/vecino/verificacion-barrio` | `GESTIONAR_PERFIL_PROPIO` | Verifica el barrio con la ubicación del momento (no se guarda; 3 intentos al día) |
+| `POST /api/vecino/sesion/cierre` | `GESTIONAR_PERFIL_PROPIO` | Revoca todas las sesiones de la cuenta |
+
+Un token de vecino puede llamar también a `GET /api/veedor/yo` y `POST /api/veedor/sesion/cierre`, que no exigen permiso
+porque solo muestran o cierran lo propio; ninguna otra ruta de `/api/veedor/**`. Los detalles de campos y errores están en
+[`cambios-para-frontend.md`](cambios-para-frontend.md) (sección F2).
+
 ## Roles y permisos
 
 | Rol | Permisos |
 |---|---|
+| `VECINO` | Solo `GESTIONAR_PERFIL_PROPIO`. Nunca recibe permisos de panel: no se invita, aprueba ni convierte entre vecino y panel |
 | `OBSERVADOR` | `VER_PANEL`, `CONFIGURAR_SEGUNDO_FACTOR` |
 | `VEEDOR` | Los del observador + `MODERAR_REPORTES`, `GESTIONAR_CORTES`, `REVISAR_INGESTA` |
 | `ADMIN` | Todos, incluidos `GESTIONAR_USUARIOS` y `VER_AUDITORIA` |

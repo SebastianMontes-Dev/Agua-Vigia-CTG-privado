@@ -61,9 +61,9 @@ y algunos DTO se arman con métodos estáticos `de(...)` en vez de MapStruct. Es
 | El secreto TOTP sigue en claro en Mongo (riesgo aceptado) | Cifrarlo exige una clave persistente que rompe el arranque sin configuración; Mongo solo escucha en `127.0.0.1` |
 | El historial de git no se reescribe | Obligaría a Yordy a volver a clonar; las claves expuestas se tratan como comprometidas y no se reutilizan |
 
-## 4. Estado de un barrio y cierre de cortes (2026-10-01)
+## 4. Estado de un barrio, cierre de cortes e identidad (2026-10-01)
 
-Decisiones de la fase F1 del plan de estados de barrio. Los números de ADR continúan los del registro histórico.
+Decisiones de las fases F1 (ADR-087 y 088) y F2 (ADR-089 y 090) del plan de estados de barrio. Los números de ADR continúan los del registro histórico.
 
 ### ADR-087 — Un solo resolutor decide el estado de un barrio
 
@@ -101,3 +101,65 @@ prometido (configurable) y uno publicado por error se **anula** (`ANULADO`, con 
 - **Pierde:** rompe el contrato (`finReal` → `cierres[]`); está documentado en `docs/api/cambios-para-frontend.md`.
 - **Reapertura:** un cierre provisional se reabre en el mismo corte si un quórum mayor lo contradice dentro de 3 h; pasado ese plazo, o si lo
   confirmó el veedor, el cierre se respeta.
+
+### ADR-089 — Vecino registrado, y reportar sigue siendo posible sin cuenta
+
+**Estado: aceptada.**
+
+Hay un rol nuevo, `VECINO`, con un único permiso (`GESTIONAR_PERFIL_PROPIO`). Se registra con correo, nombre, clave, **barrio** y
+consentimiento (`POST /api/cuentas/vecino`); al confirmar el correo la cuenta queda **ACTIVA sin que nadie la apruebe**, porque solo
+gestiona lo propio. Su sesión sirve en `/api/vecino/**` y ninguna ruta del panel con permiso: cada puerta de ingreso abre solo su puerta (una cuenta del panel no entra por
+el ingreso de vecinos ni al revés, y ambos casos dan el mismo mensaje que una clave mala). Un vecino **nunca** obtiene permisos de panel: no
+se invita, aprueba ni convierte entre vecino y panel, y lo comprueban tanto `PermisosEfectivos` como `Usuario`.
+
+El vecino puede **verificar su barrio** (`POST /api/vecino/verificacion-barrio`): la ubicación del momento se compara con el polígono del
+barrio que declaró (ADR-090). Un reporte suyo sale `CUENTA_VERIFICADA` si su barrio está verificado y reporta en él.
+
+- **Gana:** cumple «debe haber registro» sin matar el alcance: **reportar sigue siendo posible sin cuenta** (ADR-007). La cuenta añade
+  respaldo, un cupo mayor (5 reportes por barrio en 30 min frente a 3) y una vía para suspender a quien abuse.
+- **Pierde:** hay dos identidades que reportan (cuenta y dispositivo) y el consenso tiene que tratarlas por igual. Una cuenta activa manda
+  sobre un token de dispositivo para que una persona con sesión no cuente doble.
+- **Registro uniforme (RNF024):** `202` exista o no el correo, con la misma duración mínima que el registro del panel.
+- **Límites declarados:** no hay tolerancia de borde en la verificación (la contención del polígono es estricta); bloqueo de dispositivos,
+  consentimiento/exportación/supresión y notificaciones (2.6–2.8) quedan fuera del corte mínimo; el texto legal de privacidad sigue en
+  versión «borrador» (`aguavigia.privacidad.version`). Un token de vecino puede llamar a `GET /api/veedor/yo` y a
+  `POST /api/veedor/sesion/cierre` porque solo muestran o cierran lo propio.
+- **Se revierte** quitando el rol y dejando solo el token de dispositivo; no se recomienda: el registro es un requisito del proyecto.
+
+### ADR-090 — La ubicación se usa y se descarta; la identidad del dispositivo la pone el servidor; el quórum pide composición
+
+**Estado: aceptada.**
+
+Tres decisiones que se sostienen entre sí:
+
+1. **Ubicación transitoria.** La coordenada con la que un vecino verifica su barrio se usa y se descarta: no se guarda ni se audita (solo
+   queda la marca `barrioVerificado` y su fecha). Una lectura peor que 200 m (ubicación aproximada por red) responde `422
+   ubicacion-imprecisa` y no gasta intento; fuera de su barrio, `422 ubicacion-fuera-del-barrio`. Hay 3 intentos por día y cuenta, en Redis, y
+   si Redis falla el cupo **falla abierto**. En un reporte, la coordenada se guarda redondeada a 3 decimales (~110 m). Sin `precisionMetros` la
+   ubicación no verifica.
+2. **Token de dispositivo firmado por el servidor.** `POST /api/dispositivos` devuelve `uuid.firma` (HMAC-SHA256); el secreto se genera y se
+   persiste en `config_sistema`. La colección `dispositivos` guarda solo el SHA-256 del id y caduca por inactividad a los 365 días. La `huella`
+   que elegía el cliente se **eliminó**: se ignora si llega. Sin identidad válida, `401 dispositivo-invalido`. Fabricar identidades cuesta una
+   petición limitada (10 por hora por IP).
+3. **Composición del quórum.** Alcanzar el umbral no basta: al menos un tercio del sustento (mínimo 1) debe tener alguna verificación y debe
+   venir de al menos `aguavigia.consenso.redes-minimas` redes distintas (2 por defecto). La «red» es un HMAC de la IP que cambia cada día (hora
+   de Cartagena), nunca la IP, y no sale por la API. Se aplica al formar el quórum, al fusionar con la memoria y al decidir si la memoria sigue
+   sostenida.
+
+- **Gana:** crear votos falsos ya no es gratis y el reporte anónimo sigue contando; no se guarda la casa de nadie; una ráfaga desde una sola
+  red no mueve el mapa.
+- **Pierde:** un tope duro por IP habría sido más simple pero el CGNAT móvil lo haría inalcanzable para gente legítima, por eso se compone en
+  vez de topar. Una sala con un único WiFi no alcanza el quórum: en una presentación se baja `redes-minimas` a 1 **diciéndolo**.
+- **Límites conocidos (auditoría de seguridad de F2):**
+  - La ubicación y su precisión las declara el cliente y los polígonos de los barrios son públicos: quien forje una coordenada obtiene
+    `UBICACION_VERIFICADA` sin estar allí. La verificación sube el costo de votar desde un barrio ajeno, no lo impide; por eso el quórum exige
+    además redes distintas y no se presenta como prueba de identidad.
+  - La «red» y el límite por IP usan la dirección que ve el servidor (`getRemoteAddr()`, nunca `X-Forwarded-For`, ADR-080). En IPv6 se usa
+    solo el prefijo /64 (`RedDeOrigen`), porque un abonado recibe 2^64 direcciones. **Tras un proxy, o con Docker Desktop, todos los clientes
+    comparten una IP**: el límite de 10 dispositivos por hora pasa a ser global y `redes-minimas=2` no se cumple nunca; en local o en una
+    demostración se baja a 1 (`AGUAVIGIA_CONSENSO_REDES_MINIMAS=1`) **diciéndolo**. En producción haría falta un proxy de confianza.
+  - Las cuentas se activan con solo confirmar el correo y no hay antigüedad mínima para votar, así que muchas cuentas o dispositivos desde dos
+    redes pueden inflar un quórum de 3 a 15 votos. Un vecino puede además votar otra vez como dispositivo omitiendo el `Bearer`.
+  - Quien registra una cuenta con el correo de otra persona puede dejarla pendiente con una clave que solo él conoce; si la víctima confirma el
+    enlace, la cuenta queda activa con esa clave (*account pre-hijacking*). Pendiente de decidir; ver el resumen de F2.
+- **Se revierte** devolviendo la huella al cliente; no se recomienda: reabre la fabricación gratuita de votos.
