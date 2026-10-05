@@ -1,7 +1,12 @@
 package com.aguavigia.ctg.domain;
 
+import com.aguavigia.ctg.domain.Afirmacion.QuorumVecinos;
+
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -160,6 +165,91 @@ public final class EventoBitacoraFactory {
                 null,
                 reportesQueSustentan)
                 .conFuente(OrigenEstado.VECINOS, respaldo);
+    }
+
+    // --- lo que deja un recálculo del estado de un barrio ---------------------------------------------------------
+
+    /**
+     * Lo que se anexa a la bitácora cuando se recalcula un barrio, en orden: que el consenso se revirtió si el estado cambió porque se
+     * descartaron los reportes que lo sostenían; después, o la reapertura de un corte (que provocaron los vecinos aunque el estado lo
+     * afirme de nuevo la fuente oficial) o el cambio de estado o, si solo se abrió una disputa, esa disputa (se anota al abrirse, no
+     * en cada minuto que sigue abierta).
+     *
+     * @param quorumQueReabrio el quórum que contradijo un cierre provisional y reabrió el corte; nulo si no hubo reapertura
+     */
+    public static List<EventoBitacora> delRecalculo(Sector sector, EstadoPublicado publicado, List<PropuestaIngesta> aprobadas,
+                                                    QuorumVecinos quorumQueReabrio, VotosDeVecinos vecinos,
+                                                    boolean cambiaElEstado, boolean memoriaDescartada, Instant ahora) {
+        List<EventoBitacora> eventos = new ArrayList<>();
+        if (cambiaElEstado && memoriaDescartada) {
+            eventos.add(consensoRevertido(sector.id(), ahora));
+        }
+        if (quorumQueReabrio != null) {
+            // Reabrir el corte es un hecho de la bitácora aunque el estado ya fuera el que correspondía.
+            delaReapertura(sector, quorumQueReabrio, vecinos, ahora).ifPresent(eventos::add);
+        } else if (cambiaElEstado) {
+            delCambioDeEstado(sector, publicado, aprobadas, vecinos, ahora).ifPresent(eventos::add);
+        } else if (publicado.enDisputa() && !sector.marcas().enDisputa()) {
+            eventos.add(estadoEnDisputa(sector.id(), publicado.estado(), publicado.reportesEnContra(), ahora));
+        }
+        return eventos;
+    }
+
+    /**
+     * Quién ve el cambio depende de quién lo sostiene: los vecinos dejan el consenso con sus reportes; un boletín, su cita textual. El
+     * corte del veedor no anexa nada aquí porque ya dejó su evento al registrarse o cerrarse, y volver a «sin datos» no es una noticia.
+     */
+    public static Optional<EventoBitacora> delCambioDeEstado(Sector sector, EstadoPublicado publicado,
+                                                             List<PropuestaIngesta> aprobadas, VotosDeVecinos vecinos,
+                                                             Instant ahora) {
+        EstadoServicio estado = publicado.estado();
+        if (estado == null || publicado.origen() == null) {
+            return Optional.empty();
+        }
+        return switch (publicado.origen()) {
+            case VECINOS, SENSOR -> {
+                List<ReporteId> ids = idsDe(vecinos.sustentoDe(estado));
+                if (ids.isEmpty()) {
+                    yield Optional.empty();
+                }
+                EventoBitacora evento = estado == EstadoServicio.CON_SERVICIO
+                        ? restablecimientoPorVecinos(sector.id(), ids, publicado.respaldo(), ahora)
+                        : consensoConfirmado(sector.id(), estado, ids, publicado.respaldo(), ahora);
+                yield Optional.of(evento.conFuente(publicado.origen(), publicado.respaldo()));
+            }
+            case ACUACAR, PRENSA -> propuestaQueSustenta(publicado, aprobadas)
+                    .map(p -> detectadoPorIngesta(sector.id(), sector.nombre(), estado,
+                            p.fuente(), p.urlOriginal(), p.imagenUrl(), p.tituloOriginal(), ahora));
+            case VEEDOR -> Optional.empty();
+        };
+    }
+
+    /** Un corte que se reabre lo provocaron los vecinos (o los sensores): se cita su quórum, no el boletín de antes. */
+    public static Optional<EventoBitacora> delaReapertura(Sector sector, QuorumVecinos contradice, VotosDeVecinos vecinos,
+                                                          Instant ahora) {
+        List<ReporteCiudadano> sustento = vecinos.sustentoPorTipo().getOrDefault(contradice.tipo(), List.of());
+        if (sustento.isEmpty()) {
+            return Optional.empty();
+        }
+        RespaldoVecinal respaldo = new RespaldoVecinal(contradice.respaldo(), contradice.umbral());
+        return Optional.of(consensoConfirmado(sector.id(), contradice.estado(), idsDe(sustento), respaldo, ahora)
+                .conFuente(OrigenEstado.deLosVotos(sustento), respaldo));
+    }
+
+    /** El boletín de la fuente que sostiene el estado y cuya ventana es la que se publicó; el más reciente gana. */
+    private static Optional<PropuestaIngesta> propuestaQueSustenta(EstadoPublicado publicado, List<PropuestaIngesta> aprobadas) {
+        boolean oficial = publicado.origen() == OrigenEstado.ACUACAR;
+        return aprobadas.stream()
+                .filter(p -> p.esDeFuenteOficial() == oficial)
+                .filter(p -> publicado.estado() == EstadoServicio.CON_SERVICIO
+                        ? p.estadoPropuesto() == EstadoServicio.CON_SERVICIO
+                        : p.estadoPropuesto() != EstadoServicio.CON_SERVICIO && p.tieneLaVentanaDe(publicado.ventanaPrometida()))
+                .max(Comparator.<PropuestaIngesta, Instant>comparing(PropuestaIngesta::momento)
+                        .thenComparing(p -> p.id().valor()));
+    }
+
+    private static List<ReporteId> idsDe(List<ReporteCiudadano> reportes) {
+        return reportes.stream().map(ReporteCiudadano::id).toList();
     }
 
     /**

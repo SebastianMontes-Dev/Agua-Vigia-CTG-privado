@@ -5,6 +5,8 @@ import com.aguavigia.ctg.domain.Afirmacion.CorteVeedor;
 import com.aguavigia.ctg.domain.Afirmacion.PrensaAprobada;
 import com.aguavigia.ctg.domain.Afirmacion.QuorumVecinos;
 import com.aguavigia.ctg.domain.ComposicionDelSustento;
+import com.aguavigia.ctg.domain.MemoriaDelBarrio;
+import com.aguavigia.ctg.domain.VotosDeVecinos;
 import com.aguavigia.ctg.domain.Afirmacion.RestablecimientoOficial;
 import com.aguavigia.ctg.domain.Afirmacion.VentanaOficial;
 import com.aguavigia.ctg.domain.CierreDeCorte;
@@ -22,7 +24,6 @@ import com.aguavigia.ctg.domain.OrigenEstado;
 import com.aguavigia.ctg.domain.PropuestaIngesta;
 import com.aguavigia.ctg.domain.ReporteCiudadano;
 import com.aguavigia.ctg.domain.ReporteId;
-import com.aguavigia.ctg.domain.RespaldoVecinal;
 import com.aguavigia.ctg.domain.ResolutorDeEstadoSector;
 import com.aguavigia.ctg.domain.ResultadoDeRecalculo;
 import com.aguavigia.ctg.domain.Sector;
@@ -41,8 +42,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.EnumMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -123,7 +122,7 @@ public class RecalcularSectorService implements RecalcularSectorUseCase {
         List<CorteAgua> cortesDelSector = cortes.listarPorSector(sectorId);
 
         boolean memoriaDescartada = trasDescarte && !laMemoriaSigueSostenida(sector, ahora);
-        VotosDeVecinos vecinos = votosDeVecinos(sector, ahora, !memoriaDescartada);
+        VotosDeVecinos vecinos = votosDeVecinos(sector, !memoriaDescartada);
 
         Reapertura reapertura = reabrirSiLosVecinosContradicen(sectorId, cortesDelSector, vecinos, ahora);
         if (reapertura.huboReapertura()) {
@@ -141,7 +140,7 @@ public class RecalcularSectorService implements RecalcularSectorUseCase {
         publicado = conOrigenDeSensores(sector, publicado, vecinos);
         boolean cambioElEstado = aplicar(sector, publicado, aprobadas, cortesDelSector, reapertura, vecinos,
                 memoriaDescartada, ahora);
-        List<ReporteId> sustento = cambioElEstado && sostienenLosVotos(publicado.origen())
+        List<ReporteId> sustento = cambioElEstado && OrigenEstado.votan(publicado.origen())
                 ? idsDe(vecinos.sustentoDe(publicado.estado()))
                 : List.of();
         return new ResultadoDeRecalculo(publicado, cambioElEstado, sustento);
@@ -191,7 +190,7 @@ public class RecalcularSectorService implements RecalcularSectorUseCase {
         for (PropuestaIngesta propuesta : aprobadas) {
             if (propuesta.estadoPropuesto() == EstadoServicio.CON_SERVICIO) {
                 if (propuesta.esDeFuenteOficial()) {
-                    afirmaciones.add(new RestablecimientoOficial(momentoDe(propuesta)));
+                    afirmaciones.add(new RestablecimientoOficial(propuesta.momento()));
                 }
                 continue;
             }
@@ -210,86 +209,26 @@ public class RecalcularSectorService implements RecalcularSectorUseCase {
         return afirmaciones;
     }
 
-    private static Instant momentoDe(PropuestaIngesta propuesta) {
-        return propuesta.publicadoEn() != null ? propuesta.publicadoEn() : propuesta.detectadaEn();
-    }
-
     // --- los vecinos --------------------------------------------------------------------------------
 
     /**
-     * Los quórums de los reportes de la ventana, más el que el barrio ya recuerda. Primero se cuenta
-     * (Mongo, sin traer reportes): durante una avería masiva un barrio acumula miles y cargarlos en cada
-     * POST agotaba el pool de conexiones. Solo si algún tipo llega a un umbral se traen los reportes, para
-     * conocer cuándo reportó el último y cuáles sustentan el cambio.
+     * Los quórums de los reportes de la ventana, más el que el barrio ya recuerda. Primero se cuenta (Mongo, sin traer reportes):
+     * durante una avería masiva un barrio acumula miles y cargarlos en cada POST agotaba el pool de conexiones. Solo si algún tipo llega
+     * a un umbral se traen los reportes, para conocer cuándo reportó el último y cuáles sustentan el cambio.
      *
-     * @param conMemoria si el barrio puede apoyarse en lo que ya recuerda; al descartar reportes se comprueba
-     *                   antes y, si dejó de sostenerse, se olvida
+     * @param conMemoria si el barrio puede apoyarse en lo que ya recuerda; al descartar reportes se comprueba antes y, si dejó de
+     *                   sostenerse, se olvida
      */
-    private VotosDeVecinos votosDeVecinos(Sector sector, Instant ahora, boolean conMemoria) {
+    private VotosDeVecinos votosDeVecinos(Sector sector, boolean conMemoria) {
         int umbral = (int) estrategia.umbral(sector);
         int minimoParaCargar = Math.min(umbral, resolutor.reglas().quorumReducido(umbral));
 
         Map<TipoReporte, Long> votos = reportes.contarVotosRecientes(sector.id(), ventanaConsenso);
-        Map<TipoReporte, List<ReporteCiudadano>> sustentoPorTipo = new EnumMap<>(TipoReporte.class);
-        Map<TipoReporte, QuorumVecinos> quorums = new EnumMap<>(TipoReporte.class);
-
-        if (votos.values().stream().anyMatch(v -> v >= minimoParaCargar)) {
-            porDispositivo(reportes.listarRecientesPorSector(sector.id(), ventanaConsenso)).forEach(
-                    (tipo, reportesDelTipo) -> {
-                        sustentoPorTipo.put(tipo, reportesDelTipo);
-                        Instant primero = reportesDelTipo.stream().map(ReporteCiudadano::timestamp)
-                                .min(Comparator.naturalOrder()).orElseThrow();
-                        Instant ultimo = reportesDelTipo.stream().map(ReporteCiudadano::timestamp)
-                                .max(Comparator.naturalOrder()).orElseThrow();
-                        quorums.put(tipo, new QuorumVecinos(tipo, reportesDelTipo.size(), umbral,
-                                ComposicionDelSustento.cumple(reportesDelTipo, redesMinimas), primero, ultimo));
-                    });
-        }
-
-        if (conMemoria) {
-            // Un quórum fresco que no llega al umbral (los reportes que fijaron el estado van saliendo de la ventana)
-            // no puede borrar lo que el barrio ya recuerda: solo un quórum alcanzado ocupa su lugar.
-            recordado(sector).ifPresent(memoria ->
-                    quorums.merge(memoria.tipo(), memoria, (fresco, recordada) ->
-                            fresco.alcanzado() && fresco.composicionValida() ? fresco : recordada));
-        }
-        return new VotosDeVecinos(quorums, sustentoPorTipo);
-    }
-
-    /** Un voto por dispositivo, el de su reporte más reciente: un vecino que reporta tres veces sigue siendo un vecino. */
-    private static Map<TipoReporte, List<ReporteCiudadano>> porDispositivo(List<ReporteCiudadano> recientes) {
-        Map<String, ReporteCiudadano> ultimoPorDispositivo = new LinkedHashMap<>();
-        for (ReporteCiudadano reporte : recientes) {
-            ultimoPorDispositivo.merge(reporte.huella().hash(), reporte,
-                    (a, b) -> a.timestamp().isAfter(b.timestamp()) ? a : b);
-        }
-        return ultimoPorDispositivo.values().stream().collect(Collectors.groupingBy(ReporteCiudadano::tipo));
-    }
-
-    /**
-     * El quórum a 30 minutos deja de verse pronto, pero el estado que produjo no: el barrio lo recuerda con
-     * su origen y respaldo, y solo caduca si ningún reporte nuevo lo renueva (6 h sin verificación, 24 h sin datos).
-     */
-    private static Optional<QuorumVecinos> recordado(Sector sector) {
-        MarcasDeEstado marcas = sector.marcas();
-        if (sector.estadoActual() == null || !sostienenLosVotos(marcas.origen()) || marcas.respaldo() == null) {
-            return Optional.empty();
-        }
-        Instant ultimo = sector.estadoVerificadoEn() != null ? sector.estadoVerificadoEn() : sector.estadoActualizadoEn();
-        if (ultimo == null) {
-            ultimo = Instant.EPOCH;
-        }
-        Instant primero = sector.estadoActualizadoEn() != null ? sector.estadoActualizadoEn() : ultimo;
-        return Optional.of(new QuorumVecinos(tipoDe(sector.estadoActual()), marcas.respaldo().vecinos(),
-                marcas.respaldo().umbral(), true, primero, ultimo, true));
-    }
-
-    private static TipoReporte tipoDe(EstadoServicio estado) {
-        return switch (estado) {
-            case SIN_SERVICIO, CORTE_PROGRAMADO -> TipoReporte.SIN_AGUA;
-            case PRESION_BAJA -> TipoReporte.PRESION_BAJA;
-            case CON_SERVICIO -> TipoReporte.SERVICIO_RESTABLECIDO;
-        };
+        List<ReporteCiudadano> recientes = votos.values().stream().anyMatch(v -> v >= minimoParaCargar)
+                ? reportes.listarRecientesPorSector(sector.id(), ventanaConsenso)
+                : List.of();
+        VotosDeVecinos vecinos = VotosDeVecinos.formar(recientes, umbral, redesMinimas);
+        return conMemoria ? vecinos.conMemoria(MemoriaDelBarrio.recordado(sector)) : vecinos;
     }
 
     /**
@@ -298,7 +237,7 @@ public class RecalcularSectorService implements RecalcularSectorUseCase {
      * se confirmó fue un restablecimiento. Sin memoria de los vecinos no hay nada que comprobar.
      */
     private boolean laMemoriaSigueSostenida(Sector sector, Instant ahora) {
-        Optional<QuorumVecinos> memoria = recordado(sector);
+        Optional<QuorumVecinos> memoria = MemoriaDelBarrio.recordado(sector);
         if (memoria.isEmpty()) {
             return true;
         }
@@ -306,59 +245,10 @@ public class RecalcularSectorService implements RecalcularSectorUseCase {
         Instant formacion = sector.estadoActualizadoEn() != null ? sector.estadoActualizadoEn() : recordada.primerReporte();
         Duration desde = Duration.between(formacion.minus(ventanaConsenso), ahora);
 
-        List<ReporteCiudadano> sustento = porDispositivo(reportes.listarRecientesPorSector(sector.id(), desde))
+        List<ReporteCiudadano> sustento = VotosDeVecinos.porDispositivo(reportes.listarRecientesPorSector(sector.id(), desde))
                 .getOrDefault(recordada.tipo(), List.of());
-        int liston = recordada.estado() == EstadoServicio.CON_SERVICIO
-                ? resolutor.reglas().quorumReducido(recordada.umbral())
-                : recordada.umbral();
-        return sustento.size() >= liston && ComposicionDelSustento.cumple(sustento, redesMinimas);
-    }
-
-    private record VotosDeVecinos(Map<TipoReporte, QuorumVecinos> porTipo,
-                                  Map<TipoReporte, List<ReporteCiudadano>> sustentoPorTipo) {
-
-        List<QuorumVecinos> quorums() {
-            return List.copyOf(porTipo.values());
-        }
-
-        /** Los reportes de la ventana que sostienen {@code estado}; vacío si el estado viene de la memoria del barrio. */
-        List<ReporteCiudadano> sustentoDe(EstadoServicio estado) {
-            return sustentoPorTipo.entrySet().stream()
-                    .filter(e -> estadoDe(e.getKey()) == estado)
-                    .flatMap(e -> e.getValue().stream())
-                    .toList();
-        }
-
-        /** Lo que los vecinos no recuerdan pero sí acaban de alcanzar: el quórum de esta ventana, no el de la memoria. */
-        Optional<QuorumVecinos> recienteDe(TipoReporte tipo) {
-            return Optional.ofNullable(porTipo.get(tipo)).filter(q -> !q.sostenido());
-        }
-
-        /** El quórum de restablecimiento se descarta entero: otro mayor lo contradijo y no pueden valer los dos. */
-        VotosDeVecinos sinElRestablecimiento() {
-            Map<TipoReporte, QuorumVecinos> sinRestablecimiento = new EnumMap<>(TipoReporte.class);
-            sinRestablecimiento.putAll(porTipo);
-            sinRestablecimiento.remove(TipoReporte.SERVICIO_RESTABLECIDO);
-            return new VotosDeVecinos(sinRestablecimiento, sustentoPorTipo);
-        }
-
-        int respaldoDeRestablecimiento() {
-            QuorumVecinos restablecimiento = porTipo.get(TipoReporte.SERVICIO_RESTABLECIDO);
-            return restablecimiento == null ? 0 : restablecimiento.respaldo();
-        }
-
-        private static EstadoServicio estadoDe(TipoReporte tipo) {
-            return switch (tipo) {
-                case SIN_AGUA -> EstadoServicio.SIN_SERVICIO;
-                case PRESION_BAJA -> EstadoServicio.PRESION_BAJA;
-                case SERVICIO_RESTABLECIDO -> EstadoServicio.CON_SERVICIO;
-            };
-        }
-    }
-
-    /** Los votos los pueden dar vecinos o sensores de la red; el resto de las fuentes no votan. */
-    private static boolean sostienenLosVotos(OrigenEstado origen) {
-        return origen == OrigenEstado.VECINOS || origen == OrigenEstado.SENSOR;
+        return sustento.size() >= MemoriaDelBarrio.liston(recordada, resolutor.reglas())
+                && ComposicionDelSustento.cumple(sustento, redesMinimas);
     }
 
     /**
@@ -373,15 +263,10 @@ public class RecalcularSectorService implements RecalcularSectorUseCase {
         }
         List<ReporteCiudadano> sustento = vecinos.sustentoDe(publicado.estado());
         OrigenEstado origen = !sustento.isEmpty()
-                ? origenDe(sustento)
+                ? OrigenEstado.deLosVotos(sustento)
                 : (sector.estadoActual() == publicado.estado() && sector.marcas().origen() == OrigenEstado.SENSOR
                         ? OrigenEstado.SENSOR : OrigenEstado.VECINOS);
         return origen == publicado.origen() ? publicado : publicado.conOrigen(origen);
-    }
-
-    private static OrigenEstado origenDe(List<ReporteCiudadano> reportes) {
-        return !reportes.isEmpty() && reportes.stream().allMatch(ReporteCiudadano::esSensor)
-                ? OrigenEstado.SENSOR : OrigenEstado.VECINOS;
     }
 
     // --- cerrar y reabrir el corte -------------------------------------------------------------------
@@ -497,7 +382,7 @@ public class RecalcularSectorService implements RecalcularSectorUseCase {
         boolean cambianLasMarcas = !marcas.equals(sector.marcas());
 
         List<CambioDeCorte> cambiosDeCortes = new ArrayList<>(reapertura.cambios());
-        if (cambiaElEstado && nuevo == EstadoServicio.CON_SERVICIO && sostienenLosVotos(publicado.origen())) {
+        if (cambiaElEstado && nuevo == EstadoServicio.CON_SERVICIO && OrigenEstado.votan(publicado.origen())) {
             cambiosDeCortes.addAll(cerrarCortesPorVecinos(sector.id(), cortesDelSector, vecinos, publicado.origen(), ahora));
         }
 
@@ -506,8 +391,8 @@ public class RecalcularSectorService implements RecalcularSectorUseCase {
             return false;
         }
 
-        List<EventoBitacora> eventos = eventosDelCambio(sector, publicado, aprobadas, reapertura, vecinos,
-                cambiaElEstado, memoriaDescartada, ahora);
+        List<EventoBitacora> eventos = EventoBitacoraFactory.delRecalculo(sector, publicado, aprobadas,
+                reapertura.huboReapertura() ? reapertura.quorum() : null, vecinos, cambiaElEstado, memoriaDescartada, ahora);
         boolean publica = cambiaElEstado || cambianLasMarcas;
         // Solo se abre la disputa (el estado no cambia): el compare-and-set no alcanza para que dos recálculos simultáneos
         // no anoten el mismo evento, porque los dos ven el mismo estado; hace falta que además siga sin estar abierta.
@@ -569,94 +454,6 @@ public class RecalcularSectorService implements RecalcularSectorUseCase {
      */
     private static boolean laFuenteLoSostieneAhora(EstadoPublicado publicado, VotosDeVecinos vecinos,
                                                   EstadoServicio estado) {
-        return !sostienenLosVotos(publicado.origen()) || !vecinos.sustentoDe(estado).isEmpty();
-    }
-
-    // --- la cita del cambio --------------------------------------------------------------------------
-
-    private static List<EventoBitacora> eventosDelCambio(Sector sector, EstadoPublicado publicado,
-                                                         List<PropuestaIngesta> aprobadas, Reapertura reapertura,
-                                                         VotosDeVecinos vecinos, boolean cambiaElEstado,
-                                                         boolean memoriaDescartada, Instant ahora) {
-        List<EventoBitacora> eventos = new ArrayList<>();
-        if (cambiaElEstado && memoriaDescartada) {
-            eventos.add(EventoBitacoraFactory.consensoRevertido(sector.id(), ahora));
-        }
-        if (reapertura.huboReapertura()) {
-            // Reabrir el corte es un hecho de la bitácora aunque el estado ya fuera el que correspondía.
-            eventoDeReapertura(sector, reapertura, vecinos, ahora).ifPresent(eventos::add);
-        } else if (cambiaElEstado) {
-            eventoDelEstado(sector, publicado, aprobadas, vecinos, ahora).ifPresent(eventos::add);
-        } else if (publicado.enDisputa() && !sector.marcas().enDisputa()) {
-            // Se anota al abrirse la disputa, no en cada minuto que sigue abierta.
-            eventos.add(EventoBitacoraFactory.estadoEnDisputa(sector.id(), publicado.estado(),
-                    publicado.reportesEnContra(), ahora));
-        }
-        return eventos;
-    }
-
-    /**
-     * Quién ve el cambio depende de quién lo sostiene: los vecinos dejan el consenso con sus reportes; un
-     * boletín, su cita textual. El corte del veedor no anexa nada aquí porque ya dejó su evento al registrarse
-     * o cerrarse, y volver a «sin datos» no es una noticia. Un corte que se reabre lo provocaron los vecinos
-     * aunque el estado lo afirme de nuevo la fuente oficial: se cita su reporte, no el boletín de antes.
-     */
-    private static Optional<EventoBitacora> eventoDelEstado(Sector sector, EstadoPublicado publicado,
-                                                            List<PropuestaIngesta> aprobadas,
-                                                            VotosDeVecinos vecinos, Instant ahora) {
-        EstadoServicio estado = publicado.estado();
-        if (estado == null || publicado.origen() == null) {
-            return Optional.empty();
-        }
-        return switch (publicado.origen()) {
-            case VECINOS, SENSOR -> {
-                List<ReporteId> ids = idsDe(vecinos.sustentoDe(estado));
-                if (ids.isEmpty()) {
-                    yield Optional.empty();
-                }
-                EventoBitacora evento = estado == EstadoServicio.CON_SERVICIO
-                        ? EventoBitacoraFactory.restablecimientoPorVecinos(sector.id(), ids, publicado.respaldo(), ahora)
-                        : EventoBitacoraFactory.consensoConfirmado(sector.id(), estado, ids, publicado.respaldo(), ahora);
-                yield Optional.of(evento.conFuente(publicado.origen(), publicado.respaldo()));
-            }
-            case ACUACAR, PRENSA -> propuestaQueSustenta(publicado, aprobadas)
-                    .map(p -> EventoBitacoraFactory.detectadoPorIngesta(sector.id(), sector.nombre(), estado,
-                            p.fuente(), p.urlOriginal(), p.imagenUrl(), p.tituloOriginal(), ahora));
-            case VEEDOR -> Optional.empty();
-        };
-    }
-
-    /**
-     * Un corte que se reabre lo provocaron los vecinos (o los sensores) aunque el estado lo afirme de nuevo la fuente
-     * oficial: se cita su quórum, no el boletín de antes.
-     */
-    private static Optional<EventoBitacora> eventoDeReapertura(Sector sector, Reapertura reapertura,
-                                                              VotosDeVecinos vecinos, Instant ahora) {
-        QuorumVecinos contradice = reapertura.quorum();
-        List<ReporteCiudadano> sustento = vecinos.sustentoPorTipo().getOrDefault(contradice.tipo(), List.of());
-        if (sustento.isEmpty()) {
-            return Optional.empty();
-        }
-        RespaldoVecinal respaldo = new RespaldoVecinal(contradice.respaldo(), contradice.umbral());
-        return Optional.of(EventoBitacoraFactory.consensoConfirmado(sector.id(), contradice.estado(), idsDe(sustento), respaldo, ahora)
-                .conFuente(origenDe(sustento), respaldo));
-    }
-
-    /** El boletín de la fuente que sostiene el estado y cuya ventana es la que se publicó; el más reciente gana. */
-    private static Optional<PropuestaIngesta> propuestaQueSustenta(EstadoPublicado publicado, List<PropuestaIngesta> aprobadas) {
-        boolean oficial = publicado.origen() == OrigenEstado.ACUACAR;
-        return aprobadas.stream()
-                .filter(p -> p.esDeFuenteOficial() == oficial)
-                .filter(p -> publicado.estado() == EstadoServicio.CON_SERVICIO
-                        ? p.estadoPropuesto() == EstadoServicio.CON_SERVICIO
-                        : p.estadoPropuesto() != EstadoServicio.CON_SERVICIO && mismaVentana(p, publicado))
-                .max(Comparator.<PropuestaIngesta, Instant>comparing(RecalcularSectorService::momentoDe)
-                        .thenComparing(p -> p.id().valor()));
-    }
-
-    private static boolean mismaVentana(PropuestaIngesta propuesta, EstadoPublicado publicado) {
-        return publicado.ventanaPrometida() != null
-                && publicado.ventanaPrometida().inicio().equals(propuesta.inicioDeclarado())
-                && publicado.ventanaPrometida().finPrometido().equals(propuesta.finPrometido());
+        return !OrigenEstado.votan(publicado.origen()) || !vecinos.sustentoDe(estado).isEmpty();
     }
 }
