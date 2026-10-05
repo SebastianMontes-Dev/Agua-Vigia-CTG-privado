@@ -2,8 +2,8 @@
  * Demo de carga (ADR-083): el flujo completo de una ciudad reportando a la vez, no un solo endpoint aislado.
  *
  * Mezcla, en paralelo y durante VENTANA segundos:
- *   - reportes:        USUARIOS vecinos, cada uno con su huella, reportan una vez. Una parte lleva coordenada dentro
- *                      de su barrio (RF007) y una parte se confirma después con otra huella (RF038).
+ *   - reportes:        USUARIOS vecinos, cada uno con su dispositivo, reportan una vez. Una parte lleva coordenada dentro
+ *                      de su barrio (RF007) y una parte se confirma después desde otro dispositivo (RF038).
  *   - focos:           FOCOS barrios sufren una avería masiva y se «encienden» uno tras otro a lo largo de la
  *                      ventana, para que el consenso real cambie sus estados mientras el mapa se mira.
  *   - lectores:        gente mirando el mapa (lista de barrios, ficha de un barrio, bitácora).
@@ -224,9 +224,14 @@ export function setup() {
     };
 }
 
-function huella(data, prefijo, indice) {
-    // La API exige entre 32 y 128 caracteres.
-    return `${prefijo}-${data.corrida}-${indice}-${Math.random().toString(36).slice(2, 10)}`.padEnd(40, '0');
+/**
+ * Desde F2 quien reporta no inventa una huella: el servidor emite un token de dispositivo (POST /api/dispositivos) y se envía en
+ * X-Dispositivo (ADR-090). Un vecino simulado = un dispositivo nuevo. La emisión tiene su propio tope por IP (10 por hora): este
+ * script necesita el perfil `carga`, que vacía los límites por IP (ver docker-compose.carga.yml).
+ */
+function nuevoDispositivo() {
+    const respuesta = http.post(`${BASE_URL}/api/dispositivos`, null, { tags: { grupo: 'dispositivo' } });
+    return respuesta.status === 201 ? respuesta.json('token') : null;
 }
 
 function elegir(lista) {
@@ -258,12 +263,19 @@ export function vecino(data) {
     // En una avería masiva casi todo el mundo reporta lo mismo.
     const tipo = enFoco ? 'SIN_AGUA' : tipoDisperso();
 
-    const cuerpo = { sectorId, tipo, huella: huella(data, 'vec', indice) };
+    const dispositivo = nuevoDispositivo();
+    if (!dispositivo) {
+        reportesFallidos.add(1);
+        return;
+    }
+    const cuerpo = { sectorId, tipo };
     if (Math.random() < CON_COORDENADA && data.puntos[sectorId]) {
         cuerpo.coordenada = { latitud: data.puntos[sectorId][1], longitud: data.puntos[sectorId][0] };
+        // Sin precisionMetros la ubicación no verifica el reporte (ADR-090).
+        cuerpo.precisionMetros = 10;
     }
     const respuesta = http.post(`${BASE_URL}/api/reportes`, JSON.stringify(cuerpo), {
-        headers: JSON_HEADERS,
+        headers: { ...JSON_HEADERS, 'X-Dispositivo': dispositivo },
         tags: { grupo: 'reporte' },
     });
 
@@ -285,10 +297,11 @@ export function vecino(data) {
 
     if (Math.random() < CONFIRMAR) {
         const id = respuesta.json('id');
+        const otro = nuevoDispositivo();
         const confirmacion = http.post(
             `${BASE_URL}/api/reportes/${id}/confirmar`,
-            JSON.stringify({ huella: huella(data, 'conf', indice) }),
-            { headers: JSON_HEADERS, tags: { grupo: 'confirmacion' } });
+            null,
+            { headers: { 'X-Dispositivo': otro || '' }, tags: { grupo: 'confirmacion' } });
         if (check(confirmacion, { 'la confirmación se aceptó': (r) => r.status === 200 || r.status === 201 })) {
             confirmacionesAceptadas.add(1);
         }

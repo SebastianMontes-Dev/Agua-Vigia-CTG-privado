@@ -17,9 +17,15 @@
  *
  * Deja datos de prueba en la base (un reporte por dispositivo simulado, una suscripción, un corte
  * y una cuenta invitada): úsalo en un entorno de desarrollo, no en uno con datos que importen.
+ *
+ * Cada reporte lleva su identidad (ADR-090): un token de dispositivo propio (POST /api/dispositivos, 10 por hora por IP; este
+ * script usa 8 por pasada, así que para repetirlo seguido levanta el backend con RATE_LIMIT_FACTOR=100) y una coordenada dentro
+ * del barrio con precisión de 10 m, que es lo que el quórum exige para contar un voto como verificado. Con redes-minimas=2, el
+ * valor por defecto del backend, un solo equipo no alcanza el quórum: el compose local arranca con 1.
  */
 import { randomBytes } from 'node:crypto'
 import { codigoTotp } from './codigo-totp.mjs'
+import { crearDispositivo, puntosPorBarrio } from './lib/identidad-api.mjs'
 
 const API = (process.env.API_URL ?? 'http://localhost:8081').replace(/\/$/, '')
 const MAILHOG = (process.env.MAILHOG_URL ?? 'http://localhost:8025').replace(/\/$/, '')
@@ -206,19 +212,25 @@ const sse = await escucharSse().catch((e) => {
   return { eventos: [], cerrar() {} }
 })
 let primerReporte
+let subidaDelPrimerReporte
 
-await paso('POST /api/reportes con huellas distintas hasta alcanzar el consenso', async () => {
+await paso('POST /api/reportes con un dispositivo por reporte hasta alcanzar el consenso', async () => {
+  const puntos = await puntosPorBarrio(API)
   const ids = []
   for (let i = 0; i < 6; i++) {
+    const dispositivo = await crearDispositivo(API)
     const r = esperarEstado(
       await http('POST', '/api/reportes', {
-        cuerpo: { tipo: 'SIN_AGUA', huella: randomBytes(16).toString('hex') + `${SUFIJO}${i}`.padEnd(6, '0'), sectorId: sector.id },
+        cabeceras: { 'X-Dispositivo': dispositivo },
+        cuerpo: { tipo: 'SIN_AGUA', sectorId: sector.id, coordenada: puntos.get(sector.id), precisionMetros: 10 },
       }),
       201,
       `reporte ${i + 1}`,
     )
     ids.push(r.json.id)
+    if (i === 0) subidaDelPrimerReporte = r.json.subidaToken
     exigir(r.json.sectorId === sector.id, 'el sectorId de la respuesta no es el declarado')
+    exigir(r.json.verificacion === 'UBICACION_VERIFICADA', `el reporte salió ${r.json.verificacion} y se esperaba UBICACION_VERIFICADA`)
   }
   primerReporte = ids[0]
   await new Promise((ok) => setTimeout(ok, 1500))
@@ -230,9 +242,9 @@ await paso('POST /api/reportes con huellas distintas hasta alcanzar el consenso'
 await paso('el reporte por coordenada infiere el sector', async () => {
   const r = esperarEstado(
     await http('POST', '/api/reportes', {
+      cabeceras: { 'X-Dispositivo': await crearDispositivo(API) },
       cuerpo: {
         tipo: 'PRESION_BAJA',
-        huella: randomBytes(20).toString('hex'),
         coordenada: { latitud: 10.4012, longitud: -75.556 },
       },
     }),
@@ -246,12 +258,18 @@ await paso('el reporte por coordenada infiere el sector', async () => {
 await paso('adjuntar una foto y confirmar un reporte ajeno', async () => {
   const formulario = new FormData()
   formulario.append('foto', new Blob([PNG_1X1], { type: 'image/png' }), 'prueba.png')
-  const foto = esperarEstado(await http('POST', `/api/reportes/${primerReporte}/foto`, { formulario }), 200, 'foto')
+  const foto = esperarEstado(
+    await http('POST', `/api/reportes/${primerReporte}/foto`, { formulario, cabeceras: { 'X-Subida': subidaDelPrimerReporte } }),
+    200,
+    'foto',
+  )
   exigir(foto.json.fotoUrl, 'la respuesta no trae fotoUrl')
+  exigir(foto.json.fotoEstado === 'EN_REVISION', `fotoEstado ${foto.json.fotoEstado} (esperado EN_REVISION)`)
+  // Una foto no es pública hasta que el reporte se aprueba (ADR-091): hasta entonces responde 404, el mismo que si no existiera.
   const visible = await fetch(`${API}${foto.json.fotoUrl.startsWith('/') ? '' : '/'}${foto.json.fotoUrl}`)
-  exigir(visible.status === 200, `la foto no se sirve (${visible.status})`)
+  exigir(visible.status === 404, `la foto de un reporte sin aprobar debería dar 404 y dio ${visible.status}`)
   const c = esperarEstado(
-    await http('POST', `/api/reportes/${primerReporte}/confirmar`, { cuerpo: { huella: randomBytes(20).toString('hex') } }),
+    await http('POST', `/api/reportes/${primerReporte}/confirmar`, { cabeceras: { 'X-Dispositivo': await crearDispositivo(API) } }),
     200,
     'confirmar',
   )

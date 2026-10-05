@@ -14,7 +14,7 @@
  * (30 por minuto en /api/reportes/**) y k6 sale de una sola IP: sin vaciarlo verás 429 del limitador
  * y no la latencia real. Nunca se hace en producción.
  *
- * Cada solicitud usa una huella distinta (un vecino distinto), porque RF006 limita por dispositivo.
+ * Cada solicitud usa un dispositivo distinto (un vecino distinto), porque RF006 limita por dispositivo.
  * Tras la prueba se puede contar cuántos eventos de consenso salieron con:
  *   db.eventos_bitacora.countDocuments({ sectorId: "<el sector del pico>" })
  * y comprobar que no hay duplicados del mismo cambio de estado.
@@ -73,13 +73,23 @@ export function setup() {
     return { ids, sectorDelPico: ids[0] };
 }
 
+
+/**
+ * Desde F2 quien reporta no inventa una huella: el servidor emite un token de dispositivo (POST /api/dispositivos) y se envía en
+ * X-Dispositivo (ADR-090). Un vecino simulado = un dispositivo nuevo. La emisión tiene su propio tope por IP (10 por hora): este
+ * script necesita el perfil `carga`, que vacía los límites por IP (ver docker-compose.carga.yml).
+ */
+function nuevoDispositivo() {
+    const respuesta = http.post(`${BASE_URL}/api/dispositivos`, null, { tags: { grupo: 'dispositivo' } });
+    return respuesta.status === 201 ? respuesta.json('token') : null;
+}
+
 function reportar(sectorId, tipo) {
-    // padEnd: la API exige una huella de entre 32 y 128 caracteres.
-    const huella = `k6-${__VU}-${__ITER}-${Date.now()}-${Math.random().toString(36).slice(2)}`.padEnd(40, '0');
+    const dispositivo = nuevoDispositivo();
     const respuesta = http.post(
         `${BASE_URL}/api/reportes`,
-        JSON.stringify({ sectorId, tipo, huella }),
-        { headers: { 'Content-Type': 'application/json' } });
+        JSON.stringify({ sectorId, tipo }),
+        { headers: { 'Content-Type': 'application/json', 'X-Dispositivo': dispositivo || '' } });
     check(respuesta, { 'respondió 201 (registrado)': (r) => r.status === 201 });
 }
 

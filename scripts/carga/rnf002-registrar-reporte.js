@@ -18,8 +18,8 @@
  *   medir con más carga concurrente, sube temporalmente ese límite (o vacíalo) en el entorno de
  *   prueba — nunca en producción — y ajusta `rate` aquí.
  *
- * Por qué la huella es única por solicitud:
- *   RF006 limita reportes por dispositivo (huella) y sector en una ventana de 30 min. Una huella
+ * Por qué el dispositivo es único por solicitud:
+ *   RF006 limita reportes por dispositivo y sector en una ventana de 30 min. Un dispositivo
  *   fija haría que la mayoría de las solicitudes fallaran con 429 por cupo agotado, no por
  *   latencia — y un k6 real simula vecinos distintos, no el mismo dispositivo insistiendo.
  */
@@ -65,12 +65,12 @@ export function setup() {
 export default function (data) {
     const sectorId = data.sectores[Math.floor(Math.random() * data.sectores.length)];
     const tipo = TIPOS[Math.floor(Math.random() * TIPOS.length)];
-    // Un "vecino" simulado distinto por solicitud — ver comentario de cabecera sobre RF006.
-    // padEnd: la API exige entre 32 y 128 caracteres (SolicitudReporte.huella).
-    const huella = `k6-${__VU}-${__ITER}-${Date.now()}`.padEnd(40, '0');
+    // Un "vecino" simulado distinto por solicitud — ver comentario de cabecera sobre RF006: un dispositivo nuevo cada vez.
+    const dispositivo = http.post(`${BASE_URL}/api/dispositivos`, null, { tags: { grupo: 'dispositivo' } });
+    const token = dispositivo.status === 201 ? dispositivo.json('token') : '';
 
-    const payload = JSON.stringify({ sectorId, tipo, huella });
-    const params = { headers: { 'Content-Type': 'application/json' } };
+    const payload = JSON.stringify({ sectorId, tipo });
+    const params = { headers: { 'Content-Type': 'application/json', 'X-Dispositivo': token } };
 
     const respuesta = http.post(`${BASE_URL}/api/reportes`, payload, params);
 

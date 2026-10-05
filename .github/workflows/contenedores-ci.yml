@@ -35,13 +35,13 @@ jobs:
           echo "Dueño de /app/data/fotos en $IMAGEN: $DUENO"
           [ "$DUENO" = "aguavigia" ] || { echo "::error::/app/data/fotos no es de aguavigia (es de '$DUENO')"; exit 1; }
 
-      # ADR-086: la entrega exige que todo se levante con `docker compose --profile siembra up` y que Mongo tenga al menos 30 000
-      # registros. Se levanta sin .env, como en el equipo de la sustentación, y el sembrador debe terminar con 0.
-      - name: Un solo docker compose --profile siembra up deja la base sembrada
+      # ADR-086 y ADR-094: la entrega exige que un solo `docker compose up` deje la base lista: los 211 barrios y 30 000 cuentas
+      # sintéticas con barrio válido. Se levanta sin .env, como en el equipo de la sustentación, y el sembrador debe terminar con 0.
+      - name: Un solo docker compose up deja la base sembrada
         run: |
-          docker compose --profile siembra up -d --build
+          docker compose up -d --build
           CODIGO=$(docker wait aguavigia-sembrador)
-          docker compose logs --no-log-prefix sembrador | grep -v "Cuentas insertadas" | tail -25
+          docker compose logs --no-log-prefix sembrador | tail -25
           [ "$CODIGO" = "0" ] || { echo "::error::el sembrador terminó con código $CODIGO"; docker compose logs backend | tail -50; exit 1; }
           docker compose run --rm sembrador verificar
           docker compose logs backend | grep -q "ADMINISTRADOR INICIAL" || { echo "::error::el backend no creó el ADMIN inicial"; exit 1; }
@@ -50,7 +50,7 @@ jobs:
         run: |
           contar() { docker compose exec -T mongo mongosh aguavigia --quiet --eval 'print(db.usuarios.countDocuments() + "/" + db.reportes.countDocuments() + "/" + db.cortes.countDocuments())'; }
           ANTES=$(contar)
-          docker compose --profile siembra up -d
+          docker compose up -d
           docker wait aguavigia-sembrador
           DESPUES=$(contar)
           echo "usuarios/reportes/cortes: $ANTES -> $DESPUES"

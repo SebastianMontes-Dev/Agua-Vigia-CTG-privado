@@ -1,7 +1,10 @@
 /**
  * Script para sembrar cortes de agua y reportes ciudadanos históricos (Mayo - Julio 2026).
  * Tarea del Sprint 6 (DevOps/QA).
- * 
+ *
+ * NO corre en el arranque (ADR-094): son datos inventados y la instancia real no los lleva. Queda para quien los pida a mano
+ * (las pruebas E2E del frontend). El histórico real sale de los boletines de Acuacar.
+ *
  * Uso:
  *   cd scripts && npm install
  *   MONGODB_URI="mongodb://localhost:27017/?directConnection=true" node sembrar-historico-cortes.mjs

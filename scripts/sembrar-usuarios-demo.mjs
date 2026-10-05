@@ -1,4 +1,8 @@
 #!/usr/bin/env node
+// NO corre en el arranque (ADR-094): las cuentas sintéticas las crea ahora el propio backend (ImportadorDeVecinosSinteticos), con las
+// mismas reglas de alta de un vecino y sin fingir verificaciones. Este script inserta directo en Mongo y fabrica tokens y auditoría que
+// nadie generó; queda solo para quien necesite una base de cuentas de panel variadas a mano.
+//
 // Siembra cuentas de demostración COMPLETAS para presentar el proyecto con una base grande (por defecto
 // 30 000) y variada. Cada cuenta lleva nombre y apellidos distintos, correo, barrio real (repartido según la
 // población de cada sector), uno de los seis estados, el rol OBSERVADOR o VEEDOR, permisos sueltos y fechas

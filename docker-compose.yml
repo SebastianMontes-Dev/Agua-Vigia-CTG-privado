@@ -1,12 +1,14 @@
-# Dos formas de levantar el proyecto (sin .env: el backend genera su secreto de sesión y la clave del primer ADMIN,
-# que se imprime una sola vez en el log del backend):
+# Un solo comando deja todo listo (ADR-094). Sin .env: el backend genera su secreto de sesión y la clave del primer ADMIN,
+# que se imprime una sola vez en el log del backend.
 #
-#   docker compose up -d --build            → solo los servicios (Mongo, réplica, Redis, Mailhog, backend): base vacía,
-#                                             con un ADMIN. Es lo que se usa para levantar y sembrar a mano, paso a paso.
-#   docker compose --profile siembra up     → además corre el `sembrador`: 211 barrios, 30 000 cuentas de demostración, el
-#                                             histórico de cortes y algunos barrios afectados. Repetir no duplica datos.
+#   docker compose up -d --build            → Mongo, réplica, Redis, Mailhog y backend, y el `sembrador`, que carga los 211 barrios.
+#                                             El backend crea el ADMIN y, en segundo plano, 30 000 cuentas SINTÉTICAS de vecino
+#                                             (lo único inventado: se dicen sintéticas y la API lo declara en /api/sistema/modo).
+#                                             No hay reportes, cortes ni estados inventados: el mapa muestra lo que dicen los
+#                                             boletines de Acuacar y los vecinos de verdad. Repetir no duplica datos.
 #
 # Los pasos del sembrador también se piden uno a uno: docker compose run --rm sembrador sembrar-sectores
+# Para levantar sin sembrar: docker compose up -d --build mongo mongo-init-replica redis mailhog backend
 #
 # Visor web de la base (opcional):
 #
@@ -119,6 +121,19 @@ services:
       # el valor por defecto deja la ingesta funcionando en un `docker compose up` sin .env. El correo
       # de contacto debe ser uno que controles; cámbialo con COLLECTOR_USER_AGENT en tu .env.
       COLLECTOR_USER_AGENT: "${COLLECTOR_USER_AGENT:-AguaVigiaCTG-Bot/1.0 (+alertas@aguavigia.com)}"
+      # auto: lee Acuacar en vivo y, si falla (sin red, sitio caído), usa los 13 boletines reales guardados en el repositorio. Nunca
+      # inventa uno. en-vivo no tiene respaldo; local no toca la red (ADR-082).
+      INGESTA_MODO: ${INGESTA_MODO:-auto}
+      # Cuántas cuentas sintéticas de vecino crea el backend al arrancar (0 las desactiva).
+      VECINOS_SINTETICOS: ${VECINOS_SINTETICOS:-30000}
+      # Una red distinta por votante es lo que pide el quórum por defecto (2). Con Docker Desktop todos los clientes del equipo
+      # llegan al backend con la misma IP, así que con 2 el quórum nunca se cumpliría: en local se baja a 1. Es una concesión
+      # del entorno local, no del producto: en una presentación desde una sola red se dice abiertamente (ADR-090).
+      AGUAVIGIA_CONSENSO_REDES_MINIMAS: ${AGUAVIGIA_CONSENSO_REDES_MINIMAS:-1}
+      # Multiplica los topes por IP (10 dispositivos por hora, 30 reportes por minuto...). 1 los deja como están; solo se sube
+      # para pruebas de carga o siembras que crean muchas identidades desde un mismo equipo. NO mueve los de ingreso, correo ni
+      # cambio de clave (esos los controla RATE_LIMIT_FACTOR_CUENTAS, que solo usa la simulación); el tope es 1000.
+      RATE_LIMIT_FACTOR: ${RATE_LIMIT_FACTOR:-1}
     ports:
       - "127.0.0.1:8081:8080"
     volumes:
@@ -141,11 +156,11 @@ services:
       retries: 5
       start_period: 30s
 
-  # Siembra de un solo uso (scripts/sembrador.mjs): con el perfil `siembra` corre al terminar de arrancar el backend y sale; sin él no arranca (base vacía). También sirve para
-  # ampliar datos en vivo sin instalar Node: docker compose run --rm sembrador agregar-usuarios --cantidad 1000
+  # Siembra de un solo uso (scripts/sembrador.mjs): al terminar de arrancar el backend carga los 211 barrios, espera a que el
+  # backend termine de crear las cuentas sintéticas y sale. Es idempotente. También sirve para otros pasos sin instalar Node:
+  # docker compose run --rm sembrador verificar
   sembrador:
     image: aguavigia/sembrador:local
-    profiles: ["siembra"]
     build:
       context: .
       dockerfile: scripts/Dockerfile
@@ -155,6 +170,7 @@ services:
       MONGODB_URI: mongodb://mongo:27017/?directConnection=true
       MONGODB_DB: ${MONGO_INITDB_DATABASE:-aguavigia}
       API_URL: http://backend:8080
+      VECINOS_SINTETICOS: ${VECINOS_SINTETICOS:-30000}
     depends_on:
       backend:
         condition: service_healthy

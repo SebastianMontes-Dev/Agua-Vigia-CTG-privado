@@ -1,18 +1,21 @@
 #!/usr/bin/env node
-// Punto de entrada del servicio `sembrador` de docker-compose.yml (ADR-086): deja la base lista para presentar con un solo
-// `docker compose up`, sin instalar Node en el equipo. Orquesta los scripts de siembra que ya existían; no los reescribe.
+// Punto de entrada del servicio `sembrador` de docker-compose.yml (ADR-086, ADR-094): deja la base lista para presentar con un
+// solo `docker compose up`, sin instalar Node en el equipo.
 //
 //   docker compose up                                   → corre `inicial` y termina
 //   docker compose run --rm sembrador verificar         → conteo de cada colección contra los mínimos
 //   docker compose run --rm sembrador totp <SECRETO>    → código de 6 dígitos del segundo factor (codigo-totp.mjs)
 //   docker compose run --rm sembrador monitor           → la base en vivo durante la demo de carga (carga/monitor-bd.mjs)
-//   docker compose run --rm sembrador <script> [args]   → cualquier otro script de scripts/, p. ej. agregar-usuarios
+//   docker compose run --rm sembrador <script> [args]   → cualquier otro script de scripts/
 //
-// Cada paso de `inicial` tiene su propia puerta, así que repetir `docker compose up` no duplica nada:
-//   sectores       solo si hay menos de 211 (sembrar-sectores.mjs borra y vuelve a insertar)
-//   30 000 cuentas solo si hay menos de 30 000 de demostración
-//   mapa con vida  solo si no hay reportes fuera del histórico (reportes reales por la API hasta que el consenso cambie barrios)
-//   histórico      solo si no hay cortes entre mayo y julio de 2026, el rango que escribe sembrar-historico-cortes.mjs
+// `inicial` siembra solo lo que no puede ser real y no inventa nada del acueducto (ADR-094):
+//   sectores   los 211 barrios del catastro, solo si hay menos de 211 (sembrar-sectores.mjs borra y vuelve a insertar)
+//   cuentas    NO las siembra este script: las crea el propio backend, en segundo plano, con las mismas reglas de alta de
+//              un vecino (ImportadorDeVecinosSinteticos, aguavigia.siembra.vecinos-sinteticos). Aquí solo se espera a que
+//              terminen para decir cuántas hay.
+// No hay reportes, cortes ni estados inventados: el mapa muestra lo que dicen Acuacar y los vecinos de verdad.
+// sembrar-demo.mjs y sembrar-historico-cortes.mjs siguen en scripts/ para quien los pida a mano, pero no corren al arrancar.
+// Repetir `docker compose up` no duplica nada: cada paso tiene su propia puerta.
 
 import { spawn } from 'node:child_process';
 import { MongoClient } from 'mongodb';
@@ -20,9 +23,9 @@ import { MongoClient } from 'mongodb';
 const MONGODB_URI = process.env.MONGODB_URI ?? 'mongodb://localhost:27017/?directConnection=true';
 const DB_NAME = process.env.MONGODB_DB ?? 'aguavigia';
 const SECTORES_ESPERADOS = 211;
-const MINIMO_USUARIOS = Number(process.env.MINIMO_USUARIOS ?? 30000);
-// Rango de sembrar-historico-cortes.mjs: lo que cae dentro es sintético; lo de fuera lo produjo la aplicación.
-const HISTORICO = { $gte: new Date('2026-05-01T00:00:00Z'), $lte: new Date('2026-07-31T23:59:59Z') };
+// Cuántas cuentas sintéticas debe haber creado el backend (VECINOS_SINTETICOS en .env; 0 las desactiva).
+const CUENTAS_SINTETICAS = Number(process.env.VECINOS_SINTETICOS ?? 30000);
+const ESPERA_DE_CUENTAS_MS = Number(process.env.ESPERA_DE_CUENTAS_MS ?? 5 * 60 * 1000);
 const esperar = (ms) => new Promise((resolver) => setTimeout(resolver, ms));
 
 function correr(script, args = []) {
@@ -46,79 +49,45 @@ async function conectar() {
   }
 }
 
-async function conteos(db) {
-  const n = (coleccion, filtro = {}) => db.collection(coleccion).countDocuments(filtro);
-  return {
-    sectores: await n('sectores'),
-    usuarios: await n('usuarios'),
-    usuariosDemo: await n('usuarios', { datosDeDemostracion: true }),
-    admins: await n('usuarios', { rol: 'ADMIN' }),
-    cortes: await n('cortes'),
-    reportes: await n('reportes'),
-    cortesHistoricos: await n('cortes', { inicio: HISTORICO }),
-    reportesVivos: await n('reportes', { timestamp: { $not: HISTORICO } }),
-  };
-}
+const contar = (db, coleccion, filtro = {}) => db.collection(coleccion).countDocuments(filtro);
 
-// El backend crea al primer ADMIN al terminar de arrancar, y solo si no existe ninguna cuenta: las 30 000 van después.
-async function esperarAdmin(db) {
-  for (let intento = 0; intento < 20; intento++) {
-    if (await db.collection('usuarios').countDocuments({ rol: 'ADMIN' }) > 0) return true;
+// El backend las crea después del ADMIN inicial y de que existan los sectores, así que a veces hay que esperarlas.
+async function esperarCuentas(db) {
+  const limite = Date.now() + ESPERA_DE_CUENTAS_MS;
+  let hay = await contar(db, 'usuarios', { datosDeDemostracion: true });
+  while (hay < CUENTAS_SINTETICAS && Date.now() < limite) {
     await esperar(3000);
+    hay = await contar(db, 'usuarios', { datosDeDemostracion: true });
   }
-  return false;
+  return hay;
 }
 
 async function inicial() {
   const cliente = await conectar();
   try {
     const db = cliente.db(DB_NAME);
-    let c = await conteos(db);
 
-    if (c.sectores < SECTORES_ESPERADOS) {
-      console.log(`\n[1/4] Sectores: hay ${c.sectores}, se siembran los ${SECTORES_ESPERADOS} barrios de Cartagena.`);
+    const sectores = await contar(db, 'sectores');
+    if (sectores < SECTORES_ESPERADOS) {
+      console.log(`\n[1/2] Sectores: hay ${sectores}, se siembran los ${SECTORES_ESPERADOS} barrios de Cartagena.`);
       await correr('sembrar-sectores.mjs');
     } else {
-      console.log(`\n[1/4] Sectores: ya están los ${c.sectores}.`);
+      console.log(`\n[1/2] Sectores: ya están los ${sectores}.`);
     }
 
-    c = await conteos(db);
-    if (c.usuariosDemo < MINIMO_USUARIOS) {
-      if (c.admins === 0 && !(await esperarAdmin(db))) {
-        console.warn('AVISO: el backend no creó al ADMIN inicial (¿ADMIN_INICIAL_CORREO vacío en .env?). Sigo sin él.');
-      }
-      console.log(`\n[2/4] Cuentas: hay ${c.usuariosDemo} de demostración, se siembran ${MINIMO_USUARIOS}.`);
-      await correr('sembrar-usuarios-demo.mjs', ['--cantidad', String(MINIMO_USUARIOS), '--minimo', String(MINIMO_USUARIOS)]);
-    } else {
-      console.log(`\n[2/4] Cuentas: ya hay ${c.usuariosDemo} de demostración.`);
-    }
-
-    c = await conteos(db);
-    if (c.reportesVivos === 0) {
-      console.log('\n[3/4] Mapa: se envían reportes reales por la API hasta que el consenso cambie algunos barrios.');
-      try {
-        await correr('sembrar-demo.mjs');
-      } catch (error) {
-        console.warn(`AVISO: el mapa quedó sin barrios afectados (${error.message}). El resto de los datos está listo.`);
+    if (CUENTAS_SINTETICAS > 0) {
+      console.log(`\n[2/2] Cuentas sintéticas: las crea el backend (hasta ${CUENTAS_SINTETICAS}); se espera a que terminen.`);
+      const hay = await esperarCuentas(db);
+      if (hay < CUENTAS_SINTETICAS) {
+        console.warn(`AVISO: hay ${hay} de ${CUENTAS_SINTETICAS} cuentas sintéticas y el backend sigue creándolas (o está apagado). `
+          + 'Compruébalo con: docker compose logs backend');
       }
     } else {
-      console.log(`\n[3/4] Mapa: ya hay ${c.reportesVivos} reportes recientes.`);
+      console.log('\n[2/2] Cuentas sintéticas: desactivadas (VECINOS_SINTETICOS=0).');
     }
 
-    c = await conteos(db);
-    if (c.cortesHistoricos === 0) {
-      console.log('\n[4/4] Histórico: se siembran cortes y reportes de mayo–julio de 2026 (datos sintéticos).');
-      await correr('sembrar-historico-cortes.mjs');
-    } else {
-      console.log(`\n[4/4] Histórico: ya hay ${c.cortesHistoricos} cortes de mayo–julio.`);
-    }
-
-    c = await conteos(db);
-    console.log(`\nDatos listos: ${c.sectores} sectores, ${c.usuarios} usuarios, ${c.cortes} cortes, ${c.reportes} reportes.`);
-    if (c.usuarios < MINIMO_USUARIOS) {
-      console.error(`FALLA: 'usuarios' tiene ${c.usuarios} documentos y se exigen al menos ${MINIMO_USUARIOS}.`);
-      process.exitCode = 1;
-    }
+    console.log(`\nDatos listos: ${await contar(db, 'sectores')} sectores, ${await contar(db, 'usuarios')} cuentas `
+      + `(${await contar(db, 'usuarios', { datosDeDemostracion: true })} sintéticas generadas por el sistema).`);
   } finally {
     await cliente.close();
   }
