@@ -55,10 +55,7 @@ public class RegistrarReporteService implements RegistrarReporteUseCase {
     private final ContadorReportesPort contadorReportes;
     private final EvaluarConsensoUseCase evaluarConsenso;
     private final RelojPort reloj;
-    private final int limitePorDispositivo;
-    private final int limitePorSensor;
-    private final Duration ventanaLimite;
-    private final int limitePorVecino;
+    private final LimitesDeReporte limites;
     private final HashDeRedPort hashDeRed;
     private final double precisionMaximaMetros;
 
@@ -67,23 +64,17 @@ public class RegistrarReporteService implements RegistrarReporteUseCase {
                                     ContadorReportesPort contadorReportes,
                                     EvaluarConsensoUseCase evaluarConsenso,
                                     RelojPort reloj,
-                                    int limitePorDispositivo,
-                                    int limitePorSensor,
-                                    long ventanaLimiteMinutos,
                                     HashDeRedPort hashDeRed,
-                                    double precisionMaximaMetros,
-                                    int limitePorVecino) {
+                                    LimitesDeReporte limites,
+                                    double precisionMaximaMetros) {
         this.sectores = sectores;
         this.reportes = reportes;
         this.contadorReportes = contadorReportes;
         this.evaluarConsenso = evaluarConsenso;
         this.reloj = reloj;
-        this.limitePorDispositivo = limitePorDispositivo;
-        this.limitePorSensor = limitePorSensor;
-        this.ventanaLimite = Duration.ofMinutes(ventanaLimiteMinutos);
         this.hashDeRed = hashDeRed;
+        this.limites = limites;
         this.precisionMaximaMetros = precisionMaximaMetros;
-        this.limitePorVecino = limitePorVecino;
     }
 
     @Override
@@ -100,8 +91,8 @@ public class RegistrarReporteService implements RegistrarReporteUseCase {
         // suspender y su reporte vale más, así que cabe un poco más de cupo. `esSensor` lo decide el llamador
         // (ver javadoc del puerto) y la cuenta la decide el servidor al identificar al reportante: ninguno sale
         // de lo que el cliente escriba.
-        int limite = esSensor ? limitePorSensor
-                : reportante.cuentaId() != null ? limitePorVecino : limitePorDispositivo;
+        int limite = limites.cupoPara(esSensor, reportante.cuentaId() != null);
+        Duration ventanaLimite = limites.ventana();
 
         // Dos guardas con propiedades distintas, y hacen falta las dos:
         //

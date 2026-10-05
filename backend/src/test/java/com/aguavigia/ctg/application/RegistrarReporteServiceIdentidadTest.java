@@ -64,7 +64,7 @@ class RegistrarReporteServiceIdentidadTest {
         hashDeRed = mock(HashDeRedPort.class);
         EvaluarConsensoUseCase evaluarConsenso = mock(EvaluarConsensoUseCase.class);
         servicio = new RegistrarReporteService(sectores, reportes, contadorReportes, evaluarConsenso, () -> AHORA,
-                3, 30, 30, hashDeRed, 200.0, 5);
+                hashDeRed, new LimitesDeReporte(3, 30, 5, java.time.Duration.ofMinutes(30)), 200.0);
 
         given(reportes.guardar(any(ReporteCiudadano.class))).willAnswer(i -> i.getArgument(0));
         given(reportes.contarRecientesPorSectorYDispositivo(any(), any(), any())).willReturn(0L);

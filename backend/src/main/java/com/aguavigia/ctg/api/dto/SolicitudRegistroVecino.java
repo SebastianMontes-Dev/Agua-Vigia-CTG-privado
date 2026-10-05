@@ -20,9 +20,6 @@ public record SolicitudRegistroVecino(
         @Size(min = 2, max = 80)
         String nombre,
 
-        @NotBlank
-        @Schema(description = "Minimo 12 caracteres. La politica completa vive en ClaveEnClaro.")
-        String clave,
 
         @NotBlank
         @Schema(description = "Slug del barrio donde vives (uno de `GET /api/sectores`). 400 si no existe.",

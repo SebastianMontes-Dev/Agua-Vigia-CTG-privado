@@ -291,26 +291,26 @@ class AltaYRecuperacionDeCuentaTest {
         assertThat(verificado.estado()).isEqualTo(EstadoCuenta.PENDIENTE_APROBACION);
     }
 
-    private static Usuario vecinoPendienteDeVerificar() {
-        return Usuario.registradoComoVecino(new UsuarioId("v-1"), CORREO, "Vecina", HASH, new SectorId("manga"),
+    private static Usuario vecinoSinClave() {
+        return Usuario.registradoComoVecino(new UsuarioId("v-1"), CORREO, "Vecina", new SectorId("manga"),
                 java.util.List.of(new com.aguavigia.ctg.domain.Consentimiento(
                         com.aguavigia.ctg.domain.TipoConsentimiento.PRIVACIDAD, "v1", AHORA)), AHORA);
     }
 
-    /** Un vecino no espera a un admin: probar el correo basta, y la auditoría no debe decir lo contrario. */
+    /** Un vecino no espera a un admin: fijar su clave desde el enlace basta, y la auditoría no debe decir lo contrario. */
     @Test
-    void verificarElCorreoDeUnVecinoDebeDejarlaActivaYAuditarlo() {
-        given(emisorDeTokens.consumir("token-en-claro", TipoTokenCuenta.VERIFICACION_CORREO))
-                .willReturn(vecinoPendienteDeVerificar());
+    void aceptarElEnlaceDeUnVecinoDebeDejarlaActivaConLaClaveQueEligioYAuditarlo() {
+        given(emisorDeTokens.consumir("token-en-claro", TipoTokenCuenta.INVITACION)).willReturn(vecinoSinClave());
 
-        Usuario verificado = new VerificarCorreoService(usuarios, emisorDeTokens, auditoria, () -> AHORA)
-                .verificar("token-en-claro", CONTEXTO);
+        Usuario activo = new AceptarInvitacionService(usuarios, emisorDeTokens, cifrador, auditoria, () -> AHORA)
+                .aceptar("token-en-claro", CLAVE, CONTEXTO);
 
-        assertThat(verificado.estado()).isEqualTo(EstadoCuenta.ACTIVA);
+        assertThat(activo.estado()).isEqualTo(EstadoCuenta.ACTIVA);
+        assertThat(activo.claveHash()).isEqualTo(HASH);
         ArgumentCaptor<String> detalle = ArgumentCaptor.forClass(String.class);
-        verify(auditoria).registrarConAutor(eq(com.aguavigia.ctg.domain.AccionAuditada.CORREO_VERIFICADO),
+        verify(auditoria).registrarConAutor(eq(com.aguavigia.ctg.domain.AccionAuditada.INVITACION_ACEPTADA),
                 any(), any(), detalle.capture(), any());
-        assertThat(detalle.getValue()).doesNotContain("aprobación").contains("activa");
+        assertThat(detalle.getValue()).doesNotContain("aprobación");
     }
 
     @Test

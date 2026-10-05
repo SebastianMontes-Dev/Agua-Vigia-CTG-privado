@@ -78,8 +78,10 @@ class AutenticarUsuarioServiceTest {
     }
 
     private Usuario cuenta(EstadoCuenta estado, RolVeedor rol) {
+        // Un vecino siempre declara su barrio (invariante de Usuario).
         return new Usuario(new UsuarioId("u-1"), CORREO, "Ana", HASH, estado,
-                PermisosEfectivos.deRol(rol), null, AHORA, AHORA);
+                PermisosEfectivos.deRol(rol), null, AHORA, AHORA,
+                rol == RolVeedor.VECINO ? new com.aguavigia.ctg.domain.SectorId("manga") : null);
     }
 
     private void existeLaCuenta(Usuario usuario) {
@@ -161,8 +163,8 @@ class AutenticarUsuarioServiceTest {
     }
 
     @Test
-    void unVecinoQueNoVerificoSuCorreoNoDebeEntrar() {
-        existeLaCuenta(cuenta(EstadoCuenta.PENDIENTE_VERIFICACION, RolVeedor.VECINO));
+    void unVecinoQueAunNoActivoSuCuentaNoDebeEntrar() {
+        existeLaCuenta(cuenta(EstadoCuenta.INVITADA, RolVeedor.VECINO));
         laClaveEsCorrecta();
 
         assertThatExceptionOfType(CuentaNoHabilitadaException.class)

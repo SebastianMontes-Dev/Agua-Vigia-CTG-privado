@@ -1,7 +1,6 @@
 package com.aguavigia.ctg.api;
 
 import com.aguavigia.ctg.api.dto.SolicitudRegistroVecino;
-import com.aguavigia.ctg.domain.ClaveEnClaro;
 import com.aguavigia.ctg.domain.CorreoElectronico;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.port.in.RegistrarVecinoUseCase;
@@ -37,15 +36,16 @@ public class CuentaVecinoController {
 
     @Operation(summary = "Registrarse como vecino",
             description = """
-                    Crea la cuenta en PENDIENTE_VERIFICACION y envia el enlace de confirmacion. Al
-                    confirmar el correo la cuenta queda ACTIVA, sin aprobacion de un administrador.
+                    Crea la cuenta sin clave y envia al correo el enlace para elegirla. Al elegirla la
+                    cuenta queda ACTIVA, sin aprobacion de un administrador. La clave no viaja aqui: asi
+                    nadie puede registrar el correo de otra persona con una clave suya.
                     Exige el barrio y aceptar el aviso de privacidad; la casilla de avisos es aparte.
                     Responde 202 aunque el correo ya tenga cuenta, para no revelar que direcciones
                     estan registradas.""")
     @ApiResponses({
             @ApiResponse(responseCode = "202", description = "Solicitud recibida; revisa tu correo"),
             @ApiResponse(responseCode = "400", description = """
-                    Correo mal formado, clave que no cumple la politica, barrio ausente o inexistente, \
+                    Correo mal formado, barrio ausente o inexistente, \
                     o privacidad no aceptada""")
     })
     @PostMapping
@@ -54,7 +54,6 @@ public class CuentaVecinoController {
         registrar.registrar(
                 new CorreoElectronico(solicitud.correo()),
                 solicitud.nombre(),
-                new ClaveEnClaro(solicitud.clave()),
                 new SectorId(solicitud.barrioId().strip()),
                 solicitud.consentimiento().aDominio(),
                 ContextoHttp.de(peticion));

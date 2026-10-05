@@ -8,6 +8,7 @@ import com.aguavigia.ctg.application.ConfirmarSuscripcionService;
 import com.aguavigia.ctg.application.EmisorDeTokensDeCuenta;
 import com.aguavigia.ctg.application.EvaluarConsensoService;
 import com.aguavigia.ctg.application.ExpirarCortesVencidosService;
+import com.aguavigia.ctg.application.LimitesDeReporte;
 import com.aguavigia.ctg.application.RecalcularSectorService;
 import com.aguavigia.ctg.application.RegistrarLecturaDePresionService;
 import com.aguavigia.ctg.application.RegistrarReporteService;
@@ -21,6 +22,7 @@ import com.aguavigia.ctg.domain.port.in.RecalcularSectorUseCase;
 import com.aguavigia.ctg.domain.port.in.RegistrarEventoBitacoraUseCase;
 import com.aguavigia.ctg.domain.port.in.RegistrarReporteUseCase;
 import com.aguavigia.ctg.domain.port.in.EvaluarConsensoUseCase;
+import com.aguavigia.ctg.domain.port.out.AuditoriaRepository;
 import com.aguavigia.ctg.domain.port.out.CifradorClavePort;
 import com.aguavigia.ctg.domain.port.out.CorteAguaRepository;
 import com.aguavigia.ctg.domain.port.out.CupoPorCuentaPort;
@@ -52,7 +54,7 @@ import java.time.Duration;
 /**
  * Registra los casos de uso de {@code application/}, que no llevan anotaciones de Spring: el
  * dominio y la aplicación no saben qué contenedor los hospeda. El escaneo recoge los que solo
- * dependen de otros beans; los once que reciben configuración (`aguavigia.*`) se declaran aquí a
+ * dependen de otros beans; los que reciben configuración (`aguavigia.*`) se declaran aquí a
  * mano y quedan excluidos del escaneo.
  */
 @Configuration
@@ -60,12 +62,13 @@ import java.time.Duration;
         basePackages = "com.aguavigia.ctg.application",
         useDefaultFilters = false,
         includeFilters = @Filter(type = FilterType.REGEX,
-                pattern = "com[.]aguavigia[.]ctg[.]application[.]([A-Za-z]+Service|EmisorDeTokensDeCuenta|RegistroDeAuditoria)"),
+                pattern = "com[.]aguavigia[.]ctg[.]application[.]([A-Za-z]+Service|EmisorDeTokensDeCuenta)"),
         excludeFilters = @Filter(type = FilterType.REGEX,
                 pattern = "com[.]aguavigia[.]ctg[.]application[.]"
-                        + "(ActualizarEstadosPorVentana|ActualizarPerfilVecino|AutenticarUsuario|CambiarClave"
-                        + "|ConfirmarSuscripcion|EvaluarConsenso|ExpirarCortesVencidos|RecalcularSector"
-                        + "|RegistrarLecturaDePresion|RegistrarReporte|RegistrarVecino|VerificarBarrioVecino)Service"))
+                        + "(ActualizarEstadosPorVentana|ActualizarPerfilVecino|AutenticarUsuario|CambiarClave|ImportarVecinosSinteticos"
+                        + "|ConfirmarSuscripcion|ConsultarModoDelSistema|EmitirTokenDeSubida|EvaluarConsenso|ExpirarCortesVencidos|ListarReportesPendientes|RecalcularSector|RepoblarContadorDeReportes"
+                        + "|RegistrarLecturaDePresion|RegistrarPropuestaIngesta|RegistrarReporte|RegistrarVecino"
+                        + "|RevisarPropuestaIngesta|VerificarBarrioVecino)Service"))
 public class CasosDeUsoConfig {
 
     @Bean
@@ -79,13 +82,24 @@ public class CasosDeUsoConfig {
                 auditoria, maximoIntentos, ventanaIntentosMinutos, bloqueoMinutos);
     }
 
+    /**
+     * Lo que se hace sobre un vecino se audita con la red aproximada y caduca a los `auditoria-vecinos-dias`
+     * (0 lo conserva siempre); lo del panel se conserva completo (D19).
+     */
+    @Bean
+    public RegistroDeAuditoria registroDeAuditoria(
+            AuditoriaRepository auditoria, UsuarioRepository usuarios, RelojPort reloj,
+            @Value("${aguavigia.retencion.auditoria-vecinos-dias:180}") long diasDeVecinos) {
+        return new RegistroDeAuditoria(auditoria, usuarios, reloj, Duration.ofDays(diasDeVecinos));
+    }
+
     @Bean
     public RegistrarVecinoService registrarVecinoService(
-            UsuarioRepository usuarios, CifradorClavePort cifrador, EmisorDeTokensDeCuenta emisorDeTokens,
+            UsuarioRepository usuarios, EmisorDeTokensDeCuenta emisorDeTokens,
             NotificacionCuentaPort notificaciones, RegistroDeAuditoria auditoria, RelojPort reloj,
             SectorRepository sectores, TiempoConstantePort tiempoConstante,
             @Value("${aguavigia.privacidad.version}") String versionPrivacidad) {
-        return new RegistrarVecinoService(usuarios, cifrador, emisorDeTokens, notificaciones, auditoria, reloj,
+        return new RegistrarVecinoService(usuarios, emisorDeTokens, notificaciones, auditoria, reloj,
                 sectores, tiempoConstante, versionPrivacidad);
     }
 
@@ -101,7 +115,7 @@ public class CasosDeUsoConfig {
             UsuarioRepository usuarios, SectorRepository sectores, CupoPorCuentaPort cupo,
             RegistroDeAuditoria auditoria, RelojPort reloj,
             @Value("${aguavigia.vecino.verificacion-barrio.intentos-por-dia}") int intentosPorDia,
-            @Value("${aguavigia.vecino.verificacion-barrio.precision-maxima-metros}") double precisionMaximaMetros) {
+            @Value("${aguavigia.ubicacion.precision-maxima-metros:200}") double precisionMaximaMetros) {
         return new VerificarBarrioVecinoService(usuarios, sectores, cupo, auditoria, reloj, intentosPorDia,
                 precisionMaximaMetros);
     }
@@ -177,10 +191,11 @@ public class CasosDeUsoConfig {
             @Value("${aguavigia.reportes.limite-por-sensor:30}") int limitePorSensor,
             @Value("${aguavigia.reportes.ventana-limite-minutos:30}") long ventanaLimiteMinutos,
             @Value("${aguavigia.reportes.limite-por-vecino:5}") int limitePorVecino,
-            @Value("${aguavigia.reportes.precision-maxima-metros:200}") double precisionMaximaMetros,
+            @Value("${aguavigia.ubicacion.precision-maxima-metros:200}") double precisionMaximaMetros,
             HashDeRedPort hashDeRed) {
-        return new RegistrarReporteService(sectores, reportes, contadorReportes, evaluarConsenso, reloj,
-                limitePorDispositivo, limitePorSensor, ventanaLimiteMinutos, hashDeRed, precisionMaximaMetros,
-                limitePorVecino);
+        return new RegistrarReporteService(sectores, reportes, contadorReportes, evaluarConsenso, reloj, hashDeRed,
+                new LimitesDeReporte(limitePorDispositivo, limitePorSensor, limitePorVecino,
+                        Duration.ofMinutes(ventanaLimiteMinutos)),
+                precisionMaximaMetros);
     }
 }

@@ -56,10 +56,6 @@ public class MailCuentaAdapter implements NotificacionCuentaPort {
     @Async
     @Override
     public void enviarVerificacionDeCorreo(Usuario usuario, String tokenEnClaro) {
-        if (usuario.esVecino()) {
-            enviarVerificacionDeVecino(usuario, tokenEnClaro);
-            return;
-        }
         String html = plantillaConEnlace.renderizar(Map.of(
                 "titulo", "Confirma tu correo",
                 "preencabezado", "Falta un paso para que tu solicitud de acceso llegue a un administrador.",
@@ -74,19 +70,26 @@ public class MailCuentaAdapter implements NotificacionCuentaPort {
         enviar(usuario, "Confirma tu correo para acceder al panel de AguaVigía", html);
     }
 
-    /** Un vecino no espera a ningún administrador: confirmar el correo activa su cuenta. */
-    private void enviarVerificacionDeVecino(Usuario vecino, String tokenEnClaro) {
+    /**
+     * Un vecino no espera a ningún administrador: elige su clave desde el enlace y su cuenta queda activa. La
+     * clave no la pone quien rellenó el formulario, así que nadie puede registrar el correo de otra persona
+     * con una clave suya.
+     */
+    @Async
+    @Override
+    public void enviarActivacionDeVecino(Usuario vecino, String tokenEnClaro) {
         String html = plantillaConEnlace.renderizar(Map.of(
-                "titulo", "Confirma tu correo",
-                "preencabezado", "Un paso para activar tu cuenta de AguaVigía.",
+                "titulo", "Activa tu cuenta",
+                "preencabezado", "Elige tu clave para activar tu cuenta de AguaVigía.",
                 "nombre", escapar(vecino.nombre()),
                 "mensaje", "Recibimos tu registro en AguaVigía, el monitoreo ciudadano del agua en "
-                        + "Cartagena. Confirma que esta dirección es tuya y tu cuenta quedará activa.",
-                "textoBoton", "Confirmar mi correo",
-                "urlAccion", enlace("verificar", tokenEnClaro),
-                "vigencia", vigenciaLegible(TipoTokenCuenta.VERIFICACION_CORREO)));
+                        + "Cartagena. Elige la clave con la que entrarás y tu cuenta quedará activa. "
+                        + "Si no fuiste tú, ignora este correo: sin tu clave nadie puede entrar.",
+                "textoBoton", "Elegir mi clave",
+                "urlAccion", enlace("invitacion", tokenEnClaro),
+                "vigencia", vigenciaLegible(TipoTokenCuenta.INVITACION)));
 
-        enviar(vecino, "Confirma tu correo en AguaVigía", html);
+        enviar(vecino, "Activa tu cuenta en AguaVigía", html);
     }
 
     @Override
@@ -145,7 +148,7 @@ public class MailCuentaAdapter implements NotificacionCuentaPort {
         try {
             enviarOFallar(destinatario, asunto, html);
         } catch (RuntimeException noSalio) {
-            log.error("No se pudo enviar '{}' a {}", asunto, destinatario.correo().valor(), noSalio);
+            log.error("No se pudo enviar '{}' a {}", asunto, destinatario.correo().enmascarado(), noSalio);
         }
     }
 

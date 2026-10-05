@@ -56,15 +56,15 @@ class ActualizarPerfilVecinoServiceTest {
         usuarios = mock(UsuarioRepository.class);
         sectores = mock(SectorRepository.class);
         auditoria = mock(RegistroDeAuditoria.class);
-        given(usuarios.guardar(any())).willAnswer(invocacion -> invocacion.getArgument(0));
+        given(usuarios.guardarSiNoCambio(any(), any())).willAnswer(invocacion -> invocacion.getArgument(0));
         given(sectores.buscarPorId(CRESPO)).willReturn(Optional.of(new Sector(CRESPO, "Crespo", 5000, null)));
         servicio = new ActualizarPerfilVecinoService(usuarios, auditoria, () -> AHORA, sectores, "2026-10-v2");
     }
 
     private Usuario vecino(boolean conAvisos, boolean barrioVerificado) {
         Usuario base = Usuario.registradoComoVecino(ID, new CorreoElectronico("vecina@ejemplo.org"), "Vecina",
-                HASH, MANGA, List.of(new Consentimiento(TipoConsentimiento.PRIVACIDAD, "2026-10-v1", ANTES)), ANTES)
-                .verificarCorreo(ANTES);
+                MANGA, List.of(new Consentimiento(TipoConsentimiento.PRIVACIDAD, "2026-10-v1", ANTES)), ANTES)
+                .aceptarInvitacion(HASH, ANTES);
         if (conAvisos) {
             base = base.consentirAvisos("2026-10-v1", ANTES);
         }
@@ -77,8 +77,18 @@ class ActualizarPerfilVecinoServiceTest {
 
     private Usuario guardado() {
         ArgumentCaptor<Usuario> guardado = ArgumentCaptor.forClass(Usuario.class);
-        verify(usuarios).guardar(guardado.capture());
+        verify(usuarios).guardarSiNoCambio(guardado.capture(), eq(ANTES));
         return guardado.getValue();
+    }
+
+    /** Si otro escribió la cuenta mientras tanto (una suspensión, por ejemplo), no se pisa: el 409 sube al cliente. */
+    @Test
+    void siLaCuentaCambioMientrasSeGuardabaNoDebeTragarseElConflicto() {
+        existe(vecino(false, false));
+        given(usuarios.guardarSiNoCambio(any(), any())).willThrow(new IllegalStateException("La cuenta cambió"));
+
+        assertThatThrownBy(() -> servicio.actualizar(ID, new CambiosDePerfil("Ana María", null, null), CONTEXTO))
+                .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -108,7 +118,7 @@ class ActualizarPerfilVecinoServiceTest {
                 new CambiosDePerfil(null, new SectorId("no-existe"), null), CONTEXTO))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("No existe el barrio");
-        verify(usuarios, never()).guardar(any());
+        verify(usuarios, never()).guardarSiNoCambio(any(), any());
     }
 
     @Test
@@ -141,7 +151,7 @@ class ActualizarPerfilVecinoServiceTest {
 
         assertThat(devuelto.consentimientos()).contains(
                 new Consentimiento(TipoConsentimiento.AVISOS, "2026-10-v1", ANTES));
-        verify(usuarios, never()).guardar(any());
+        verify(usuarios, never()).guardarSiNoCambio(any(), any());
     }
 
     @Test
@@ -151,7 +161,7 @@ class ActualizarPerfilVecinoServiceTest {
         Usuario devuelto = servicio.actualizar(ID, new CambiosDePerfil(null, null, null), CONTEXTO);
 
         assertThat(devuelto.nombre()).isEqualTo("Vecina");
-        verify(usuarios, never()).guardar(any());
+        verify(usuarios, never()).guardarSiNoCambio(any(), any());
         verify(auditoria, never()).registrarConAutor(any(), any(), any(), anyString(), any());
     }
 
@@ -183,6 +193,6 @@ class ActualizarPerfilVecinoServiceTest {
 
         assertThatThrownBy(() -> servicio.actualizar(ID, new CambiosDePerfil("X", null, null), CONTEXTO))
                 .isInstanceOf(IllegalStateException.class);
-        verify(usuarios, never()).guardar(any());
+        verify(usuarios, never()).guardarSiNoCambio(any(), any());
     }
 }

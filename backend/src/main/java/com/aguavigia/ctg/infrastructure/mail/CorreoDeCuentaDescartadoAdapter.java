@@ -39,6 +39,11 @@ public class CorreoDeCuentaDescartadoAdapter implements NotificacionCuentaPort {
     }
 
     @Override
+    public void enviarActivacionDeVecino(Usuario vecino, String tokenEnClaro) {
+        descartar();
+    }
+
+    @Override
     public void enviarEnlaceDeRestablecimiento(Usuario usuario, String tokenEnClaro) {
         descartar();
     }

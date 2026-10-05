@@ -45,11 +45,21 @@ public class ReenviarEnlaceDeCuentaService implements ReenviarEnlaceDeCuentaUseC
     @Override
     public void reenviarVerificacion(CorreoElectronico correo, ContextoDeAccion contexto) {
         usuarios.buscarPorCorreo(correo.normalizado())
-                .filter(usuario -> usuario.estado() == EstadoCuenta.PENDIENTE_VERIFICACION)
+                .filter(usuario -> usuario.estado() == EstadoCuenta.PENDIENTE_VERIFICACION
+                        || (usuario.esVecino() && usuario.estado() == EstadoCuenta.INVITADA))
                 .filter(usuario -> control.consumirPorPrimeraVez(
                         "reenvio-verificacion:" + usuario.id().valor(), ENFRIAMIENTO_VERIFICACION))
-                .ifPresent(usuario -> notificaciones.enviarVerificacionDeCorreo(usuario,
-                        emisorDeTokens.emitir(usuario.id(), TipoTokenCuenta.VERIFICACION_CORREO)));
+                .ifPresent(usuario -> {
+                    // Un vecino aún sin clave recibe de nuevo el enlace para elegirla; la cuenta del panel, el de
+                    // verificación. Una invitación del panel no se reenvía por aquí: la reenvía un ADMIN.
+                    if (usuario.esVecino()) {
+                        notificaciones.enviarActivacionDeVecino(usuario,
+                                emisorDeTokens.emitir(usuario.id(), TipoTokenCuenta.INVITACION));
+                    } else {
+                        notificaciones.enviarVerificacionDeCorreo(usuario,
+                                emisorDeTokens.emitir(usuario.id(), TipoTokenCuenta.VERIFICACION_CORREO));
+                    }
+                });
     }
 
     @Override

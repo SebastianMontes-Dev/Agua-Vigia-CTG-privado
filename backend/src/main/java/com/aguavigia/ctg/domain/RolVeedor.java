@@ -1,5 +1,6 @@
 package com.aguavigia.ctg.domain;
 
+import java.util.EnumSet;
 import java.util.Set;
 
 /**
@@ -22,8 +23,12 @@ public enum RolVeedor {
             Permiso.REVISAR_INGESTA,
             Permiso.CONFIGURAR_SEGUNDO_FACTOR)),
 
-    /** Todo lo anterior más la gestión de cuentas y la auditoría. Exige segundo factor. */
-    ADMIN(Set.of(Permiso.values())),
+    /**
+     * Todo lo anterior más la gestión de cuentas y la auditoría. Exige segundo factor. No lleva el permiso del
+     * vecino: ese es solo de quien gestiona su propio perfil, y heredarlo obligaría a casos especiales donde se
+     * decide quién cuenta como vecino.
+     */
+    ADMIN(EnumSet.complementOf(EnumSet.of(Permiso.GESTIONAR_PERFIL_PROPIO))),
 
     /**
      * Cuenta ciudadana que se registra sola (D11). Solo gestiona su propio perfil: nunca recibe

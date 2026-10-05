@@ -65,6 +65,9 @@ public record Usuario(
         if (estado.permiteIniciarSesion() && claveHash == null) {
             throw new IllegalArgumentException("Una cuenta activa no puede estar sin clave");
         }
+        if (permisos.rol() == RolVeedor.VECINO && barrio == null) {
+            throw new IllegalArgumentException("Un vecino debe declarar su barrio");
+        }
         consentimientos = consentimientos == null ? List.of() : List.copyOf(consentimientos);
         if (barrioVerificado && (barrio == null || barrioVerificadoEn == null)) {
             throw new IllegalArgumentException("Un barrio verificado necesita barrio y fecha de verificación");
@@ -107,12 +110,8 @@ public record Usuario(
         if (estado != EstadoCuenta.PENDIENTE_VERIFICACION) {
             throw new IllegalStateException("Esta cuenta no está esperando verificación de correo");
         }
-        // El panel exige que un ADMIN apruebe; un vecino solo gestiona su propio perfil, así que
-        // probar el correo basta para activarlo.
-        EstadoCuenta siguiente = permisos.rol() == RolVeedor.VECINO
-                ? EstadoCuenta.ACTIVA
-                : EstadoCuenta.PENDIENTE_APROBACION;
-        return copiaCon(claveHash, siguiente, permisos, segundoFactor, momento);
+        // Un vecino nunca pasa por aquí: nace INVITADA y se activa al fijar su clave desde el enlace.
+        return copiaCon(claveHash, EstadoCuenta.PENDIENTE_APROBACION, permisos, segundoFactor, momento);
     }
 
     public Usuario aceptarInvitacion(ClaveHash nuevaClave, Instant momento) {
@@ -122,7 +121,16 @@ public record Usuario(
         if (nuevaClave == null) {
             throw new IllegalArgumentException("Aceptar la invitación exige fijar una clave");
         }
-        return copiaCon(nuevaClave, EstadoCuenta.ACTIVA, permisos, segundoFactor, momento);
+        Usuario activa = copiaCon(nuevaClave, EstadoCuenta.ACTIVA, permisos, segundoFactor, momento);
+        if (!esVecino()) {
+            return activa;
+        }
+        // Lo que un vecino acepta vale desde que la persona del correo actúa, no desde que alguien rellenó el
+        // formulario con su dirección.
+        List<Consentimiento> aceptados = consentimientos.stream()
+                .map(c -> new Consentimiento(c.tipo(), c.version(), momento))
+                .toList();
+        return activa.copiaDeVecino(nombre, barrio, aceptados, barrioVerificado, barrioVerificadoEn, momento);
     }
 
     public Usuario aprobar(PermisosEfectivos permisosAsignados, Instant momento) {
@@ -240,15 +248,14 @@ public record Usuario(
     // --- Vecino registrado (D11) ---
 
     /**
-     * Registro abierto de un vecino: barrio obligatorio y consentimiento de privacidad. Nace sin
-     * poder entrar; al probar su correo pasa a ACTIVA sin aprobación (ver verificarCorreo).
+     * Registro abierto de un vecino: barrio obligatorio y consentimiento de privacidad. Nace INVITADA y sin
+     * clave: la fija quien abre el enlace del correo (aceptarInvitacion), y solo entonces queda ACTIVA, sin
+     * aprobación de nadie. Si eligiera la clave quien rellena el formulario, podría registrar el correo de otra
+     * persona con una clave suya y quedarse con la cuenta cuando ella confirmara el enlace.
      */
     public static Usuario registradoComoVecino(UsuarioId id, CorreoElectronico correo, String nombre,
-                                               ClaveHash claveHash, SectorId barrio,
-                                               List<Consentimiento> consentimientos, Instant momento) {
-        if (claveHash == null) {
-            throw new IllegalArgumentException("Quien se registra debe fijar una clave");
-        }
+                                               SectorId barrio, List<Consentimiento> consentimientos,
+                                               Instant momento) {
         if (barrio == null) {
             throw new IllegalArgumentException("Un vecino debe declarar su barrio");
         }
@@ -256,7 +263,7 @@ public record Usuario(
                 || consentimientos.stream().noneMatch(c -> c.tipo() == TipoConsentimiento.PRIVACIDAD)) {
             throw new IllegalArgumentException("Un vecino debe aceptar el aviso de privacidad");
         }
-        return new Usuario(id, correo, nombre, claveHash, EstadoCuenta.PENDIENTE_VERIFICACION,
+        return new Usuario(id, correo, nombre, null, EstadoCuenta.INVITADA,
                 PermisosEfectivos.deRol(RolVeedor.VECINO), null, momento, momento, barrio,
                 consentimientos, false, null);
     }

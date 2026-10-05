@@ -70,7 +70,7 @@ class VerificarBarrioVecinoServiceTest {
         sectores = mock(SectorRepository.class);
         cupo = mock(CupoPorCuentaPort.class);
         auditoria = mock(RegistroDeAuditoria.class);
-        given(usuarios.guardar(any())).willAnswer(invocacion -> invocacion.getArgument(0));
+        given(usuarios.guardarSiNoCambio(any(), any())).willAnswer(invocacion -> invocacion.getArgument(0));
         given(cupo.consumir(anyString(), org.mockito.ArgumentMatchers.anyInt(), any())).willReturn(ResultadoDeCupo.conCupo());
         given(sectores.buscarPorCoordenada(EN_MANGA))
                 .willReturn(Optional.of(new Sector(MANGA, "Manga", 10_000, null)));
@@ -78,9 +78,9 @@ class VerificarBarrioVecinoServiceTest {
     }
 
     private static Usuario vecino(boolean yaVerificado) {
-        Usuario base = Usuario.registradoComoVecino(ID, new CorreoElectronico("vecina@ejemplo.org"), "Vecina", HASH,
+        Usuario base = Usuario.registradoComoVecino(ID, new CorreoElectronico("vecina@ejemplo.org"), "Vecina",
                 MANGA, List.of(new Consentimiento(TipoConsentimiento.PRIVACIDAD, "v1", ANTES)), ANTES)
-                .verificarCorreo(ANTES);
+                .aceptarInvitacion(HASH, ANTES);
         return yaVerificado ? base.verificarBarrio(ANTES) : base;
     }
 
@@ -97,8 +97,19 @@ class VerificarBarrioVecinoServiceTest {
         assertThat(verificado.barrioVerificado()).isTrue();
         assertThat(verificado.barrioVerificadoEn()).isEqualTo(AHORA);
         ArgumentCaptor<Usuario> guardado = ArgumentCaptor.forClass(Usuario.class);
-        verify(usuarios).guardar(guardado.capture());
+        verify(usuarios).guardarSiNoCambio(guardado.capture(), eq(ANTES));
         assertThat(guardado.getValue().barrioVerificado()).isTrue();
+    }
+
+    /** Una suspensión (o un cambio de barrio) escrito entre la lectura y el guardado no se pisa. */
+    @Test
+    void siLaCuentaCambioMientrasSeGuardabaNoDebeTragarseElConflicto() {
+        existe(vecino(false));
+        given(usuarios.guardarSiNoCambio(any(), any())).willThrow(new IllegalStateException("La cuenta cambió"));
+
+        assertThatThrownBy(() -> servicio.verificar(ID, EN_MANGA, 25.0, CONTEXTO))
+                .isInstanceOf(IllegalStateException.class);
+        verify(auditoria, never()).registrarConAutor(any(), any(), any(), anyString(), any());
     }
 
     @Test
@@ -109,7 +120,7 @@ class VerificarBarrioVecinoServiceTest {
 
         assertThatThrownBy(() -> servicio.verificar(ID, fuera, 25.0, CONTEXTO))
                 .isInstanceOf(UbicacionFueraDelBarrioException.class);
-        verify(usuarios, never()).guardar(any());
+        verify(usuarios, never()).guardarSiNoCambio(any(), any());
     }
 
     @Test
@@ -121,7 +132,7 @@ class VerificarBarrioVecinoServiceTest {
 
         assertThatThrownBy(() -> servicio.verificar(ID, enCrespo, 25.0, CONTEXTO))
                 .isInstanceOf(UbicacionFueraDelBarrioException.class);
-        verify(usuarios, never()).guardar(any());
+        verify(usuarios, never()).guardarSiNoCambio(any(), any());
     }
 
     /** Una ubicación aproximada por red no prueba nada: se rechaza sin consultar el barrio ni gastar un intento. */
@@ -133,7 +144,7 @@ class VerificarBarrioVecinoServiceTest {
                 .isInstanceOf(UbicacionImprecisaException.class);
 
         verifyNoInteractions(cupo, sectores);
-        verify(usuarios, never()).guardar(any());
+        verify(usuarios, never()).guardarSiNoCambio(any(), any());
     }
 
     @Test
@@ -185,7 +196,7 @@ class VerificarBarrioVecinoServiceTest {
                         e -> assertThat(e.segundosParaReintentar()).isEqualTo(5 * 3600));
 
         verifyNoInteractions(sectores);
-        verify(usuarios, never()).guardar(any());
+        verify(usuarios, never()).guardarSiNoCambio(any(), any());
     }
 
     @Test
@@ -196,7 +207,7 @@ class VerificarBarrioVecinoServiceTest {
 
         assertThat(devuelto.barrioVerificado()).isTrue();
         verifyNoInteractions(cupo, sectores);
-        verify(usuarios, never()).guardar(any());
+        verify(usuarios, never()).guardarSiNoCambio(any(), any());
     }
 
     /** La auditoría dice que se verificó, nunca desde dónde: la coordenada no se guarda en ningún sitio. */

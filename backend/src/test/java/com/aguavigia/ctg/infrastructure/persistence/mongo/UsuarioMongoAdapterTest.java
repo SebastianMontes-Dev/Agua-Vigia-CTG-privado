@@ -84,10 +84,10 @@ class UsuarioMongoAdapterTest {
     @Test
     void debeGuardarYRecuperarLaCuentaDeVecinoConConsentimientosYBarrioVerificado() {
         Usuario vecino = Usuario.registradoComoVecino(new UsuarioId("v-1"), new CorreoElectronico("vecina@ejemplo.org"),
-                        "Vecina", HASH, new SectorId("manga"),
+                        "Vecina", new SectorId("manga"),
                         List.of(new Consentimiento(TipoConsentimiento.PRIVACIDAD, "2026-10-v1", T0),
                                 new Consentimiento(TipoConsentimiento.AVISOS, "2026-10-v1", T0)), T0)
-                .verificarCorreo(T0.plusSeconds(30))
+                .aceptarInvitacion(HASH, T0.plusSeconds(30))
                 .verificarBarrio(T0.plusSeconds(60));
 
         adaptador.guardar(vecino);
@@ -98,9 +98,10 @@ class UsuarioMongoAdapterTest {
         assertThat(leido.barrio()).isEqualTo(new SectorId("manga"));
         assertThat(leido.barrioVerificado()).isTrue();
         assertThat(leido.barrioVerificadoEn()).isEqualTo(T0.plusSeconds(60));
+        // Lo aceptado vale desde que la persona del correo actua (al fijar su clave), no desde el formulario.
         assertThat(leido.consentimientos()).containsExactly(
-                new Consentimiento(TipoConsentimiento.PRIVACIDAD, "2026-10-v1", T0),
-                new Consentimiento(TipoConsentimiento.AVISOS, "2026-10-v1", T0));
+                new Consentimiento(TipoConsentimiento.PRIVACIDAD, "2026-10-v1", T0.plusSeconds(30)),
+                new Consentimiento(TipoConsentimiento.AVISOS, "2026-10-v1", T0.plusSeconds(30)));
         assertThat(leido.recibeAvisos()).isTrue();
     }
 

@@ -61,10 +61,15 @@ class PermisosEfectivosTest {
                 .isThrownBy(() -> new PermisosEfectivos(null, Set.of(), Set.of()));
     }
 
+    /** El permiso del vecino es solo del vecino: el admin lo tendría de rebote y obligaría a casos especiales. */
     @Test
-    void elAdminDebeTenerTodosLosPermisos() {
+    void elAdminDebeTenerTodosLosPermisosDelPanelPeroNoElDelVecino() {
+        Permiso[] todosMenosElDelVecino = java.util.Arrays.stream(Permiso.values())
+                .filter(permiso -> permiso != Permiso.GESTIONAR_PERFIL_PROPIO)
+                .toArray(Permiso[]::new);
+
         assertThat(PermisosEfectivos.deRol(RolVeedor.ADMIN).resolver())
-                .containsExactlyInAnyOrder(Permiso.values());
+                .containsExactlyInAnyOrder(todosMenosElDelVecino);
     }
 
     @Test
@@ -91,9 +96,20 @@ class PermisosEfectivosTest {
     }
 
     @Test
-    void ningunRolDelPanelSalvoElAdminDebeGestionarPerfilDeVecino() {
+    void ningunRolDelPanelDebeGestionarPerfilDeVecino() {
+        assertThat(RolVeedor.ADMIN.permisosBase()).doesNotContain(Permiso.GESTIONAR_PERFIL_PROPIO);
         assertThat(RolVeedor.VEEDOR.permisosBase()).doesNotContain(Permiso.GESTIONAR_PERFIL_PROPIO);
         assertThat(RolVeedor.OBSERVADOR.permisosBase()).doesNotContain(Permiso.GESTIONAR_PERFIL_PROPIO);
+    }
+
+    /** Sin esta guarda, un ADMIN podría concederle a un veedor el permiso con el que un vecino toca su perfil. */
+    @Test
+    void debeRechazarConcederElPermisoDelVecinoACualquierRolDelPanel() {
+        for (RolVeedor rol : new RolVeedor[]{RolVeedor.OBSERVADOR, RolVeedor.VEEDOR, RolVeedor.ADMIN}) {
+            assertThatIllegalArgumentException()
+                    .as(rol.name())
+                    .isThrownBy(() -> new PermisosEfectivos(rol, Set.of(Permiso.GESTIONAR_PERFIL_PROPIO), Set.of()));
+        }
     }
 
     /** Un vecino se registra solo: si pudiera recibir un permiso de panel, el registro abierto sería una puerta al panel. */

@@ -53,7 +53,8 @@ class RegistrarReporteServiceTest {
         evaluarConsenso = mock(EvaluarConsensoUseCase.class);
         RelojPort reloj = () -> AHORA;
         servicio = new RegistrarReporteService(sectores, reportes, contadorReportes, evaluarConsenso, reloj,
-                LIMITE, LIMITE_SENSOR, 30, mock(com.aguavigia.ctg.domain.port.out.HashDeRedPort.class), 200.0, 5);
+                mock(com.aguavigia.ctg.domain.port.out.HashDeRedPort.class),
+                new LimitesDeReporte(LIMITE, LIMITE_SENSOR, 5, java.time.Duration.ofMinutes(30)), 200.0);
 
         given(reportes.guardar(any(ReporteCiudadano.class)))
                 .willAnswer(invocacion -> invocacion.getArgument(0));

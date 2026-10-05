@@ -1,7 +1,6 @@
 package com.aguavigia.ctg.api;
 
 import com.aguavigia.ctg.domain.ClaveEnClaro;
-import com.aguavigia.ctg.domain.Usuario;
 import com.aguavigia.ctg.domain.port.in.AceptarInvitacionUseCase;
 import com.aguavigia.ctg.domain.port.in.RestablecerClaveUseCase;
 import com.aguavigia.ctg.domain.port.in.VerificarCorreoUseCase;
@@ -59,11 +58,9 @@ public class EnlacesDeCuentaController {
     @PostMapping(value = "/verificar", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
     public ResponseEntity<String> verificarCorreo(@RequestParam String token, HttpServletRequest peticion) {
         try {
-            Usuario verificado = verificar.verificar(token, ContextoHttp.de(peticion));
-            return PaginaDeCortesia.resultado("Correo confirmado", verificado.esVecino()
-                    ? "Listo. Tu cuenta ya está activa: puedes iniciar sesión."
-                    : "Listo. Un administrador revisará tu solicitud y te avisaremos por correo cuando decida.",
-                    true);
+            verificar.verificar(token, ContextoHttp.de(peticion));
+            return PaginaDeCortesia.resultado("Correo confirmado",
+                    "Listo. Un administrador revisará tu solicitud y te avisaremos por correo cuando decida.", true);
         } catch (IllegalArgumentException enlaceInvalido) {
             return PaginaDeCortesia.resultado("No pudimos confirmar tu correo", enlaceInvalido.getMessage(), false);
         }
@@ -74,7 +71,7 @@ public class EnlacesDeCuentaController {
     @GetMapping("/invitacion")
     public ResponseEntity<String> pantallaInvitacion(@RequestParam String token) {
         return PaginaDeCortesia.formulario(HttpStatus.OK, "Crea tu clave",
-                "Elige la clave con la que entrarás al panel del veedor.",
+                "Elige la clave con la que entrarás.",
                 RUTA + "invitacion", token, true, "Crear mi clave");
     }
 
@@ -86,7 +83,7 @@ public class EnlacesDeCuentaController {
         try {
             aceptarInvitacion.aceptar(token, new ClaveEnClaro(clave), ContextoHttp.de(peticion));
             return PaginaDeCortesia.resultado("Cuenta activada",
-                    "Tu clave quedó fijada. Ya puedes iniciar sesión en el panel del veedor.", true);
+                    "Tu clave quedó fijada y tu cuenta ya está activa: puedes iniciar sesión.", true);
         } catch (IllegalArgumentException rechazada) {
             return PaginaDeCortesia.formulario(HttpStatus.BAD_REQUEST, "No pudimos activar tu cuenta",
                     rechazada.getMessage(), RUTA + "invitacion", token, true, "Crear mi clave");

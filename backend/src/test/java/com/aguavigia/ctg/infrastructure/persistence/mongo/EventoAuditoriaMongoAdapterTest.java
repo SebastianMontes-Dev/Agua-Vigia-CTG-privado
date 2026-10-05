@@ -71,6 +71,19 @@ class EventoAuditoriaMongoAdapterTest {
         assertThat(leido).isEqualTo(sinAutor);
     }
 
+    /** `venceEn` es la fecha en que Mongo borra el evento (TTL); sin ella el evento se conserva. */
+    @Test
+    void debeConservarLaFechaDeVencimientoSiLaTrae() {
+        EventoAuditoria conVencimiento = new EventoAuditoria(new AuditoriaId("e-3"), AccionAuditada.BARRIO_VERIFICADO,
+                new UsuarioId("v-1"), "vecina@ejemplo.org", new UsuarioId("v-1"), "vecina@ejemplo.org", "Detalle",
+                "190.20.30.0/24", T0, T0.plusSeconds(86_400));
+
+        adaptador.registrar(conVencimiento);
+
+        assertThat(adaptador.listar(0, 10).contenido().get(0)).isEqualTo(conVencimiento);
+        assertThat(adaptador.listar(0, 10).contenido().get(0).venceEn()).isEqualTo(T0.plusSeconds(86_400));
+    }
+
     @Test
     void debeListarLoMasRecientePrimero() {
         adaptador.registrar(evento("e-viejo", AccionAuditada.CUENTA_REGISTRADA, T0));

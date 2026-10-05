@@ -8,7 +8,6 @@ import com.aguavigia.ctg.api.dto.SolicitudVerificacionBarrio;
 import com.aguavigia.ctg.domain.Coordenada;
 import com.aguavigia.ctg.domain.CorreoElectronico;
 import com.aguavigia.ctg.domain.SesionSinCuentaException;
-import com.aguavigia.ctg.domain.Usuario;
 import com.aguavigia.ctg.domain.port.in.ActualizarPerfilVecinoUseCase;
 import com.aguavigia.ctg.domain.port.in.AutenticarUsuarioUseCase;
 import com.aguavigia.ctg.domain.port.in.CerrarSesionUseCase;
@@ -70,7 +69,7 @@ public class VecinoController {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Credencial correcta, token emitido"),
             @ApiResponse(responseCode = "401", description = "Credencial incorrecta"),
-            @ApiResponse(responseCode = "403", description = "La cuenta existe pero aun no esta activa (correo sin confirmar) o esta suspendida"),
+            @ApiResponse(responseCode = "403", description = "La cuenta esta suspendida (si aun no eligio su clave, responde 401 como con una clave incorrecta)"),
             @ApiResponse(responseCode = "423", description = "Cuenta bloqueada por intentos fallidos"),
             @ApiResponse(responseCode = "429", description = "Demasiados intentos desde esta IP")
     })
@@ -124,7 +123,6 @@ public class VecinoController {
     @PreAuthorize("hasAuthority('PERM_GESTIONAR_PERFIL_PROPIO')")
     public PerfilVecinoRespuesta yo() {
         return cuentas.buscar(ContextoHttp.usuarioActual())
-                .filter(Usuario::esVecino)
                 .map(PerfilVecinoRespuesta::de)
                 .orElseThrow(() -> new SesionSinCuentaException("La sesion no corresponde a una cuenta de vecino"));
     }

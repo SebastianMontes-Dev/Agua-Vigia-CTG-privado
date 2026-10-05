@@ -63,9 +63,9 @@ class IdentificarReportanteServiceTest {
     }
 
     private static Usuario vecino(boolean barrioVerificado) {
-        Usuario base = Usuario.registradoComoVecino(CUENTA, new CorreoElectronico("vecina@ejemplo.org"), "Vecina", HASH,
+        Usuario base = Usuario.registradoComoVecino(CUENTA, new CorreoElectronico("vecina@ejemplo.org"), "Vecina",
                 MANGA, List.of(new Consentimiento(TipoConsentimiento.PRIVACIDAD, "v1", ANTES)), ANTES)
-                .verificarCorreo(ANTES);
+                .aceptarInvitacion(HASH, ANTES);
         return barrioVerificado ? base.verificarBarrio(ANTES) : base;
     }
 

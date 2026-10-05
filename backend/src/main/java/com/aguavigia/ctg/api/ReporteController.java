@@ -6,7 +6,6 @@ import com.aguavigia.ctg.api.mapper.ReporteApiMapper;
 import com.aguavigia.ctg.domain.Coordenada;
 import com.aguavigia.ctg.domain.ReporteId;
 import com.aguavigia.ctg.domain.Reportante;
-import com.aguavigia.ctg.domain.RolVeedor;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.SesionAutenticada;
 import com.aguavigia.ctg.domain.TipoReporte;
@@ -95,7 +94,7 @@ public class ReporteController {
             @RequestHeader(value = CABECERA_DISPOSITIVO, required = false) String dispositivo,
             @Valid @RequestBody SolicitudReporte solicitud,
             HttpServletRequest peticion) {
-        Reportante reportante = identificar.identificar(dispositivo, cuentaDeVecino());
+        Reportante reportante = identificar.identificar(dispositivo, cuentaDeLaSesion());
 
         Coordenada coordenada = solicitud.coordenada() != null
                 ? new Coordenada(solicitud.coordenada().latitud(), solicitud.coordenada().longitud())
@@ -149,20 +148,17 @@ public class ReporteController {
     public ResponseEntity<ReporteRespuesta> confirmar(
             @PathVariable("id") String id,
             @RequestHeader(value = CABECERA_DISPOSITIVO, required = false) String dispositivo) {
-        Reportante reportante = identificar.identificar(dispositivo, cuentaDeVecino());
+        Reportante reportante = identificar.identificar(dispositivo, cuentaDeLaSesion());
         var reporte = confirmarReporte.confirmar(new ReporteId(id), reportante.huella());
         return ResponseEntity.ok(mapper.aRespuesta(reporte));
     }
 
     /**
-     * La cuenta de la sesión, solo si es de un vecino. Un ADMIN tiene el permiso del vecino por heredarlos todos,
-     * pero no reporta como tal: por eso se mira el rol y no el permiso.
+     * La cuenta de la sesión, sea cual sea su rol. Quién cuenta como vecino (una cuenta de vecino activa) lo decide
+     * el caso de uso, que lee la cuenta: el controlador no decide reglas de negocio.
      */
-    private static UsuarioId cuentaDeVecino() {
-        return ContextoHttp.sesionActual()
-                .filter(sesion -> RolVeedor.VECINO.name().equals(sesion.rol()))
-                .map(SesionAutenticada::id)
-                .orElse(null);
+    private static UsuarioId cuentaDeLaSesion() {
+        return ContextoHttp.sesionActual().map(SesionAutenticada::id).orElse(null);
     }
 
     /** Traduce el texto del cliente al enum sin exponer el mensaje de `valueOf`, que nombra la clase del dominio. */

@@ -12,7 +12,7 @@ public enum EstadoCuenta {
     /** Correo verificado; espera a que un ADMIN la apruebe y le asigne rol. */
     PENDIENTE_APROBACION,
 
-    /** La creó un ADMIN por invitación; espera a que la persona fije su clave desde el enlace. */
+    /** La creó un ADMIN por invitación, o un vecino se registró: espera a que la persona fije su clave desde el enlace. */
     INVITADA,
 
     /** Puede iniciar sesión y ejercer sus permisos. */

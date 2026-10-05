@@ -4,6 +4,7 @@ import com.aguavigia.ctg.domain.AccionAuditada;
 import com.aguavigia.ctg.domain.AuditoriaId;
 import com.aguavigia.ctg.domain.ContextoDeAccion;
 import com.aguavigia.ctg.domain.EventoAuditoria;
+import com.aguavigia.ctg.domain.RedDeOrigen;
 import com.aguavigia.ctg.domain.Usuario;
 import com.aguavigia.ctg.domain.port.out.AuditoriaRepository;
 import com.aguavigia.ctg.domain.port.out.RelojPort;
@@ -11,6 +12,8 @@ import com.aguavigia.ctg.domain.port.out.UsuarioRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.UUID;
 
 /**
@@ -30,11 +33,17 @@ public class RegistroDeAuditoria {
     private final AuditoriaRepository auditoria;
     private final UsuarioRepository usuarios;
     private final RelojPort reloj;
+    private final Duration retencionDeVecinos;
 
-    public RegistroDeAuditoria(AuditoriaRepository auditoria, UsuarioRepository usuarios, RelojPort reloj) {
+    /**
+     * @param retencionDeVecinos cuánto se conserva un evento sobre un vecino; cero o negativo lo conserva siempre
+     */
+    public RegistroDeAuditoria(AuditoriaRepository auditoria, UsuarioRepository usuarios, RelojPort reloj,
+                               Duration retencionDeVecinos) {
         this.auditoria = auditoria;
         this.usuarios = usuarios;
         this.reloj = reloj;
+        this.retencionDeVecinos = retencionDeVecinos;
     }
 
     public void registrar(AccionAuditada accion, Usuario sujeto, String detalle, ContextoDeAccion contexto) {
@@ -46,6 +55,9 @@ public class RegistroDeAuditoria {
 
     public void registrarConAutor(AccionAuditada accion, Usuario autor, Usuario sujeto,
                                   String detalle, ContextoDeAccion contexto) {
+        // Lo que se hace sobre un vecino guarda solo el bloque de red y caduca; lo del panel se conserva completo.
+        boolean deVecino = sujeto != null && sujeto.esVecino();
+        Instant ahora = reloj.ahora();
         try {
             auditoria.registrar(new EventoAuditoria(
                     new AuditoriaId(UUID.randomUUID().toString()),
@@ -55,11 +67,12 @@ public class RegistroDeAuditoria {
                     sujeto == null ? null : sujeto.id(),
                     sujeto == null ? null : sujeto.correo().valor(),
                     detalle,
-                    contexto.ip(),
-                    reloj.ahora()));
+                    deVecino ? RedDeOrigen.aproximada(contexto.ip()) : contexto.ip(),
+                    ahora,
+                    deVecino && retencionDeVecinos.isPositive() ? ahora.plus(retencionDeVecinos) : null));
         } catch (RuntimeException noSePudoAuditar) {
             log.error("No se pudo registrar la auditoría de {} sobre {}", accion,
-                    sujeto == null ? "(sin sujeto)" : sujeto.correo().valor(), noSePudoAuditar);
+                    sujeto == null ? "(sin sujeto)" : sujeto.correo().enmascarado(), noSePudoAuditar);
         }
     }
 }

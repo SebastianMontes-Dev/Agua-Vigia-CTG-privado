@@ -18,8 +18,12 @@ import com.aguavigia.ctg.domain.port.out.UsuarioRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -29,13 +33,36 @@ import java.util.stream.Collectors;
 public class UsuarioMongoAdapter implements UsuarioRepository {
 
     private final UsuarioMongoRepository repositorio;
+    private final MongoTemplate mongoTemplate;
 
-    public UsuarioMongoAdapter(UsuarioMongoRepository repositorio) {
+    public UsuarioMongoAdapter(UsuarioMongoRepository repositorio, MongoTemplate mongoTemplate) {
         this.repositorio = repositorio;
+        this.mongoTemplate = mongoTemplate;
     }
 
     @Override
     public Usuario guardar(Usuario usuario) {
+        UsuarioDocumento documento = aDocumento(usuario);
+        try {
+            repositorio.save(documento);
+        } catch (org.springframework.dao.DuplicateKeyException correoRepetido) {
+            throw new com.aguavigia.ctg.domain.CorreoYaRegistradoException(documento.getCorreo());
+        }
+        return usuario;
+    }
+
+    @Override
+    public Usuario guardarSiNoCambio(Usuario usuario, Instant actualizadoEnLeido) {
+        UsuarioDocumento documento = aDocumento(usuario);
+        Query comoSeLeyo = Query.query(Criteria.where("_id").is(documento.getId())
+                .and("actualizadoEn").is(actualizadoEnLeido));
+        if (mongoTemplate.findAndReplace(comoSeLeyo, documento) == null) {
+            throw new IllegalStateException("La cuenta cambió mientras se guardaba, o ya no existe. Inténtalo de nuevo.");
+        }
+        return usuario;
+    }
+
+    private static UsuarioDocumento aDocumento(Usuario usuario) {
         UsuarioDocumento documento = new UsuarioDocumento();
         documento.setId(usuario.id().valor());
         documento.setCorreo(usuario.correo().normalizado().valor());
@@ -56,13 +83,7 @@ public class UsuarioMongoAdapter implements UsuarioRepository {
                 .map(UsuarioMongoAdapter::aDocumento).toList());
         documento.setBarrioVerificado(usuario.barrioVerificado());
         documento.setBarrioVerificadoEn(usuario.barrioVerificadoEn());
-
-        try {
-            repositorio.save(documento);
-        } catch (org.springframework.dao.DuplicateKeyException correoRepetido) {
-            throw new com.aguavigia.ctg.domain.CorreoYaRegistradoException(documento.getCorreo());
-        }
-        return usuario;
+        return documento;
     }
 
     @Override

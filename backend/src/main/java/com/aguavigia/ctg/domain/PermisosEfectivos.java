@@ -40,6 +40,13 @@ public record PermisosEfectivos(RolVeedor rol, Set<Permiso> concedidos, Set<Perm
             }
         }
 
+        // El permiso del vecino es solo del rol VECINO: concedérselo a una cuenta del panel la dejaría pasar por
+        // vecina en las rutas que aceptan ese permiso.
+        if (rol != RolVeedor.VECINO && concedidos.contains(Permiso.GESTIONAR_PERFIL_PROPIO)) {
+            throw new IllegalArgumentException(
+                    "GESTIONAR_PERFIL_PROPIO solo se concede a un vecino, no a una cuenta del panel");
+        }
+
         // Sin esta guarda, revocar CONFIGURAR_SEGUNDO_FACTOR a un ADMIN lo deja fuera para siempre:
         // no puede entrar porque le falta el TOTP, y no puede darlo de alta porque le falta este
         // permiso. Es la única puerta que el propio modelo no permite cerrar.

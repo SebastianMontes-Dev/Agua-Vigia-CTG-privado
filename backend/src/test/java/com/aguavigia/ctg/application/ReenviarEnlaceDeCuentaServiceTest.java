@@ -8,6 +8,7 @@ import com.aguavigia.ctg.domain.EntidadNoEncontradaException;
 import com.aguavigia.ctg.domain.EstadoCuenta;
 import com.aguavigia.ctg.domain.PermisosEfectivos;
 import com.aguavigia.ctg.domain.RolVeedor;
+import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.TipoTokenCuenta;
 import com.aguavigia.ctg.domain.Usuario;
 import com.aguavigia.ctg.domain.UsuarioId;
@@ -76,6 +77,34 @@ class ReenviarEnlaceDeCuentaServiceTest {
 
         verify(emisorDeTokens).emitir(new UsuarioId("u-1"), TipoTokenCuenta.VERIFICACION_CORREO);
         verify(notificaciones).enviarVerificacionDeCorreo(any(), eq("token-nuevo"));
+    }
+
+    private static Usuario vecinoSinClave() {
+        return Usuario.registradoComoVecino(new UsuarioId("v-1"), CORREO, "Vecina", new SectorId("manga"),
+                java.util.List.of(new com.aguavigia.ctg.domain.Consentimiento(
+                        com.aguavigia.ctg.domain.TipoConsentimiento.PRIVACIDAD, "v1", AHORA)), AHORA);
+    }
+
+    /** Quien se registró pero perdió el correo vuelve a recibir el enlace para elegir su clave, no uno de verificación. */
+    @Test
+    void debeReenviarElEnlaceParaElegirLaClaveAUnVecinoQueAunNoLaFijo() {
+        given(usuarios.buscarPorCorreo(any())).willReturn(Optional.of(vecinoSinClave()));
+
+        servicio.reenviarVerificacion(CORREO, ContextoDeAccion.anonimo("1.1.1.1"));
+
+        verify(emisorDeTokens).emitir(new UsuarioId("v-1"), TipoTokenCuenta.INVITACION);
+        verify(notificaciones).enviarActivacionDeVecino(any(), eq("token-nuevo"));
+        verify(notificaciones, never()).enviarVerificacionDeCorreo(any(), anyString());
+    }
+
+    /** Una invitación del panel la reenvía un ADMIN: por la ruta pública no se le manda nada a quien no se registró. */
+    @Test
+    void noDebeReenviarLaInvitacionDelPanelPorLaRutaPublica() {
+        given(usuarios.buscarPorCorreo(any())).willReturn(Optional.of(cuenta(EstadoCuenta.INVITADA)));
+
+        servicio.reenviarVerificacion(CORREO, ContextoDeAccion.anonimo("1.1.1.1"));
+
+        verify(emisorDeTokens, never()).emitir(any(), any());
     }
 
     @Test

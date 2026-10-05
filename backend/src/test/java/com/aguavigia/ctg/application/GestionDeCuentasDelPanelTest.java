@@ -184,7 +184,7 @@ class GestionDeCuentasDelPanelTest {
     void debeRegistrarQuienLeHizoQueAQuien() {
         given(usuarios.buscarPorId(ID)).willReturn(Optional.of(cuenta(EstadoCuenta.ACTIVA, RolVeedor.ADMIN)));
 
-        new RegistroDeAuditoria(auditoriaRepo, usuarios, () -> AHORA)
+        new RegistroDeAuditoria(auditoriaRepo, usuarios, () -> AHORA, java.time.Duration.ofDays(180))
                 .registrar(AccionAuditada.CUENTA_SUSPENDIDA, cuenta(EstadoCuenta.SUSPENDIDA, RolVeedor.VEEDOR),
                         "detalle", CONTEXTO);
 
@@ -197,7 +197,7 @@ class GestionDeCuentasDelPanelTest {
 
     @Test
     void unaAccionDelSistemaDebeQuedarRegistradaSinAutor() {
-        new RegistroDeAuditoria(auditoriaRepo, usuarios, () -> AHORA).registrarConAutor(
+        new RegistroDeAuditoria(auditoriaRepo, usuarios, () -> AHORA, java.time.Duration.ofDays(180)).registrarConAutor(
                 AccionAuditada.CUENTA_APROBADA, null, cuenta(EstadoCuenta.ACTIVA, RolVeedor.ADMIN),
                 "sembrado", ContextoDeAccion.delSistema());
 
@@ -215,7 +215,7 @@ class GestionDeCuentasDelPanelTest {
     void unFalloAlAuditarNoDebeTumbarLaOperacion() {
         willThrow(new IllegalStateException("Mongo caido")).given(auditoriaRepo).registrar(any());
 
-        new RegistroDeAuditoria(auditoriaRepo, usuarios, () -> AHORA).registrarConAutor(
+        new RegistroDeAuditoria(auditoriaRepo, usuarios, () -> AHORA, java.time.Duration.ofDays(180)).registrarConAutor(
                 AccionAuditada.CUENTA_SUSPENDIDA, null, cuenta(EstadoCuenta.SUSPENDIDA, RolVeedor.VEEDOR),
                 "detalle", CONTEXTO);
     }

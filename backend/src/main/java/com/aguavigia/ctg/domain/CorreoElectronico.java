@@ -25,6 +25,12 @@ public record CorreoElectronico(String valor) {
         return new CorreoElectronico("baja-" + id.valor() + "@correo-eliminado.invalid");
     }
 
+    /** Para un log basta la inicial y el dominio: el correo entero es un dato personal. */
+    public String enmascarado() {
+        int arroba = valor.indexOf('@');
+        return valor.charAt(0) + "***" + valor.substring(arroba);
+    }
+
     /**
      * Minúsculas y sin espacios alrededor. La identidad de acceso de una cuenta es el correo, y
      * sin esto `Ana@x.com` y `ana@x.com` serían dos cuentas distintas para el sistema y la misma

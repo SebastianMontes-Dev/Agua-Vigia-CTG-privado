@@ -19,7 +19,7 @@ public class TiempoConstanteAdapter implements TiempoConstantePort {
 
     @Autowired
     public TiempoConstanteAdapter(
-            @Value("${aguavigia.seguridad.duracion-minima-solicitud-ms:100}") long duracionMinimaMs) {
+            @Value("${aguavigia.seguridad.duracion-minima-solicitud-ms:400}") long duracionMinimaMs) {
         this(Duration.ofMillis(duracionMinimaMs));
     }
 

@@ -39,6 +39,25 @@ class RedDeOrigenTest {
         assertThat(RedDeOrigen.de("fe80::1%eth0")).isEqualTo(RedDeOrigen.de("fe80::2"));
     }
 
+    /** Para la auditoría de la ciudadanía basta el bloque: una IPv4 se guarda como su /24. */
+    @Test
+    void unaIpv4AproximadaDebeQuedarEnSuBloque24() {
+        assertThat(RedDeOrigen.aproximada("190.20.30.40")).isEqualTo("190.20.30.0/24");
+        assertThat(RedDeOrigen.aproximada("::ffff:190.20.30.40")).isEqualTo("190.20.30.0/24");
+    }
+
+    @Test
+    void unaIpv6AproximadaDebeQuedarEnSuPrefijo64() {
+        assertThat(RedDeOrigen.aproximada("2800:484:1234:5678:aaaa:bbbb:cccc:dddd"))
+                .isEqualTo("2800:0484:1234:5678::/64");
+    }
+
+    @Test
+    void unTextoQueNoEsUnaIpAproximadaDebeQuedarIgual() {
+        assertThat(RedDeOrigen.aproximada("ejemplo.invalid")).isEqualTo("ejemplo.invalid");
+        assertThat(RedDeOrigen.aproximada(null)).isNull();
+    }
+
     /** Nunca se resuelve un nombre: un valor que no es una IP literal se devuelve tal cual, sin consultar DNS. */
     @Test
     void unTextoQueNoEsUnaIpDebeQuedarIgualSinConsultarDns() {

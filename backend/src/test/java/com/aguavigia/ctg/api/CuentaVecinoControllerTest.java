@@ -38,7 +38,6 @@ class CuentaVecinoControllerTest {
             {
                 "correo": "vecina@ejemplo.com",
                 "nombre": "Vecina de Manga",
-                "clave": "ClaveSegura123#!",
                 "barrioId": "manga",
                 "consentimiento": {"privacidad": true, "avisos": true}
             }
@@ -72,24 +71,24 @@ class CuentaVecinoControllerTest {
         mockMvc.perform(post(RUTA).contentType(MediaType.APPLICATION_JSON).content(VALIDO))
                 .andExpect(status().isAccepted());
 
-        verify(registrar).registrar(eq(new CorreoElectronico("vecina@ejemplo.com")), eq("Vecina de Manga"), any(),
+        verify(registrar).registrar(eq(new CorreoElectronico("vecina@ejemplo.com")), eq("Vecina de Manga"),
                 eq(new SectorId("manga")), eq(new ConsentimientosAceptados(true, true)), any());
     }
 
     @Test
     void laCasillaDeAvisosAusenteDebeTomarseComoNoAceptada() throws Exception {
         mockMvc.perform(post(RUTA).contentType(MediaType.APPLICATION_JSON).content("""
-                        {"correo": "vecina@ejemplo.com", "nombre": "Vecina", "clave": "ClaveSegura123#!",
+                        {"correo": "vecina@ejemplo.com", "nombre": "Vecina",
                          "barrioId": "manga", "consentimiento": {"privacidad": true}}"""))
                 .andExpect(status().isAccepted());
 
-        verify(registrar).registrar(any(), any(), any(), any(), eq(new ConsentimientosAceptados(true, false)), any());
+        verify(registrar).registrar(any(), any(), any(), eq(new ConsentimientosAceptados(true, false)), any());
     }
 
     @Test
     void sinBarrioDebeResponder400() throws Exception {
         mockMvc.perform(post(RUTA).contentType(MediaType.APPLICATION_JSON).content("""
-                        {"correo": "vecina@ejemplo.com", "nombre": "Vecina", "clave": "ClaveSegura123#!",
+                        {"correo": "vecina@ejemplo.com", "nombre": "Vecina",
                          "consentimiento": {"privacidad": true, "avisos": false}}"""))
                 .andExpect(status().isBadRequest());
 
@@ -99,27 +98,31 @@ class CuentaVecinoControllerTest {
     @Test
     void sinElBloqueDeConsentimientoDebeResponder400() throws Exception {
         mockMvc.perform(post(RUTA).contentType(MediaType.APPLICATION_JSON).content("""
-                        {"correo": "vecina@ejemplo.com", "nombre": "Vecina", "clave": "ClaveSegura123#!",
+                        {"correo": "vecina@ejemplo.com", "nombre": "Vecina",
                          "barrioId": "manga"}"""))
                 .andExpect(status().isBadRequest());
 
         verifyNoInteractions(registrar);
     }
 
+    /**
+     * La clave no viaja en el registro: se elige desde el enlace del correo. Si un cliente viejo la sigue mandando
+     * se ignora, sin llegar al caso de uso.
+     */
     @Test
-    void unaClaveQueNoCumpleLaPoliticaDebeResponder400() throws Exception {
+    void unaClaveEnElCuerpoDebeIgnorarseSinAfectarElRegistro() throws Exception {
         mockMvc.perform(post(RUTA).contentType(MediaType.APPLICATION_JSON).content("""
-                        {"correo": "vecina@ejemplo.com", "nombre": "Vecina", "clave": "corta",
+                        {"correo": "vecina@ejemplo.com", "nombre": "Vecina", "clave": "ClaveSegura123#!",
                          "barrioId": "manga", "consentimiento": {"privacidad": true}}"""))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isAccepted());
 
-        verifyNoInteractions(registrar);
+        verify(registrar).registrar(any(), any(), any(), any(), any());
     }
 
     @Test
     void unCorreoMalFormadoDebeResponder400() throws Exception {
         mockMvc.perform(post(RUTA).contentType(MediaType.APPLICATION_JSON).content("""
-                        {"correo": "no-es-un-correo", "nombre": "Vecina", "clave": "ClaveSegura123#!",
+                        {"correo": "no-es-un-correo", "nombre": "Vecina",
                          "barrioId": "manga", "consentimiento": {"privacidad": true}}"""))
                 .andExpect(status().isBadRequest());
 
@@ -129,7 +132,7 @@ class CuentaVecinoControllerTest {
     @Test
     void siElCasoDeUsoRechazaElRegistroDebeResponder400() throws Exception {
         willThrow(new IllegalArgumentException("Para registrarte debes aceptar el aviso de privacidad"))
-                .given(registrar).registrar(any(), any(), any(), any(), any(), any());
+                .given(registrar).registrar(any(), any(), any(), any(), any());
 
         mockMvc.perform(post(RUTA).contentType(MediaType.APPLICATION_JSON).content(VALIDO))
                 .andExpect(status().isBadRequest());

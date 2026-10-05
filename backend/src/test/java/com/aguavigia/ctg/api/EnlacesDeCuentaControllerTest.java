@@ -3,11 +3,8 @@ package com.aguavigia.ctg.api;
 import com.aguavigia.ctg.api.error.ManejadorGlobalDeErrores;
 import com.aguavigia.ctg.domain.ClaveEnClaro;
 import com.aguavigia.ctg.domain.ClaveHash;
-import com.aguavigia.ctg.domain.Consentimiento;
 import com.aguavigia.ctg.domain.ContextoDeAccion;
 import com.aguavigia.ctg.domain.CorreoElectronico;
-import com.aguavigia.ctg.domain.SectorId;
-import com.aguavigia.ctg.domain.TipoConsentimiento;
 import com.aguavigia.ctg.domain.Usuario;
 import com.aguavigia.ctg.domain.UsuarioId;
 import com.aguavigia.ctg.domain.port.in.AceptarInvitacionUseCase;
@@ -27,7 +24,6 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Instant;
-import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -95,13 +91,6 @@ class EnlacesDeCuentaControllerTest {
                 .verificarCorreo(AHORA);
     }
 
-    private static Usuario vecinoVerificado() {
-        return Usuario.registradoComoVecino(new UsuarioId("v-1"), new CorreoElectronico("vecina@ejemplo.org"),
-                        "Vecina", HASH, new SectorId("manga"),
-                        List.of(new Consentimiento(TipoConsentimiento.PRIVACIDAD, "v1", AHORA)), AHORA)
-                .verificarCorreo(AHORA);
-    }
-
     @Test
     void enviarElFormularioDeVerificacionDebeConfirmarElCorreo() throws Exception {
         given(verificar.verificar(eq(TOKEN), any(ContextoDeAccion.class))).willReturn(cuentaDelPanelVerificada());
@@ -114,21 +103,6 @@ class EnlacesDeCuentaControllerTest {
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("Un administrador revisará")));
 
         verify(verificar).verificar(eq(TOKEN), any(ContextoDeAccion.class));
-    }
-
-    /** Un vecino queda activo al confirmar: la página no debe decirle que espera a un administrador. */
-    @Test
-    void confirmarElCorreoDeUnVecinoDebeDecirleQueSuCuentaYaEstaActiva() throws Exception {
-        given(verificar.verificar(eq(TOKEN), any(ContextoDeAccion.class))).willReturn(vecinoVerificado());
-
-        mockMvc.perform(post("/api/cuentas/enlaces/verificar")
-                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                        .param("token", TOKEN))
-                .andExpect(status().isOk())
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("Correo confirmado")))
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("ya está activa")))
-                .andExpect(content().string(org.hamcrest.Matchers.not(
-                        org.hamcrest.Matchers.containsString("administrador"))));
     }
 
     @Test
@@ -163,7 +137,8 @@ class EnlacesDeCuentaControllerTest {
                         .param("token", TOKEN)
                         .param("clave", CLAVE_VALIDA))
                 .andExpect(status().isOk())
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("Cuenta activada")));
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Cuenta activada")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("ya está activa")));
 
         verify(aceptarInvitacion).aceptar(eq(TOKEN), eq(new ClaveEnClaro(CLAVE_VALIDA)), any(ContextoDeAccion.class));
     }

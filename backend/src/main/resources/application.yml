@@ -44,12 +44,14 @@ aguavigia:
     # de avisos) para poder saber que texto acepto cada cuenta. "borrador" mientras el texto legal este pendiente (D19):
     # subirla cuando cambie el texto.
     version: 2026-10-borrador
+  ubicacion:
+    # Una ubicacion peor que esto (aproximada por red) no verifica ni un reporte ni el barrio de un vecino: decenas de
+    # metros bastan para un barrio, cientos no. Una sola clave para los dos usos, para que no puedan divergir.
+    precision-maxima-metros: 200
   vecino:
     verificacion-barrio:
       # D8: la ubicacion se usa en el momento y se descarta. Valores iniciales, a calibrar con datos reales (F6).
       intentos-por-dia: 3
-      # Peor que esto es una ubicacion aproximada por red (decenas de metros bastan para un barrio; cientos no).
-      precision-maxima-metros: 200
   telegram:
     # RF041 (ADR-066). Sin token el canal queda armado pero apagado; con token, el backend sondea el bot cada
     # `intervalo-ms`. Solo una instancia puede sondear el mismo bot.
@@ -78,8 +80,6 @@ aguavigia:
     # Plan §2: un vecino registrado reporta hasta 5 veces por sector en la ventana (3 el anonimo). Tiene cuenta, se
     # le puede suspender, y su reporte vale mas porque lleva verificacion.
     limite-por-vecino: 5
-    # Una ubicacion peor que esto (aproximada por red) no verifica el reporte: decenas de metros bastan para un barrio.
-    precision-maxima-metros: 200
     ventana-limite-minutos: 30
   cache:
     ttl-segundos-por-cache:
@@ -144,6 +144,10 @@ aguavigia:
     # Los eventos de la bitacora son permanentes; sus ids de sustento quedan apuntando a reportes ya borrados.
     # 0 desactiva la retencion.
     reportes-dias: 365
+    # La auditoria de la ciudadania (lo que se hace sobre la cuenta de un vecino) guarda solo el bloque de red de la
+    # IP y se borra sola a los 180 dias. La del panel se conserva completa: es la evidencia de quien hizo que.
+    # 0 conserva la auditoria de vecinos sin vencimiento.
+    auditoria-vecinos-dias: 180
   mantenimiento:
     fotos-huerfanas:
       # Reconciliacion disco-vs-Mongo: borra archivos en data/fotos que ningun reporte referencia.
@@ -182,8 +186,10 @@ aguavigia:
     emisor-totp: AguaVigia CTG
   seguridad:
     # RNF024: el registro y "olvidé mi clave" duran al menos esto, exista o no la cuenta. Debe superar
-    # con holgura la rama más lenta (medida ~70 ms); con hilos virtuales la espera no cuesta capacidad.
-    duracion-minima-solicitud-ms: 100
+    # con holgura la rama más lenta: BCrypt tarda ~70 ms medido, pero bajo carga o en una CPU lenta puede pasar de
+    # 100 ms y entonces el piso dejaría de ocultar la diferencia con la rama que solo escribe en Mongo y Redis.
+    # Con hilos virtuales la espera no cuesta capacidad.
+    duracion-minima-solicitud-ms: 400
   iot:
     # Clave compartida para /api/iot/presion (header X-IoT-Key), mismo patron que JWT_SECRET y
     # VEEDOR_PASSWORD_HASH: vacia por defecto, el endpoint responde 503 hasta que se configure.

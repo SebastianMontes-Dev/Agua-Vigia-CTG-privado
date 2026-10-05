@@ -23,4 +23,6 @@ public class EventoAuditoriaDocumento {
     private String detalle;
     private String ip;
     private Instant ocurrioEn;
+    /** Fecha en que Mongo borra el evento (índice TTL). Nula: se conserva. */
+    private Instant venceEn;
 }

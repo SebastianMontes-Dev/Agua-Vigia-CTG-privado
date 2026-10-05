@@ -16,6 +16,9 @@ public interface NotificacionCuentaPort {
 
     void enviarInvitacion(Usuario invitado, Usuario autorDeLaInvitacion, String tokenEnClaro);
 
+    /** Un vecino que se registró: el enlace le deja elegir su clave y, al hacerlo, la cuenta queda activa. */
+    void enviarActivacionDeVecino(Usuario vecino, String tokenEnClaro);
+
     void enviarEnlaceDeRestablecimiento(Usuario usuario, String tokenEnClaro);
 
     /** Se manda tras aprobar, rechazar, suspender o reactivar: nadie debe enterarse entrando. */

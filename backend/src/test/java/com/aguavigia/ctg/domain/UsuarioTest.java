@@ -80,9 +80,7 @@ class UsuarioTest {
 
     @Test
     void debeRechazarAscenderUnVecinoAUnRolDePanel() {
-        Usuario vecino = new Usuario(new UsuarioId("u-5"), new CorreoElectronico("v@ejemplo.org"),
-                "Vecina", HASH, EstadoCuenta.ACTIVA, PermisosEfectivos.deRol(RolVeedor.VECINO),
-                null, AHORA, AHORA);
+        Usuario vecino = vecinoActivo();
 
         assertThatIllegalArgumentException().isThrownBy(
                 () -> vecino.cambiarPermisos(PermisosEfectivos.deRol(RolVeedor.VEEDOR), DESPUES));
@@ -90,22 +88,28 @@ class UsuarioTest {
 
     private static final SectorId MANGA = new SectorId("manga");
 
+    /** Lo que llega del formulario de registro: todavía sin clave, que se fija desde el enlace del correo. */
     private static Usuario vecino() {
         return Usuario.registradoComoVecino(new UsuarioId("v-1"), new CorreoElectronico("vecina@ejemplo.org"),
-                "Vecina", HASH, MANGA,
+                "Vecina", MANGA,
                 java.util.List.of(new Consentimiento(TipoConsentimiento.PRIVACIDAD, "v1", AHORA)), AHORA);
     }
 
     private static Usuario vecinoActivo() {
-        return vecino().verificarCorreo(AHORA);
+        return vecino().aceptarInvitacion(HASH, AHORA);
     }
 
+    /**
+     * Quien rellena el formulario no elige la clave: si la eligiera, alguien podría registrar el correo de otra
+     * persona con una clave suya y quedarse con la cuenta cuando ella confirmara el enlace.
+     */
     @Test
-    void unVecinoDebeNacerConRolVecinoSinPoderEntrarYConSuBarrioSinVerificar() {
+    void unVecinoDebeNacerSinClaveEnEsperaDeFijarlaYConSuBarrioSinVerificar() {
         Usuario nuevo = vecino();
 
         assertThat(nuevo.permisos().rol()).isEqualTo(RolVeedor.VECINO);
-        assertThat(nuevo.estado()).isEqualTo(EstadoCuenta.PENDIENTE_VERIFICACION);
+        assertThat(nuevo.estado()).isEqualTo(EstadoCuenta.INVITADA);
+        assertThat(nuevo.claveHash()).isNull();
         assertThat(nuevo.barrio()).isEqualTo(MANGA);
         assertThat(nuevo.barrioVerificado()).isFalse();
         assertThat(nuevo.barrioVerificadoEn()).isNull();
@@ -116,32 +120,46 @@ class UsuarioTest {
     @Test
     void debeExigirBarrioAlRegistrarUnVecino() {
         assertThatIllegalArgumentException().isThrownBy(() -> Usuario.registradoComoVecino(
-                new UsuarioId("v-1"), new CorreoElectronico("vecina@ejemplo.org"), "Vecina", HASH, null,
+                new UsuarioId("v-1"), new CorreoElectronico("vecina@ejemplo.org"), "Vecina", null,
                 java.util.List.of(new Consentimiento(TipoConsentimiento.PRIVACIDAD, "v1", AHORA)), AHORA));
     }
 
     @Test
     void debeExigirElConsentimientoDePrivacidadAlRegistrarUnVecino() {
         assertThatIllegalArgumentException().isThrownBy(() -> Usuario.registradoComoVecino(
-                new UsuarioId("v-1"), new CorreoElectronico("vecina@ejemplo.org"), "Vecina", HASH, MANGA,
+                new UsuarioId("v-1"), new CorreoElectronico("vecina@ejemplo.org"), "Vecina", MANGA,
                 java.util.List.of(new Consentimiento(TipoConsentimiento.AVISOS, "v1", AHORA)), AHORA));
     }
 
+    /** El panel necesita aprobación humana; un vecino no pide nada que la requiera: fijar su clave basta. */
     @Test
-    void debeRechazarUnVecinoSinClave() {
-        assertThatIllegalArgumentException().isThrownBy(() -> Usuario.registradoComoVecino(
-                new UsuarioId("v-1"), new CorreoElectronico("vecina@ejemplo.org"), "Vecina", null, MANGA,
-                java.util.List.of(new Consentimiento(TipoConsentimiento.PRIVACIDAD, "v1", AHORA)), AHORA));
+    void fijarLaClaveDeUnVecinoDebeActivarloSinAprobacionDeAdmin() {
+        Usuario activo = vecino().aceptarInvitacion(HASH, DESPUES);
+
+        assertThat(activo.estado()).isEqualTo(EstadoCuenta.ACTIVA);
+        assertThat(activo.claveHash()).isEqualTo(HASH);
+        assertThat(activo.estado().permiteIniciarSesion()).isTrue();
+        assertThat(activo.permisosEfectivos()).containsExactly(Permiso.GESTIONAR_PERFIL_PROPIO);
     }
 
-    /** El panel necesita aprobación humana; un vecino no pide nada que la requiera. */
+    /** Lo que se acepta vale desde que la persona del correo actúa, no desde que alguien rellenó el formulario. */
     @Test
-    void verificarElCorreoDeUnVecinoDebeActivarloSinAprobacionDeAdmin() {
-        Usuario verificado = vecino().verificarCorreo(DESPUES);
+    void alFijarLaClaveLosConsentimientosDebenTomarLaFechaDeLaActivacion() {
+        Usuario nuevo = Usuario.registradoComoVecino(new UsuarioId("v-1"),
+                new CorreoElectronico("vecina@ejemplo.org"), "Vecina", MANGA,
+                java.util.List.of(new Consentimiento(TipoConsentimiento.PRIVACIDAD, "v1", AHORA),
+                        new Consentimiento(TipoConsentimiento.AVISOS, "v1", AHORA)), AHORA);
 
-        assertThat(verificado.estado()).isEqualTo(EstadoCuenta.ACTIVA);
-        assertThat(verificado.estado().permiteIniciarSesion()).isTrue();
-        assertThat(verificado.permisosEfectivos()).containsExactly(Permiso.GESTIONAR_PERFIL_PROPIO);
+        Usuario activo = nuevo.aceptarInvitacion(HASH, DESPUES);
+
+        assertThat(activo.consentimientos()).extracting(Consentimiento::fecha).containsOnly(DESPUES);
+        assertThat(activo.consentimientos()).extracting(Consentimiento::version).containsOnly("v1");
+        assertThat(activo.recibeAvisos()).isTrue();
+    }
+
+    @Test
+    void unVecinoNoDebePasarPorLaVerificacionDeCorreoDelPanel() {
+        assertThatIllegalStateException().isThrownBy(() -> vecino().verificarCorreo(DESPUES));
     }
 
     @Test
@@ -292,6 +310,14 @@ class UsuarioTest {
         assertThatIllegalArgumentException().isThrownBy(() -> new Usuario(
                 new UsuarioId("u-1"), new CorreoElectronico("ana@ejemplo.org"), "Ana", null,
                 EstadoCuenta.ACTIVA, PermisosEfectivos.deRol(RolVeedor.VEEDOR), null, AHORA, AHORA));
+    }
+
+    /** Sin barrio no hay nada que verificar ni a quién avisar: un documento así no debe poder reconstruirse. */
+    @Test
+    void debeRechazarUnVecinoSinBarrioAunConstruidoPorElConstructorCanonico() {
+        assertThatIllegalArgumentException().isThrownBy(() -> new Usuario(
+                new UsuarioId("v-1"), new CorreoElectronico("vecina@ejemplo.org"), "Vecina", HASH,
+                EstadoCuenta.ACTIVA, PermisosEfectivos.deRol(RolVeedor.VECINO), null, AHORA, AHORA, null));
     }
 
     @Test

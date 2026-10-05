@@ -32,6 +32,7 @@ public class EventoAuditoriaMongoAdapter implements AuditoriaRepository {
         documento.setDetalle(evento.detalle());
         documento.setIp(evento.ip());
         documento.setOcurrioEn(evento.ocurrioEn());
+        documento.setVenceEn(evento.venceEn());
 
         repositorio.save(documento);
         return evento;
@@ -59,6 +60,7 @@ public class EventoAuditoriaMongoAdapter implements AuditoriaRepository {
                 documento.getSujetoCorreo(),
                 documento.getDetalle(),
                 documento.getIp(),
-                documento.getOcurrioEn());
+                documento.getOcurrioEn(),
+                documento.getVenceEn());
     }
 }

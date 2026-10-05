@@ -251,9 +251,12 @@ class ReporteControllerTest {
                 eq(new UsuarioId(AutenticacionDePrueba.USUARIO_ID)));
     }
 
-    /** Un ADMIN tiene el permiso del vecino por heredarlos todos, pero no es un vecino: no reporta como tal. */
+    /**
+     * Quién cuenta como vecino lo decide el caso de uso, que lee la cuenta: el controlador pasa la de la sesión sea
+     * cual sea su rol. Un ADMIN reporta como dispositivo (ver IdentificarReportanteServiceTest).
+     */
     @Test
-    void unaSesionQueNoEsDeVecinoNoDebePasarSuCuenta() throws Exception {
+    void unaSesionDelPanelDebePasarSuCuentaYDejarQueElCasoDeUsoDecida() throws Exception {
         given(jwtProvider.validar(TOKEN_JWT)).willReturn(Optional.of(AutenticacionDePrueba.sesionDeAdmin()));
         registraDevolviendo(reporte("r1", "bocagrande", TipoReporte.SIN_AGUA, null));
 
@@ -265,7 +268,7 @@ class ReporteControllerTest {
                                 {"sectorId":"bocagrande","tipo":"SIN_AGUA"}"""))
                 .andExpect(status().isCreated());
 
-        verify(identificar).identificar(eq("t"), isNull());
+        verify(identificar).identificar(eq("t"), eq(new UsuarioId(AutenticacionDePrueba.USUARIO_ID)));
     }
 
     // --- validación y errores ---

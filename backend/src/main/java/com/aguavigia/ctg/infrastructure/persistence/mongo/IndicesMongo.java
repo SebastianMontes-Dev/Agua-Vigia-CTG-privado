@@ -145,7 +145,11 @@ public class IndicesMongo {
         intentar("Auditoria", () -> {
             var indicesAuditoria = mongoTemplate.indexOps(EventoAuditoriaDocumento.class);
             indicesAuditoria.ensureIndex(new Index().on("ocurrioEn", Sort.Direction.DESC));
-            log.info("Indices de `auditoria_cuentas` asegurados: ocurrioEn");
+            // Solo caducan los eventos que traen `venceEn` (la auditoria de la ciudadania); los del panel no lo
+            // llevan y se conservan: son la evidencia de quien hizo que.
+            indicesAuditoria.ensureIndex(new Index().on("venceEn", Sort.Direction.ASC)
+                    .expire(Duration.ZERO));
+            log.info("Indices de `auditoria_cuentas` asegurados: ocurrioEn y venceEn (TTL)");
         });
 
             // Retencion de dispositivos (D19): sin dueño que los reclame ni utilidad una vez inactivos, Mongo

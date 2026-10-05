@@ -1,7 +1,6 @@
 package com.aguavigia.ctg.application;
 
 import com.aguavigia.ctg.domain.AccionAuditada;
-import com.aguavigia.ctg.domain.ClaveEnClaro;
 import com.aguavigia.ctg.domain.ClaveHash;
 import com.aguavigia.ctg.domain.ConsentimientosAceptados;
 import com.aguavigia.ctg.domain.ContextoDeAccion;
@@ -16,7 +15,6 @@ import com.aguavigia.ctg.domain.TipoConsentimiento;
 import com.aguavigia.ctg.domain.TipoTokenCuenta;
 import com.aguavigia.ctg.domain.Usuario;
 import com.aguavigia.ctg.domain.UsuarioId;
-import com.aguavigia.ctg.domain.port.out.CifradorClavePort;
 import com.aguavigia.ctg.domain.port.out.NotificacionCuentaPort;
 import com.aguavigia.ctg.domain.port.out.SectorRepository;
 import com.aguavigia.ctg.domain.port.out.TiempoConstantePort;
@@ -50,13 +48,11 @@ class RegistrarVecinoServiceTest {
     private static final ClaveHash HASH =
             new ClaveHash("$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy");
     private static final CorreoElectronico CORREO = new CorreoElectronico("vecina@ejemplo.org");
-    private static final ClaveEnClaro CLAVE = new ClaveEnClaro("clave-larga-y-variada");
     private static final SectorId MANGA = new SectorId("manga");
     private static final ConsentimientosAceptados SOLO_PRIVACIDAD = new ConsentimientosAceptados(true, false);
     private static final ContextoDeAccion CONTEXTO = ContextoDeAccion.anonimo("10.0.0.1");
 
     private UsuarioRepository usuarios;
-    private CifradorClavePort cifrador;
     private EmisorDeTokensDeCuenta emisorDeTokens;
     private NotificacionCuentaPort notificaciones;
     private RegistroDeAuditoria auditoria;
@@ -66,7 +62,6 @@ class RegistrarVecinoServiceTest {
     @BeforeEach
     void montar() {
         usuarios = mock(UsuarioRepository.class);
-        cifrador = mock(CifradorClavePort.class);
         emisorDeTokens = mock(EmisorDeTokensDeCuenta.class);
         notificaciones = mock(NotificacionCuentaPort.class);
         auditoria = mock(RegistroDeAuditoria.class);
@@ -78,19 +73,18 @@ class RegistrarVecinoServiceTest {
         }).when(tiempoConstante).ejecutar(any());
 
         given(usuarios.guardar(any())).willAnswer(invocacion -> invocacion.getArgument(0));
-        given(cifrador.cifrar(anyString())).willReturn(HASH);
         given(emisorDeTokens.emitir(any(), any())).willReturn("token-en-claro");
         given(sectores.buscarPorId(MANGA)).willReturn(Optional.of(new Sector(MANGA, "Manga", 1000, null)));
         given(usuarios.buscarPorCorreo(any())).willReturn(Optional.empty());
     }
 
     private RegistrarVecinoService registro() {
-        return new RegistrarVecinoService(usuarios, cifrador, emisorDeTokens, notificaciones, auditoria,
+        return new RegistrarVecinoService(usuarios, emisorDeTokens, notificaciones, auditoria,
                 () -> AHORA, sectores, tiempoConstante, "2026-10-v1");
     }
 
     private Usuario registrarYCapturar(ConsentimientosAceptados consentimientos) {
-        registro().registrar(CORREO, "Vecina", CLAVE, MANGA, consentimientos, CONTEXTO);
+        registro().registrar(CORREO, "Vecina", MANGA, consentimientos, CONTEXTO);
         ArgumentCaptor<Usuario> guardado = ArgumentCaptor.forClass(Usuario.class);
         verify(usuarios).guardar(guardado.capture());
         return guardado.getValue();
@@ -101,12 +95,17 @@ class RegistrarVecinoServiceTest {
                 PermisosEfectivos.deRol(RolVeedor.VEEDOR), null, AHORA, AHORA);
     }
 
+    /**
+     * El registro no recibe ninguna clave: si la recibiera, quien rellena el formulario con el correo de otra
+     * persona podría quedarse con su cuenta cuando ella confirmara el enlace.
+     */
     @Test
-    void debeCrearLaCuentaDeVecinoPendienteDeVerificacionConSuBarrio() {
+    void debeCrearLaCuentaDeVecinoSinClaveEnEsperaDeQueLaFijeDesdeElEnlaceConSuBarrio() {
         Usuario guardado = registrarYCapturar(SOLO_PRIVACIDAD);
 
         assertThat(guardado.permisos().rol()).isEqualTo(RolVeedor.VECINO);
-        assertThat(guardado.estado()).isEqualTo(EstadoCuenta.PENDIENTE_VERIFICACION);
+        assertThat(guardado.estado()).isEqualTo(EstadoCuenta.INVITADA);
+        assertThat(guardado.claveHash()).isNull();
         assertThat(guardado.barrio()).isEqualTo(MANGA);
         assertThat(guardado.barrioVerificado()).isFalse();
     }
@@ -132,17 +131,17 @@ class RegistrarVecinoServiceTest {
     }
 
     @Test
-    void debeMandarElEnlaceDeVerificacionYAuditarElRegistro() {
-        registro().registrar(CORREO, "Vecina", CLAVE, MANGA, SOLO_PRIVACIDAD, CONTEXTO);
+    void debeMandarElEnlaceParaElegirLaClaveYAuditarElRegistro() {
+        registro().registrar(CORREO, "Vecina", MANGA, SOLO_PRIVACIDAD, CONTEXTO);
 
-        verify(emisorDeTokens).emitir(any(), eq(TipoTokenCuenta.VERIFICACION_CORREO));
-        verify(notificaciones).enviarVerificacionDeCorreo(any(), eq("token-en-claro"));
+        verify(emisorDeTokens).emitir(any(), eq(TipoTokenCuenta.INVITACION));
+        verify(notificaciones).enviarActivacionDeVecino(any(), eq("token-en-claro"));
         verify(auditoria).registrar(eq(AccionAuditada.CUENTA_REGISTRADA), any(), anyString(), eq(CONTEXTO));
     }
 
     @Test
     void debeGuardarElCorreoNormalizado() {
-        registro().registrar(new CorreoElectronico("Vecina@Ejemplo.ORG"), "Vecina", CLAVE, MANGA,
+        registro().registrar(new CorreoElectronico("Vecina@Ejemplo.ORG"), "Vecina", MANGA,
                 SOLO_PRIVACIDAD, CONTEXTO);
 
         ArgumentCaptor<Usuario> guardado = ArgumentCaptor.forClass(Usuario.class);
@@ -153,7 +152,7 @@ class RegistrarVecinoServiceTest {
     /** Sin aceptar el aviso de privacidad no hay cuenta: se rechaza antes de mirar el correo (RNF024). */
     @Test
     void debeRechazarElRegistroSinAceptarLaPrivacidad() {
-        assertThatThrownBy(() -> registro().registrar(CORREO, "Vecina", CLAVE, MANGA,
+        assertThatThrownBy(() -> registro().registrar(CORREO, "Vecina", MANGA,
                 new ConsentimientosAceptados(false, true), CONTEXTO))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("privacidad");
@@ -163,7 +162,7 @@ class RegistrarVecinoServiceTest {
 
     @Test
     void debeRechazarElRegistroSinBarrio() {
-        assertThatThrownBy(() -> registro().registrar(CORREO, "Vecina", CLAVE, null, SOLO_PRIVACIDAD, CONTEXTO))
+        assertThatThrownBy(() -> registro().registrar(CORREO, "Vecina", null, SOLO_PRIVACIDAD, CONTEXTO))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("barrio");
         verify(usuarios, never()).buscarPorCorreo(any());
@@ -175,7 +174,7 @@ class RegistrarVecinoServiceTest {
         given(sectores.buscarPorId(any())).willReturn(Optional.empty());
         given(usuarios.buscarPorCorreo(any())).willReturn(Optional.of(cuentaExistente()));
 
-        assertThatThrownBy(() -> registro().registrar(CORREO, "Vecina", CLAVE, new SectorId("no-existe"),
+        assertThatThrownBy(() -> registro().registrar(CORREO, "Vecina", new SectorId("no-existe"),
                 SOLO_PRIVACIDAD, CONTEXTO))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("No existe el barrio");
@@ -188,34 +187,18 @@ class RegistrarVecinoServiceTest {
     void conUnCorreoYaRegistradoNoDebeCrearNadaNiFallar() {
         given(usuarios.buscarPorCorreo(any())).willReturn(Optional.of(cuentaExistente()));
 
-        registro().registrar(CORREO, "Vecina", CLAVE, MANGA, SOLO_PRIVACIDAD, CONTEXTO);
+        registro().registrar(CORREO, "Vecina", MANGA, SOLO_PRIVACIDAD, CONTEXTO);
 
         verify(usuarios, never()).guardar(any());
-        verify(notificaciones, never()).enviarVerificacionDeCorreo(any(), anyString());
+        verify(notificaciones, never()).enviarActivacionDeVecino(any(), anyString());
         verify(notificaciones).avisarCambioDeAcceso(any(), anyString(), anyString());
     }
 
     @Test
-    void conUnCorreoYaRegistradoDebeGastarElMismoTiempoQueUnAltaNueva() {
-        given(usuarios.buscarPorCorreo(any())).willReturn(Optional.of(cuentaExistente()));
-
-        registro().registrar(CORREO, "Vecina", CLAVE, MANGA, SOLO_PRIVACIDAD, CONTEXTO);
-
-        verify(cifrador).gastarTiempoEquivalente();
-    }
-
-    @Test
-    void conUnCorreoNuevoNoDebeGastarTiempoDeMas() {
-        registro().registrar(CORREO, "Vecina", CLAVE, MANGA, SOLO_PRIVACIDAD, CONTEXTO);
-
-        verify(cifrador, never()).gastarTiempoEquivalente();
-    }
-
-    @Test
     void debeIgualarLaDuracionExistaONoElCorreo() {
-        registro().registrar(CORREO, "Vecina", CLAVE, MANGA, SOLO_PRIVACIDAD, CONTEXTO);
+        registro().registrar(CORREO, "Vecina", MANGA, SOLO_PRIVACIDAD, CONTEXTO);
         given(usuarios.buscarPorCorreo(any())).willReturn(Optional.of(cuentaExistente()));
-        registro().registrar(CORREO, "Vecina", CLAVE, MANGA, SOLO_PRIVACIDAD, CONTEXTO);
+        registro().registrar(CORREO, "Vecina", MANGA, SOLO_PRIVACIDAD, CONTEXTO);
 
         verify(tiempoConstante, times(2)).ejecutar(any());
     }
@@ -225,8 +208,8 @@ class RegistrarVecinoServiceTest {
     void unaAltaConcurrenteConElMismoCorreoNoDebeFallarNiMandarElEnlace() {
         given(usuarios.guardar(any())).willThrow(new CorreoYaRegistradoException("vecina@ejemplo.org"));
 
-        registro().registrar(CORREO, "Vecina", CLAVE, MANGA, SOLO_PRIVACIDAD, CONTEXTO);
+        registro().registrar(CORREO, "Vecina", MANGA, SOLO_PRIVACIDAD, CONTEXTO);
 
-        verify(notificaciones, never()).enviarVerificacionDeCorreo(any(), anyString());
+        verify(notificaciones, never()).enviarActivacionDeVecino(any(), anyString());
     }
 }

@@ -10,8 +10,8 @@ import com.aguavigia.ctg.domain.port.out.UsuarioRepository;
 
 /**
  * Verificar el correo no da acceso al panel: mueve la cuenta a PENDIENTE_APROBACION y ahí se queda
- * hasta que un ADMIN decida. Es el punto donde el registro abierto deja de ser un riesgo. La cuenta
- * de un vecino es la excepción (D11): no tiene permisos de panel, así que pasa directo a ACTIVA.
+ * hasta que un ADMIN decida. Es el punto donde el registro abierto deja de ser un riesgo. Un vecino
+ * no pasa por aquí: se activa al fijar su clave desde el enlace (ver Usuario.registradoComoVecino).
  */
 public class VerificarCorreoService implements VerificarCorreoUseCase {
 
@@ -36,10 +36,7 @@ public class VerificarCorreoService implements VerificarCorreoUseCase {
         Usuario verificado = usuarios.guardar(usuario.verificarCorreo(reloj.ahora()));
 
         auditoria.registrarConAutor(AccionAuditada.CORREO_VERIFICADO, verificado, verificado,
-                verificado.esVecino()
-                        ? "Correo verificado; la cuenta de vecino queda activa"
-                        : "Correo verificado; espera aprobación de un administrador",
-                contexto);
+                "Correo verificado; espera aprobación de un administrador", contexto);
         return verificado;
     }
 }

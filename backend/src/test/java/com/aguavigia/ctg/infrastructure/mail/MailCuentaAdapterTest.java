@@ -66,22 +66,23 @@ class MailCuentaAdapterTest {
 
     private static Usuario vecino(String nombre) {
         return Usuario.registradoComoVecino(new UsuarioId("v-1"), new CorreoElectronico("vecina@correo.com"),
-                nombre, new com.aguavigia.ctg.domain.ClaveHash(
-                        "$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy"),
-                new com.aguavigia.ctg.domain.SectorId("manga"),
+                nombre, new com.aguavigia.ctg.domain.SectorId("manga"),
                 java.util.List.of(new com.aguavigia.ctg.domain.Consentimiento(
                         com.aguavigia.ctg.domain.TipoConsentimiento.PRIVACIDAD, "v1", AHORA)), AHORA);
     }
 
-    /** A un vecino nadie le revisa la solicitud ni le da acceso al panel: el correo no debe prometerlo. */
+    /**
+     * A un vecino nadie le revisa la solicitud ni le da acceso al panel: el correo no debe prometerlo. Y el enlace
+     * lleva a elegir la clave, porque no la fijó quien rellenó el formulario.
+     */
     @Test
-    void elCorreoDeVerificacionDeUnVecinoNoDebeHablarDelPanelNiDeAprobacion() throws Exception {
-        adaptador.enviarVerificacionDeCorreo(vecino("Vecina"), "tok-verif");
+    void elCorreoDeActivacionDeUnVecinoLlevaAElegirLaClaveSinHablarDelPanelNiDeAprobacion() throws Exception {
+        adaptador.enviarActivacionDeVecino(vecino("Vecina"), "tok-activ");
 
         ArgumentCaptor<MimeMessage> captor = ArgumentCaptor.forClass(MimeMessage.class);
         verify(mailSender).send(captor.capture());
         String cuerpo = captor.getValue().getContent().toString();
-        assertThat(cuerpo).contains(URL_PUBLICA + "/api/cuentas/enlaces/verificar?token=tok-verif")
+        assertThat(cuerpo).contains(URL_PUBLICA + "/api/cuentas/enlaces/invitacion?token=tok-activ")
                 .doesNotContain("panel").doesNotContain("administrador");
         assertThat(captor.getValue().getSubject()).doesNotContain("panel");
     }
@@ -137,6 +138,26 @@ class MailCuentaAdapterTest {
         adaptador.avisarCambioDeAcceso(usuario("Ana"), "Tu acceso fue aprobado", "Ya puedes entrar al panel.");
 
         assertThat(cuerpoEnviado()).contains("Tu acceso fue aprobado").contains("Ya puedes entrar al panel.");
+    }
+
+    /** El log de un envío fallido no debe dejar el correo completo de una vecina: es un dato personal. */
+    @Test
+    void siFallaElEnvioElLogNoDebeLlevarElCorreoCompleto() {
+        var logger = (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(MailCuentaAdapter.class);
+        var captura = new ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent>();
+        captura.start();
+        logger.addAppender(captura);
+        try {
+            willThrow(new MailSendException("SMTP caído")).given(mailSender).send(any(MimeMessage.class));
+
+            adaptador.enviarVerificacionDeCorreo(usuario("Ana"), "t");
+
+            assertThat(captura.list).isNotEmpty();
+            assertThat(captura.list).allSatisfy(evento ->
+                    assertThat(evento.getFormattedMessage()).doesNotContain("persona@correo.com").contains("p***@correo.com"));
+        } finally {
+            logger.detachAppender(captura);
+        }
     }
 
     @Test

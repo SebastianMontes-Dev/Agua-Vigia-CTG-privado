@@ -14,6 +14,14 @@ public interface UsuarioRepository {
 
     Usuario guardar(Usuario usuario);
 
+    /**
+     * Guarda solo si la cuenta sigue como se leyó (su {@code actualizadoEn} no cambió). Quien lee una cuenta, la
+     * modifica y la guarda no debe pisar lo que otro escribió entre medias: una suspensión del administrador no puede
+     * deshacerse porque el vecino editaba su perfil a la vez. Si cambió o ya no existe lanza
+     * {@link IllegalStateException}, que la API responde como 409 para que el cliente reintente.
+     */
+    Usuario guardarSiNoCambio(Usuario usuario, java.time.Instant actualizadoEnLeido);
+
     Optional<Usuario> buscarPorId(UsuarioId id);
 
     /** El correo es la identidad de acceso: el adaptador lo busca normalizado a minúsculas. */

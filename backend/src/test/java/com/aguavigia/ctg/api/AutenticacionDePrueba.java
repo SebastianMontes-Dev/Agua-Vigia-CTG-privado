@@ -33,14 +33,14 @@ final class AutenticacionDePrueba {
                 Instant.parse("2026-08-09T20:00:00Z"));
     }
 
-    /** Un ADMIN: tiene GESTIONAR_PERFIL_PROPIO por heredar todos los permisos, pero no es un vecino. */
+    /** Un ADMIN: todos los permisos del panel y ninguno de vecino. */
     static SesionAutenticada sesionDeAdmin() {
         return new SesionAutenticada(
                 USUARIO_ID,
                 "admin@aguavigia.test",
                 "Admin de prueba",
                 "ADMIN",
-                Set.of(Permiso.values()),
+                java.util.EnumSet.complementOf(java.util.EnumSet.of(Permiso.GESTIONAR_PERFIL_PROPIO)),
                 AlcanceSesion.COMPLETO,
                 Instant.parse("2026-08-09T20:00:00Z"));
     }

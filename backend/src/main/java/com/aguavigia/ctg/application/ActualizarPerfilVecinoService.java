@@ -70,7 +70,7 @@ public class ActualizarPerfilVecinoService implements ActualizarPerfilVecinoUseC
         if (cambiados.isEmpty()) {
             return actual;
         }
-        Usuario guardado = usuarios.guardar(nuevo);
+        Usuario guardado = usuarios.guardarSiNoCambio(nuevo, actual.actualizadoEn());
         auditoria.registrarConAutor(AccionAuditada.PERFIL_ACTUALIZADO, guardado, guardado,
                 "Perfil actualizado: " + String.join(", ", cambiados), contexto);
         return guardado;

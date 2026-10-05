@@ -99,10 +99,10 @@ class VecinoControllerTest {
     }
 
     private static Usuario vecino() {
-        return Usuario.registradoComoVecino(ID, new CorreoElectronico("vecina@ejemplo.org"), "Vecina", HASH,
+        return Usuario.registradoComoVecino(ID, new CorreoElectronico("vecina@ejemplo.org"), "Vecina",
                         new SectorId("manga"),
                         List.of(new Consentimiento(TipoConsentimiento.PRIVACIDAD, "2026-10-v1", AHORA)), AHORA)
-                .verificarCorreo(AHORA);
+                .aceptarInvitacion(HASH, AHORA);
     }
 
     // --- POST /api/vecino/sesion ---
@@ -177,17 +177,6 @@ class VecinoControllerTest {
                 .andExpect(jsonPath("$.consentimientos[0].version").value("2026-10-v1"))
                 .andExpect(jsonPath("$.claveHash").doesNotExist())
                 .andExpect(jsonPath("$.segundoFactorActivo").doesNotExist());
-    }
-
-    @Test
-    void yoDeUnaCuentaQueNoEsDeVecinoDebeResponder401() throws Exception {
-        autenticadoCon(Permiso.GESTIONAR_PERFIL_PROPIO);
-        given(cuentas.buscar(ID)).willReturn(Optional.of(
-                Usuario.invitado(ID, new CorreoElectronico("admin@ejemplo.org"), "Admin",
-                        com.aguavigia.ctg.domain.RolVeedor.ADMIN, AHORA)));
-
-        mockMvc.perform(get("/api/vecino/yo").header("Authorization", "Bearer " + TOKEN))
-                .andExpect(status().isUnauthorized());
     }
 
     // --- PATCH /api/vecino/perfil ---

@@ -88,7 +88,7 @@ public class VerificarBarrioVecinoService implements VerificarBarrioVecinoUseCas
                     "La ubicación no cae dentro del barrio que declaraste (" + actual.barrio().valor() + ").");
         }
 
-        Usuario verificado = usuarios.guardar(actual.verificarBarrio(reloj.ahora()));
+        Usuario verificado = usuarios.guardarSiNoCambio(actual.verificarBarrio(reloj.ahora()), actual.actualizadoEn());
         auditoria.registrarConAutor(AccionAuditada.BARRIO_VERIFICADO, verificado, verificado,
                 "Barrio verificado con la ubicación del momento; la coordenada no se guarda", contexto);
         return verificado;
