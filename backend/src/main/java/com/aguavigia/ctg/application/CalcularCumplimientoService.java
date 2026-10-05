@@ -2,6 +2,9 @@ package com.aguavigia.ctg.application;
 
 import com.aguavigia.ctg.domain.EntidadNoEncontradaException;
 import com.aguavigia.ctg.domain.AgregadoDuraciones;
+import com.aguavigia.ctg.domain.CalidadDelCumplimiento;
+import com.aguavigia.ctg.domain.CalidadDelDato;
+import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.CorteAgua;
 import com.aguavigia.ctg.domain.CorteId;
 import com.aguavigia.ctg.domain.IndiceCumplimiento;
@@ -28,9 +31,11 @@ import java.util.List;
 public class CalcularCumplimientoService implements CalcularCumplimientoUseCase {
 
     private final CorteAguaRepository cortes;
+    private final RelojPort reloj;
 
-    public CalcularCumplimientoService(CorteAguaRepository cortes) {
+    public CalcularCumplimientoService(CorteAguaRepository cortes, RelojPort reloj) {
         this.cortes = cortes;
+        this.reloj = reloj;
     }
 
     @Override
@@ -43,23 +48,33 @@ public class CalcularCumplimientoService implements CalcularCumplimientoUseCase 
         }
 
         // Sin sectorId: un corte puede afectar varios sectores a la vez, y quien pregunta por un
-        // corteId concreto ya sabe cuál es — repetirlo aquí no aporta información nueva.
-        return indiceDe(null, List.of(corte.ventana()));
+        // corteId concreto ya sabe cuál es — repetirlo aquí no aporta información nueva. Cuenta cada barrio con su propio
+        // cierre (D14), igual que el índice global.
+        Duration prometida = Duration.ZERO;
+        Duration real = Duration.ZERO;
+        long provisionales = 0;
+        for (var cierre : corte.cierres().values()) {
+            prometida = prometida.plus(Duration.between(corte.ventana().inicio(), corte.ventana().finPrometido()));
+            real = real.plus(Duration.between(corte.ventana().inicio(), cierre.hora()));
+            if (cierre.provisional()) {
+                provisionales++;
+            }
+        }
+        return construirIndice(null, prometida, real, new AgregadoDuraciones(prometida, real, corte.cierres().size(), provisionales),
+                CalidadDelDato.vacia());
     }
 
     @Override
     public IndiceCumplimiento porSector(SectorId sectorId) {
-        List<VentanaTiempo> ventanasCerradas = cortes.listarPorSector(sectorId).stream()
-                .map(CorteAgua::ventana)
-                .filter(VentanaTiempo::estaCerrada)
-                .toList();
+        AgregadoDuraciones agregado = cortes.agregarCerrados(sectorId);
 
-        if (ventanasCerradas.isEmpty()) {
+        if (agregado.cantidadCortes() == 0) {
             throw new IllegalArgumentException(
                     "No hay cortes cerrados para el sector '" + sectorId.valor() + "'");
         }
 
-        return indiceDe(sectorId, ventanasCerradas);
+        return construirIndice(sectorId, agregado.duracionPrometida(), agregado.duracionReal(), agregado,
+                cortes.calidadDelDato(sectorId, reloj.ahora()));
     }
 
     /**
@@ -75,7 +90,16 @@ public class CalcularCumplimientoService implements CalcularCumplimientoUseCase 
             throw new IllegalArgumentException("No hay cortes cerrados todavía");
         }
 
-        return construirIndice(null, agregado.duracionPrometida(), agregado.duracionReal());
+        return construirIndice(null, agregado.duracionPrometida(), agregado.duracionReal(), agregado,
+                cortes.calidadDelDato(null, reloj.ahora()));
+    }
+
+    @Override
+    public CalidadDelCumplimiento calidad(SectorId sectorId) {
+        AgregadoDuraciones agregado = cortes.agregarCerrados(sectorId);
+        CalidadDelDato calidad = cortes.calidadDelDato(sectorId, reloj.ahora());
+        return new CalidadDelCumplimiento(agregado.cantidadCortes(), agregado.cierresProvisionales(),
+                porcentajeProvisional(agregado), calidad.cortesSinCierreConfirmado(), calidad.cortesAnulados());
     }
 
     /**
@@ -95,30 +119,25 @@ public class CalcularCumplimientoService implements CalcularCumplimientoUseCase 
         return cortes.agregarCerradosPorMes(sectorId, desde, hasta).stream()
                 .map(punto -> new PuntoSerieCumplimiento(
                         punto.periodo(),
-                        construirIndice(sectorId, punto.agregado().duracionPrometida(), punto.agregado().duracionReal()),
+                        construirIndice(sectorId, punto.agregado().duracionPrometida(), punto.agregado().duracionReal(),
+                                punto.agregado(), CalidadDelDato.vacia()),
                         Math.toIntExact(punto.agregado().cantidadCortes())))
                 .toList();
     }
 
-    private static IndiceCumplimiento indiceDe(SectorId sectorId, List<VentanaTiempo> ventanas) {
-        Duration duracionPrometida = ventanas.stream()
-                .map(v -> Duration.between(v.inicio(), v.finPrometido()))
-                .reduce(Duration.ZERO, Duration::plus);
-        Duration duracionReal = ventanas.stream()
-                .map(v -> Duration.between(v.inicio(), v.finReal()))
-                .reduce(Duration.ZERO, Duration::plus);
-
-        return construirIndice(sectorId, duracionPrometida, duracionReal);
-    }
-
-    private static IndiceCumplimiento construirIndice(
-            SectorId sectorId, Duration duracionPrometida, Duration duracionReal) {
+    private static IndiceCumplimiento construirIndice(SectorId sectorId, Duration duracionPrometida, Duration duracionReal,
+                                                      AgregadoDuraciones agregado, CalidadDelDato calidad) {
         Duration desviacion = duracionReal.minus(duracionPrometida);
 
         double porcentajeCumplimiento = duracionReal.isZero()
                 ? 100.0
                 : Math.min(100.0, (duracionPrometida.toSeconds() * 100.0) / duracionReal.toSeconds());
 
-        return new IndiceCumplimiento(sectorId, duracionPrometida, duracionReal, desviacion, porcentajeCumplimiento);
+        return new IndiceCumplimiento(sectorId, duracionPrometida, duracionReal, desviacion, porcentajeCumplimiento,
+                porcentajeProvisional(agregado), calidad.cortesSinCierreConfirmado(), calidad.cortesAnulados());
+    }
+
+    private static double porcentajeProvisional(AgregadoDuraciones agregado) {
+        return agregado.cantidadCortes() == 0 ? 0 : agregado.cierresProvisionales() * 100.0 / agregado.cantidadCortes();
     }
 }

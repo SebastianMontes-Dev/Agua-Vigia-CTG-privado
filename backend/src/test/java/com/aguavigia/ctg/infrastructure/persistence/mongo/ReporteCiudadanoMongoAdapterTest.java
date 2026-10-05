@@ -343,6 +343,7 @@ class ReporteCiudadanoMongoAdapterTest {
         assertThat(adaptador.buscarPorId(new ReporteId("r21")).orElseThrow().fotoUrl())
                 .isEqualTo("/fotos/dos.jpg");
     }
+
     private static ReporteCiudadano conFoto(String id, String url) {
         return new ReporteCiudadano(new ReporteId(id), new SectorId("bocagrande"), TipoReporte.SIN_AGUA, null,
                 new HuellaDispositivo("hash-" + id), AHORA).aprobar().conFoto(url, "b".repeat(64));
@@ -379,5 +380,91 @@ class ReporteCiudadanoMongoAdapterTest {
         assertThat(adaptador.buscarPorNombreDeFoto("inexistente.jpg")).isEmpty();
     }
 
+    private static ReporteCiudadano deRed(String id, String sector, String red, Instant cuando) {
+        return new ReporteCiudadano(new ReporteId(id), new SectorId(sector), TipoReporte.SIN_AGUA, null,
+                new HuellaDispositivo("h-" + id), cuando, EstadoModeracion.PENDIENTE, null, java.util.Set.of(), false,
+                com.aguavigia.ctg.domain.NivelDeVerificacion.NINGUNA, red);
+    }
 
+    /** D9: la ráfaga es de una red en un barrio dentro de la ventana; el mínimo se alcanza, no se supera. */
+    @Test
+    void redesEnRafagaDebeDevolverLasRedesQueLlegaronAlMinimoEnElBarrio() {
+        Instant reciente = AHORA.minus(Duration.ofMinutes(5));
+        for (int i = 0; i < 3; i++) {
+            adaptador.guardar(deRed("crespo-a" + i, "crespo", "red-a", reciente));
+        }
+        adaptador.guardar(deRed("crespo-b", "crespo", "red-b", reciente));
+        // La misma red repartida en otro barrio no suma al de Crespo, y por sí sola no llega a 3.
+        adaptador.guardar(deRed("manga-a", "manga", "red-a", reciente));
+
+        var rafagas = adaptador.redesEnRafaga(
+                List.of(new SectorId("crespo"), new SectorId("manga")), AHORA.minus(Duration.ofMinutes(30)), 3);
+
+        assertThat(rafagas).containsExactly(new com.aguavigia.ctg.domain.RedEnRafaga(new SectorId("crespo"), "red-a"));
+    }
+
+    @Test
+    void redesEnRafagaIgnoraLoAnteriorALaVentanaLosBarriosNoPedidosYLosReportesSinRed() {
+        Instant viejo = AHORA.minus(Duration.ofHours(2));
+        for (int i = 0; i < 3; i++) {
+            adaptador.guardar(deRed("viejo" + i, "crespo", "red-a", viejo));
+            adaptador.guardar(deRed("sin-red" + i, "crespo", null, AHORA.minus(Duration.ofMinutes(1))));
+            adaptador.guardar(deRed("otro" + i, "manga", "red-c", AHORA.minus(Duration.ofMinutes(1))));
+        }
+
+        assertThat(adaptador.redesEnRafaga(
+                List.of(new SectorId("crespo")), AHORA.minus(Duration.ofMinutes(30)), 3)).isEmpty();
+    }
+
+    /** Descartar un reporte de la ráfaga no la borra: es la señal de que esa red mandó spam. */
+    @Test
+    void redesEnRafagaCuentaTambienLoYaModerado() {
+        Instant reciente = AHORA.minus(Duration.ofMinutes(5));
+        adaptador.guardar(deRed("m1", "crespo", "red-a", reciente));
+        adaptador.guardar(deRed("m2", "crespo", "red-a", reciente).descartar());
+        adaptador.guardar(deRed("m3", "crespo", "red-a", reciente).aprobar());
+
+        assertThat(adaptador.redesEnRafaga(List.of(new SectorId("crespo")), AHORA.minus(Duration.ofMinutes(30)), 3))
+                .hasSize(1);
+    }
+
+    /** D29: un voto por identidad y barrio (el más reciente), dentro de la ventana y sin lo descartado. */
+    @Test
+    void votosRecientesDevuelveElUltimoReporteDeCadaIdentidadEnCadaBarrio() {
+        Instant desde = AHORA.minus(Duration.ofMinutes(30));
+        adaptador.guardar(unaHuella("v1", "crespo", "h-1", AHORA.minus(Duration.ofMinutes(20))));
+        adaptador.guardar(unaHuella("v2", "crespo", "h-1", AHORA.minus(Duration.ofMinutes(5))));
+        adaptador.guardar(unaHuella("v3", "manga", "h-1", AHORA.minus(Duration.ofMinutes(10))));
+        adaptador.guardar(unaHuella("v4", "crespo", "h-2", AHORA.minus(Duration.ofMinutes(2))).descartar());
+        adaptador.guardar(unaHuella("v5", "crespo", "h-3", AHORA.minus(Duration.ofHours(1))));
+
+        var votos = adaptador.votosRecientes(desde);
+
+        assertThat(votos).extracting(v -> v.sector().valor() + "/" + v.huella().hash() + "/" + v.instante())
+                .containsExactlyInAnyOrder(
+                        "crespo/h-1/" + AHORA.minus(Duration.ofMinutes(5)),
+                        "manga/h-1/" + AHORA.minus(Duration.ofMinutes(10)));
+    }
+
+    private static ReporteCiudadano unaHuella(String id, String sector, String huella, Instant cuando) {
+        return new ReporteCiudadano(new ReporteId(id), new SectorId(sector), TipoReporte.SIN_AGUA, null,
+                new HuellaDispositivo(huella), cuando);
+    }
+
+    @Test
+    void redesEnRafagaSinBarriosNoConsultaNada() {
+        assertThat(adaptador.redesEnRafaga(List.of(), AHORA.minus(Duration.ofMinutes(30)), 3)).isEmpty();
+    }
+
+    @Test
+    void quitarFotosDeDebeLimpiarTambienElHashYElDescarte() {
+        adaptador.guardar(conFoto("r34", "/api/fotos/dos.jpg").descartarFoto());
+
+        adaptador.quitarFotosDe(List.of(new ReporteId("r34")));
+
+        ReporteCiudadano leido = adaptador.buscarPorId(new ReporteId("r34")).orElseThrow();
+        assertThat(leido.fotoUrl()).isNull();
+        assertThat(leido.fotoSha256()).isNull();
+        assertThat(leido.fotoDescartada()).isFalse();
+    }
 }

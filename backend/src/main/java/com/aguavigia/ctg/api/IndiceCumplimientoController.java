@@ -1,5 +1,6 @@
 package com.aguavigia.ctg.api;
 
+import com.aguavigia.ctg.api.dto.CalidadDelCumplimientoRespuesta;
 import com.aguavigia.ctg.api.dto.IndiceCumplimientoRespuesta;
 import com.aguavigia.ctg.api.dto.PuntoSerieRespuesta;
 import com.aguavigia.ctg.api.mapper.CumplimientoApiMapper;
@@ -82,6 +83,18 @@ public class IndiceCumplimientoController {
     @GetMapping
     public IndiceCumplimientoRespuesta global() {
         return mapper.aRespuesta(calcularCumplimiento.global());
+    }
+
+    @Operation(summary = "Calidad del dato del índice: cuánto se midió y cuánto no",
+            description = """
+                    Cuantos cierres sostienen el indice, cuantos son provisionales, y cuantos cortes ya vencidos no tienen
+                    cierre en algun barrio. Responde aunque no haya un solo cierre —cuando `/api/cumplimiento` responde
+                    400—: es lo que permite mostrar «sin datos suficientes» con cifras. `sectorId` es opcional.""")
+    @ApiResponse(responseCode = "200", description = "Calidad calculada")
+    @GetMapping("/calidad")
+    public CalidadDelCumplimientoRespuesta calidad(@RequestParam(required = false) String sectorId) {
+        return mapper.aRespuesta(calcularCumplimiento.calidad(
+                sectorId == null || sectorId.isBlank() ? null : new SectorId(sectorId)));
     }
 
     @Operation(summary = "Evolución del índice mes a mes (RF024)",

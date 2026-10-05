@@ -2,6 +2,7 @@ package com.aguavigia.ctg.infrastructure.persistence.redis;
 
 import com.aguavigia.ctg.domain.HuellaDispositivo;
 import com.aguavigia.ctg.domain.SectorId;
+import com.aguavigia.ctg.domain.VotoReciente;
 import com.aguavigia.ctg.domain.port.out.ContadorReportesPort;
 import com.aguavigia.ctg.domain.port.out.RelojPort;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Collection;
 
 /**
  * Ventana deslizante de reportes por sector (RF009-RF011), sobre un ZSET de Redis: score = instante
@@ -68,6 +70,21 @@ public class RedisContadorReportesAdapter implements ContadorReportesPort {
         long desde = ahora.minus(ventana).toEpochMilli();
         Long total = redis.opsForZSet().count(clave(sectorId), desde, ahora.toEpochMilli());
         return total == null ? 0L : total;
+    }
+
+    @Override
+    public void repoblar(Collection<VotoReciente> votos) {
+        long limite = reloj.ahora().minus(RETENCION_MAXIMA).toEpochMilli();
+        java.util.Set<SectorId> tocados = new java.util.HashSet<>();
+        for (VotoReciente voto : votos) {
+            if (voto.instante().toEpochMilli() < limite) {
+                continue;
+            }
+            // addIfAbsent (ZADD NX): un voto que ya estaba, con su instante, no se pisa.
+            redis.opsForZSet().addIfAbsent(clave(voto.sector()), voto.huella().hash(), voto.instante().toEpochMilli());
+            tocados.add(voto.sector());
+        }
+        tocados.forEach(sector -> redis.expire(clave(sector), RETENCION_MAXIMA));
     }
 
     /**

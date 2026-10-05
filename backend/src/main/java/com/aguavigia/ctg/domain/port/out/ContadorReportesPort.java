@@ -2,8 +2,10 @@ package com.aguavigia.ctg.domain.port.out;
 
 import com.aguavigia.ctg.domain.HuellaDispositivo;
 import com.aguavigia.ctg.domain.SectorId;
+import com.aguavigia.ctg.domain.VotoReciente;
 
 import java.time.Duration;
+import java.util.Collection;
 
 /** Ventana deslizante de reportes por sector — implementado con Redis (ADR-003). */
 public interface ContadorReportesPort {
@@ -11,6 +13,13 @@ public interface ContadorReportesPort {
     void registrar(SectorId sectorId, HuellaDispositivo huella);
 
     long contarRecientes(SectorId sectorId, Duration ventana);
+
+    /**
+     * D29 — devuelve a la ventana los votos que Mongo ya tenía (tras un reinicio o con Redis vaciado), cada uno con su
+     * instante original. Solo añade lo que falta: un voto que ya está, con su instante, no se toca, así que repoblar
+     * dos veces o con reportes llegando a la vez no desordena nada.
+     */
+    void repoblar(Collection<VotoReciente> votos);
 
     /**
      * RF006 — reserva un cupo para este dispositivo en este sector y devuelve si quedaba.

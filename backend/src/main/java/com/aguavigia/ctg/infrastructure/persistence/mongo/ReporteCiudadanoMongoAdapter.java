@@ -5,11 +5,13 @@ import com.aguavigia.ctg.domain.EstadoModeracion;
 import com.aguavigia.ctg.domain.EvidenciaVencida;
 import com.aguavigia.ctg.domain.HuellaDispositivo;
 import com.aguavigia.ctg.domain.Pagina;
+import com.aguavigia.ctg.domain.RedEnRafaga;
 import com.aguavigia.ctg.domain.NivelDeVerificacion;
 import com.aguavigia.ctg.domain.ReporteCiudadano;
 import com.aguavigia.ctg.domain.ReporteId;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.TipoReporte;
+import com.aguavigia.ctg.domain.VotoReciente;
 import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.ReporteCiudadanoRepository;
 import org.springframework.data.domain.Page;
@@ -25,6 +27,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -150,6 +153,39 @@ public class ReporteCiudadanoMongoAdapter implements ReporteCiudadanoRepository 
                 pagina,
                 tamano,
                 resultado.getTotalElements());
+    }
+
+    @Override
+    public List<VotoReciente> votosRecientes(Instant desde) {
+        Aggregation agregacion = Aggregation.newAggregation(
+                Aggregation.match(Criteria.where("timestamp").gte(desde)
+                        .and("estadoModeracion").ne(EstadoModeracion.DESCARTADO.name())),
+                Aggregation.group("sectorId", "huella").max("timestamp").as("instante"))
+                .withOptions(AggregationOptions.builder().allowDiskUse(true).build());
+        return mongoTemplate.aggregate(agregacion, "reportes", org.bson.Document.class).getMappedResults().stream()
+                .map(fila -> new VotoReciente(
+                        new SectorId(fila.get("_id", org.bson.Document.class).getString("sectorId")),
+                        new HuellaDispositivo(fila.get("_id", org.bson.Document.class).getString("huella")),
+                        fila.getDate("instante").toInstant()))
+                .toList();
+    }
+
+    @Override
+    public Set<RedEnRafaga> redesEnRafaga(Collection<SectorId> sectores, Instant desde, int minimo) {
+        if (sectores.isEmpty()) {
+            return Set.of();
+        }
+        Aggregation agregacion = Aggregation.newAggregation(
+                Aggregation.match(Criteria.where("sectorId").in(sectores.stream().map(SectorId::valor).toList())
+                        .and("timestamp").gte(desde)
+                        .and("redHash").ne(null)),
+                Aggregation.group("sectorId", "redHash").count().as("reportes"),
+                Aggregation.match(Criteria.where("reportes").gte(minimo)))
+                .withOptions(AggregationOptions.builder().allowDiskUse(true).build());
+        return mongoTemplate.aggregate(agregacion, "reportes", org.bson.Document.class).getMappedResults().stream()
+                .map(fila -> fila.get("_id", org.bson.Document.class))
+                .map(clave -> new RedEnRafaga(new SectorId(clave.getString("sectorId")), clave.getString("redHash")))
+                .collect(Collectors.toSet());
     }
 
     @Override

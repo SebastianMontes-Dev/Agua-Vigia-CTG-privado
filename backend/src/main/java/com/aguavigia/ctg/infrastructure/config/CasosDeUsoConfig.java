@@ -10,6 +10,8 @@ import com.aguavigia.ctg.application.EmitirTokenDeSubidaService;
 import com.aguavigia.ctg.application.EvaluarConsensoService;
 import com.aguavigia.ctg.application.ExpirarCortesVencidosService;
 import com.aguavigia.ctg.application.ConsultarModoDelSistemaService;
+import com.aguavigia.ctg.application.ListarReportesPendientesService;
+import com.aguavigia.ctg.application.RepoblarContadorDeReportesService;
 import com.aguavigia.ctg.application.ImportarVecinosSinteticosService;
 import com.aguavigia.ctg.application.LimitesDeReporte;
 import com.aguavigia.ctg.application.RecalcularSectorService;
@@ -172,33 +174,6 @@ public class CasosDeUsoConfig {
         return new ActualizarEstadosPorVentanaService(propuestas, cortes, recalcular, reloj, reglas.expiraTrasFin());
     }
 
-    @Bean
-    public ExpirarCortesVencidosService expirarCortesVencidosService(
-            CorteAguaRepository cortes, RegistrarEventoBitacoraUseCase registrarEvento,
-            RecalcularSectorUseCase recalcular, RelojPort reloj, TransaccionPort transaccion, ReglasDeEstado reglas) {
-        return new ExpirarCortesVencidosService(cortes, registrarEvento, recalcular, reloj, transaccion,
-                reglas.expiraTrasFin());
-    }
-
-    @Bean
-    public RecalcularSectorService recalcularSectorService(
-            SectorRepository sectores, CorteAguaRepository cortes, PropuestaIngestaRepository propuestas,
-            ReporteCiudadanoRepository reportes, EstrategiaConsenso estrategia, ResolutorDeEstadoSector resolutor,
-            RegistrarEventoBitacoraUseCase registrarEvento, RelojPort reloj, TransaccionPort transaccion,
-            @Value("${aguavigia.consenso.ventana-minutos:30}") long ventanaMinutos,
-            @Value("${aguavigia.consenso.redes-minimas:2}") int redesMinimas) {
-        return new RecalcularSectorService(sectores, cortes, propuestas, reportes, estrategia, resolutor,
-                registrarEvento, reloj, transaccion, Duration.ofMinutes(ventanaMinutos), redesMinimas);
-    }
-
-    @Bean
-    public RegistrarLecturaDePresionService registrarLecturaDePresionService(
-            SectorRepository sectores, RegistrarReporteUseCase registrarReporte,
-            @Value("${aguavigia.iot.umbral-presion-baja-psi:15.0}") double umbralPresionBajaPsi,
-            @Value("${aguavigia.iot.umbral-presion-normal-psi:20.0}") double umbralPresionNormalPsi) {
-        return new RegistrarLecturaDePresionService(sectores, registrarReporte, umbralPresionBajaPsi,
-                umbralPresionNormalPsi);
-    }
     /** Qué instancia es: `aguavigia.sistema.modo` (REAL por defecto; la instancia de simulación pone SIMULACION). */
     @Bean
     public ConsultarModoDelSistemaService consultarModoDelSistemaService(
@@ -246,6 +221,48 @@ public class CasosDeUsoConfig {
                 transaccion, auditoria, reglas.expiraTrasFin());
     }
 
+    @Bean
+    public ExpirarCortesVencidosService expirarCortesVencidosService(
+            CorteAguaRepository cortes, RegistrarEventoBitacoraUseCase registrarEvento,
+            RecalcularSectorUseCase recalcular, RelojPort reloj, TransaccionPort transaccion, ReglasDeEstado reglas) {
+        return new ExpirarCortesVencidosService(cortes, registrarEvento, recalcular, reloj, transaccion,
+                reglas.expiraTrasFin());
+    }
+
+    @Bean
+    public RepoblarContadorDeReportesService repoblarContadorDeReportesService(
+            ReporteCiudadanoRepository reportes, ContadorReportesPort contador, RelojPort reloj,
+            @Value("${aguavigia.consenso.ventana-minutos:30}") long ventanaMinutos) {
+        return new RepoblarContadorDeReportesService(reportes, contador, reloj, Duration.ofMinutes(ventanaMinutos));
+    }
+
+    @Bean
+    public ListarReportesPendientesService listarReportesPendientesService(
+            ReporteCiudadanoRepository reportes, RelojPort reloj,
+            @Value("${aguavigia.moderacion.rafaga-ventana-minutos:30}") long ventanaMinutos,
+            @Value("${aguavigia.moderacion.rafaga-minima:5}") int minimoDeReportes) {
+        return new ListarReportesPendientesService(reportes, reloj, Duration.ofMinutes(ventanaMinutos), minimoDeReportes);
+    }
+
+    @Bean
+    public RecalcularSectorService recalcularSectorService(
+            SectorRepository sectores, CorteAguaRepository cortes, PropuestaIngestaRepository propuestas,
+            ReporteCiudadanoRepository reportes, EstrategiaConsenso estrategia, ResolutorDeEstadoSector resolutor,
+            RegistrarEventoBitacoraUseCase registrarEvento, RelojPort reloj, TransaccionPort transaccion,
+            @Value("${aguavigia.consenso.ventana-minutos:30}") long ventanaMinutos,
+            @Value("${aguavigia.consenso.redes-minimas:2}") int redesMinimas) {
+        return new RecalcularSectorService(sectores, cortes, propuestas, reportes, estrategia, resolutor,
+                registrarEvento, reloj, transaccion, Duration.ofMinutes(ventanaMinutos), redesMinimas);
+    }
+
+    @Bean
+    public RegistrarLecturaDePresionService registrarLecturaDePresionService(
+            SectorRepository sectores, RegistrarReporteUseCase registrarReporte,
+            @Value("${aguavigia.iot.umbral-presion-baja-psi:15.0}") double umbralPresionBajaPsi,
+            @Value("${aguavigia.iot.umbral-presion-normal-psi:20.0}") double umbralPresionNormalPsi) {
+        return new RegistrarLecturaDePresionService(sectores, registrarReporte, umbralPresionBajaPsi,
+                umbralPresionNormalPsi);
+    }
 
     @Bean
     public RegistrarReporteService registrarReporteService(

@@ -15,5 +15,13 @@ public record ReporteModeracionRespuesta(
         @Schema(description = "PENDIENTE, APROBADO o DESCARTADO")
         String estadoModeracion,
         @Schema(description = "CUENTA_VERIFICADA, UBICACION_VERIFICADA o NINGUNA: cuánto respalda el servidor que quien reporta está en el barrio")
-        String verificacion) {
+        String verificacion,
+        @Schema(description = "SIN_FOTO, EN_REVISION, PUBLICA o DESCARTADA")
+        String fotoEstado,
+        @Schema(description = "Ruta de la foto para el panel (`/api/veedor/fotos/{nombre}`), que la ve en cualquier estado. Nulo si no hay foto")
+        String fotoUrl,
+        @Schema(description = "Solo en la cola de pendientes: el reporte viene de una red (resumen diario de la IP, que no se expone) que ya envio una "
+                + "rafaga de reportes a este barrio. No bloquea nada: es donde mirar primero. Nulo en el resto de respuestas",
+                nullable = true)
+        Boolean senalRed) {
 }

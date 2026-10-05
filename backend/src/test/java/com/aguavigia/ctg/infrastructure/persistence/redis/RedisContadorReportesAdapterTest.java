@@ -75,6 +75,30 @@ class RedisContadorReportesAdapterTest {
         }
     }
 
+    /** D29: tras vaciar Redis, los votos de Mongo vuelven con su instante original y la ventana los cuenta. */
+    @Test
+    void repoblarDevuelveLosVotosConSuInstanteOriginal() {
+        Instant ahora = Instant.parse("2026-08-08T15:30:00Z");
+        adaptador.repoblar(java.util.List.of(
+                new com.aguavigia.ctg.domain.VotoReciente(MANGA, HUELLA_A, ahora.minus(Duration.ofMinutes(10))),
+                new com.aguavigia.ctg.domain.VotoReciente(MANGA, HUELLA_B, ahora.minus(Duration.ofMinutes(50)))));
+
+        // El de hace 50 minutos está en Redis pero fuera de la ventana de 30.
+        assertThat(adaptador.contarRecientes(MANGA, Duration.ofMinutes(30))).isEqualTo(1);
+        assertThat(adaptador.contarRecientes(MANGA, Duration.ofHours(2))).isEqualTo(2);
+    }
+
+    /** Repoblar no pisa un voto que Redis ya tenía, así que un reporte que llegó mientras tanto no retrocede. */
+    @Test
+    void repoblarNoPisaUnVotoQueYaEstaba() {
+        adaptador.registrar(MANGA, HUELLA_A);
+
+        adaptador.repoblar(java.util.List.of(new com.aguavigia.ctg.domain.VotoReciente(
+                MANGA, HUELLA_A, Instant.parse("2026-08-08T15:00:00Z"))));
+
+        assertThat(adaptador.contarRecientes(MANGA, Duration.ofMinutes(1))).isEqualTo(1);
+    }
+
     @Test
     void debeContarCeroCuandoNadieHaReportadoElSector() {
         assertThat(adaptador.contarRecientes(MANGA, Duration.ofMinutes(30))).isZero();

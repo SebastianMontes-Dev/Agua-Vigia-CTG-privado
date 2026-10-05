@@ -199,4 +199,41 @@ class IndiceCumplimientoControllerTest {
         // Horas y no segundos, y con coma decimal fijada en es-CO.
         assertThat(csv).contains("2026-08;4,0;8,0;4,0;50,0;2");
     }
+
+    // --- calidad del dato (D14) ---
+
+    @Test
+    void laRespuestaDelIndiceDeclaraLaCalidadDelDato() throws Exception {
+        given(calcularCumplimiento.global()).willReturn(new com.aguavigia.ctg.domain.IndiceCumplimiento(null,
+                java.time.Duration.ofHours(4), java.time.Duration.ofHours(8), java.time.Duration.ofHours(4), 50.0, 25.0, 7, 2));
+
+        mockMvc.perform(get("/api/cumplimiento"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.porcentajeProvisional").value(25.0))
+                .andExpect(jsonPath("$.cortesSinCierreConfirmado").value(7))
+                .andExpect(jsonPath("$.cortesAnulados").value(2));
+    }
+
+    /** Con cero cierres el índice responde 400, pero lo que no se pudo medir sí se puede contar. */
+    @Test
+    void laCalidadSeDeclaraAunqueNoHayaIndice() throws Exception {
+        given(calcularCumplimiento.calidad(null)).willReturn(
+                new com.aguavigia.ctg.domain.CalidadDelCumplimiento(0, 0, 0, 12, 1));
+
+        mockMvc.perform(get("/api/cumplimiento/calidad"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.cierresMedidos").value(0))
+                .andExpect(jsonPath("$.cortesSinCierreConfirmado").value(12))
+                .andExpect(jsonPath("$.cortesAnulados").value(1));
+    }
+
+    @Test
+    void laCalidadPuedePedirseDeUnBarrio() throws Exception {
+        given(calcularCumplimiento.calidad(new com.aguavigia.ctg.domain.SectorId("manga"))).willReturn(
+                new com.aguavigia.ctg.domain.CalidadDelCumplimiento(4, 1, 25.0, 0, 0));
+
+        mockMvc.perform(get("/api/cumplimiento/calidad").param("sectorId", "manga"))
+                .andExpect(jsonPath("$.cierresMedidos").value(4))
+                .andExpect(jsonPath("$.porcentajeProvisional").value(25.0));
+    }
 }

@@ -3,10 +3,11 @@ package com.aguavigia.ctg.api;
 import com.aguavigia.ctg.api.dto.ReporteModeracionRespuesta;
 import com.aguavigia.ctg.api.mapper.ReporteModeracionApiMapper;
 import com.aguavigia.ctg.domain.Pagina;
-import com.aguavigia.ctg.domain.ReporteCiudadano;
 import com.aguavigia.ctg.domain.ReporteId;
+import com.aguavigia.ctg.domain.ReportesPendientes;
+import com.aguavigia.ctg.domain.port.in.DescartarFotoUseCase;
+import com.aguavigia.ctg.domain.port.in.ListarReportesPendientesUseCase;
 import com.aguavigia.ctg.domain.port.in.ModerarReporteUseCase;
-import com.aguavigia.ctg.domain.port.out.ReporteCiudadanoRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -39,32 +40,36 @@ import java.util.List;
 public class ModeracionReporteController {
 
     private final ModerarReporteUseCase moderarReporte;
-    private final ReporteCiudadanoRepository reportes;
+    private final DescartarFotoUseCase descartarFoto;
+    private final ListarReportesPendientesUseCase listarPendientes;
     private final ReporteModeracionApiMapper mapper;
 
     public ModeracionReporteController(ModerarReporteUseCase moderarReporte,
-                                        ReporteCiudadanoRepository reportes,
+                                        DescartarFotoUseCase descartarFoto,
+                                        ListarReportesPendientesUseCase listarPendientes,
                                         ReporteModeracionApiMapper mapper) {
         this.moderarReporte = moderarReporte;
-        this.reportes = reportes;
+        this.descartarFoto = descartarFoto;
+        this.listarPendientes = listarPendientes;
         this.mapper = mapper;
     }
 
     @Operation(summary = "Listar los reportes pendientes de moderación, más antiguos primero",
             description = """
                     Paginado, con el total y el enlace a la siguiente página en las cabeceras
-                    `X-Total-Count` y `Link`. Por defecto 50; el máximo por página es 200.""")
+                    `X-Total-Count` y `Link`. Por defecto 50; el máximo por página es 200. Cada reporte trae `senalRed`:
+                    verdadero si viene de una red que ya envió una ráfaga de reportes a ese barrio (D9).""")
     @PreAuthorize("hasAuthority('PERM_VER_PANEL')")
     @GetMapping("/pendientes")
     public ResponseEntity<List<ReporteModeracionRespuesta>> listarPendientes(
             @RequestParam(required = false) Integer pagina,
             @RequestParam(required = false) Integer tamano) {
 
-        Pagina<ReporteCiudadano> resultado = reportes.listarPendientes(
+        ReportesPendientes resultado = listarPendientes.listar(
                 Pagina.paginaValida(pagina), Pagina.tamanoValido(tamano));
 
         return CabecerasDePaginacion.respuesta(
-                resultado, mapper.aRespuestas(resultado.contenido()), "/api/veedor/reportes/pendientes");
+                resultado.pagina(), mapper.aRespuestas(resultado), "/api/veedor/reportes/pendientes");
     }
 
     @Operation(summary = "Aprobar un reporte")
@@ -91,5 +96,24 @@ public class ModeracionReporteController {
     @PatchMapping("/{id}/descartar")
     public ReporteModeracionRespuesta descartar(@PathVariable String id) {
         return mapper.aRespuesta(moderarReporte.descartar(new ReporteId(id)));
+    }
+
+    @Operation(summary = "Descartar solo la foto de un reporte",
+            description = """
+                    El reporte sigue como esta (su voto no cambia); la foto deja de servirse al publico y el panel la
+                    sigue viendo como evidencia.""")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Foto descartada"),
+            @ApiResponse(responseCode = "404", description = "El reporte no existe",
+                    content = @Content(mediaType = "application/problem+json",
+                            schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "409", description = "El reporte no tiene foto",
+                    content = @Content(mediaType = "application/problem+json",
+                            schema = @Schema(implementation = ProblemDetail.class)))
+    })
+    @PreAuthorize("hasAuthority('PERM_MODERAR_REPORTES')")
+    @PatchMapping("/{id}/foto/descartar")
+    public ReporteModeracionRespuesta descartarFoto(@PathVariable String id) {
+        return mapper.aRespuesta(descartarFoto.descartarFoto(new ReporteId(id)));
     }
 }

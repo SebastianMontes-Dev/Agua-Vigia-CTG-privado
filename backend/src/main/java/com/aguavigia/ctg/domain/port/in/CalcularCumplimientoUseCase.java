@@ -1,5 +1,6 @@
 package com.aguavigia.ctg.domain.port.in;
 
+import com.aguavigia.ctg.domain.CalidadDelCumplimiento;
 import com.aguavigia.ctg.domain.CorteId;
 import com.aguavigia.ctg.domain.IndiceCumplimiento;
 import com.aguavigia.ctg.domain.PuntoSerieCumplimiento;
@@ -16,6 +17,12 @@ public interface CalcularCumplimientoUseCase {
     IndiceCumplimiento porSector(SectorId sectorId);
 
     IndiceCumplimiento global();
+
+    /**
+     * La calidad del dato de la ciudad entera, o de un barrio si {@code sectorId} no es nulo. A diferencia del índice, existe
+     * aunque no haya un solo cierre: es lo que permite decir «sin datos suficientes» con cifras.
+     */
+    CalidadDelCumplimiento calidad(SectorId sectorId);
 
     /**
      * RF024 — evolución del índice en el tiempo, un punto por mes con al menos un corte cerrado.

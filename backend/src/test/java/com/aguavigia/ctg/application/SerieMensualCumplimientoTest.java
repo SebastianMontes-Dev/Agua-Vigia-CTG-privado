@@ -33,7 +33,7 @@ class SerieMensualCumplimientoTest {
     @BeforeEach
     void montar() {
         cortes = mock(CorteAguaRepository.class);
-        servicio = new CalcularCumplimientoService(cortes);
+        servicio = new CalcularCumplimientoService(cortes, () -> java.time.Instant.parse("2026-10-02T08:00:00Z"));
     }
 
     @Test

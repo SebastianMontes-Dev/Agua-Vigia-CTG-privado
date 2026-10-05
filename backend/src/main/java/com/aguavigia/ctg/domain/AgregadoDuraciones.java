@@ -3,11 +3,17 @@ package com.aguavigia.ctg.domain;
 import java.time.Duration;
 
 /**
- * Suma de duraciones prometida/real de un conjunto de cortes cerrados, ya calculada por el
+ * Suma de duraciones prometida/real de un conjunto de cierres: cada par corte-barrio cerrado es un cierre (D14), ya calculada por el
  * adaptador (agregación Mongo) para no traer cada corte a memoria — ver
  * `CorteAguaRepository.agregarCerrados` (estado-del-backend.md #6.1, "Índice global sin paginar").
  */
-public record AgregadoDuraciones(Duration duracionPrometida, Duration duracionReal, long cantidadCortes) {
+public record AgregadoDuraciones(Duration duracionPrometida, Duration duracionReal, long cantidadCortes,
+                                  long cierresProvisionales) {
+
+    /** Sin cierres provisionales: lo que existía antes de contarlos. */
+    public AgregadoDuraciones(Duration duracionPrometida, Duration duracionReal, long cantidadCortes) {
+        this(duracionPrometida, duracionReal, cantidadCortes, 0);
+    }
 
     public AgregadoDuraciones {
         if (duracionPrometida == null || duracionReal == null) {
@@ -15,6 +21,9 @@ public record AgregadoDuraciones(Duration duracionPrometida, Duration duracionRe
         }
         if (cantidadCortes < 0) {
             throw new IllegalArgumentException("La cantidad de cortes no puede ser negativa");
+        }
+        if (cierresProvisionales < 0 || cierresProvisionales > cantidadCortes) {
+            throw new IllegalArgumentException("Los cierres provisionales deben estar entre 0 y la cantidad de cierres");
         }
     }
 

@@ -1,6 +1,7 @@
 package com.aguavigia.ctg.infrastructure.persistence.mongo;
 
 import com.aguavigia.ctg.domain.AgregadoDuraciones;
+import com.aguavigia.ctg.domain.CalidadDelDato;
 import com.aguavigia.ctg.domain.CierreDeCorte;
 import com.aguavigia.ctg.domain.CorteAgua;
 import com.aguavigia.ctg.domain.CorteId;
@@ -449,5 +450,121 @@ class CorteAguaMongoAdapterTest {
                 null, Instant.parse("2027-01-01T00:00:00Z"), null);
 
         assertThat(serie).isEmpty();
+    }
+
+    // --- el Índice por par corte-barrio (D14) ---
+
+    private CorteAgua corteConCierres(String id, List<String> sectores, Duration prometida,
+                                      java.util.Map<String, CierreDeCorte> cierres) {
+        CorteAgua corte = CorteAgua.builder()
+                .id(new CorteId(id))
+                .sectoresAfectados(sectores.stream().map(SectorId::new).toList())
+                .inicio(INICIO)
+                .finPrometido(INICIO.plus(prometida))
+                .causa("Mantenimiento")
+                .origen(OrigenCorte.OFICIAL_ACUACAR)
+                .estado(EstadoCorte.CONFIRMADO)
+                .build();
+        for (var cierre : cierres.entrySet()) {
+            corte = corte.cerrarSector(new SectorId(cierre.getKey()), cierre.getValue());
+        }
+        return corte;
+    }
+
+    private static CierreDeCorte cierreA(long horas, boolean provisional) {
+        return new CierreDeCorte(INICIO.plus(horas, ChronoUnit.HOURS),
+                provisional ? OrigenEstado.VECINOS : OrigenEstado.VEEDOR, provisional);
+    }
+
+    /** Un barrio restablecido a la una hora cuenta aunque el otro del mismo corte siga sin servicio: cada barrio vive su corte. */
+    @Test
+    void unCorteParcialmenteCerradoAportaSoloSusBarriosCerrados() {
+        adaptador.guardar(corteConCierres("parcial", List.of("manga", "bocagrande"), Duration.ofHours(6),
+                java.util.Map.of("manga", cierreA(3, false))));
+
+        AgregadoDuraciones agregado = adaptador.agregarCerrados(null);
+
+        assertThat(agregado.cantidadCortes()).as("pares corte-barrio cerrados").isEqualTo(1);
+        assertThat(agregado.duracionPrometida()).isEqualTo(Duration.ofHours(6));
+        assertThat(agregado.duracionReal()).isEqualTo(Duration.ofHours(3));
+        assertThat(adaptador.agregarCerrados(new SectorId("bocagrande")).cantidadCortes()).isZero();
+    }
+
+    @Test
+    void cadaBarrioDeUnCorteCerradoCuentaConSuPropiaHoraDeCierre() {
+        adaptador.guardar(corteConCierres("completo", List.of("manga", "bocagrande"), Duration.ofHours(6),
+                java.util.Map.of("manga", cierreA(3, false), "bocagrande", cierreA(8, false))));
+
+        AgregadoDuraciones global = adaptador.agregarCerrados(null);
+        assertThat(global.cantidadCortes()).isEqualTo(2);
+        assertThat(global.duracionPrometida()).isEqualTo(Duration.ofHours(12));
+        assertThat(global.duracionReal()).isEqualTo(Duration.ofHours(11));
+
+        AgregadoDuraciones soloBocagrande = adaptador.agregarCerrados(new SectorId("bocagrande"));
+        assertThat(soloBocagrande.cantidadCortes()).isEqualTo(1);
+        assertThat(soloBocagrande.duracionReal()).isEqualTo(Duration.ofHours(8));
+    }
+
+    @Test
+    void cuentaCuantosCierresSonProvisionales() {
+        adaptador.guardar(corteConCierres("mixto", List.of("manga", "bocagrande", "crespo"), Duration.ofHours(6),
+                java.util.Map.of("manga", cierreA(3, false), "bocagrande", cierreA(4, true), "crespo", cierreA(5, true))));
+
+        AgregadoDuraciones agregado = adaptador.agregarCerrados(null);
+
+        assertThat(agregado.cantidadCortes()).isEqualTo(3);
+        assertThat(agregado.cierresProvisionales()).isEqualTo(2);
+    }
+
+    @Test
+    void laSerieMensualUsaLaHoraDeCierreDeCadaBarrio() {
+        // Manga cierra el 9 de agosto; Bocagrande, 40 horas después: ya es 11 de agosto, mismo mes. Para cambiar de mes se usa otro corte.
+        adaptador.guardar(corteConCierres("agosto", List.of("manga"), Duration.ofHours(6),
+                java.util.Map.of("manga", cierreA(3, false))));
+        adaptador.guardar(corteConCierres("septiembre", List.of("manga"), Duration.ofHours(6),
+                java.util.Map.of("manga", new CierreDeCorte(INICIO.plus(30, ChronoUnit.DAYS), OrigenEstado.VEEDOR, false))));
+
+        List<PuntoAgregadoMensual> serie = adaptador.agregarCerradosPorMes(null, null, null);
+
+        assertThat(serie).hasSize(2);
+        assertThat(serie.get(0).agregado().cantidadCortes()).isEqualTo(1);
+        assertThat(serie.get(1).agregado().cantidadCortes()).isEqualTo(1);
+    }
+
+    // --- calidad del dato ---
+
+    private static final Instant DESPUES = INICIO.plus(30, ChronoUnit.DAYS);
+
+    @Test
+    void cuentaLosCortesVencidosSinCierreYLosAnulados() {
+        adaptador.guardar(corteDePrueba("expirado", EstadoCorte.EXPIRADO, List.of("manga")));
+        adaptador.guardar(corteDePrueba("vencido-abierto", EstadoCorte.CONFIRMADO, List.of("manga")));
+        adaptador.guardar(corteConCierres("parcial", List.of("manga", "bocagrande"), Duration.ofHours(6),
+                java.util.Map.of("manga", cierreA(3, false))));
+        adaptador.guardar(corteConCierres("completo", List.of("manga"), Duration.ofHours(6),
+                java.util.Map.of("manga", cierreA(3, false))));
+        adaptador.guardar(corteDePrueba("anulado", EstadoCorte.ANUNCIADO, List.of("manga")).anular("error de lectura"));
+
+        CalidadDelDato calidad = adaptador.calidadDelDato(null, DESPUES);
+
+        assertThat(calidad.cortesSinCierreConfirmado()).as("expirado, vencido sin cierre y el parcial").isEqualTo(3);
+        assertThat(calidad.cortesAnulados()).isEqualTo(1);
+    }
+
+    @Test
+    void unCorteQueAunNoVenceNoCuentaComoSinCierre() {
+        adaptador.guardar(corteDePrueba("vigente", EstadoCorte.CONFIRMADO, List.of("manga")));
+
+        assertThat(adaptador.calidadDelDato(null, INICIO.plus(1, ChronoUnit.HOURS)).cortesSinCierreConfirmado()).isZero();
+    }
+
+    @Test
+    void laCalidadPorBarrioSoloMiraLosCortesDeEseBarrio() {
+        adaptador.guardar(corteConCierres("parcial", List.of("manga", "bocagrande"), Duration.ofHours(6),
+                java.util.Map.of("manga", cierreA(3, false))));
+
+        assertThat(adaptador.calidadDelDato(new SectorId("manga"), DESPUES).cortesSinCierreConfirmado())
+                .as("manga ya cerró").isZero();
+        assertThat(adaptador.calidadDelDato(new SectorId("bocagrande"), DESPUES).cortesSinCierreConfirmado()).isEqualTo(1);
     }
 }

@@ -3,13 +3,16 @@ package com.aguavigia.ctg.domain.port.out;
 import com.aguavigia.ctg.domain.EvidenciaVencida;
 import com.aguavigia.ctg.domain.HuellaDispositivo;
 import com.aguavigia.ctg.domain.Pagina;
+import com.aguavigia.ctg.domain.RedEnRafaga;
 import com.aguavigia.ctg.domain.ReporteCiudadano;
 import com.aguavigia.ctg.domain.ReporteId;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.TipoReporte;
+import com.aguavigia.ctg.domain.VotoReciente;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -18,6 +21,12 @@ import java.util.Set;
 public interface ReporteCiudadanoRepository {
 
     ReporteCiudadano guardar(ReporteCiudadano reporte);
+
+    /**
+     * D29 — el reporte más reciente de cada identidad en cada barrio desde {@code desde}, sin lo que el veedor descartó:
+     * lo que el contador de Redis tendría si nunca se hubiera vaciado.
+     */
+    List<VotoReciente> votosRecientes(Instant desde);
 
     /** RF009-RF011 — sustento del consenso: excluye lo que el veedor ya descartó como spam. */
     List<ReporteCiudadano> listarRecientesPorSector(SectorId sectorId, Duration ventana);
@@ -63,6 +72,13 @@ public interface ReporteCiudadanoRepository {
      * cuando más grande es.
      */
     Pagina<ReporteCiudadano> listarPendientes(int pagina, int tamano);
+
+    /**
+     * D9 — las redes que enviaron al menos {@code minimo} reportes a un mismo barrio desde {@code desde}, de entre los
+     * barrios dados. Cuenta todo lo enviado, también lo ya moderado: descartar un reporte de la ráfaga no la borra.
+     * Ignora los reportes sin red conocida (sensores, anteriores a D9).
+     */
+    Set<RedEnRafaga> redesEnRafaga(Collection<SectorId> sectores, Instant desde, int minimo);
 
     /**
      * Nombres de archivo (no URLs) de toda foto referenciada por algún reporte, sin importar su

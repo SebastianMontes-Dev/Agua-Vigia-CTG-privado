@@ -1,6 +1,7 @@
 package com.aguavigia.ctg.domain.port.out;
 
 import com.aguavigia.ctg.domain.AgregadoDuraciones;
+import com.aguavigia.ctg.domain.CalidadDelDato;
 import com.aguavigia.ctg.domain.CorteAgua;
 import com.aguavigia.ctg.domain.CorteId;
 import com.aguavigia.ctg.domain.EstadoCorte;
@@ -51,6 +52,12 @@ public interface CorteAguaRepository {
      * RF021); con valor, solo los cortes que afectan ese sector.
      */
     AgregadoDuraciones agregarCerrados(SectorId sectorId);
+
+    /**
+     * Cuántos cortes no tienen todavía un cierre en alguno de sus barrios aunque su ventana ya terminó, y cuántos se anularon
+     * (D14). {@code sectorId} nulo cuenta toda la ciudad; con valor, solo los cortes que afectan a ese barrio y su cierre.
+     */
+    CalidadDelDato calidadDelDato(SectorId sectorId, Instant ahora);
 
     /**
      * La misma agregación de {@link #agregarCerrados}, agrupada por mes en hora de Cartagena

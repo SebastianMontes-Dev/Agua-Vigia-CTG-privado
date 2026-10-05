@@ -2,6 +2,7 @@ package com.aguavigia.ctg.infrastructure.estado;
 
 import com.aguavigia.ctg.domain.port.in.ExpirarCortesVencidosUseCase;
 import com.aguavigia.ctg.domain.port.in.PonerAlDiaSectoresUseCase;
+import com.aguavigia.ctg.domain.port.in.RepoblarContadorDeReportesUseCase;
 import com.aguavigia.ctg.infrastructure.scheduling.EjecucionUnica;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,12 +30,14 @@ public class PuestaAlDiaDeEstadosJob {
 
     private final ExpirarCortesVencidosUseCase expirar;
     private final PonerAlDiaSectoresUseCase ponerAlDia;
+    private final RepoblarContadorDeReportesUseCase repoblarContador;
     private final EjecucionUnica ejecucionUnica;
 
     public PuestaAlDiaDeEstadosJob(ExpirarCortesVencidosUseCase expirar, PonerAlDiaSectoresUseCase ponerAlDia,
-                                   EjecucionUnica ejecucionUnica) {
+                                   RepoblarContadorDeReportesUseCase repoblarContador, EjecucionUnica ejecucionUnica) {
         this.expirar = expirar;
         this.ponerAlDia = ponerAlDia;
+        this.repoblarContador = repoblarContador;
         this.ejecucionUnica = ejecucionUnica;
     }
 
@@ -50,7 +53,22 @@ public class PuestaAlDiaDeEstadosJob {
         ejecucionUnica.ejecutar(TAREA, Duration.ofMinutes(5), Duration.ofMinutes(1), this::ponerAlDia);
     }
 
+    void repoblarElContador() {
+        try {
+            int votos = repoblarContador.repoblar();
+            if (votos > 0) {
+                log.info("Puesta al día: {} voto(s) recientes devueltos al contador de reportes", votos);
+            }
+        } catch (RuntimeException fallo) {
+            // Sin Redis no hay contador que repoblar; el recálculo desde Mongo igual pone el mapa al día.
+            log.warn("No se pudo repoblar el contador de reportes: {}", fallo.toString());
+        }
+    }
+
     public void ponerAlDia() {
+        // Antes de recalcular: con Redis vaciado (al arrancar, o con el backend arriba si Redis se reinició) el primer reporte nuevo no
+        // llegaría al listón del quórum. Es idempotente: no pisa un voto que ya estaba.
+        repoblarElContador();
         try {
             int expirados = expirar.expirarVencidos();
             if (expirados > 0) {

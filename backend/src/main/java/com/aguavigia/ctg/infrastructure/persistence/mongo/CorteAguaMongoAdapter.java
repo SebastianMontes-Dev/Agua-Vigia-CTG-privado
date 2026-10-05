@@ -1,6 +1,7 @@
 package com.aguavigia.ctg.infrastructure.persistence.mongo;
 
 import com.aguavigia.ctg.domain.AgregadoDuraciones;
+import com.aguavigia.ctg.domain.CalidadDelDato;
 import com.aguavigia.ctg.domain.CierreDeCorte;
 import com.aguavigia.ctg.domain.CorteAgua;
 import com.aguavigia.ctg.domain.CorteId;
@@ -26,6 +27,7 @@ import java.time.Instant;
 import java.time.YearMonth;
 import java.util.Date;
 import java.util.LinkedHashMap;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -139,9 +141,9 @@ public class CorteAguaMongoAdapter implements CorteAguaRepository {
      */
     @Override
     public AgregadoDuraciones agregarCerrados(SectorId sectorId) {
-        Aggregation pipeline = Aggregation.newAggregation(
-                matchCerrados(sectorId, null, null),
-                agruparTotal());
+        List<AggregationOperation> etapas = new ArrayList<>(paresCerrados(sectorId, null, null));
+        etapas.add(agruparTotal());
+        Aggregation pipeline = Aggregation.newAggregation(etapas);
 
         AggregationResults<Document> resultados =
                 mongoTemplate.aggregate(pipeline, CorteAguaDocumento.class, Document.class);
@@ -156,10 +158,10 @@ public class CorteAguaMongoAdapter implements CorteAguaRepository {
      */
     @Override
     public List<PuntoAgregadoMensual> agregarCerradosPorMes(SectorId sectorId, Instant desde, Instant hasta) {
-        Aggregation pipeline = Aggregation.newAggregation(
-                matchCerrados(sectorId, desde, hasta),
-                agruparPorMes(),
-                Aggregation.sort(Sort.Direction.ASC, "_id"));
+        List<AggregationOperation> etapas = new ArrayList<>(paresCerrados(sectorId, desde, hasta));
+        etapas.add(agruparPorMes());
+        etapas.add(Aggregation.sort(Sort.Direction.ASC, "_id"));
+        Aggregation pipeline = Aggregation.newAggregation(etapas);
 
         AggregationResults<Document> resultados =
                 mongoTemplate.aggregate(pipeline, CorteAguaDocumento.class, Document.class);
@@ -168,24 +170,54 @@ public class CorteAguaMongoAdapter implements CorteAguaRepository {
                 .toList();
     }
 
-    private static AggregationOperation matchCerrados(SectorId sectorId, Instant desde, Instant hasta) {
-        // estaCerrada() en el dominio es exactamente esto: finReal != null. Ningún estado.name()
-        // adicional decide "cerrado" — replicar solo esa condición evita que ambos criterios diverjan.
-        Document finReal = new Document("$ne", null);
-        if (desde != null) {
-            finReal.append("$gte", Date.from(desde));
-        }
-        if (hasta != null) {
-            finReal.append("$lte", Date.from(hasta));
-        }
-
-        Document filtro = new Document("finReal", finReal);
+    /**
+     * Cada par corte-barrio con cierre es una fila (D14): un barrio restablecido a la una hora cuenta aunque otro del mismo corte siga
+     * sin servicio, y cada uno con su propia hora. Los documentos anteriores a los cierres por sector no traen la lista: su
+     * `finReal` vale para todos sus barrios. Los anulados no entran al Índice (se publicaron por error) y los expirados no tienen cierre.
+     */
+    private static List<AggregationOperation> paresCerrados(SectorId sectorId, Instant desde, Instant hasta) {
+        Document primero = new Document("estado", new Document("$nin", List.of("ANULADO", "EXPIRADO")))
+                .append("$or", List.of(new Document("finReal", new Document("$ne", null)),
+                        new Document("cierres.0", new Document("$exists", true))));
         if (sectorId != null) {
-            // sectoresAfectados es un arreglo; comparar contra un escalar es "el arreglo lo contiene".
-            filtro.append("sectoresAfectados", sectorId.valor());
+            // sectoresAfectados es un arreglo; comparar contra un escalar es «el arreglo lo contiene».
+            primero.append("sectoresAfectados", sectorId.valor());
         }
 
-        return context -> new Document("$match", filtro);
+        List<AggregationOperation> etapas = new ArrayList<>();
+        etapas.add(contexto -> new Document("$match", primero));
+        etapas.add(contexto -> new Document("$addFields", new Document("cierresEfectivos", cierresEfectivos())));
+        etapas.add(contexto -> new Document("$unwind", "$cierresEfectivos"));
+
+        Document filtroDelPar = new Document();
+        if (sectorId != null) {
+            filtroDelPar.append("cierresEfectivos.sectorId", sectorId.valor());
+        }
+        if (desde != null || hasta != null) {
+            Document hora = new Document();
+            if (desde != null) {
+                hora.append("$gte", Date.from(desde));
+            }
+            if (hasta != null) {
+                hora.append("$lte", Date.from(hasta));
+            }
+            filtroDelPar.append("cierresEfectivos.hora", hora);
+        }
+        if (!filtroDelPar.isEmpty()) {
+            etapas.add(contexto -> new Document("$match", filtroDelPar));
+        }
+        return etapas;
+    }
+
+    /** Los cierres del documento; si no trae la lista pero sí `finReal`, un cierre en esa hora por cada barrio; si no, ninguno. */
+    private static Document cierresEfectivos() {
+        Document deLosBarrios = new Document("$map", new Document("input", "$sectoresAfectados").append("as", "s")
+                .append("in", new Document("sectorId", "$$s").append("hora", "$finReal").append("provisional", false)));
+        return new Document("$cond", List.of(
+                new Document("$gt", List.of(new Document("$size", new Document("$ifNull", List.of("$cierres", List.of()))), 0)),
+                "$cierres",
+                // $gt contra null y no $ne: en una expresion, un campo ausente no es igual a null, y finReal se omite cuando no hay.
+                new Document("$cond", List.of(new Document("$gt", java.util.Arrays.asList("$finReal", null)), deLosBarrios, List.of()))));
     }
 
     private static AggregationOperation agruparTotal() {
@@ -194,7 +226,7 @@ public class CorteAguaMongoAdapter implements CorteAguaRepository {
 
     private static AggregationOperation agruparPorMes() {
         Document mesEnCartagena = new Document("$dateToString", new Document("format", "%Y-%m")
-                .append("date", "$finReal")
+                .append("date", "$cierresEfectivos.hora")
                 .append("timezone", "America/Bogota"));
         return context -> new Document("$group", camposDeSuma(new Document("_id", mesEnCartagena)));
     }
@@ -205,15 +237,43 @@ public class CorteAguaMongoAdapter implements CorteAguaRepository {
                 .append("milisPrometidos", new Document("$sum",
                         new Document("$subtract", List.of("$finPrometido", "$inicio"))))
                 .append("milisReales", new Document("$sum",
-                        new Document("$subtract", List.of("$finReal", "$inicio"))))
-                .append("cantidad", new Document("$sum", 1));
+                        new Document("$subtract", List.of("$cierresEfectivos.hora", "$inicio"))))
+                .append("cantidad", new Document("$sum", 1))
+                .append("provisionales", new Document("$sum",
+                        new Document("$cond", List.of("$cierresEfectivos.provisional", 1, 0))));
+    }
+
+    @Override
+    public CalidadDelDato calidadDelDato(SectorId sectorId, Instant ahora) {
+        Document delBarrio = sectorId == null ? new Document() : new Document("sectoresAfectados", sectorId.valor());
+
+        long anulados = mongoTemplate.getCollection("cortes")
+                .countDocuments(new Document(delBarrio).append("estado", "ANULADO"));
+
+        // Corte vencido que no es anulado y en el que algún barrio (o el barrio pedido) no tiene cierre. Un expirado
+        // no tiene ninguno: es justo «sin cierre confirmado».
+        Document filtro = new Document(delBarrio)
+                .append("estado", new Document("$ne", "ANULADO"))
+                .append("finPrometido", new Document("$lte", Date.from(ahora)));
+        Document sinCierre = sectorId == null
+                ? new Document("$lt", List.of(new Document("$size", "$cierresEfectivos"), new Document("$size", "$sectoresAfectados")))
+                : new Document("$not", List.of(new Document("$in", List.of(sectorId.valor(), "$cierresEfectivos.sectorId"))));
+        Aggregation pipeline = Aggregation.newAggregation(List.of(
+                (AggregationOperation) contexto -> new Document("$match", filtro),
+                contexto -> new Document("$addFields", new Document("cierresEfectivos", cierresEfectivos())),
+                contexto -> new Document("$match", new Document("$expr", sinCierre)),
+                contexto -> new Document("$count", "cortes")));
+        Document resultado = mongoTemplate.aggregate(pipeline, CorteAguaDocumento.class, Document.class).getUniqueMappedResult();
+        long sinCierres = resultado == null ? 0 : ((Number) resultado.get("cortes")).longValue();
+        return new CalidadDelDato(sinCierres, anulados);
     }
 
     private static AgregadoDuraciones aAgregado(Document doc) {
         long milisPrometidos = ((Number) doc.get("milisPrometidos")).longValue();
         long milisReales = ((Number) doc.get("milisReales")).longValue();
         long cantidad = ((Number) doc.get("cantidad")).longValue();
-        return new AgregadoDuraciones(Duration.ofMillis(milisPrometidos), Duration.ofMillis(milisReales), cantidad);
+        long provisionales = doc.get("provisionales") == null ? 0 : ((Number) doc.get("provisionales")).longValue();
+        return new AgregadoDuraciones(Duration.ofMillis(milisPrometidos), Duration.ofMillis(milisReales), cantidad, provisionales);
     }
 
     private static CorteAguaDocumento.Cierre aDocumento(SectorId sectorId, CierreDeCorte cierre) {

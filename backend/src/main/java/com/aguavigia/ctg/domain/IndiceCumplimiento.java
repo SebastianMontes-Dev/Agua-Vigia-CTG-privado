@@ -12,7 +12,19 @@ public record IndiceCumplimiento(
         Duration duracionPrometida,
         Duration duracionReal,
         Duration desviacion,
-        double porcentajeCumplimiento) {
+        double porcentajeCumplimiento,
+        /** De los cierres que sostienen este índice, qué porcentaje solo lo sostienen vecinos o sensores (0 a 100). */
+        double porcentajeProvisional,
+        /** Cortes cuya ventana ya terminó y que no tienen cierre en algún barrio: no se cuentan a favor ni en contra. */
+        long cortesSinCierreConfirmado,
+        /** Cortes publicados por error y retirados: no entran al índice. */
+        long cortesAnulados) {
+
+    /** Sin calidad del dato: lo que existía antes de declararla. */
+    public IndiceCumplimiento(SectorId sectorId, Duration duracionPrometida, Duration duracionReal, Duration desviacion,
+                              double porcentajeCumplimiento) {
+        this(sectorId, duracionPrometida, duracionReal, desviacion, porcentajeCumplimiento, 0, 0, 0);
+    }
 
     public IndiceCumplimiento {
         if (duracionPrometida == null || duracionReal == null) {
