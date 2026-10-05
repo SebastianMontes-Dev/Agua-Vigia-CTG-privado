@@ -27,6 +27,10 @@ aguavigia:
   # clave aleatoria que se escribe una sola vez en el log. Con JWT_SECRET o VEEDOR_PASSWORD_HASH en .env, mandan esos.
   jwt:
     secret: ${JWT_SECRET:${random.uuid}${random.uuid}}
+  # Las 30 000 cuentas sintéticas de vecino (D36): lo único inventado del sistema, para probar el volumen. Las crea el propio
+  # backend al arrancar, después del ADMIN inicial y de que existan los sectores. Idempotente. 0 las desactiva.
+  siembra:
+    vecinos-sinteticos: ${VECINOS_SINTETICOS:30000}
   cuentas:
     admin-inicial-correo: ${ADMIN_INICIAL_CORREO:admin@aguavigia.local}
     admin-inicial-generar-clave: true

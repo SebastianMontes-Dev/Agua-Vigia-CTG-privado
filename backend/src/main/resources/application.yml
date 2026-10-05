@@ -71,6 +71,9 @@ aguavigia:
     # Cuantos ms se agrupan los avisos de cambio antes de difundirlos a los clientes.
     intervalo-difusion-ms: 1000
     intervalo-latido-ms: 25000
+  sistema:
+    # REAL o SIMULACION: lo declara `GET /api/sistema/modo`. Solo la instancia de simulacion (perfil `simulacion`) lo cambia.
+    modo: ${AGUAVIGIA_MODO:REAL}
   restablecimiento:
     # El enlace de «¿ya volvio el agua?» del correo de aviso vale este tiempo (D18).
     horas-vigencia-enlace: 24

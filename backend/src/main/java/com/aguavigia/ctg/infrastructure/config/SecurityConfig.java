@@ -150,6 +150,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/veedor/**").authenticated()
                         // Las fotos se leen sin sesion, pero FotoController solo sirve las de reportes aprobados.
                         .requestMatchers(HttpMethod.GET, "/api/fotos/**").permitAll()
+                        // Qué instancia es y cuánto es sintético: lo pinta cualquier visitante.
+                        .requestMatchers(HttpMethod.GET, "/api/sistema/modo").permitAll()
                         .requestMatchers(RUTAS_PUBLICAS).permitAll()
                         .anyRequest().denyAll())
                 .headers(cabeceras -> cabeceras

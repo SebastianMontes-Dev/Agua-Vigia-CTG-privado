@@ -171,4 +171,88 @@ class UsuarioMongoAdapterTest {
     private static List<String> ids(Pagina<Usuario> pagina) {
         return pagina.contenido().stream().map(u -> u.id().valor()).toList();
     }
+
+    // --- cuentas sintéticas (D20, D36) ---
+
+    private static Usuario sintetica(int numero) {
+        return Usuario.sinteticoComoVecino(new UsuarioId("s-" + numero),
+                new CorreoElectronico("cuenta-sintetica-%06d@demo.aguavigia.invalid".formatted(numero)),
+                "Cuenta sintética " + numero, new SectorId("manga"), T0).aceptarInvitacion(HASH, T0);
+    }
+
+    @Test
+    void laMarcaDeDemostracionDaLaVueltaYSeEscribeComoOrigenSembrado() {
+        adaptador.guardar(sintetica(1));
+        adaptador.guardar(cuenta("real", "ana@correo.com", EstadoCuenta.ACTIVA, new SectorId("manga"), T0));
+
+        assertThat(adaptador.buscarPorId(new UsuarioId("s-1")).orElseThrow().datosDeDemostracion()).isTrue();
+        assertThat(adaptador.buscarPorId(new UsuarioId("real")).orElseThrow().datosDeDemostracion()).isFalse();
+        org.bson.Document crudo = mongoTemplate.getDb().getCollection("usuarios").find(new org.bson.Document("_id", "s-1")).first();
+        assertThat(crudo.getString("origen")).isEqualTo("SEMBRADO");
+        assertThat(crudo.getBoolean("datosDeDemostracion")).isTrue();
+        org.bson.Document real = mongoTemplate.getDb().getCollection("usuarios").find(new org.bson.Document("_id", "real")).first();
+        assertThat(real.get("origen")).isNull();
+    }
+
+    @Test
+    void cuentaSoloLasSinteticas() {
+        adaptador.guardar(sintetica(1));
+        adaptador.guardar(sintetica(2));
+        adaptador.guardar(cuenta("real", "ana@correo.com", EstadoCuenta.ACTIVA, new SectorId("manga"), T0));
+
+        assertThat(adaptador.contarSinteticas()).isEqualTo(2);
+    }
+
+    @Test
+    void insertaElLoteYAlRepetirloNoDuplicaNiFalla() {
+        java.util.List<Usuario> lote = java.util.stream.IntStream.rangeClosed(1, 50)
+                .mapToObj(UsuarioMongoAdapterTest::sintetica).toList();
+
+        assertThat(adaptador.insertarSinteticasSiNoExisten(lote)).isEqualTo(50);
+        assertThat(adaptador.insertarSinteticasSiNoExisten(lote)).as("segunda pasada: ya existen").isZero();
+
+        java.util.List<Usuario> solapado = java.util.stream.IntStream.rangeClosed(41, 60)
+                .mapToObj(UsuarioMongoAdapterTest::sintetica).toList();
+        assertThat(adaptador.insertarSinteticasSiNoExisten(solapado)).as("10 ya estaban, 10 son nuevas").isEqualTo(10);
+        assertThat(adaptador.contarSinteticas()).isEqualTo(60);
+    }
+
+    @Test
+    void unLoteVacioNoHaceNada() {
+        assertThat(adaptador.insertarSinteticasSiNoExisten(java.util.List.of())).isZero();
+    }
+
+    /**
+     * Contrato con scripts/verificar-datos.mjs: ese script no usa el adaptador, lee el documento crudo y espera estos campos y
+     * valores. Si el adaptador cambia cómo escribe una cuenta sintética, este test falla antes de que la verificación mienta.
+     */
+    @Test
+    void elDocumentoSinteticoTieneLosCamposQueVerificarDatosEspera() {
+        adaptador.insertarSinteticasSiNoExisten(java.util.List.of(sintetica(9)));
+
+        org.bson.Document crudo = mongoTemplate.getDb().getCollection("usuarios").find(new org.bson.Document("_id", "s-9")).first();
+        assertThat(crudo.getString("rol")).isEqualTo("VECINO");
+        assertThat(crudo.getString("estado")).isEqualTo("ACTIVA");
+        assertThat(crudo.getString("barrio")).isEqualTo("manga");
+        assertThat(crudo.getBoolean("datosDeDemostracion")).isTrue();
+        assertThat(crudo.getString("origen")).isEqualTo("SEMBRADO");
+        assertThat(crudo.getString("correo")).endsWith(".invalid");
+        // Nada fingido: ni barrio verificado ni consentimientos que nadie dio.
+        assertThat(crudo.getBoolean("barrioVerificado", false)).isFalse();
+        assertThat(crudo.getList("consentimientos", org.bson.Document.class, java.util.List.of())).isEmpty();
+    }
+
+    /** Una cuenta sintética leída de la base sigue siendo una cuenta válida: activa, con clave, sin consentimientos fingidos. */
+    @Test
+    void laCuentaSinteticaLeidaDeLaBaseEsValida() {
+        adaptador.insertarSinteticasSiNoExisten(java.util.List.of(sintetica(7)));
+
+        Usuario leida = adaptador.buscarPorId(new UsuarioId("s-7")).orElseThrow();
+        assertThat(leida.estado()).isEqualTo(EstadoCuenta.ACTIVA);
+        assertThat(leida.esVecino()).isTrue();
+        assertThat(leida.claveHash()).isEqualTo(HASH);
+        assertThat(leida.consentimientos()).isEmpty();
+        assertThat(leida.barrioVerificado()).isFalse();
+        assertThat(adaptador.buscarPorCorreo(new CorreoElectronico("cuenta-sintetica-000007@demo.aguavigia.invalid"))).isPresent();
+    }
 }

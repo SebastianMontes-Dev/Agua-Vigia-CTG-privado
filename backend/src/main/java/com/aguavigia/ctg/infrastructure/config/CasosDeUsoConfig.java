@@ -9,6 +9,8 @@ import com.aguavigia.ctg.application.EmisorDeTokensDeCuenta;
 import com.aguavigia.ctg.application.EmitirTokenDeSubidaService;
 import com.aguavigia.ctg.application.EvaluarConsensoService;
 import com.aguavigia.ctg.application.ExpirarCortesVencidosService;
+import com.aguavigia.ctg.application.ConsultarModoDelSistemaService;
+import com.aguavigia.ctg.application.ImportarVecinosSinteticosService;
 import com.aguavigia.ctg.application.LimitesDeReporte;
 import com.aguavigia.ctg.application.RecalcularSectorService;
 import com.aguavigia.ctg.application.RegistrarLecturaDePresionService;
@@ -197,6 +199,21 @@ public class CasosDeUsoConfig {
         return new RegistrarLecturaDePresionService(sectores, registrarReporte, umbralPresionBajaPsi,
                 umbralPresionNormalPsi);
     }
+    /** Qué instancia es: `aguavigia.sistema.modo` (REAL por defecto; la instancia de simulación pone SIMULACION). */
+    @Bean
+    public ConsultarModoDelSistemaService consultarModoDelSistemaService(
+            UsuarioRepository usuarios, RelojPort reloj, @Value("${aguavigia.sistema.modo:REAL}") String modo) {
+        return new ConsultarModoDelSistemaService(usuarios, com.aguavigia.ctg.domain.ModoDelSistema.Modo.deTexto(modo), reloj);
+    }
+
+    /** Las cuentas sintéticas se insertan de a mil: una a una serían 30 000 viajes a la base. */
+    @Bean
+    public ImportarVecinosSinteticosService importarVecinosSinteticosService(
+            UsuarioRepository usuarios, SectorRepository sectores, RegistroDeAuditoria auditoria, RelojPort reloj,
+            @Value("${aguavigia.siembra.tamano-de-lote:1000}") int tamanoDeLote) {
+        return new ImportarVecinosSinteticosService(usuarios, sectores, auditoria, reloj, tamanoDeLote);
+    }
+
     /**
      * Las compuertas de publicación de Acuacar (D5). Valores iniciales sin datos reales que los respalden: se ajustan con
      * las métricas (F6), no aquí.

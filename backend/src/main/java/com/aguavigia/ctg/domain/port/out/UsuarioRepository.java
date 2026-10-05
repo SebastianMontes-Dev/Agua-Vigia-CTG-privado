@@ -8,6 +8,7 @@ import com.aguavigia.ctg.domain.RolVeedor;
 import com.aguavigia.ctg.domain.Usuario;
 import com.aguavigia.ctg.domain.UsuarioId;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface UsuarioRepository {
@@ -37,4 +38,13 @@ public interface UsuarioRepository {
      * eso no se arregla desde la aplicación — hay que ir a la base de datos a mano.
      */
     long contarActivosPorRol(RolVeedor rol);
+
+    /** Cuántas cuentas sintéticas (de demostración) hay, de cualquier estado. */
+    long contarSinteticas();
+
+    /**
+     * Inserta las cuentas del lote que aún no existen (mismo id o mismo correo) y devuelve cuántas insertó. Es la vía de
+     * volumen del importador: una a una serían 30 000 viajes a la base.
+     */
+    int insertarSinteticasSiNoExisten(List<Usuario> cuentas);
 }

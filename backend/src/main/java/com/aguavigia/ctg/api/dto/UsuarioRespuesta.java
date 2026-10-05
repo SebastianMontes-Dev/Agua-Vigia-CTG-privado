@@ -30,7 +30,12 @@ public record UsuarioRespuesta(
         List<String> permisosRevocados,
         boolean segundoFactorActivo,
         Instant creadoEn,
-        Instant actualizadoEn) {
+        Instant actualizadoEn,
+
+        @Schema(description = """
+                Cuenta de vecino creada por el sistema para probar el volumen (ADR-094): no es una persona registrada y no puede
+                iniciar sesion. El listado las incluye; esta marca permite ocultarlas.""")
+        boolean sintetica) {
 
     public static UsuarioRespuesta de(Usuario usuario) {
         return new UsuarioRespuesta(
@@ -45,7 +50,8 @@ public record UsuarioRespuesta(
                 aNombres(usuario.permisos().revocados()),
                 usuario.tieneSegundoFactorConfirmado(),
                 usuario.creadoEn(),
-                usuario.actualizadoEn());
+                usuario.actualizadoEn(),
+                usuario.datosDeDemostracion());
     }
 
     private static List<String> aNombres(java.util.Set<Permiso> permisos) {

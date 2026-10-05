@@ -71,6 +71,8 @@ public class UsuarioMongoAdapter implements UsuarioRepository {
         documento.setEstado(usuario.estado().name());
         documento.setRol(usuario.permisos().rol().name());
         documento.setBarrio(usuario.barrio() == null ? null : usuario.barrio().valor());
+        documento.setDatosDeDemostracion(usuario.datosDeDemostracion());
+        documento.setOrigen(usuario.datosDeDemostracion() ? "SEMBRADO" : null);
         documento.setPermisosConcedidos(aNombres(usuario.permisos().concedidos()));
         documento.setPermisosRevocados(aNombres(usuario.permisos().revocados()));
         documento.setSecretoTotp(usuario.segundoFactor() == null
@@ -122,6 +124,27 @@ public class UsuarioMongoAdapter implements UsuarioRepository {
                 pagina,
                 tamano,
                 resultado.getTotalElements());
+    }
+
+    @Override
+    public long contarSinteticas() {
+        return repositorio.countByDatosDeDemostracion(true);
+    }
+
+    @Override
+    public int insertarSinteticasSiNoExisten(List<Usuario> cuentas) {
+        if (cuentas.isEmpty()) {
+            return 0;
+        }
+        var operaciones = mongoTemplate.bulkOps(org.springframework.data.mongodb.core.BulkOperations.BulkMode.UNORDERED,
+                UsuarioDocumento.class);
+        cuentas.forEach(cuenta -> operaciones.insert(aDocumento(cuenta)));
+        try {
+            return operaciones.execute().getInsertedCount();
+        } catch (org.springframework.data.mongodb.BulkOperationException repetidas) {
+            // UNORDERED sigue tras un duplicado: las que ya existían fallan y el resto entra. Es lo esperado al repetir.
+            return repetidas.getResult().getInsertedCount();
+        }
     }
 
     @Override
@@ -178,7 +201,8 @@ public class UsuarioMongoAdapter implements UsuarioRepository {
                         ? List.of()
                         : documento.getConsentimientos().stream().map(UsuarioMongoAdapter::aDominio).toList(),
                 documento.isBarrioVerificado(),
-                documento.getBarrioVerificadoEn());
+                documento.getBarrioVerificadoEn(),
+                documento.isDatosDeDemostracion());
     }
 
     private static UsuarioDocumento.ConsentimientoDocumento aDocumento(Consentimiento consentimiento) {

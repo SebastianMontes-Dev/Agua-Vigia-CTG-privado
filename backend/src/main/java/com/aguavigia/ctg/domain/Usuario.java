@@ -26,7 +26,21 @@ public record Usuario(
         SectorId barrio,
         List<Consentimiento> consentimientos,
         boolean barrioVerificado,
-        Instant barrioVerificadoEn) {
+        Instant barrioVerificadoEn,
+        /**
+         * Cuenta sintética (D20): la creó el sistema para probar el volumen, no una persona. Se declara tal cual en
+         * `GET /api/sistema/modo`; no son adopción.
+         */
+        boolean datosDeDemostracion) {
+
+    /** Una cuenta real: lo que existía antes de las cuentas sintéticas. */
+    public Usuario(UsuarioId id, CorreoElectronico correo, String nombre, ClaveHash claveHash,
+                   EstadoCuenta estado, PermisosEfectivos permisos, SegundoFactor segundoFactor,
+                   Instant creadoEn, Instant actualizadoEn, SectorId barrio, List<Consentimiento> consentimientos,
+                   boolean barrioVerificado, Instant barrioVerificadoEn) {
+        this(id, correo, nombre, claveHash, estado, permisos, segundoFactor, creadoEn, actualizadoEn, barrio,
+                consentimientos, barrioVerificado, barrioVerificadoEn, false);
+    }
 
     /** Sin barrio: el ADMIN inicial y las cuentas anteriores a ADR-081 no lo tienen. */
     public Usuario(UsuarioId id, CorreoElectronico correo, String nombre, ClaveHash claveHash,
@@ -242,7 +256,7 @@ public record Usuario(
         }
         return new Usuario(id, correo, nombre, nuevaClave, nuevoEstado, nuevosPermisos,
                 nuevoSegundoFactor, creadoEn, momento, barrio, consentimientos, barrioVerificado,
-                barrioVerificadoEn);
+                barrioVerificadoEn, datosDeDemostracion);
     }
 
     // --- Vecino registrado (D11) ---
@@ -266,6 +280,20 @@ public record Usuario(
         return new Usuario(id, correo, nombre, null, EstadoCuenta.INVITADA,
                 PermisosEfectivos.deRol(RolVeedor.VECINO), null, momento, momento, barrio,
                 consentimientos, false, null);
+    }
+
+    /**
+     * Una cuenta sintética de vecino (D20, D36). Nace INVITADA como cualquier vecino y la activa el sistema
+     * (`aceptarInvitacion` con una clave compartida de la que nadie conoce la contraseña). No finge nada que nadie hizo: sin
+     * consentimiento, sin barrio verificado y con un correo de dominio reservado que no existe.
+     */
+    public static Usuario sinteticoComoVecino(UsuarioId id, CorreoElectronico correo, String nombre, SectorId barrio,
+                                              Instant momento) {
+        if (barrio == null) {
+            throw new IllegalArgumentException("Un vecino debe declarar su barrio");
+        }
+        return new Usuario(id, correo, nombre, null, EstadoCuenta.INVITADA, PermisosEfectivos.deRol(RolVeedor.VECINO),
+                null, momento, momento, barrio, List.of(), false, null, true);
     }
 
     public boolean esVecino() {
@@ -331,6 +359,6 @@ public record Usuario(
             throw new IllegalArgumentException("Todo cambio en la cuenta necesita un instante");
         }
         return new Usuario(id, correo, nuevoNombre, claveHash, estado, permisos, segundoFactor,
-                creadoEn, momento, nuevoBarrio, nuevosConsentimientos, verificado, verificadoEn);
+                creadoEn, momento, nuevoBarrio, nuevosConsentimientos, verificado, verificadoEn, datosDeDemostracion);
     }
 }

@@ -155,6 +155,27 @@ class AdminUsuariosControllerTest {
                 .andExpect(jsonPath("$[0].barrioId").value("manga"));
     }
 
+    /** ADR-094: con decenas de miles de cuentas sintéticas en la base, el administrador tiene que poder distinguirlas de las reales. */
+    @Test
+    void elListadoDebeDistinguirLasCuentasSinteticasDeLasReales() throws Exception {
+        given(jwtProvider.validar(TOKEN))
+                .willReturn(Optional.of(AutenticacionDePrueba.sesionCon(Permiso.GESTIONAR_USUARIOS)));
+        given(revocacion.revocadasAntesDe(any())).willReturn(Optional.empty());
+        Usuario sintetica = Usuario.sinteticoComoVecino(new UsuarioId("44444444-4444-4444-4444-444444444444"),
+                new CorreoElectronico("cuenta-sintetica-000001@demo.aguavigia.invalid"), "Cuenta sintética 000001",
+                new SectorId("manga"), AHORA).aceptarInvitacion(new ClaveHash("$2a$10$abcdefghijklmnopqrstuu"), AHORA);
+        Usuario real = new Usuario(new UsuarioId("55555555-5555-5555-5555-555555555555"),
+                new CorreoElectronico("ana@ejemplo.org"), "Ana", new ClaveHash("$2a$10$abcdefghijklmnopqrstuu"),
+                EstadoCuenta.ACTIVA, PermisosEfectivos.deRol(RolVeedor.OBSERVADOR), null, AHORA, AHORA);
+        given(cuentas.listar(any(), any(), anyInt(), anyInt()))
+                .willReturn(new Pagina<>(List.of(sintetica, real), 0, 20, 2));
+
+        mockMvc.perform(get("/api/veedor/usuarios").header("Authorization", "Bearer " + TOKEN))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].sintetica").value(true))
+                .andExpect(jsonPath("$[1].sintetica").value(false));
+    }
+
     @Test
     void invitarConUnBarrioInexistenteDebeResponder400() throws Exception {
         given(jwtProvider.validar(TOKEN))

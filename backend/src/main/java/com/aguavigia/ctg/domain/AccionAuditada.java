@@ -24,5 +24,7 @@ public enum AccionAuditada {
     CORTE_ANULADO,
     PROPUESTA_ANULADA,
     PERFIL_ACTUALIZADO,
-    BARRIO_VERIFICADO
+    BARRIO_VERIFICADO,
+    /** El sistema activó un lote de cuentas sintéticas (D36): lo único inventado del sistema, y queda dicho. */
+    CUENTA_SINTETICA_ACTIVADA
 }

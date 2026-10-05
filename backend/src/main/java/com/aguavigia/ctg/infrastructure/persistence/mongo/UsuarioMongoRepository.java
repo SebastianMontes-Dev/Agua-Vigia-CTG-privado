@@ -19,4 +19,6 @@ public interface UsuarioMongoRepository extends MongoRepository<UsuarioDocumento
     Page<UsuarioDocumento> findByEstadoAndBarrio(String estado, String barrio, Pageable pageable);
 
     long countByRolAndEstado(String rol, String estado);
+
+    long countByDatosDeDemostracion(boolean datosDeDemostracion);
 }

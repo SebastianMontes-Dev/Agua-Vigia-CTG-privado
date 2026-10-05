@@ -51,6 +51,12 @@ public class UsuarioDocumento {
     private boolean barrioVerificado;
     private Instant barrioVerificadoEn;
 
+    /** Cuenta sintética (D20). Ausente equivale a falso: las cuentas reales no llevan el campo. */
+    private boolean datosDeDemostracion;
+
+    /** SEMBRADO para las sintéticas; ausente para las que se registraron de verdad. Lo escribe el adaptador. */
+    private String origen;
+
     @Getter
     @Setter
     public static class ConsentimientoDocumento {
