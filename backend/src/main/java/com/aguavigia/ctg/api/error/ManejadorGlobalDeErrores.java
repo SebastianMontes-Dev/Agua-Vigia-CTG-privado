@@ -8,6 +8,7 @@ import com.aguavigia.ctg.domain.LimiteDePeticionesExcedidoException;
 import com.aguavigia.ctg.domain.LimiteReportesExcedidoException;
 import com.aguavigia.ctg.domain.SegundoFactorRequeridoException;
 import com.aguavigia.ctg.domain.DispositivoInvalidoException;
+import com.aguavigia.ctg.domain.EnlaceDeRestablecimientoInvalidoException;
 import com.aguavigia.ctg.domain.FormatoNoPermitidoException;
 import com.aguavigia.ctg.domain.SubidaNoAutorizadaException;
 import com.aguavigia.ctg.domain.SesionSinCuentaException;
@@ -203,6 +204,15 @@ public class ManejadorGlobalDeErrores {
         ProblemDetail problema = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, e.getMessage());
         problema.setTitle("Subida no autorizada");
         problema.setType(URI.create(BASE_TIPO + "subida-no-autorizada"));
+        return problema;
+    }
+
+    /** 403 con tipo propio: la pantalla de «¿ya volvió?» reacciona a este tipo y no al texto. */
+    @ExceptionHandler(EnlaceDeRestablecimientoInvalidoException.class)
+    public ProblemDetail enlaceDeRestablecimientoInvalido(EnlaceDeRestablecimientoInvalidoException e) {
+        ProblemDetail problema = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, e.getMessage());
+        problema.setTitle("Enlace no válido");
+        problema.setType(URI.create(BASE_TIPO + "enlace-invalido"));
         return problema;
     }
 

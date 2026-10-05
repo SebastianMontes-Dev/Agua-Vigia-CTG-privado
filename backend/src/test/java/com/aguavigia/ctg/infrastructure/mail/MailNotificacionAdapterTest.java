@@ -21,6 +21,7 @@ import java.util.Properties;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.mock;
@@ -46,8 +47,51 @@ class MailNotificacionAdapterTest {
         mailSender = mock(JavaMailSender.class);
         given(mailSender.createMimeMessage())
                 .willAnswer(invocacion -> new MimeMessage(Session.getInstance(new Properties())));
+        firma = mock(com.aguavigia.ctg.domain.port.out.FirmaDeEnlacesPort.class);
+        given(firma.emitir(any())).willReturn("enlace-firmado");
         adaptador = new MailNotificacionAdapter(mailSender,
-                "AguaVigía CTG <no-responder@aguavigia.local>", URL_FRONTEND, 48);
+                "AguaVigía CTG <no-responder@aguavigia.local>", URL_FRONTEND, 48, firma, () -> ACTUALIZADO_EN, 24);
+    }
+
+    private com.aguavigia.ctg.domain.port.out.FirmaDeEnlacesPort firma;
+
+    // --- «¿Ya volvió el agua?» (D18) ---
+
+    @Test
+    void elAvisoDeUnBarrioSinServicioDebeLlevarElEnlaceDeUnToque() throws Exception {
+        adaptador.avisarCambioDeEstado(suscripcion(), sector(EstadoServicio.SIN_SERVICIO));
+
+        String cuerpo = cuerpoEnviado();
+        assertThat(cuerpo).contains("Sí, ya volvió el agua");
+        assertThat(cuerpo).contains(URL_FRONTEND + "/sectores/manga/restablecimiento?token=enlace-firmado");
+        assertThat(cuerpo).doesNotContain("{{");
+    }
+
+    @Test
+    void elAvisoDePresionBajaTambienPregunta() throws Exception {
+        adaptador.avisarCambioDeEstado(suscripcion(), sector(EstadoServicio.PRESION_BAJA));
+
+        assertThat(cuerpoEnviado()).contains("/sectores/manga/restablecimiento?token=enlace-firmado");
+    }
+
+    /** Preguntar «¿ya volvió?» a quien acaba de recibir la noticia de que volvió, o de que habrá un corte, no tiene sentido. */
+    @Test
+    void losDemasAvisosNoPreguntan() throws Exception {
+        for (EstadoServicio estado : new EstadoServicio[]{EstadoServicio.CON_SERVICIO, EstadoServicio.CORTE_PROGRAMADO}) {
+            org.mockito.Mockito.clearInvocations(mailSender);
+            adaptador.avisarCambioDeEstado(suscripcion(), sector(estado));
+
+            assertThat(cuerpoEnviado()).as(estado.name()).doesNotContain("restablecimiento?token=")
+                    .doesNotContain("{{");
+        }
+    }
+
+    @Test
+    void elEnlaceEsDeEsaSuscripcionYEseBarrioYVenceEnElPlazoConfigurado() {
+        adaptador.avisarCambioDeEstado(suscripcion(), sector(EstadoServicio.SIN_SERVICIO));
+
+        org.mockito.Mockito.verify(firma).emitir(new com.aguavigia.ctg.domain.EnlaceDeRestablecimiento(
+                new SectorId("manga"), new SuscripcionId("s-1"), ACTUALIZADO_EN.plusSeconds(24 * 3600)));
     }
 
     private Suscripcion suscripcion() {

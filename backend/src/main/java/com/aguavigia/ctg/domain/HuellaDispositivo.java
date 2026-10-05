@@ -44,6 +44,11 @@ public record HuellaDispositivo(String hash) {
         return new HuellaDispositivo(sha256("cuenta:" + cuenta.valor()));
     }
 
+    /** Quien recibió un enlace de un toque en su correo. El prefijo la separa de cuentas y dispositivos. */
+    public static HuellaDispositivo deSuscripcion(SuscripcionId suscripcion) {
+        return new HuellaDispositivo(sha256("suscripcion:" + suscripcion.valor()));
+    }
+
     private static String sha256(String texto) {
         try {
             java.security.MessageDigest resumen = java.security.MessageDigest.getInstance("SHA-256");

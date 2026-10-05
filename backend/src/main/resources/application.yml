@@ -71,6 +71,9 @@ aguavigia:
     # Cuantos ms se agrupan los avisos de cambio antes de difundirlos a los clientes.
     intervalo-difusion-ms: 1000
     intervalo-latido-ms: 25000
+  restablecimiento:
+    # El enlace de «¿ya volvio el agua?» del correo de aviso vale este tiempo (D18).
+    horas-vigencia-enlace: 24
   reportes:
     # RF006 — cupo por dispositivo dentro de la ventana. Estrecho para el celular anonimo, que es
     # a quien el requisito quiere frenar. Un sensor de M13 se autentica con X-IoT-Key y reporta
@@ -114,6 +117,11 @@ aguavigia:
       - ruta: /api/fotos/**
         limite: 120
         ventana-segundos: 60
+      # «¿Ya volvio el agua?» con un toque: es publico (lo identifica el token del enlace) y escribe un voto. Tras Docker
+      # Desktop todos los clientes comparten IP, asi que el tope es global en local.
+      - ruta: /api/sectores/*/restablecimiento
+        limite: 10
+        ventana-segundos: 600
       # M13 — un sensor mal configurado o una clave filtrada no debe poder inundar el consenso.
       - ruta: /api/iot/presion
         limite: 60

@@ -96,6 +96,17 @@ class SuscripcionMongoAdapterTest {
     }
 
     @Test
+    void debeEncontrarUnaSuscripcionPorSuId() {
+        adaptador.guardar(new Suscripcion(
+                new SuscripcionId("s9"), new CorreoElectronico("vecino@correo.com"),
+                List.of(new SectorId("manga")), EstadoSuscripcion.CONFIRMADA, "token-9", AHORA));
+
+        assertThat(adaptador.buscarPorId(new SuscripcionId("s9"))).isPresent()
+                .get().extracting(Suscripcion::estado).isEqualTo(EstadoSuscripcion.CONFIRMADA);
+        assertThat(adaptador.buscarPorId(new SuscripcionId("no-existe"))).isEmpty();
+    }
+
+    @Test
     void buscarPorTokenDebeDevolverVacioSiNoExiste() {
         assertThat(adaptador.buscarPorToken("no-existe")).isEmpty();
     }

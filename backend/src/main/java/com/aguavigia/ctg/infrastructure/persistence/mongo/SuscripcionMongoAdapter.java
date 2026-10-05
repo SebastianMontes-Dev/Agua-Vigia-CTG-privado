@@ -40,6 +40,11 @@ public class SuscripcionMongoAdapter implements SuscripcionRepository {
     }
 
     @Override
+    public Optional<Suscripcion> buscarPorId(SuscripcionId id) {
+        return repositorio.findById(id.valor()).map(SuscripcionMongoAdapter::aDominio);
+    }
+
+    @Override
     public List<Suscripcion> buscarConfirmadasPorSector(SectorId sectorId) {
         return repositorio.findBySectorIdsContainingAndEstado(sectorId.valor(), EstadoSuscripcion.CONFIRMADA.name())
                 .stream()
