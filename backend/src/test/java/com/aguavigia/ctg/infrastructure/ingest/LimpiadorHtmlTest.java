@@ -11,6 +11,19 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 class LimpiadorHtmlTest {
 
+    /** Un cuerpo hostil o enorme no debe congelar el ciclo de ingesta: el texto tiene tope. */
+    @Test
+    void elTextoLimpioTieneUnTopeDeLongitud() {
+        String enorme = "a ".repeat(2_000_000);
+
+        assertThat(LimpiadorHtml.limpiar(enorme).length()).isLessThanOrEqualTo(LimpiadorHtml.LARGO_MAXIMO);
+    }
+
+    @Test
+    void unBoletinNormalNoSeRecorta() {
+        assertThat(LimpiadorHtml.limpiar("<p>Corte en <b>Manga</b></p>")).isEqualTo("Corte en Manga");
+    }
+
     @Test
     void debeQuitarLasEtiquetas() {
         assertThat(LimpiadorHtml.limpiar("<p>Suspensión en <strong>Manga</strong></p>"))

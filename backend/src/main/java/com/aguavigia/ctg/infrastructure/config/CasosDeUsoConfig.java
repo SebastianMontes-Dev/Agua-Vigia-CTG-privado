@@ -12,16 +12,20 @@ import com.aguavigia.ctg.application.ExpirarCortesVencidosService;
 import com.aguavigia.ctg.application.LimitesDeReporte;
 import com.aguavigia.ctg.application.RecalcularSectorService;
 import com.aguavigia.ctg.application.RegistrarLecturaDePresionService;
+import com.aguavigia.ctg.application.RegistrarPropuestaIngestaService;
+import com.aguavigia.ctg.application.RevisarPropuestaIngestaService;
 import com.aguavigia.ctg.application.RegistrarReporteService;
 import com.aguavigia.ctg.application.RegistrarVecinoService;
 import com.aguavigia.ctg.application.VerificarBarrioVecinoService;
 import com.aguavigia.ctg.application.RegistroDeAuditoria;
+import com.aguavigia.ctg.domain.CompuertaDePublicacion;
 import com.aguavigia.ctg.domain.EstrategiaConsenso;
 import com.aguavigia.ctg.domain.ReglasDeEstado;
 import com.aguavigia.ctg.domain.ResolutorDeEstadoSector;
 import com.aguavigia.ctg.domain.port.in.RecalcularSectorUseCase;
 import com.aguavigia.ctg.domain.port.in.RegistrarEventoBitacoraUseCase;
 import com.aguavigia.ctg.domain.port.in.RegistrarReporteUseCase;
+import com.aguavigia.ctg.domain.port.in.RevisarPropuestaIngestaUseCase;
 import com.aguavigia.ctg.domain.port.in.EvaluarConsensoUseCase;
 import com.aguavigia.ctg.domain.port.out.AuditoriaRepository;
 import com.aguavigia.ctg.domain.port.out.CifradorClavePort;
@@ -193,6 +197,38 @@ public class CasosDeUsoConfig {
         return new RegistrarLecturaDePresionService(sectores, registrarReporte, umbralPresionBajaPsi,
                 umbralPresionNormalPsi);
     }
+    /**
+     * Las compuertas de publicación de Acuacar (D5). Valores iniciales sin datos reales que los respalden: se ajustan con
+     * las métricas (F6), no aquí.
+     */
+    @Bean
+    public CompuertaDePublicacion compuertaDePublicacion(
+            @Value("${aguavigia.ingesta.compuertas.confianza-minima:0.85}") double confianzaMinima,
+            @Value("${aguavigia.ingesta.compuertas.confianza-minima-restablecimiento:0.75}") double confianzaDeRestablecimiento,
+            @Value("${aguavigia.ingesta.compuertas.duracion-maxima-horas:72}") long duracionMaximaHoras,
+            @Value("${aguavigia.ingesta.compuertas.margen-de-inicio-dias:7}") long margenDeInicioDias,
+            @Value("${aguavigia.ingesta.compuertas.maximo-de-barrios:40}") int maximoDeBarrios) {
+        return new CompuertaDePublicacion(confianzaMinima, confianzaDeRestablecimiento,
+                Duration.ofHours(duracionMaximaHoras), Duration.ofDays(margenDeInicioDias), maximoDeBarrios);
+    }
+
+    @Bean
+    public RegistrarPropuestaIngestaService registrarPropuestaIngestaService(
+            PropuestaIngestaRepository propuestas, SectorRepository sectores, RevisarPropuestaIngestaUseCase revisar,
+            RelojPort reloj, CompuertaDePublicacion compuerta) {
+        return new RegistrarPropuestaIngestaService(propuestas, sectores, revisar, reloj, compuerta);
+    }
+
+    /** Un corte cuya ventana terminó hace más del plazo de expiración se guarda como historia al aprobarse (D27). */
+    @Bean
+    public RevisarPropuestaIngestaService revisarPropuestaIngestaService(
+            PropuestaIngestaRepository propuestas, SectorRepository sectores, RegistrarEventoBitacoraUseCase registrarEvento,
+            CorteAguaRepository cortes, RecalcularSectorUseCase recalcular, RelojPort reloj, TransaccionPort transaccion,
+            RegistroDeAuditoria auditoria, ReglasDeEstado reglas) {
+        return new RevisarPropuestaIngestaService(propuestas, sectores, registrarEvento, cortes, recalcular, reloj,
+                transaccion, auditoria, reglas.expiraTrasFin());
+    }
+
 
     @Bean
     public RegistrarReporteService registrarReporteService(

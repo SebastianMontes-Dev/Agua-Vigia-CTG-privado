@@ -114,7 +114,10 @@ public class IndicesMongo {
                     new Document("estadoRevision", 1).append("detectadaEn", -1)));
             indicesPropuestas.ensureIndex(new CompoundIndexDefinition(
                     new Document("sectorId", 1).append("estadoPropuesto", 1).append("estadoRevision", 1)));
-            log.info("Indices de `propuestas_ingesta` asegurados: estadoRevision+detectadaEn y sectorId+estadoPropuesto+estadoRevision");
+            // existeDelBoletin: la ingesta pregunta, por cada aviso, si ese boletin ya se registro para ese barrio.
+            indicesPropuestas.ensureIndex(new CompoundIndexDefinition(
+                    new Document("sectorId", 1).append("urlOriginal", 1)));
+            log.info("Indices de `propuestas_ingesta` asegurados: estadoRevision+detectadaEn, sectorId+estadoPropuesto+estadoRevision y sectorId+urlOriginal");
         });
 
             // El correo es la identidad de acceso: el indice unico es la unica garantia real de

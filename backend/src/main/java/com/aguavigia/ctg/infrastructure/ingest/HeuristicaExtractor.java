@@ -33,8 +33,8 @@ import java.util.regex.Pattern;
  * `ADR-028` descartó publicar por umbral con un argumento exacto: «el extractor emite un valor
  * constante de 0.6, el umbral no distinguiría nada». Ahora distingue —enumeración explícita y
  * ventana horaria valen más que una mención suelta— y el número sirve para ordenar la cola del
- * veedor por lo que más se sostiene. Aun así <b>nada se publica solo</b>: quien decide sigue siendo
- * el veedor, y {@code citaTextual} es la frase literal que lee para decidirlo (`ADR-006`).
+ * veedor y, desde F3, para las compuertas de publicación ({@code CompuertaDePublicacion}, ADR-092): un boletín de Acuacar
+ * solo se publica solo si la lectura es fiable. {@code citaTextual} es la frase literal que lee el veedor (`ADR-006`).
  */
 @Component
 public class HeuristicaExtractor {
@@ -47,7 +47,8 @@ public class HeuristicaExtractor {
     static final double CONFIANZA_MENCION_SUELTA = 0.45;
 
     private static final int LARGO_MAXIMO_CITA = 300;
-    private static final int LARGO_MAXIMO_REGION = 2500;
+    /** Un aviso por zona puede enumerar más de cien barrios: el tope solo evita leer un documento sin fin. */
+    private static final int LARGO_MAXIMO_REGION = 8000;
     /** Cuánto texto previo al «…siguientes barrios:» entra en la cita: ahí van el día y la hora. */
     private static final int CONTEXTO_ANTES_DEL_ANCLA = 180;
 
@@ -58,7 +59,8 @@ public class HeuristicaExtractor {
      */
     private static final Pattern ANCLA_ENUMERACION = Pattern.compile(
             "(?i)(?:los\\s+)?(?:siguientes\\s+)?(barrios?|sector(?:es)?|corregimiento(?:s)?)"
-                    + "(?:\\s*(?:,|y)\\s*(?:barrios?|sector(?:es)?|corregimiento(?:s)?))*\\s*:");
+                    + "(?:\\s*(?:,|y)\\s*(?:barrios?|sector(?:es)?|corregimiento(?:s)?))*"
+                    + "(?:\\s+(?:programad[oa]s|afectad[oa]s|impactad[oa]s))?\\s*:");
 
     /** Corta la enumeración donde vuelve a empezar la prosa del boletín. */
     private static final Pattern FIN_DE_ENUMERACION = Pattern.compile(
@@ -83,55 +85,145 @@ public class HeuristicaExtractor {
                     + "comprendidos?|incluidos?|mencionad[oa]s?|beneficiad[oa]s?|"
                     + "las\\s+zonas?\\s+\\w+|el\\s+entorno)\\b.*$");
 
+    /**
+     * El encabezado de la zona siguiente («Grupo 2», «30 de septiembre Horario de suspensión:») queda pegado al final
+     * de la lista de la anterior; sin quitarlo, entraría como si fuera el último barrio.
+     */
+    private static final Pattern ENCABEZADO_DE_ZONA_AL_FINAL = Pattern.compile(
+            "(?i)(?:\\s*(?:grupo\\s+\\d+|zona\\s+\\d+|horario\\s+de\\s+suspensi[oó]n:?|"
+                    + "\\d{1,2}\\s+de\\s+\\p{L}+|(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)))+\\s*$");
+
+    /** Lo que dice un aviso que levanta o mueve un corte anunciado antes (se normaliza sin tildes). */
+    private static final Pattern ANULACION = Pattern.compile(
+            "\\b(?:se\\s+aplaza|aplazad[oa]s?|queda\\s+aplazad[oa]|se\\s+reprograma|reprogramad[oa]s?|"
+                    + "se\\s+cancela|cancelad[oa]s?|queda\\s+cancelad[oa]|no\\s+se\\s+realizara|"
+                    + "se\\s+suspende\\s+la\\s+suspension)\\b");
+
+    /** Un aviso que anuncia una suspensión nueva, aunque no traiga horario («se programó…», «habrá suspensión…»). */
+    private static final Pattern ANUNCIA_SUSPENSION = Pattern.compile(
+            "\\b(?:se\\s+programo|programad[oa]s?\\s+(?:la|una|para)|habra\\s+suspension|"
+                    + "sera\\s+necesario\\s+(?:realizar\\s+)?(?:una\\s+)?suspe|suspender\\s+temporalmente|"
+                    + "suspendera|se\\s+suspendera|interrumpira|se\\s+interrumpira|se\\s+interrumpe|"
+                    + "interrupcion\\s+(?:programada|temporal)|conllevan\\s+a\\s+la\\s+suspension)");
+
+    /** El servicio vuelve: lo dice la fuente, no lo deducimos de que haya terminado una ventana. */
+    private static final Pattern RESTABLECIMIENTO = Pattern.compile(
+            "\\b(?:servicio\\s+restablecid|servicio\\s+normalizad|"
+                    + "restablecimiento\\s+(?:progresivo\\s+|gradual\\s+|total\\s+)?del\\s+servicio|"
+                    + "normalizacion\\s+(?:progresiva\\s+|gradual\\s+)?del\\s+servicio|"
+                    + "se\\s+restablecio\\s+el\\s+servicio|restablece(?:ra)?\\s+(?:gradualmente\\s+)?el\\s+servicio|"
+                    + "restablecer\\s+el\\s+servicio|ya\\s+se\\s+logro\\s+restablecer)");
+
     private static final Pattern CAUSA = Pattern.compile("(?i)debido a\\s+([^,.]+)|por\\s+([^,.]+)");
 
     /** La frase que sostiene la afirmación: es lo que el veedor lee, no el arranque del documento. */
     private static final Pattern ORACION_DE_INTERRUPCION = Pattern.compile(
             "(?i)[^.]*\\b(?:suspensi[oó]n|suspender|racionamiento|corte|restablec|normaliza)[^.]*\\.");
 
-    public EventoExtraido extraer(DocumentoCrudo documento) {
+    /**
+     * Un evento por zona. Un boletín de una sola ventana da uno solo; el de varias zonas («Grupo 1 desde las 11:00… hasta
+     * las 4:00… Barrios y sectores: …», «Grupo 2 …») da uno por zona, cada uno con su horario y solo sus barrios: antes
+     * se tomaba la primera ventana para todos y el segundo grupo quedaba anunciado a la hora equivocada.
+     *
+     * Siempre devuelve al menos un evento: cuando el boletín no habla de cortes, uno con
+     * {@code esInterrupcionDeAcueducto=false}, para que el orquestador sepa que ya lo leyó.
+     */
+    public List<EventoExtraido> extraerPorZonas(DocumentoCrudo documento) {
         String texto = documento.texto();
-        String enMinusculas = texto.toLowerCase();
+        String sinTildes = sinTildes(texto.toLowerCase());
 
-        boolean mencionaInterrupcion = contieneAlguna(enMinusculas,
-                "suspensión", "suspension", "suspender", "racionamiento", "corte del servicio",
+        boolean mencionaInterrupcion = contieneAlguna(sinTildes,
+                "suspension", "suspender", "racionamiento", "corte del servicio",
                 "corte de agua", "cortes de agua");
-        boolean mencionaPresionBaja = contieneAlguna(enMinusculas,
-                "baja presión", "presión baja", "baja presion", "presion baja", "bajas presiones");
-        boolean mencionaNormalidad = contieneAlguna(enMinusculas,
-                "servicio restablecido", "restablecimiento del servicio", "normalización del servicio",
-                "normalizacion del servicio", "servicio normalizado");
+        boolean mencionaPresionBaja = contieneAlguna(sinTildes,
+                "baja presion", "presion baja", "bajas presiones");
+        boolean mencionaNormalidad = RESTABLECIMIENTO.matcher(sinTildes).find();
+
+        List<LectorDeVentanaDeclarada.VentanaEnTexto> ventanas =
+                LectorDeVentanaDeclarada.leerTodas(texto, documento.publicadoEn());
+        boolean anunciaSuspensionNueva = !ventanas.isEmpty() || ANUNCIA_SUSPENSION.matcher(sinTildes).find();
+        // Sin horario nuevo, «se aplaza» o «se cancela» mueve o levanta lo ya anunciado: no es otro corte.
+        boolean anulaLoAnunciado = ventanas.isEmpty() && ANULACION.matcher(sinTildes).find();
+
+        String tipo = "SUSPENSION_PROGRAMADA";
+        if (anulaLoAnunciado) {
+            tipo = "AVISO_DE_ANULACION";
+        } else if (mencionaPresionBaja && !mencionaInterrupcion) {
+            tipo = "PRESION_BAJA";
+        } else if (mencionaNormalidad && !anunciaSuspensionNueva) {
+            // Un restablecimiento suele recordar la suspensión que termina («tras la suspensión temporal…»): mencionarla
+            // no lo vuelve un corte nuevo. Y al revés, un aviso de suspensión puede hablar de «restablecer las condiciones»
+            // sin ser un restablecimiento: por eso se exige que no anuncie una suspensión nueva.
+            tipo = "SERVICIO_NORMAL";
+        }
+        boolean hablaDeServicio = mencionaInterrupcion || mencionaPresionBaja || mencionaNormalidad;
+
+        List<EventoExtraido> porZonas = zonasConVentanaPropia(texto, ventanas, tipo, hablaDeServicio, documento);
+        if (!porZonas.isEmpty()) {
+            return porZonas;
+        }
 
         List<String> mencionados = barriosEnumerados(texto);
         boolean huboEnumeracion = !mencionados.isEmpty();
         if (!huboEnumeracion) {
             mencionados = barriosEnProsa(texto);
         }
+        LectorDeVentanaDeclarada.Ventana ventana = ventanas.isEmpty()
+                ? new LectorDeVentanaDeclarada.Ventana(null, null) : ventanas.get(0).ventana();
+        return List.of(evento(hablaDeServicio, tipo, mencionados, ventana, huboEnumeracion, texto, citaTextual(texto)));
+    }
 
-        LectorDeVentanaDeclarada.Ventana ventana =
-                LectorDeVentanaDeclarada.leer(texto, documento.publicadoEn());
-
-        String tipo = "SUSPENSION_PROGRAMADA";
-        if (mencionaPresionBaja && !mencionaInterrupcion) {
-            tipo = "PRESION_BAJA";
-        } else if (mencionaNormalidad && !mencionaInterrupcion) {
-            tipo = "SERVICIO_NORMAL";
+    /**
+     * Si el boletín trae dos o más horarios y cada uno va seguido de su propia lista de barrios, cada par es una zona.
+     * Los horarios sin lista propia —la ventana global de una jornada que luego se detalla por días— no son zonas.
+     * Vacío cuando no hay esa estructura: el llamador usa entonces la lectura de una sola zona.
+     */
+    private static List<EventoExtraido> zonasConVentanaPropia(String texto,
+            List<LectorDeVentanaDeclarada.VentanaEnTexto> ventanas, String tipo, boolean hablaDeServicio,
+            DocumentoCrudo documento) {
+        if (ventanas.size() < 2) {
+            return List.of();
         }
+        List<EventoExtraido> zonas = new ArrayList<>();
+        for (int i = 0; i < ventanas.size(); i++) {
+            LectorDeVentanaDeclarada.VentanaEnTexto actual = ventanas.get(i);
+            int finDelTramo = i + 1 < ventanas.size() ? ventanas.get(i + 1).desde() : texto.length();
+            String tramo = quitarEncabezadoDeLaSiguienteZona(texto.substring(actual.hasta(), finDelTramo));
+            List<String> barrios = barriosEnumerados(tramo);
+            if (barrios.isEmpty()) {
+                continue;
+            }
+            String citaDeLaZona = citaTextual(texto.substring(actual.desde(), actual.hasta()) + tramo);
+            zonas.add(evento(hablaDeServicio, tipo, barrios, actual.ventana(), true, texto, citaDeLaZona));
+        }
+        return List.copyOf(zonas);
+    }
 
-        boolean esInterrupcion =
-                (mencionaInterrupcion || mencionaPresionBaja || mencionaNormalidad)
-                        && !mencionados.isEmpty();
+    /** El encabezado de una zona es corto: solo se mira el final del tramo, no todo (la expresión se vuelve lenta con tramos largos). */
+    private static final int LARGO_MAXIMO_DE_ENCABEZADO = 200;
 
+    private static String quitarEncabezadoDeLaSiguienteZona(String tramo) {
+        int desde = Math.max(0, tramo.length() - LARGO_MAXIMO_DE_ENCABEZADO);
+        Matcher encabezado = ENCABEZADO_DE_ZONA_AL_FINAL.matcher(tramo.substring(desde));
+        return encabezado.find() ? tramo.substring(0, desde + encabezado.start()) : tramo;
+    }
+
+    private static EventoExtraido evento(boolean hablaDeServicio, String tipo, List<String> barrios,
+            LectorDeVentanaDeclarada.Ventana ventana, boolean huboEnumeracion, String texto, String cita) {
         return new EventoExtraido(
-                esInterrupcion,
+                hablaDeServicio && !barrios.isEmpty(),
                 tipo,
-                mencionados,
+                barrios,
                 ventana.inicio(),
                 ventana.fin(),
                 causaDeclarada(texto),
                 confianza(huboEnumeracion, ventana),
                 camposInferidos(ventana),
-                citaTextual(texto));
+                cita);
+    }
+
+    private static String sinTildes(String texto) {
+        return java.text.Normalizer.normalize(texto, java.text.Normalizer.Form.NFD).replaceAll("\\p{M}", "");
     }
 
     private static double confianza(boolean huboEnumeracion, LectorDeVentanaDeclarada.Ventana ventana) {
@@ -192,13 +284,18 @@ public class HeuristicaExtractor {
         while (coincidencia.find()) {
             nombres.addAll(trocear(coincidencia.group(1)));
         }
+        // En prosa, «barrios que tuvieron suspensión» o «sectores intervenidos» no son nombres: un barrio se escribe
+        // con mayúscula inicial (o es un número, «13 de Junio»). En una enumeración con dos puntos no hace falta, porque
+        // ahí todo lo que sigue es una lista.
+        nombres.removeIf(nombre -> !Character.isUpperCase(nombre.charAt(0)) && !Character.isDigit(nombre.charAt(0)));
         return nombres;
     }
 
     private static List<String> trocear(String region) {
         List<String> nombres = new ArrayList<>();
         for (String trozo : SEPARADOR.split(region)) {
-            String limpio = trozo.strip();
+            // La fuente a veces separa con dos espacios, un salto de línea o un espacio de no separación: «La  Floresta».
+            String limpio = trozo.replaceAll("[\s\u00A0\u2007\u202F]+", " ").strip();
             if (limpio.length() < 3 || limpio.length() > 60) {
                 continue;
             }

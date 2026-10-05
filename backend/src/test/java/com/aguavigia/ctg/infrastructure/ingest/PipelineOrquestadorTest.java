@@ -22,6 +22,7 @@ import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
@@ -67,8 +68,7 @@ class PipelineOrquestadorTest {
         given(acuacar.obtenerDesde(any())).willReturn(List.of());
         given(rss.obtenerDesde(any())).willReturn(List.of());
         given(deduplicador.yaVistoRecientemente(any())).willReturn(false);
-        given(registrarPropuesta.registrar(any(), any(), anyString(), any(), any(), anyDouble(), any(), any(), any(), any(), any()))
-                .willReturn(Optional.empty());
+        given(registrarPropuesta.registrarAviso(any())).willReturn(List.of());
 
         orquestador = new PipelineOrquestador(acuacar, rss, Optional.empty(), deduplicador, extractor, sectores,
                 registrarPropuesta, estadoColectores, marcas, fallidos, reloj, (nombre, maximo, minimo, tarea) -> tarea.run());
@@ -85,8 +85,43 @@ class PipelineOrquestadorTest {
 
     private void hayUnDocumentoSobre(String texto, List<String> mencionados, List<Sector> sembrados) {
         given(acuacar.obtenerDesde(any())).willReturn(List.of(documento(texto)));
-        given(extractor.extraer(any())).willReturn(eventoParaSectores(mencionados));
+        given(extractor.extraerPorZonas(any())).willReturn(List.of(eventoParaSectores(mencionados)));
         given(sectores.listarTodos()).willReturn(sembrados);
+    }
+
+    /**
+     * Un boletín de suspensión cuya ventana ya terminó (el caso del histórico) no es un restablecimiento: proponerlo como
+     * CON_SERVICIO lo sacaba de la rama de historia y lo trataba como «servicio normal» fechado en la publicación.
+     */
+    @Test
+    void unaSuspensionCuyaVentanaYaTerminoSeProponeComoCorteYNoComoServicioNormal() {
+        given(acuacar.obtenerDesde(any())).willReturn(List.of(documento("Corte en Manga por daño en la red")));
+        given(extractor.extraerPorZonas(any())).willReturn(List.of(new EventoExtraido(true, "SUSPENSION_PROGRAMADA",
+                List.of("Manga"), AHORA.minusSeconds(40 * 3600), AHORA.minusSeconds(31 * 3600), "daño", 0.85, List.of(),
+                "cita del boletin")));
+        given(sectores.listarTodos()).willReturn(
+                List.of(new Sector(new SectorId("manga"), "Manga", 1000, EstadoServicio.CON_SERVICIO)));
+
+        orquestador.ejecutarCiclo();
+
+        verify(registrarPropuesta).registrarAviso(argThat(aviso ->
+                aviso.estadoPropuesto() == EstadoServicio.SIN_SERVICIO));
+    }
+
+    /** Un boletín de varias zonas se cuenta entero para la compuerta de «demasiados barrios». */
+    @Test
+    void elAvisoDeCadaZonaLlevaElTotalDeSectoresDelBoletinEntero() {
+        given(acuacar.obtenerDesde(any())).willReturn(List.of(documento("Corte en Manga y Bocagrande por daño en la red")));
+        given(extractor.extraerPorZonas(any())).willReturn(List.of(
+                eventoParaSectores(List.of("Manga")), eventoParaSectores(List.of("Bocagrande"))));
+        given(sectores.listarTodos()).willReturn(List.of(
+                new Sector(new SectorId("manga"), "Manga", 1000, EstadoServicio.CON_SERVICIO),
+                new Sector(new SectorId("bocagrande"), "Bocagrande", 1000, EstadoServicio.CON_SERVICIO)));
+
+        orquestador.ejecutarCiclo();
+
+        verify(registrarPropuesta, org.mockito.Mockito.times(2)).registrarAviso(argThat(aviso ->
+                aviso.sectores().size() == 1 && aviso.sectoresDelBoletin() == 2));
     }
 
     // --- Lo esencial del rediseño: la ingesta propone, no publica ---
@@ -109,9 +144,15 @@ class PipelineOrquestadorTest {
 
         orquestador.ejecutarCiclo();
 
-        verify(registrarPropuesta).registrar(eq(new SectorId("manga")), eq(EstadoServicio.SIN_SERVICIO),
-                eq("acuacar"), eq("https://acuacar.com/x"), eq("cita del boletin"), eq(0.6),
-                any(), any(), any(), any(), any());
+        // La zona entera, con sus sectores a la vista: es sobre ella que se deciden las compuertas.
+        verify(registrarPropuesta).registrarAviso(argThat(aviso ->
+                aviso.sectores().equals(List.of(new SectorId("manga")))
+                        && aviso.estadoPropuesto() == EstadoServicio.SIN_SERVICIO
+                        && "acuacar".equals(aviso.fuente())
+                        && "https://acuacar.com/x".equals(aviso.urlOriginal())
+                        && "cita del boletin".equals(aviso.citaTextual())
+                        && aviso.confianza() == 0.6
+                        && !aviso.aliasAmbiguo()));
     }
 
     @Test
@@ -123,7 +164,7 @@ class PipelineOrquestadorTest {
 
         orquestador.ejecutarCiclo();
 
-        verify(registrarPropuesta, never()).registrar(any(), any(), anyString(), any(), any(), anyDouble(), any(), any(), any(), any(), any());
+        verify(registrarPropuesta, never()).registrarAviso(any());
     }
 
     // --- Modo local, sin internet (ADR-082) ---
@@ -132,7 +173,7 @@ class PipelineOrquestadorTest {
     void enModoLocalNoDebeTocarLaRedAunqueAcuacarEstuvieraCaido() {
         ColectorLocalDeBoletines local = mock(ColectorLocalDeBoletines.class);
         given(local.obtenerDesde(any())).willReturn(List.of(documento("Corte en Manga por daño en la red")));
-        given(extractor.extraer(any())).willReturn(eventoParaSectores(List.of("Manga")));
+        given(extractor.extraerPorZonas(any())).willReturn(List.of(eventoParaSectores(List.of("Manga"))));
         given(sectores.listarTodos()).willReturn(
                 List.of(new Sector(new SectorId("manga"), "Manga", 1000, EstadoServicio.CON_SERVICIO)));
         var orquestadorLocal = new PipelineOrquestador(acuacar, rss, Optional.of(local), deduplicador, extractor,
@@ -143,8 +184,8 @@ class PipelineOrquestadorTest {
 
         verify(acuacar, never()).obtenerDesde(any());
         verify(rss, never()).obtenerDesde(any());
-        verify(registrarPropuesta).registrar(eq(new SectorId("manga")), any(), eq("acuacar"), any(), any(),
-                anyDouble(), any(), any(), any(), any(), any());
+        verify(registrarPropuesta).registrarAviso(argThat(aviso ->
+                aviso.sectores().contains(new SectorId("manga")) && "acuacar".equals(aviso.fuente())));
         assertThat(estadoColectores.hayAlgunColectorCaido()).isFalse();
         assertThat(estadoColectores.estados()).extracting(EstadoColector::nombre).containsExactly("acuacar");
     }
@@ -155,13 +196,13 @@ class PipelineOrquestadorTest {
     void unColectorCaidoNoDebeImpedirQueSeLeaElOtro() {
         given(acuacar.obtenerDesde(any())).willThrow(new IllegalStateException("acuacar.com responde 503"));
         given(rss.obtenerDesde(any())).willReturn(List.of(documento("Corte en Manga por daño en la red")));
-        given(extractor.extraer(any())).willReturn(eventoParaSectores(List.of("Manga")));
+        given(extractor.extraerPorZonas(any())).willReturn(List.of(eventoParaSectores(List.of("Manga"))));
         given(sectores.listarTodos()).willReturn(
                 List.of(new Sector(new SectorId("manga"), "Manga", 1000, EstadoServicio.CON_SERVICIO)));
 
         orquestador.ejecutarCiclo();
 
-        verify(registrarPropuesta).registrar(eq(new SectorId("manga")), any(), anyString(), any(), any(), anyDouble(), any(), any(), any(), any(), any());
+        verify(registrarPropuesta).registrarAviso(argThat(aviso -> aviso.sectores().contains(new SectorId("manga"))));
     }
 
     @Test
@@ -171,7 +212,7 @@ class PipelineOrquestadorTest {
 
         orquestador.ejecutarCiclo();
 
-        verify(registrarPropuesta, never()).registrar(any(), any(), anyString(), any(), any(), anyDouble(), any(), any(), any(), any(), any());
+        verify(registrarPropuesta, never()).registrarAviso(any());
     }
 
     // --- Salud por colector (RNF007) ---
@@ -180,7 +221,7 @@ class PipelineOrquestadorTest {
     void debeRegistrarLaUltimaEjecucionExitosaYLosItemsDeCadaColector() {
         given(acuacar.obtenerDesde(any())).willReturn(List.of(documento("Corte en Manga")));
         given(rss.obtenerDesde(any())).willReturn(List.of());
-        given(extractor.extraer(any())).willReturn(eventoParaSectores(List.of()));
+        given(extractor.extraerPorZonas(any())).willReturn(List.of(eventoParaSectores(List.of())));
         given(sectores.listarTodos()).willReturn(List.of());
 
         orquestador.ejecutarCiclo();
@@ -241,7 +282,7 @@ class PipelineOrquestadorTest {
     void noDebeMarcarComoVistoUnDocumentoQueFalloAlProcesarse() {
         hayUnDocumentoSobre("Corte en Manga por daño en la red", List.of("Manga"),
                 List.of(new Sector(new SectorId("manga"), "Manga", 1000, EstadoServicio.CON_SERVICIO)));
-        given(registrarPropuesta.registrar(any(), any(), anyString(), any(), any(), anyDouble(), any(), any(), any(), any(), any()))
+        given(registrarPropuesta.registrarAviso(any()))
                 .willThrow(new RuntimeException("Mongo caído"));
 
         orquestador.ejecutarCiclo();
@@ -267,7 +308,7 @@ class PipelineOrquestadorTest {
     void unDocumentoQueFallaDebeQuedarEnLaColaDeFallidosConSuMotivo() {
         hayUnDocumentoSobre("Corte en Manga por daño en la red", List.of("Manga"),
                 List.of(new Sector(new SectorId("manga"), "Manga", 1000, EstadoServicio.CON_SERVICIO)));
-        given(registrarPropuesta.registrar(any(), any(), anyString(), any(), any(), anyDouble(), any(), any(), any(), any(), any()))
+        given(registrarPropuesta.registrarAviso(any()))
                 .willThrow(new RuntimeException("Mongo caído"));
 
         orquestador.ejecutarCiclo();
@@ -285,7 +326,7 @@ class PipelineOrquestadorTest {
     void unDocumentoQueFallaVariasVecesDebeAcumularReintentosEnLaMismaFila() {
         hayUnDocumentoSobre("Corte en Manga por daño en la red", List.of("Manga"),
                 List.of(new Sector(new SectorId("manga"), "Manga", 1000, EstadoServicio.CON_SERVICIO)));
-        given(registrarPropuesta.registrar(any(), any(), anyString(), any(), any(), anyDouble(), any(), any(), any(), any(), any()))
+        given(registrarPropuesta.registrarAviso(any()))
                 .willThrow(new RuntimeException("Mongo caído"));
         String hash = documento("Corte en Manga por daño en la red").hash();
         given(fallidos.findById(hash)).willReturn(Optional.of(
@@ -320,7 +361,7 @@ class PipelineOrquestadorTest {
 
         orquestador.ejecutarCiclo();
 
-        verify(registrarPropuesta, never()).registrar(any(), any(), anyString(), any(), any(), anyDouble(), any(), any(), any(), any(), any());
+        verify(registrarPropuesta, never()).registrarAviso(any());
     }
 
     @Test
@@ -330,7 +371,7 @@ class PipelineOrquestadorTest {
 
         orquestador.ejecutarCiclo();
 
-        verify(registrarPropuesta, never()).registrar(any(), any(), anyString(), any(), any(), anyDouble(), any(), any(), any(), any(), any());
+        verify(registrarPropuesta, never()).registrarAviso(any());
         verify(deduplicador, never()).marcarComoVisto(anyString());
     }
 }

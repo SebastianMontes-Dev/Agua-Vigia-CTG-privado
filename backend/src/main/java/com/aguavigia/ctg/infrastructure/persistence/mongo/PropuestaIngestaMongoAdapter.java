@@ -43,6 +43,7 @@ public class PropuestaIngestaMongoAdapter implements PropuestaIngestaRepository 
         documento.setPublicadoEn(propuesta.publicadoEn());
         documento.setTituloOriginal(propuesta.tituloOriginal());
         documento.setMotivoAnulacion(propuesta.motivoAnulacion());
+        documento.setMotivoDeRevision(propuesta.motivoDeRevision());
 
         repositorio.save(documento);
         return propuesta;
@@ -72,6 +73,13 @@ public class PropuestaIngestaMongoAdapter implements PropuestaIngestaRepository 
                 sectorId.valor(), estadoPropuesto.name(), EstadoRevision.PENDIENTE.name());
     }
 
+    @Override
+    public boolean existeDelBoletin(SectorId sectorId, String urlOriginal, EstadoServicio estadoPropuesto,
+                                    java.time.Instant inicioDeclarado) {
+        return repositorio.existsBySectorIdAndUrlOriginalAndEstadoPropuestoAndInicioDeclarado(
+                sectorId.valor(), urlOriginal, estadoPropuesto.name(), inicioDeclarado);
+    }
+
     private static PropuestaIngesta aDominio(PropuestaIngestaDocumento documento) {
         return new PropuestaIngesta(
                 new PropuestaId(documento.getId()),
@@ -88,7 +96,8 @@ public class PropuestaIngestaMongoAdapter implements PropuestaIngestaRepository 
                 documento.getImagenUrl(),
                 documento.getPublicadoEn(),
                 documento.getTituloOriginal(),
-                documento.getMotivoAnulacion());
+                documento.getMotivoAnulacion(),
+                documento.getMotivoDeRevision());
     }
 
     @Override

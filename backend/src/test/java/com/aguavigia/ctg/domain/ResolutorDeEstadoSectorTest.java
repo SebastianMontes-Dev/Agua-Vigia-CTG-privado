@@ -33,6 +33,28 @@ class ResolutorDeEstadoSectorTest {
         return new VentanaOficial(INICIO, FIN, null);
     }
 
+    /**
+     * Un boletín de «servicio restablecido» de hace meses —lo normal al ingerir el histórico de Acuacar— dice qué pasó
+     * entonces, no qué pasa hoy. Fijar CON_SERVICIO con él sería el mismo dato congelado que D3 evita con los cortes.
+     */
+    @Test
+    void unRestablecimientoOficialMuyViejoNoFijaElEstadoDeHoy() {
+        Instant ahora = INICIO.plus(Duration.ofDays(30));
+
+        EstadoPublicado publicado = resolver(ahora, new Afirmacion.RestablecimientoOficial(ahora.minus(Duration.ofDays(400))));
+
+        assertThat(publicado.estado()).isNull();
+    }
+
+    @Test
+    void unRestablecimientoOficialDentroDelPlazoSiFijaConServicio() {
+        EstadoPublicado publicado = resolver(INICIO,
+                new Afirmacion.RestablecimientoOficial(INICIO.minus(Duration.ofHours(71))));
+
+        assertThat(publicado.estado()).isEqualTo(EstadoServicio.CON_SERVICIO);
+        assertThat(publicado.origen()).isEqualTo(OrigenEstado.ACUACAR);
+    }
+
     @Test
     void sinNingunaAfirmacionNadieSabeYElEstadoEsNulo() {
         EstadoPublicado publicado = resolver(INICIO);

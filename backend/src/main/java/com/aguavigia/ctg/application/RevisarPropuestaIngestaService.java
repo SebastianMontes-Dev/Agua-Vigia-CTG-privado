@@ -5,6 +5,7 @@ import com.aguavigia.ctg.domain.AccionAuditada;
 import com.aguavigia.ctg.domain.ContextoDeAccion;
 import com.aguavigia.ctg.domain.EntidadNoEncontradaException;
 import com.aguavigia.ctg.domain.EstadoCorte;
+import com.aguavigia.ctg.domain.EstadoRevision;
 import com.aguavigia.ctg.domain.EventoBitacoraFactory;
 import com.aguavigia.ctg.domain.OrigenCorte;
 import com.aguavigia.ctg.domain.PropuestaId;
@@ -17,6 +18,8 @@ import com.aguavigia.ctg.domain.port.out.PropuestaIngestaRepository;
 import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.SectorRepository;
 import com.aguavigia.ctg.domain.port.out.TransaccionPort;
+
+import java.time.Duration;
 
 /**
  * M9 + M5 — el punto donde una propuesta automatizada se convierte (o no) en dato público.
@@ -37,6 +40,7 @@ public class RevisarPropuestaIngestaService implements RevisarPropuestaIngestaUs
     private final RelojPort reloj;
     private final TransaccionPort transaccion;
     private final RegistroDeAuditoria auditoria;
+    private final Duration expiraTrasFin;
 
     public RevisarPropuestaIngestaService(PropuestaIngestaRepository propuestas,
                                            SectorRepository sectores,
@@ -45,8 +49,10 @@ public class RevisarPropuestaIngestaService implements RevisarPropuestaIngestaUs
                                            RecalcularSectorUseCase recalcular,
                                            RelojPort reloj,
                                            TransaccionPort transaccion,
-                                           RegistroDeAuditoria auditoria) {
+                                           RegistroDeAuditoria auditoria,
+                                           Duration expiraTrasFin) {
         this.auditoria = auditoria;
+        this.expiraTrasFin = expiraTrasFin;
         this.propuestas = propuestas;
         this.sectores = sectores;
         this.registrarEvento = registrarEvento;
@@ -65,6 +71,21 @@ public class RevisarPropuestaIngestaService implements RevisarPropuestaIngestaUs
         sectores.buscarPorId(propuesta.sectorId())
                 .orElseThrow(() -> new IllegalStateException(
                         "El sector '" + propuesta.sectorId().valor() + "' de la propuesta ya no existe"));
+
+        // D27: un corte cuya ventana ya terminó es historia. Se guarda como tal, con la fecha del hecho, sin mover el mapa.
+        if (propuesta.esCorteVencido(reloj.ahora(), expiraTrasFin)) {
+            // Idempotente: aprobar otra vez no vuelve a anexar el evento (la bitácora es de solo anexado).
+            if (propuesta.estadoRevision() == EstadoRevision.APROBADA) {
+                return propuesta;
+            }
+            return transaccion.ejecutar(() -> {
+                PropuestaIngesta guardada = propuestas.guardar(aprobada);
+                cortes.anexarSectorAlCorte(propuesta.idDelCorte(), propuesta.sectorId(), propuesta.inicioDeclarado(),
+                        propuesta.finPrometido(), causaDe(propuesta), OrigenCorte.INGESTA_IA, EstadoCorte.EXPIRADO);
+                registrarEvento.registrar(EventoBitacoraFactory.corteHistorico(propuesta));
+                return guardada;
+            });
+        }
 
         // Propuesta, corte y estado son una sola unidad: si el recálculo falla, la aprobación se revierte entera.
         return transaccion.ejecutar(() -> {
@@ -93,13 +114,14 @@ public class RevisarPropuestaIngestaService implements RevisarPropuestaIngestaUs
         if (propuesta.inicioDeclarado() == null || propuesta.finPrometido() == null) {
             return;
         }
-        CorteId id = propuesta.idDelCorte();
-        String causa = propuesta.citaTextual() == null || propuesta.citaTextual().isBlank()
+        cortes.anexarSectorAlCorte(propuesta.idDelCorte(), propuesta.sectorId(), propuesta.inicioDeclarado(),
+                propuesta.finPrometido(), causaDe(propuesta), OrigenCorte.INGESTA_IA, EstadoCorte.ANUNCIADO);
+    }
+
+    private static String causaDe(PropuestaIngesta propuesta) {
+        return propuesta.citaTextual() == null || propuesta.citaTextual().isBlank()
                 ? "Anuncio de " + propuesta.fuente()
                 : propuesta.citaTextual();
-
-        cortes.anexarSectorAlCorte(id, propuesta.sectorId(), propuesta.inicioDeclarado(),
-                propuesta.finPrometido(), causa, OrigenCorte.INGESTA_IA, EstadoCorte.ANUNCIADO);
     }
 
     @Override

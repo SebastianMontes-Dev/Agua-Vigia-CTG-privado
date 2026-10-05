@@ -63,6 +63,13 @@ final class AliasDeBarrios {
         return new AliasDeBarrios(alias);
     }
 
+    /** Para probar el emparejamiento sin tocar el archivo de datos: mismas líneas, mismo formato. */
+    static AliasDeBarrios deLineas(List<String> lineas) {
+        Map<String, List<String>> alias = new LinkedHashMap<>();
+        lineas.forEach(linea -> agregar(alias, linea));
+        return new AliasDeBarrios(alias);
+    }
+
     private static void agregar(Map<String, List<String>> alias, String linea) {
         String limpia = linea.strip();
         if (limpia.isEmpty() || limpia.startsWith("#")) {

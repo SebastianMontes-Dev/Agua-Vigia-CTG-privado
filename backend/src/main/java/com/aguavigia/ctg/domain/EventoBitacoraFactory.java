@@ -74,6 +74,26 @@ public final class EventoBitacoraFactory {
                         .formatted(sectorId.valor()));
     }
 
+    /**
+     * Un corte que Acuacar anunció y que ya había terminado, sin confirmación alguna, cuando se ingirió (D27). Lleva la
+     * fecha del hecho —el inicio que el boletín declara—, no la de la recuperación: la bitácora cuenta qué le pasó al
+     * acueducto y no cuándo corrió el colector. No afirma ningún estado: una ventana vencida no prueba que haya agua.
+     */
+    public static EventoBitacora corteHistorico(PropuestaIngesta propuesta) {
+        return new EventoBitacora(
+                new EventoId(UUID.randomUUID().toString()),
+                TipoEvento.CORTE_EXPIRADO,
+                propuesta.sectorId(),
+                propuesta.idDelCorte(),
+                propuesta.inicioDeclarado(),
+                "Acuacar anunció un corte en '%s' del %s al %s; al registrarlo ya había terminado y no consta cuándo volvió el servicio"
+                        .formatted(propuesta.sectorId().valor(), propuesta.inicioDeclarado(), propuesta.finPrometido()),
+                null,
+                propuesta.urlOriginal(),
+                propuesta.imagenUrl())
+                .conFuente(OrigenEstado.ACUACAR, null);
+    }
+
     /** Los vecinos confirmaron que volvió el agua; quedan citados los reportes que lo sostienen. */
     public static EventoBitacora restablecimientoPorVecinos(SectorId sectorId, List<ReporteId> reportesQueSustentan,
                                                               RespaldoVecinal respaldo, Instant ahora) {

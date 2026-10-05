@@ -27,6 +27,14 @@ public interface PropuestaIngestaRepository {
     boolean existePendiente(SectorId sectorId, EstadoServicio estadoPropuesto);
 
     /**
+     * Si ya se registró una propuesta de este boletín para este barrio, en **cualquier** estado de revisión (también las anuladas y
+     * descartadas: lo que el veedor decidió no se deshace porque el colector vuelva a leer el mismo boletín). Es lo que hace idempotente
+     * la ingesta: ni la marca de lectura ni el deduplicador de Redis sobreviven a todo (un Redis vaciado, el respaldo local releyendo el
+     * archivo). Un boletín con varias zonas puede nombrar el mismo barrio con otra ventana: por eso entra también el inicio declarado.
+     */
+    boolean existeDelBoletin(SectorId sectorId, String urlOriginal, EstadoServicio estadoPropuesto, java.time.Instant inicioDeclarado);
+
+    /**
      * Propuestas ya aprobadas cuya ventana declarada todavía puede mover el estado de un sector:
      * las que aún no terminan, más las que acaban de terminar y falta devolver el barrio a
      * CON_SERVICIO. Acotar por {@code finDesde} evita recorrer el histórico entero en cada barrido.

@@ -141,7 +141,8 @@ public class ResolutorDeEstadoSector {
 
     private EstadoPublicado sinCorteAbierto(List<ConVentana> ventanas, List<Instant> boletines,
                                             List<QuorumVecinos> vecinos, Instant ahora) {
-        Optional<Restablecimiento> ultimo = restablecimientos(ventanas, boletines, ahora).stream().max(MAS_RECIENTE);
+        Optional<Restablecimiento> ultimo = restablecimientos(ventanas, boletines, ahora, reglas.expiraTrasFin())
+                .stream().max(MAS_RECIENTE);
 
         if (ultimo.isPresent()) {
             // Los vecinos pueden contradecir un restablecimiento, pero solo con reportes posteriores a él.
@@ -161,15 +162,21 @@ public class ResolutorDeEstadoSector {
                 .orElseGet(EstadoPublicado::sinDatos);
     }
 
+    /**
+     * Los boletines siguen cerrando las ventanas que cubren ({@link #cerradaPorBoletin}), pero solo afirman «hay servicio»
+     * mientras no pase el plazo de expiración: uno de hace meses dice qué pasó entonces, no qué pasa hoy.
+     */
     private static List<Restablecimiento> restablecimientos(List<ConVentana> ventanas, List<Instant> boletines,
-                                                            Instant ahora) {
+                                                            Instant ahora, Duration vigencia) {
         List<Restablecimiento> restablecimientos = new ArrayList<>();
         for (ConVentana ventana : ventanas) {
             if (estaCerrada(ventana, ahora)) {
                 restablecimientos.add(new Restablecimiento(ventana.cierre().hora(), ventana.cierre().fuente()));
             }
         }
-        boletines.forEach(publicadoEn -> restablecimientos.add(new Restablecimiento(publicadoEn, OrigenEstado.ACUACAR)));
+        boletines.stream()
+                .filter(publicadoEn -> ahora.isBefore(publicadoEn.plus(vigencia)))
+                .forEach(publicadoEn -> restablecimientos.add(new Restablecimiento(publicadoEn, OrigenEstado.ACUACAR)));
         return restablecimientos;
     }
 

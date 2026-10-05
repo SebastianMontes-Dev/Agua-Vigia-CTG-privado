@@ -41,6 +41,23 @@ public record DocumentoCrudo(
         if (texto == null || texto.isBlank()) {
             throw new IllegalArgumentException("El documento crudo debe tener texto");
         }
+        // Estas URLs llegan hasta el frontend como enlace e imagen: solo http(s). Una fuente hostil no debe colar
+        // `javascript:` o `data:`. Una imagen mala se descarta; un enlace malo rechaza el documento.
+        if (urlOriginal != null && !esUrlWeb(urlOriginal)) {
+            throw new IllegalArgumentException("La URL del documento no es http(s): " + recortada(urlOriginal));
+        }
+        if (imagenUrl != null && !esUrlWeb(imagenUrl)) {
+            imagenUrl = null;
+        }
+    }
+
+    private static boolean esUrlWeb(String url) {
+        String minuscula = url.strip().toLowerCase();
+        return minuscula.startsWith("https://") || minuscula.startsWith("http://");
+    }
+
+    private static String recortada(String texto) {
+        return texto.length() > 60 ? texto.substring(0, 60) + "…" : texto;
     }
 
     public static DocumentoCrudo de(String fuente, String urlOriginal, Instant publicadoEn,

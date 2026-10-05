@@ -11,6 +11,9 @@ public interface PropuestaIngestaMongoRepository extends MongoRepository<Propues
 
     Page<PropuestaIngestaDocumento> findByEstadoRevision(String estadoRevision, Pageable paginacion);
 
+    boolean existsBySectorIdAndUrlOriginalAndEstadoPropuestoAndInicioDeclarado(
+            String sectorId, String urlOriginal, String estadoPropuesto, java.time.Instant inicioDeclarado);
+
     boolean existsBySectorIdAndEstadoPropuestoAndEstadoRevision(
             String sectorId, String estadoPropuesto, String estadoRevision);
 

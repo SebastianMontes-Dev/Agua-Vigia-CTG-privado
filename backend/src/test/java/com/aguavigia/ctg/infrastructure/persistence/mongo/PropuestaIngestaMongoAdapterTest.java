@@ -107,6 +107,30 @@ class PropuestaIngestaMongoAdapterTest {
         assertThat(adaptador.existePendiente(new SectorId("bocagrande"), EstadoServicio.SIN_SERVICIO)).isFalse();
     }
 
+    /**
+     * Un boletín ya registrado no se vuelve a registrar, esté pendiente, aprobado, descartado o anulado: lo que el veedor decidió no se
+     * deshace porque el colector vuelva a leer el mismo boletín. Distingue barrio, enlace, estado y la ventana que prometió.
+     */
+    @Test
+    void existeDelBoletinDistingueBarrioEnlaceEstadoYVentanaEnCualquierRevision() {
+        Instant inicio = AHORA.plusSeconds(3600);
+        adaptador.guardar(new PropuestaIngesta(new PropuestaId("a"), new SectorId("manga"), EstadoServicio.SIN_SERVICIO, "acuacar",
+                "https://acuacar.com/uno", "cita", 0.9, AHORA, inicio, inicio.plusSeconds(7200)).aprobar());
+        adaptador.guardar(new PropuestaIngesta(new PropuestaId("b"), new SectorId("crespo"), EstadoServicio.SIN_SERVICIO, "acuacar",
+                "https://acuacar.com/dos", "cita", 0.9, AHORA));
+
+        SectorId manga = new SectorId("manga");
+        assertThat(adaptador.existeDelBoletin(manga, "https://acuacar.com/uno", EstadoServicio.SIN_SERVICIO, inicio))
+                .as("aprobada: sigue contando como ya registrada").isTrue();
+        assertThat(adaptador.existeDelBoletin(manga, "https://acuacar.com/otro", EstadoServicio.SIN_SERVICIO, inicio)).isFalse();
+        assertThat(adaptador.existeDelBoletin(new SectorId("torices"), "https://acuacar.com/uno", EstadoServicio.SIN_SERVICIO, inicio)).isFalse();
+        assertThat(adaptador.existeDelBoletin(manga, "https://acuacar.com/uno", EstadoServicio.PRESION_BAJA, inicio)).isFalse();
+        assertThat(adaptador.existeDelBoletin(manga, "https://acuacar.com/uno", EstadoServicio.SIN_SERVICIO, inicio.plusSeconds(60)))
+                .as("otra ventana del mismo boletín es otro aviso").isFalse();
+        assertThat(adaptador.existeDelBoletin(new SectorId("crespo"), "https://acuacar.com/dos", EstadoServicio.SIN_SERVICIO, null))
+                .as("sin ventana declarada").isTrue();
+    }
+
     /** Ya revisada deja de bloquear: si el corte vuelve a pasar, el veedor debe poder verlo otra vez. */
     @Test
     void unaPropuestaYaRevisadaNoDebeContarComoPendiente() {
@@ -148,6 +172,17 @@ class PropuestaIngestaMongoAdapterTest {
         assertThat(recuperada.estadoRevision()).isEqualTo(EstadoRevision.ANULADA);
         assertThat(recuperada.motivoAnulacion()).isEqualTo("Leyó mal el barrio");
         assertThat(adaptador.listarAprobadasPorSector(new SectorId("manga"))).isEmpty();
+    }
+
+    @Test
+    void debeConservarPorQueUnaPropuestaEsperaAlVeedor() {
+        adaptador.guardar(propuesta("p-5", "manga", EstadoServicio.SIN_SERVICIO, AHORA)
+                .conMotivoDeRevision("La confianza de la extracción es 0,45"));
+
+        assertThat(adaptador.buscarPorId(new PropuestaId("p-5")).orElseThrow().motivoDeRevision())
+                .isEqualTo("La confianza de la extracción es 0,45");
+        assertThat(adaptador.listarPendientes(0, 10).contenido()).singleElement()
+                .satisfies(p -> assertThat(p.motivoDeRevision()).contains("0,45"));
     }
 
     @Test

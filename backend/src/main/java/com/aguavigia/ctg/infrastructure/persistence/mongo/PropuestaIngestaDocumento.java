@@ -43,4 +43,7 @@ public class PropuestaIngestaDocumento {
 
     /** Solo en una propuesta ANULADA. */
     private String motivoAnulacion;
+
+    /** Por qué esperó al veedor en vez de publicarse sola (D5). Nulo si salió sola. */
+    private String motivoDeRevision;
 }

@@ -81,7 +81,7 @@ class RevisarPropuestaIngestaServiceTest {
         });
         auditoria = mock(RegistroDeAuditoria.class);
         servicio = new RevisarPropuestaIngestaService(propuestas, sectores, registrarEvento, cortes, recalcular,
-                () -> AHORA, transaccion, auditoria);
+                () -> AHORA, transaccion, auditoria, java.time.Duration.ofHours(72));
 
         given(propuestas.guardar(any())).willAnswer(invocacion -> invocacion.getArgument(0));
         given(propuestas.buscarPorId(ID)).willReturn(Optional.of(propuestaConVentana()));
@@ -97,6 +97,111 @@ class RevisarPropuestaIngestaServiceTest {
     private static PropuestaIngesta propuestaSinVentana() {
         return new PropuestaIngesta(ID, MANGA, EstadoServicio.SIN_SERVICIO, "acuacar",
                 "https://acuacar.com/x", "cita", 0.6, AHORA);
+    }
+
+    /**
+     * D27: al ingerir el histórico de Acuacar, un boletín cuya ventana ya terminó es historia. Se guarda como corte
+     * EXPIRADO, con un evento de bitácora con la fecha del hecho, y no mueve el mapa ni avisa a nadie. Una ventana vencida
+     * no prueba que haya agua.
+     */
+    @Nested
+    class Historia {
+
+        private final Instant inicioViejo = AHORA.minus(java.time.Duration.ofDays(11));
+        private final Instant finViejo = inicioViejo.plus(java.time.Duration.ofHours(9));
+
+        private PropuestaIngesta boletinViejo() {
+            return new PropuestaIngesta(ID, MANGA, EstadoServicio.SIN_SERVICIO, "acuacar",
+                    "https://acuacar.com/viejo", "cita vieja", 0.85, AHORA, inicioViejo, finViejo);
+        }
+
+        @BeforeEach
+        void conBoletinViejo() {
+            given(propuestas.buscarPorId(ID)).willReturn(Optional.of(boletinViejo()));
+        }
+
+        @Test
+        void debeGuardarElCorteComoExpiradoYNoComoAnunciado() {
+            servicio.aprobar(ID);
+
+            verify(cortes).anexarSectorAlCorte(eq(boletinViejo().idDelCorte()), eq(MANGA), eq(inicioViejo), eq(finViejo),
+                    eq("cita vieja"), eq(OrigenCorte.INGESTA_IA), eq(EstadoCorte.EXPIRADO));
+        }
+
+        @Test
+        void noDebeMoverElMapaNiRecalcular() {
+            servicio.aprobar(ID);
+
+            verify(recalcular, never()).recalcular(any());
+        }
+
+        /** La bitácora es una línea de tiempo de lo que pasó, no de cuándo corrió el colector. */
+        @Test
+        void debeAnexarUnEventoConLaFechaDelHechoYNoLaDeHoy() {
+            servicio.aprobar(ID);
+
+            ArgumentCaptor<EventoBitacora> evento = ArgumentCaptor.forClass(EventoBitacora.class);
+            verify(registrarEvento).registrar(evento.capture());
+            assertThat(evento.getValue().tipo()).isEqualTo(TipoEvento.CORTE_EXPIRADO);
+            assertThat(evento.getValue().timestamp()).isEqualTo(inicioViejo);
+            assertThat(evento.getValue().sectorId()).isEqualTo(MANGA);
+            assertThat(evento.getValue().corteId()).isEqualTo(boletinViejo().idDelCorte());
+            assertThat(evento.getValue().urlOriginal()).isEqualTo("https://acuacar.com/viejo");
+            assertThat(evento.getValue().descripcion()).contains("manga");
+        }
+
+        /** La bitácora es de solo anexado: un doble clic o dos veedores a la vez no deben dejar dos eventos del mismo hecho. */
+        @Test
+        void aprobarDosVecesLaMismaPropuestaVieja_NoDuplicaElEventoNiElCorte() {
+            PropuestaIngesta yaAprobada = boletinViejo().aprobar();
+            given(propuestas.buscarPorId(ID)).willReturn(Optional.of(yaAprobada));
+
+            servicio.aprobar(ID);
+
+            verify(registrarEvento, never()).registrar(any());
+            verify(cortes, never()).anexarSectorAlCorte(any(), any(), any(), any(), any(), any(), any());
+        }
+
+        @Test
+        void laPropuestaQuedaAprobadaParaQueNoSeVuelvaAProponer() {
+            PropuestaIngesta aprobada = servicio.aprobar(ID);
+
+            assertThat(aprobada.estadoRevision()).isEqualTo(EstadoRevision.APROBADA);
+            verify(propuestas).guardar(aprobada);
+        }
+
+        @Test
+        void todoVaEnUnaSolaTransaccion() {
+            servicio.aprobar(ID);
+
+            verify(transaccion).ejecutar(any());
+        }
+
+        /** Terminó hace una hora: aún no es historia, es un corte «por confirmar». */
+        @Test
+        void unaVentanaRecienTerminadaSigueElCaminoNormal() {
+            Instant fin = AHORA.minus(java.time.Duration.ofHours(1));
+            given(propuestas.buscarPorId(ID)).willReturn(Optional.of(new PropuestaIngesta(ID, MANGA,
+                    EstadoServicio.SIN_SERVICIO, "acuacar", "https://acuacar.com/x", "cita", 0.85, AHORA,
+                    fin.minus(java.time.Duration.ofHours(9)), fin)));
+
+            servicio.aprobar(ID);
+
+            verify(cortes).anexarSectorAlCorte(any(), eq(MANGA), any(), any(), any(), any(), eq(EstadoCorte.ANUNCIADO));
+            verify(recalcular).recalcular(MANGA);
+        }
+
+        @Test
+        void unRestablecimientoNoEsUnCorteVencido() {
+            given(propuestas.buscarPorId(ID)).willReturn(Optional.of(new PropuestaIngesta(ID, MANGA,
+                    EstadoServicio.CON_SERVICIO, "acuacar", "https://acuacar.com/x", "cita", 0.85, AHORA,
+                    inicioViejo, finViejo)));
+
+            servicio.aprobar(ID);
+
+            verify(recalcular).recalcular(MANGA);
+            verify(cortes, never()).anexarSectorAlCorte(any(), any(), any(), any(), any(), any(), eq(EstadoCorte.EXPIRADO));
+        }
     }
 
     @Nested

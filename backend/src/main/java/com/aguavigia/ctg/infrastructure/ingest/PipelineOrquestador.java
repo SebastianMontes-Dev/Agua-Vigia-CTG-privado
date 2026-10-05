@@ -1,5 +1,6 @@
 package com.aguavigia.ctg.infrastructure.ingest;
 
+import com.aguavigia.ctg.domain.AvisoDeIngesta;
 import com.aguavigia.ctg.domain.EstadoServicio;
 import com.aguavigia.ctg.domain.Sector;
 import com.aguavigia.ctg.domain.SectorId;
@@ -206,29 +207,15 @@ public class PipelineOrquestador {
      */
     private void procesar(DocumentoCrudo documento, EmparejadorDeSectores emparejador) {
         try {
-            EventoExtraido evento = extractor.extraer(documento);
-            if (!evento.esInterrupcionDeAcueducto()) {
-                deduplicador.marcarComoVisto(documento.hash());
-                fallidos.deleteById(documento.hash());
-                return;
-            }
-
-            EstadoServicio estadoPropuesto = aEstadoServicio(evento, reloj.ahora());
-            EmparejadorDeSectores.Resultado emparejados =
-                    emparejador.emparejar(evento.sectoresMencionados());
-
-            // RNF006: lo que la fuente nombra y el catálogo no reconoce se deja anotado. Antes
-            // desaparecía sin rastro, y con ello la única señal de que al GeoJSON le faltan barrios.
-            if (!emparejados.noReconocidos().isEmpty()) {
-                log.info("Ingesta de '{}': {} nombre(s) sin sector en el catálogo: {}",
-                        documento.fuente(), emparejados.noReconocidos().size(),
-                        emparejados.noReconocidos());
-            }
-
-            for (SectorId sectorId : emparejados.sectores()) {
-                registrarPropuesta.registrar(sectorId, estadoPropuesto, documento.fuente(),
-                        documento.urlOriginal(), evento.citaTextual(), evento.confianza(),
-                        evento.inicioDeclarado(), evento.finPrometido(), documento.imagenUrl(), documento.publicadoEn(), documento.titulo());
+            // Un boletín con varias zonas trae un horario por zona: cada una es un aviso con su ventana y sus barrios.
+            List<EventoExtraido> zonas = extractor.extraerPorZonas(documento).stream()
+                    .filter(EventoExtraido::esInterrupcionDeAcueducto).toList();
+            List<EmparejadorDeSectores.Resultado> emparejadas =
+                    zonas.stream().map(zona -> emparejador.emparejar(zona.sectoresMencionados())).toList();
+            // El tope de «demasiados barrios» es del boletín, no de la zona: se suman todos, sin repetir.
+            int sectoresDelBoletin = (int) emparejadas.stream().flatMap(r -> r.sectores().stream()).distinct().count();
+            for (int i = 0; i < zonas.size(); i++) {
+                registrarZona(documento, zonas.get(i), emparejadas.get(i), sectoresDelBoletin);
             }
             deduplicador.marcarComoVisto(documento.hash());
             // Puede haber quedado en `documentos_fallidos` de un intento anterior; ya no está roto.
@@ -238,6 +225,37 @@ public class PipelineOrquestador {
                     documento.fuente(), fallo.toString());
             registrarFallo(documento, fallo);
         }
+    }
+
+    private void registrarZona(DocumentoCrudo documento, EventoExtraido evento,
+                               EmparejadorDeSectores.Resultado emparejados, int sectoresDelBoletin) {
+
+        // RNF006: lo que la fuente nombra y el catálogo no reconoce se deja anotado. Antes
+        // desaparecía sin rastro, y con ello la única señal de que al GeoJSON le faltan barrios.
+        if (!emparejados.noReconocidos().isEmpty()) {
+            log.info("Ingesta de '{}': {} nombre(s) sin sector en el catálogo: {}",
+                    documento.fuente(), emparejados.noReconocidos().size(), emparejados.noReconocidos());
+        }
+        if ("AVISO_DE_ANULACION".equals(evento.tipo())) {
+            log.info("Ingesta de '{}': aviso de aplazamiento o cancelación sobre {} sector(es); no es un corte nuevo",
+                    documento.fuente(), emparejados.sectores().size());
+            return;
+        }
+
+        if (emparejados.sectores().isEmpty()) {
+            return;
+        }
+        if (!emparejados.ambiguos().isEmpty()) {
+            log.warn("Ingesta de '{}': nombre(s) ambiguo(s), casan con más de un barrio y no se asignan: {}",
+                    documento.fuente(), emparejados.ambiguos());
+        }
+
+        // El aviso entero, no sector por sector: «demasiados barrios» o «un nombre ambiguo» solo se ven con la lista completa.
+        registrarPropuesta.registrarAviso(new AvisoDeIngesta(emparejados.sectores(),
+                aEstadoServicio(evento, reloj.ahora()), documento.fuente(), documento.urlOriginal(),
+                evento.citaTextual(), evento.confianza(), evento.inicioDeclarado(), evento.finPrometido(),
+                documento.imagenUrl(), documento.publicadoEn(), documento.titulo(), !emparejados.ambiguos().isEmpty(),
+                sectoresDelBoletin));
     }
 
     /**
@@ -277,9 +295,9 @@ public class PipelineOrquestador {
                 if (inicio != null && ahora.isBefore(inicio)) {
                     yield EstadoServicio.CORTE_PROGRAMADO;
                 }
-                if (fin != null && !ahora.isBefore(fin)) {
-                    yield EstadoServicio.CON_SERVICIO;
-                }
+                // Con la ventana ya terminada sigue siendo un corte (SIN_SERVICIO), no un restablecimiento: que el servicio
+                // volvió lo dice un boletín de restablecimiento, no el fin de una promesa. Si ya es historia, la
+                // aprobación lo guarda como EXPIRADO; si no, el resolutor lo deja «por confirmar».
                 yield EstadoServicio.SIN_SERVICIO;
             }
         };

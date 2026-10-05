@@ -40,6 +40,42 @@ class EmparejadorDeSectoresTest {
         assertThat(resultado.noReconocidos()).isEmpty();
     }
 
+    /**
+     * Dos barrios del catálogo con el mismo nombre normalizado: quedarse con uno cualquiera publicaría un corte en el
+     * barrio que no es (D5, «alias no ambiguos»). Se aparta y se declara.
+     */
+    @Test
+    void unNombreQueCasaConDosBarriosDelCatalogoEsAmbiguoYNoSeAsignaAUnoCualquiera() {
+        var catalogoConHomonimos = new EmparejadorDeSectores(List.of(
+                sector("san-jose-1", "SAN JOSE"), sector("san-jose-2", "SAN JOSÉ"), sector("armenia", "ARMENIA")));
+
+        var resultado = catalogoConHomonimos.emparejar(List.of("San José", "Armenia"));
+
+        assertThat(resultado.sectores()).containsExactly(new SectorId("armenia"));
+        assertThat(resultado.ambiguos()).containsExactly("San José");
+        assertThat(resultado.noReconocidos()).isEmpty();
+    }
+
+    @Test
+    void unAliasCuradoResuelveElNombreAmbiguoYNoSeAsignaAUnoCualquiera() throws Exception {
+        // «San José» casa con dos barrios del catálogo, pero alias-barrios.csv puede decir cuál es: manda el alias.
+        var alias = AliasDeBarrios.deLineas(List.of("San José;san-jose-2"));
+        var conAlias = new EmparejadorDeSectores(List.of(
+                sector("san-jose-1", "SAN JOSE"), sector("san-jose-2", "SAN JOSÉ")), alias);
+
+        var resultado = conAlias.emparejar(List.of("San José"));
+
+        assertThat(resultado.sectores()).containsExactly(new SectorId("san-jose-2"));
+        assertThat(resultado.ambiguos()).isEmpty();
+    }
+
+    @Test
+    void unNombreSinHomonimosNoEsAmbiguo() {
+        var resultado = emparejador.emparejar(List.of("Armenia", "Las Gaviotas"));
+
+        assertThat(resultado.ambiguos()).isEmpty();
+    }
+
     @Test
     void debeEntenderLosNumerosEscritosConCifraYConLetra() {
         var resultado = emparejador.emparejar(List.of("9 de Abril", "7 de Agosto"));

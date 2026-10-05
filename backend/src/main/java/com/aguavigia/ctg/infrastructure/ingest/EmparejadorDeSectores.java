@@ -32,10 +32,16 @@ public class EmparejadorDeSectores {
 
     private static final Logger log = LoggerFactory.getLogger(EmparejadorDeSectores.class);
 
-    public record Resultado(List<SectorId> sectores, List<String> noReconocidos) {
+    /**
+     * @param ambiguos nombres que casan con más de un sector del catálogo y que ninguna equivalencia curada resuelve;
+     *                 no se asignan a ninguno
+     */
+    public record Resultado(List<SectorId> sectores, List<String> noReconocidos, List<String> ambiguos) {
     }
 
     private final Map<String, SectorId> indice;
+    /** Formas normalizadas que dos barrios distintos del catálogo comparten. */
+    private final Set<String> variantesAmbiguas = new java.util.HashSet<>();
     private final Map<String, List<SectorId>> equivalencias;
 
     public EmparejadorDeSectores(List<Sector> catalogo) {
@@ -46,9 +52,12 @@ public class EmparejadorDeSectores {
         this.indice = new HashMap<>();
         for (Sector sector : catalogo) {
             for (String variante : NormalizadorDeNombres.variantes(sector.nombre())) {
-                // El primero gana: si dos barrios colapsan a la misma forma normalizada, quedarse
-                // con uno arbitrario es preferible a emparejar el nombre con los dos.
-                indice.putIfAbsent(variante, sector.id());
+                // Si dos barrios colapsan a la misma forma normalizada el nombre es ambiguo: se anota para no
+                // asignarlo a uno cualquiera (D5), y el índice conserva el primero solo para los demás usos.
+                SectorId previo = indice.putIfAbsent(variante, sector.id());
+                if (previo != null && !previo.equals(sector.id())) {
+                    variantesAmbiguas.add(variante);
+                }
             }
         }
         this.equivalencias = resolver(alias, catalogo);
@@ -82,7 +91,18 @@ public class EmparejadorDeSectores {
     public Resultado emparejar(List<String> mencionados) {
         Set<SectorId> encontrados = new LinkedHashSet<>();
         List<String> sinReconocer = new ArrayList<>();
+        List<String> ambiguos = new ArrayList<>();
         for (String mencion : mencionados) {
+            List<SectorId> curados = equivalencias.get(NormalizadorDeNombres.normalizar(mencion));
+            if (esAmbigua(mencion)) {
+                // Un alias curado es quien sabe cuál de los homónimos es: manda. Sin él, no se asigna a ninguno.
+                if (curados == null) {
+                    ambiguos.add(mencion.trim());
+                } else {
+                    encontrados.addAll(curados);
+                }
+                continue;
+            }
             SectorId sector = buscar(mencion);
             if (sector != null) {
                 encontrados.add(sector);
@@ -96,7 +116,11 @@ public class EmparejadorDeSectores {
                 sinReconocer.add(mencion.trim());
             }
         }
-        return new Resultado(List.copyOf(encontrados), List.copyOf(sinReconocer));
+        return new Resultado(List.copyOf(encontrados), List.copyOf(sinReconocer), List.copyOf(ambiguos));
+    }
+
+    private boolean esAmbigua(String mencion) {
+        return NormalizadorDeNombres.variantes(mencion).stream().anyMatch(variantesAmbiguas::contains);
     }
 
     private SectorId buscar(String mencion) {

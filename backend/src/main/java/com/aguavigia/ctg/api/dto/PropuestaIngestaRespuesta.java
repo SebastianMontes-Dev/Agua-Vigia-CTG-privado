@@ -34,5 +34,10 @@ public record PropuestaIngestaRespuesta(
                 Fin prometido de la misma ventana. Junto con el inicio es lo que permite que el
                 estado del sector evolucione solo (ADR-033) y lo que alimenta el Índice de
                 Cumplimiento (RF020-RF022).""", nullable = true)
-        Instant finPrometido) {
+        Instant finPrometido,
+        @Schema(description = """
+                Por qué esta propuesta espera al veedor en vez de haberse publicado sola (D5): confianza baja, una
+                ventana de más de 72 horas, más de 40 barrios, un nombre ambiguo, o que viene de prensa. Nulo si salió sola.""",
+                nullable = true)
+        String motivoDeRevision) {
 }

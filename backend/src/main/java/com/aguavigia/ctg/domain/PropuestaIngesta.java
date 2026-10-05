@@ -35,7 +35,23 @@ public record PropuestaIngesta(
         /** Titular tal como lo publicó la fuente. Es lo que la bitácora enseña al vecino. */
         String tituloOriginal,
         /** Por qué se anuló. Obligatorio si la propuesta está ANULADA, y solo entonces. */
-        String motivoAnulacion) {
+        String motivoAnulacion,
+        /**
+         * Por qué esta propuesta espera al veedor en vez de publicarse sola (D5): la confianza, una ventana sin sentido,
+         * demasiados barrios… Nulo si salió sola. Se conserva tras revisarla, para que la cola auditada diga por qué pasó por ahí.
+         */
+        String motivoDeRevision) {
+
+    /** Sin motivo de revisión: lo que existía antes de las compuertas de publicación. */
+    public PropuestaIngesta(PropuestaId id, SectorId sectorId, EstadoServicio estadoPropuesto,
+                             String fuente, String urlOriginal, String citaTextual, double confianza,
+                             Instant detectadaEn, EstadoRevision estadoRevision,
+                             Instant inicioDeclarado, Instant finPrometido,
+                             String imagenUrl, Instant publicadoEn, String tituloOriginal, String motivoAnulacion) {
+        this(id, sectorId, estadoPropuesto, fuente, urlOriginal, citaTextual, confianza, detectadaEn,
+                estadoRevision, inicioDeclarado, finPrometido, imagenUrl, publicadoEn, tituloOriginal,
+                motivoAnulacion, null);
+    }
 
     /** Sin motivo de anulación: lo que existía antes de poder anular. */
     public PropuestaIngesta(PropuestaId id, SectorId sectorId, EstadoServicio estadoPropuesto,
@@ -44,7 +60,7 @@ public record PropuestaIngesta(
                              Instant inicioDeclarado, Instant finPrometido,
                              String imagenUrl, Instant publicadoEn, String tituloOriginal) {
         this(id, sectorId, estadoPropuesto, fuente, urlOriginal, citaTextual, confianza, detectadaEn,
-                estadoRevision, inicioDeclarado, finPrometido, imagenUrl, publicadoEn, tituloOriginal, null);
+                estadoRevision, inicioDeclarado, finPrometido, imagenUrl, publicadoEn, tituloOriginal, null, null);
     }
 
     /** Sin portada: las fuentes de prensa no la traen. */
@@ -155,7 +171,20 @@ public record PropuestaIngesta(
         return detectadaEn != null ? detectadaEn : ahora;
     }
 
-    private static final String FUENTE_OFICIAL = "acuacar";
+    /** Cuándo se hizo pública: su publicación o, si la fuente no la trae, cuándo se detectó. Entre dos boletines, el más reciente gana. */
+    public Instant momento() {
+        return publicadoEn != null ? publicadoEn : detectadaEn;
+    }
+
+    /** Si la ventana que prometió es exactamente esa: lo que ata un boletín al corte que el barrio está publicando. */
+    public boolean tieneLaVentanaDe(VentanaTiempo ventana) {
+        return ventana != null
+                && ventana.inicio().equals(inicioDeclarado)
+                && ventana.finPrometido().equals(finPrometido);
+    }
+
+    /** El nombre con que el colector de Acuacar firma sus documentos. */
+    public static final String FUENTE_OFICIAL = "acuacar";
 
     /**
      * Si esta propuesta puede fijar el estado **actual** del barrio, o solo es historia.
@@ -227,11 +256,30 @@ public record PropuestaIngesta(
         }
         return new PropuestaIngesta(id, sectorId, estadoPropuesto, fuente, urlOriginal, citaTextual,
                 confianza, detectadaEn, EstadoRevision.ANULADA, inicioDeclarado, finPrometido, imagenUrl, publicadoEn,
-                tituloOriginal, motivo);
+                tituloOriginal, motivo, motivoDeRevision);
+    }
+
+    /** La misma propuesta, anotando por qué espera al veedor. */
+    public PropuestaIngesta conMotivoDeRevision(String motivo) {
+        return new PropuestaIngesta(id, sectorId, estadoPropuesto, fuente, urlOriginal, citaTextual,
+                confianza, detectadaEn, estadoRevision, inicioDeclarado, finPrometido, imagenUrl, publicadoEn,
+                tituloOriginal, motivoAnulacion, motivo);
+    }
+
+    /**
+     * Un corte anunciado cuya ventana ya terminó hace más de {@code horizonte} (el plazo de expiración): es historia.
+     * Al ingerir el histórico de Acuacar eso es lo normal, y publicarlo como un corte vivo dejaría decenas de cortes
+     * «abiertos» que solo el barrido de expiración cerraría, sellados con la hora de la recuperación y no con la del hecho.
+     * Un restablecimiento no es un corte y no cuenta.
+     */
+    public boolean esCorteVencido(Instant ahora, java.time.Duration horizonte) {
+        return estadoPropuesto != EstadoServicio.CON_SERVICIO && finPrometido != null
+                && !ahora.isBefore(finPrometido.plus(horizonte));
     }
 
     private PropuestaIngesta conRevision(EstadoRevision nueva) {
         return new PropuestaIngesta(id, sectorId, estadoPropuesto, fuente, urlOriginal, citaTextual,
-                confianza, detectadaEn, nueva, inicioDeclarado, finPrometido, imagenUrl, publicadoEn, tituloOriginal, null);
+                confianza, detectadaEn, nueva, inicioDeclarado, finPrometido, imagenUrl, publicadoEn, tituloOriginal, null,
+                motivoDeRevision);
     }
 }

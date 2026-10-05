@@ -49,16 +49,17 @@ class IngestaLocalDeExtremoAExtremoTest {
             if (!PrefiltroDeterminista.posibleInterrupcionDeAcueducto(documento.texto())) {
                 continue;
             }
-            EventoExtraido evento = extractor.extraer(documento);
-            if (!evento.esInterrupcionDeAcueducto()) {
-                continue;
+            for (EventoExtraido evento : extractor.extraerPorZonas(documento)) {
+                if (!evento.esInterrupcionDeAcueducto()) {
+                    continue;
+                }
+                int sectores = emparejador.emparejar(evento.sectoresMencionados()).sectores().size();
+                propuestas += sectores;
+                if (sectores > 0 && evento.inicioDeclarado() != null) {
+                    conVentana += sectores;
+                }
+                assertThat(evento.citaTextual()).as("ADR-006: toda propuesta cita la frase del boletín").isNotBlank();
             }
-            int sectores = emparejador.emparejar(evento.sectoresMencionados()).sectores().size();
-            propuestas += sectores;
-            if (sectores > 0 && evento.inicioDeclarado() != null) {
-                conVentana += sectores;
-            }
-            assertThat(evento.citaTextual()).as("ADR-006: toda propuesta cita la frase del boletín").isNotBlank();
         }
 
         System.out.println("[ingesta local] propuestas=" + propuestas + " con ventana declarada=" + conVentana);
