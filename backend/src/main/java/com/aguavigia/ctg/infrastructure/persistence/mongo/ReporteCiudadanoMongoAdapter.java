@@ -64,9 +64,34 @@ public class ReporteCiudadanoMongoAdapter implements ReporteCiudadanoRepository 
         documento.setEsSensor(reporte.esSensor());
         documento.setVerificacion(reporte.verificacion().name());
         documento.setRedHash(reporte.redHash());
+        documento.setFotoSha256(reporte.fotoSha256());
+        documento.setFotoDescartada(reporte.fotoDescartada());
 
         repositorio.save(documento);
         return reporte;
+    }
+
+    @Override
+    public boolean asignarFotoSiNoTiene(ReporteId id, String fotoUrl, String fotoSha256) {
+        Query sinFoto = Query.query(Criteria.where("_id").is(id.valor()).and("fotoUrl").is(null));
+        Update poner = new Update().set("fotoUrl", fotoUrl).set("fotoSha256", fotoSha256).set("fotoDescartada", false);
+        return mongoTemplate.updateFirst(sinFoto, poner, ReporteCiudadanoDocumento.class).getModifiedCount() == 1;
+    }
+
+    @Override
+    public boolean marcarFotoDescartada(ReporteId id) {
+        Query conFoto = Query.query(Criteria.where("_id").is(id.valor()).and("fotoUrl").ne(null));
+        return mongoTemplate.updateFirst(conFoto, new Update().set("fotoDescartada", true),
+                ReporteCiudadanoDocumento.class).getMatchedCount() == 1;
+    }
+
+    @Override
+    public Optional<ReporteCiudadano> buscarPorNombreDeFoto(String nombre) {
+        // Igualdad exacta con la ruta nueva o la vieja (reportes anteriores a F3): usa el índice de fotoUrl y no puede
+        // confundir `c.jpg` con `abc.jpg` como hacía una expresión regular sin ancla de inicio.
+        Query porNombre = Query.query(Criteria.where("fotoUrl").in("/api/fotos/" + nombre, "/fotos/" + nombre));
+        return Optional.ofNullable(mongoTemplate.findOne(porNombre, ReporteCiudadanoDocumento.class))
+                .map(ReporteCiudadanoMongoAdapter::aDominio);
     }
 
     @Override
@@ -157,7 +182,9 @@ public class ReporteCiudadanoMongoAdapter implements ReporteCiudadanoRepository 
         }
         List<String> valores = ids.stream().map(ReporteId::valor).toList();
         Query query = Query.query(Criteria.where("_id").in(valores));
-        mongoTemplate.updateMulti(query, Update.update("fotoUrl", null), ReporteCiudadanoDocumento.class);
+        mongoTemplate.updateMulti(query,
+                Update.update("fotoUrl", null).set("fotoSha256", null).set("fotoDescartada", false),
+                ReporteCiudadanoDocumento.class);
     }
 
     private static String nombreDeArchivo(String fotoUrl) {
@@ -191,6 +218,8 @@ public class ReporteCiudadanoMongoAdapter implements ReporteCiudadanoRepository 
                 documento.getVerificacion() == null
                         ? NivelDeVerificacion.NINGUNA
                         : NivelDeVerificacion.valueOf(documento.getVerificacion()),
-                documento.getRedHash());
+                documento.getRedHash(),
+                documento.getFotoSha256(),
+                documento.isFotoDescartada());
     }
 }

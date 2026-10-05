@@ -105,7 +105,7 @@ public class SecurityConfig {
         CorsConfiguration configuracion = new CorsConfiguration();
         configuracion.setAllowedOrigins(propiedades.origenesPermitidos());
         configuracion.setAllowedMethods(List.of("GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"));
-        configuracion.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-IoT-Key", "X-Dispositivo"));
+        configuracion.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-IoT-Key", "X-Dispositivo", "X-Subida"));
         // El token del veedor viaja en la cabecera Authorization, no en cookie: no hace falta
         // permitir credenciales, y no permitirlas evita el combo prohibido con origenes amplios.
         configuracion.setAllowCredentials(false);
@@ -148,6 +148,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/vecino/sesion").permitAll()
                         .requestMatchers("/api/vecino/**").authenticated()
                         .requestMatchers("/api/veedor/**").authenticated()
+                        // Las fotos se leen sin sesion, pero FotoController solo sirve las de reportes aprobados.
+                        .requestMatchers(HttpMethod.GET, "/api/fotos/**").permitAll()
                         .requestMatchers(RUTAS_PUBLICAS).permitAll()
                         .anyRequest().denyAll())
                 .headers(cabeceras -> cabeceras

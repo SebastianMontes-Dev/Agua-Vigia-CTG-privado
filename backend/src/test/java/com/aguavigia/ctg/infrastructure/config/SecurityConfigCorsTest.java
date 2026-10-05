@@ -29,6 +29,12 @@ class SecurityConfigCorsTest {
         assertThat(configuracionDe("/api/reportes").getAllowedHeaders()).contains("X-Dispositivo");
     }
 
+    /** La foto se sube con el token de un solo uso en `X-Subida`: sin esto el navegador la bloquea en el preflight. */
+    @Test
+    void debePermitirLaCabeceraDelTokenDeSubida() {
+        assertThat(configuracionDe("/api/reportes/r1/foto").getAllowedHeaders()).contains("X-Subida");
+    }
+
     @Test
     void debeSeguirPermitiendoLaSesionYElTipoDeContenido() {
         assertThat(configuracionDe("/api/reportes").getAllowedHeaders())

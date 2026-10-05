@@ -8,6 +8,8 @@ import com.aguavigia.ctg.domain.LimiteDePeticionesExcedidoException;
 import com.aguavigia.ctg.domain.LimiteReportesExcedidoException;
 import com.aguavigia.ctg.domain.SegundoFactorRequeridoException;
 import com.aguavigia.ctg.domain.DispositivoInvalidoException;
+import com.aguavigia.ctg.domain.FormatoNoPermitidoException;
+import com.aguavigia.ctg.domain.SubidaNoAutorizadaException;
 import com.aguavigia.ctg.domain.SesionSinCuentaException;
 import com.aguavigia.ctg.domain.UbicacionFueraDelBarrioException;
 import com.aguavigia.ctg.domain.UbicacionImprecisaException;
@@ -189,6 +191,27 @@ public class ManejadorGlobalDeErrores {
         ProblemDetail problema = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, e.getMessage());
         problema.setTitle("Dispositivo no identificado");
         problema.setType(URI.create(BASE_TIPO + "dispositivo-invalido"));
+        return problema;
+    }
+
+    /**
+     * 403: el servidor sabe qué se pide y no lo permite. Es el mismo error para un token ausente, usado, vencido,
+     * ajeno o de un reporte que no existe: distinguirlos diría qué ids de reporte hay.
+     */
+    @ExceptionHandler(SubidaNoAutorizadaException.class)
+    public ProblemDetail subidaNoAutorizada(SubidaNoAutorizadaException e) {
+        ProblemDetail problema = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, e.getMessage());
+        problema.setTitle("Subida no autorizada");
+        problema.setType(URI.create(BASE_TIPO + "subida-no-autorizada"));
+        return problema;
+    }
+
+    /** 415 y no 400, para que el cliente distinga «formato que no acepto» de «petición mal formada» y no ofrezca WebP. */
+    @ExceptionHandler(FormatoNoPermitidoException.class)
+    public ProblemDetail formatoNoPermitido(FormatoNoPermitidoException e) {
+        ProblemDetail problema = ProblemDetail.forStatusAndDetail(HttpStatus.UNSUPPORTED_MEDIA_TYPE, e.getMessage());
+        problema.setTitle("Formato no permitido");
+        problema.setType(URI.create(BASE_TIPO + "formato-no-permitido"));
         return problema;
     }
 

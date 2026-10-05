@@ -12,6 +12,7 @@ import com.aguavigia.ctg.domain.TipoReporte;
 import com.aguavigia.ctg.domain.UsuarioId;
 import com.aguavigia.ctg.domain.port.in.AgregarEvidenciaUseCase;
 import com.aguavigia.ctg.domain.port.in.ConfirmarReporteUseCase;
+import com.aguavigia.ctg.domain.port.in.EmitirTokenDeSubidaUseCase;
 import com.aguavigia.ctg.domain.port.in.IdentificarReportanteUseCase;
 import com.aguavigia.ctg.domain.port.in.RegistrarReporteUseCase;
 import io.swagger.v3.oas.annotations.Operation;
@@ -48,21 +49,25 @@ import org.springframework.web.bind.annotation.RestController;
 public class ReporteController {
 
     private static final String CABECERA_DISPOSITIVO = "X-Dispositivo";
+    private static final String CABECERA_SUBIDA = "X-Subida";
 
     private final RegistrarReporteUseCase registrarReporte;
     private final AgregarEvidenciaUseCase agregarEvidenciaUseCase;
     private final ConfirmarReporteUseCase confirmarReporte;
+    private final EmitirTokenDeSubidaUseCase emitirTokenDeSubida;
     private final IdentificarReportanteUseCase identificar;
     private final ReporteApiMapper mapper;
 
     public ReporteController(RegistrarReporteUseCase registrarReporte,
                              AgregarEvidenciaUseCase agregarEvidenciaUseCase,
                              ConfirmarReporteUseCase confirmarReporte,
+                             EmitirTokenDeSubidaUseCase emitirTokenDeSubida,
                              IdentificarReportanteUseCase identificar,
                              ReporteApiMapper mapper) {
         this.registrarReporte = registrarReporte;
         this.agregarEvidenciaUseCase = agregarEvidenciaUseCase;
         this.confirmarReporte = confirmarReporte;
+        this.emitirTokenDeSubida = emitirTokenDeSubida;
         this.identificar = identificar;
         this.mapper = mapper;
     }
@@ -76,7 +81,8 @@ public class ReporteController {
                     `coordenada` o ambos (RF007): con solo la coordenada el servidor infiere el sector que la
                     contiene y responde 400 si cae fuera de todo barrio de Cartagena. La coordenada se envia solo si
                     el usuario autorizo compartir su ubicacion; con su `precisionMetros` el servidor verifica el
-                    reporte (campo `verificacion` de la respuesta) y guarda solo una aproximacion de ella.""")
+                    reporte (campo `verificacion` de la respuesta) y guarda solo una aproximacion de ella. La respuesta trae
+                    `subidaToken`, el permiso de un solo uso para subir la foto de este reporte.""")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Reporte registrado"),
             @ApiResponse(responseCode = "400", description = "Sector inexistente, tipo inválido, coordenada fuera de Cartagena o sin sector ni coordenada",
@@ -113,23 +119,35 @@ public class ReporteController {
                 ContextoHttp.de(peticion).ip(),
                 false);
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(mapper.aRespuesta(reporte));
+        // Solo quien acaba de crear el reporte recibe el token: la subida pública de una foto depende de que nadie más
+        // lo tenga. Esta ruta nunca crea reportes de sensor, así que todo reporte creado aquí puede llevar foto.
+        String subidaToken = emitirTokenDeSubida.emitir(reporte.id());
+        return ResponseEntity.status(HttpStatus.CREATED).body(mapper.aRespuesta(reporte).conSubidaToken(subidaToken));
     }
 
     @Operation(summary = "Agregar evidencia a un reporte",
-            description = "Permite subir una foto y asociarla a un reporte existente (M10).")
+            description = """
+                    Sube la foto de un reporte (M10). Exige la cabecera `X-Subida` con el `subidaToken` que recibio
+                    quien creo el reporte: sirve una sola vez y vence a los pocos minutos. Solo JPEG y PNG (se
+                    comprueba la firma del archivo, no solo el tipo declarado). La foto queda en revision: el publico
+                    la ve cuando el veedor aprueba el reporte, y nunca cuenta como voto.""")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Evidencia agregada"),
-            @ApiResponse(responseCode = "400", description = "Error en la solicitud",
+            @ApiResponse(responseCode = "400", description = "Falta el archivo o no es una imagen valida",
                     content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))),
-            @ApiResponse(responseCode = "404", description = "Reporte no encontrado",
+            @ApiResponse(responseCode = "403", description = "Falta el token de subida, ya se uso, vencio o es de otro reporte (type `subida-no-autorizada`); es la misma respuesta si el reporte no existe",
+                    content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "409", description = "El reporte ya tiene foto",
+                    content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "415", description = "Formato no permitido, como WebP (type `formato-no-permitido`)",
                     content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
     })
     @PostMapping(value = "/{id}/foto", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ReporteRespuesta> agregarEvidencia(
             @PathVariable("id") String id,
+            @RequestHeader(value = CABECERA_SUBIDA, required = false) String tokenDeSubida,
             @RequestParam("foto") MultipartFile foto) throws java.io.IOException {
-        var reporte = agregarEvidenciaUseCase.agregarEvidencia(id, foto.getContentType(), foto.getBytes());
+        var reporte = agregarEvidenciaUseCase.agregarEvidencia(id, tokenDeSubida, foto.getContentType(), foto.getBytes());
         return ResponseEntity.ok(mapper.aRespuesta(reporte));
     }
 

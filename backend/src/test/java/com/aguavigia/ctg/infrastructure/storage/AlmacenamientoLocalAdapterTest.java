@@ -27,23 +27,61 @@ class AlmacenamientoLocalAdapterTest {
     Path tempDir;
 
     @Test
-    void debeGuardarElArchivoYDevolverUnaUrlBajoFotos() throws Exception {
+    void debeGuardarElArchivoYDevolverUnaUrlBajoApiFotos() throws Exception {
         AlmacenamientoLocalAdapter adaptador = new AlmacenamientoLocalAdapter(tempDir.toString(), RELOJ);
 
-        String url = adaptador.guardar(".jpg", jpegDePrueba());
+        String url = adaptador.guardar(".jpg", jpegDePrueba()).url();
 
-        assertThat(url).startsWith("/fotos/").endsWith(".jpg");
-        String nombreArchivo = url.substring("/fotos/".length());
+        assertThat(url).startsWith("/api/fotos/").endsWith(".jpg");
+        String nombreArchivo = url.substring("/api/fotos/".length());
         Path guardado = tempDir.resolve(nombreArchivo);
         assertThat(Files.exists(guardado)).isTrue();
         assertThat(Files.size(guardado)).isGreaterThan(0);
+    }
+
+    /** El hash es el de lo que quedó en disco (ya recomprimido y sin EXIF), no el de lo que mandó el cliente. */
+    @Test
+    void debeDevolverElSha256DeLoQueQuedoEnDisco() throws Exception {
+        AlmacenamientoLocalAdapter adaptador = new AlmacenamientoLocalAdapter(tempDir.toString(), RELOJ);
+
+        var guardada = adaptador.guardar(".jpg", jpegDePrueba());
+
+        Path guardado = tempDir.resolve(guardada.url().substring("/api/fotos/".length()));
+        byte[] resumen = java.security.MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(guardado));
+        assertThat(guardada.sha256()).isEqualTo(java.util.HexFormat.of().formatHex(resumen)).hasSize(64);
+    }
+
+    @Test
+    void leerDebeDevolverLosBytesDeUnaFotoGuardada() throws Exception {
+        AlmacenamientoLocalAdapter adaptador = new AlmacenamientoLocalAdapter(tempDir.toString(), RELOJ);
+        String url = adaptador.guardar(".png", pngDePrueba()).url();
+        String nombre = url.substring("/api/fotos/".length());
+
+        assertThat(adaptador.leer(nombre)).hasValue(Files.readAllBytes(tempDir.resolve(nombre)));
+    }
+
+    @Test
+    void leerUnaFotoQueNoExisteDebeDevolverVacio() {
+        AlmacenamientoLocalAdapter adaptador = new AlmacenamientoLocalAdapter(tempDir.toString(), RELOJ);
+
+        assertThat(adaptador.leer("no-existe.jpg")).isEmpty();
+    }
+
+    @Test
+    void leerNoDebeSalirDeLaCarpetaDeFotos() throws Exception {
+        Path carpeta = Files.createDirectory(tempDir.resolve("fotos"));
+        Files.writeString(tempDir.resolve("secreto.jpg"), "no debe leerse");
+        AlmacenamientoLocalAdapter adaptador = new AlmacenamientoLocalAdapter(carpeta.toString(), RELOJ);
+
+        assertThat(adaptador.leer("../secreto.jpg")).isEmpty();
+        assertThat(adaptador.leer("..\secreto.jpg")).isEmpty();
     }
 
     @Test
     void noDebeUsarNombreDeArchivoDelCliente_soloLaExtensionValidada() throws Exception {
         AlmacenamientoLocalAdapter adaptador = new AlmacenamientoLocalAdapter(tempDir.toString(), RELOJ);
 
-        String url = adaptador.guardar(".png", pngDePrueba());
+        String url = adaptador.guardar(".png", pngDePrueba()).url();
 
         assertThat(url).doesNotContain("<script>").endsWith(".png");
     }

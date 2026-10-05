@@ -40,6 +40,24 @@ public interface ReporteCiudadanoRepository {
     Optional<ReporteCiudadano> buscarPorId(ReporteId id);
 
     /**
+     * El reporte dueño de esa foto, sin importar su estado de moderación: quien sirve la foto decide si es pública.
+     * {@code nombre} es solo el nombre del archivo; coincide con el final exacto de la URL guardada, sea la vieja
+     * (`/fotos/x.jpg`) o la nueva (`/api/fotos/x.jpg`).
+     */
+    Optional<ReporteCiudadano> buscarPorNombreDeFoto(String nombre);
+
+    /**
+     * Pone la foto solo si el reporte aún no tiene ninguna, sin tocar nada más. No es leer→modificar→guardar: una
+     * aprobación o una confirmación simultáneas no quedan pisadas por el documento viejo.
+     *
+     * @return false si el reporte no existe o ya tenía foto
+     */
+    boolean asignarFotoSiNoTiene(ReporteId id, String fotoUrl, String fotoSha256);
+
+    /** Marca la foto como descartada sin tocar el resto del reporte. @return false si el reporte no existe o no tiene foto */
+    boolean marcarFotoDescartada(ReporteId id);
+
+    /**
      * RF018 — la cola de moderación del veedor, paginada: en una jornada sin veedor disponible la
      * cola acumula todo lo que reportó la ciudad, y traerla entera la vuelve inmanejable justo
      * cuando más grande es.

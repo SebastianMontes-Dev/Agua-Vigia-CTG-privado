@@ -10,11 +10,14 @@ import com.aguavigia.ctg.domain.NivelDeVerificacion;
 import com.aguavigia.ctg.domain.ReporteCiudadano;
 import com.aguavigia.ctg.domain.ReporteId;
 import com.aguavigia.ctg.domain.Reportante;
+import com.aguavigia.ctg.domain.FormatoNoPermitidoException;
 import com.aguavigia.ctg.domain.SectorId;
+import com.aguavigia.ctg.domain.SubidaNoAutorizadaException;
 import com.aguavigia.ctg.domain.TipoReporte;
 import com.aguavigia.ctg.domain.UsuarioId;
 import com.aguavigia.ctg.domain.port.in.AgregarEvidenciaUseCase;
 import com.aguavigia.ctg.domain.port.in.ConfirmarReporteUseCase;
+import com.aguavigia.ctg.domain.port.in.EmitirTokenDeSubidaUseCase;
 import com.aguavigia.ctg.domain.port.in.IdentificarReportanteUseCase;
 import com.aguavigia.ctg.domain.port.in.RegistrarReporteUseCase;
 import com.aguavigia.ctg.infrastructure.config.SecurityConfig;
@@ -75,6 +78,9 @@ class ReporteControllerTest {
 
     @MockitoBean
     private ConfirmarReporteUseCase confirmarReporte;
+
+    @MockitoBean
+    private EmitirTokenDeSubidaUseCase emitirTokenDeSubida;
 
     @MockitoBean
     private IdentificarReportanteUseCase identificar;
@@ -401,27 +407,87 @@ class ReporteControllerTest {
                 .andExpect(jsonPath("$.title").value("Peticion invalida"));
     }
 
-    /**
-     * CARACTERIZACIÓN, no comportamiento deseado (hallazgo 7 del plan): hoy basta conocer el id de un
-     * reporte —que lista `/api/bitacora/{id}/sustento`, público— para adjuntarle una foto, sin cuenta,
-     * sin token de dispositivo ni nada que pruebe que se es su autor. Al llegar el token de subida
-     * (F3.1) este test debe invertirse: sin `X-Subida` la respuesta será 403.
-     */
-    @Test
-    void hoyCualquieraConElIdPuedeSubirUnaFotoAlReporteDeOtro() throws Exception {
-        ReporteCiudadano ajeno = new ReporteCiudadano(
-                new ReporteId("r-ajeno"), new SectorId("bocagrande"), TipoReporte.SIN_AGUA,
-                null, new HuellaDispositivo("huella-de-otra-persona"), AHORA)
-                .conFoto("/fotos/puesta-por-un-desconocido.jpg");
-        given(agregarEvidenciaUseCase.agregarEvidencia(eq("r-ajeno"), any(), any())).willReturn(ajeno);
-        org.springframework.mock.web.MockMultipartFile foto = new org.springframework.mock.web.MockMultipartFile(
+    private static org.springframework.mock.web.MockMultipartFile fotoJpeg() {
+        return new org.springframework.mock.web.MockMultipartFile(
                 "foto", "foto.jpg", "image/jpeg", new byte[]{(byte) 0xFF, (byte) 0xD8, (byte) 0xFF, 1});
+    }
 
-        mockMvc.perform(multipart("/api/reportes/r-ajeno/foto").file(foto))
+    /** D10: el id de un reporte es público en la bitácora; sin el token que solo recibió su autor no se sube nada. */
+    @Test
+    void subirUnaFotoSinElTokenDeSubidaDebeResponder403() throws Exception {
+        given(agregarEvidenciaUseCase.agregarEvidencia(eq("r-ajeno"), isNull(), any(), any()))
+                .willThrow(new SubidaNoAutorizadaException("Para subir la foto hace falta el token."));
+
+        mockMvc.perform(multipart("/api/reportes/r-ajeno/foto").file(fotoJpeg()))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.type").value("https://aguavigia.example/errores/subida-no-autorizada"));
+    }
+
+    @Test
+    void debeAgregarLaFotoConElTokenDeSubidaDeLaCabecera() throws Exception {
+        ReporteCiudadano conFoto = reporte("r1", "bocagrande", TipoReporte.SIN_AGUA, null)
+                .conFoto("/api/fotos/abc.jpg", "sha");
+        given(agregarEvidenciaUseCase.agregarEvidencia(eq("r1"), eq("token-de-subida"), eq("image/jpeg"), any()))
+                .willReturn(conFoto);
+
+        mockMvc.perform(multipart("/api/reportes/r1/foto").file(fotoJpeg()).header("X-Subida", "token-de-subida"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.fotoUrl").value("/fotos/puesta-por-un-desconocido.jpg"));
+                .andExpect(jsonPath("$.fotoUrl").value("/api/fotos/abc.jpg"))
+                .andExpect(jsonPath("$.fotoEstado").value("EN_REVISION"))
+                .andExpect(jsonPath("$.subidaToken").doesNotExist());
+    }
 
-        verify(agregarEvidenciaUseCase).agregarEvidencia(eq("r-ajeno"), eq("image/jpeg"), any());
+    /** Un reporte guardado antes de F3 conserva su URL vieja «/fotos/x.jpg»: el cliente la recibe ya con la ruta nueva. */
+    @Test
+    void laUrlVieja_DeUnaFotoAnterior_DebeSalirConLaRutaNueva() throws Exception {
+        ReporteCiudadano antiguo = reporte("r1", "bocagrande", TipoReporte.SIN_AGUA, null).conFoto("/fotos/vieja.jpg");
+        given(agregarEvidenciaUseCase.agregarEvidencia(any(), any(), any(), any())).willReturn(antiguo);
+
+        mockMvc.perform(multipart("/api/reportes/r1/foto").file(fotoJpeg()).header("X-Subida", "t"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.fotoUrl").value("/api/fotos/vieja.jpg"));
+    }
+
+    @Test
+    void unFormatoNoPermitidoDebeResponder415() throws Exception {
+        given(agregarEvidenciaUseCase.agregarEvidencia(any(), any(), any(), any()))
+                .willThrow(new FormatoNoPermitidoException("Tipo de archivo no permitido: 'image/webp'."));
+        var webp = new org.springframework.mock.web.MockMultipartFile(
+                "foto", "foto.webp", "image/webp", new byte[]{1, 2, 3});
+
+        mockMvc.perform(multipart("/api/reportes/r1/foto").file(webp).header("X-Subida", "t"))
+                .andExpect(status().isUnsupportedMediaType())
+                .andExpect(jsonPath("$.type").value("https://aguavigia.example/errores/formato-no-permitido"));
+    }
+
+    // --- token de subida al reportar ---
+
+    @Test
+    void alReportarDebeEntregarseElTokenDeSubidaDeEsteReporte() throws Exception {
+        registraDevolviendo(reporte("r1", "bocagrande", TipoReporte.SIN_AGUA, null));
+        given(emitirTokenDeSubida.emitir(new ReporteId("r1"))).willReturn("token-de-un-solo-uso");
+
+        mockMvc.perform(post("/api/reportes")
+                        .header("X-Dispositivo", "t")
+                        .contentType("application/json")
+                        .content("""
+                                {"sectorId":"bocagrande","tipo":"SIN_AGUA"}"""))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.subidaToken").value("token-de-un-solo-uso"))
+                .andExpect(jsonPath("$.fotoEstado").value("SIN_FOTO"));
+    }
+
+    /** El token solo se entrega al crear: confirmar un reporte ajeno no debe devolver el de su autor. */
+    @Test
+    void confirmarNoDebeEntregarNingunTokenDeSubida() throws Exception {
+        given(confirmarReporte.confirmar(any(), any()))
+                .willReturn(reporte("r1", "bocagrande", TipoReporte.SIN_AGUA, null));
+
+        mockMvc.perform(post("/api/reportes/r1/confirmar").header("X-Dispositivo", "t"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.subidaToken").doesNotExist());
+
+        verify(emitirTokenDeSubida, never()).emitir(any());
     }
 
     // --- confirmar ---

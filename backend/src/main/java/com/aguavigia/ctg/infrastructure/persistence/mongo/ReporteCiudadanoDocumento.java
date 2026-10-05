@@ -42,5 +42,11 @@ public class ReporteCiudadanoDocumento {
     /** D16 — resumen diario de la red de origen. Nulo si no se conoce (sensores, documentos anteriores). */
     private String redHash;
 
+    /** SHA-256 de la foto tal como se guardó. Nulo si no hay foto o es anterior al dato. */
+    private String fotoSha256;
+
+    /** El veedor descartó la foto sin descartar el reporte. Falso en los documentos anteriores. */
+    private boolean fotoDescartada;
+
     private java.util.Set<String> huellasConfirmacion = new java.util.HashSet<>();
 }

@@ -6,7 +6,6 @@ import javax.imageio.ImageWriteParam;
 import javax.imageio.ImageWriter;
 import javax.imageio.stream.MemoryCacheImageOutputStream;
 import java.awt.Graphics2D;
-import java.awt.Image;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
@@ -31,6 +30,10 @@ final class CompresorDeImagenes {
 
     private static final int LADO_MAXIMO_PX = 1600;
     private static final float CALIDAD_JPEG = 0.75f;
+    /** 25 megapíxeles: más que cualquier cámara de teléfono corriente. Más que esto se rechaza sin decodificar. */
+    private static final long MAXIMO_DE_PIXELES = 25_000_000L;
+    /** Una PNG no pierde calidad al recodificarse, así que una de ruido pesa megas aunque se reduzca a 1600 px. */
+    private static final int MAXIMO_PNG_PROCESADA_BYTES = 3 * 1024 * 1024;
 
     private CompresorDeImagenes() {
     }
@@ -46,20 +49,50 @@ final class CompresorDeImagenes {
         }
 
         try {
+            exigirDimensionesRazonables(original);
             BufferedImage decodificada = ImageIO.read(new ByteArrayInputStream(original));
             if (decodificada == null) {
                 // AgregarEvidenciaService ya verificó la firma binaria antes de llegar aquí: si con
                 // eso ImageIO igual no puede decodificarla, no es un caso de borde de formato — es
                 // un archivo corrupto o construido a mano para pasar la firma sin ser una imagen
                 // real. Guardar el original sin comprimir (como antes) lo hubiera alojado tal cual
-                // bajo /fotos/**, sin ninguna otra verificación de contenido.
+                // en el almacén de fotos, sin ninguna otra verificación de contenido.
                 throw new IllegalArgumentException(
                         "El archivo declarado como imagen no se pudo decodificar: no es una imagen válida.");
             }
             BufferedImage redimensionada = redimensionarSiExcede(decodificada, LADO_MAXIMO_PX);
-            return codificar(redimensionada, formato);
+            byte[] procesada = codificar(redimensionada, formato);
+            if ("png".equals(formato) && procesada.length > MAXIMO_PNG_PROCESADA_BYTES) {
+                throw new IllegalArgumentException("La imagen PNG pesa demasiado incluso reducida: envía una foto JPEG o una PNG más simple.");
+            }
+            return procesada;
         } catch (IOException e) {
             throw new UncheckedIOException("Error al comprimir la imagen antes de guardarla", e);
+        }
+    }
+
+    /**
+     * Las dimensiones están en la cabecera: se leen sin decodificar. Una imagen de 10 MB puede declarar miles de millones de
+     * píxeles (una PNG de un color comprime ~1000:1) y decodificarla agotaría la memoria.
+     */
+    private static void exigirDimensionesRazonables(byte[] original) throws IOException {
+        try (var flujo = ImageIO.createImageInputStream(new ByteArrayInputStream(original))) {
+            Iterator<javax.imageio.ImageReader> lectores = flujo == null ? null : ImageIO.getImageReaders(flujo);
+            if (lectores == null || !lectores.hasNext()) {
+                throw new IllegalArgumentException(
+                        "El archivo declarado como imagen no se pudo decodificar: no es una imagen válida.");
+            }
+            javax.imageio.ImageReader lector = lectores.next();
+            try {
+                lector.setInput(flujo, true, true);
+                long pixeles = (long) lector.getWidth(0) * lector.getHeight(0);
+                if (pixeles > MAXIMO_DE_PIXELES) {
+                    throw new IllegalArgumentException("La imagen tiene demasiados píxeles (%d): el máximo es %d."
+                            .formatted(pixeles, MAXIMO_DE_PIXELES));
+                }
+            } finally {
+                lector.dispose();
+            }
         }
     }
 
@@ -78,7 +111,8 @@ final class CompresorDeImagenes {
         Graphics2D g2d = redimensionada.createGraphics();
         try {
             g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-            g2d.drawImage(original.getScaledInstance(nuevoAncho, nuevoAlto, Image.SCALE_SMOOTH), 0, 0, null);
+            // drawImage directo con interpolación bilineal: getScaledInstance(SCALE_SMOOTH) es lento y gasta mucha memoria.
+            g2d.drawImage(original, 0, 0, nuevoAncho, nuevoAlto, null);
         } finally {
             g2d.dispose();
         }

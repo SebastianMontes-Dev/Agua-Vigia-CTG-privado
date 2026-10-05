@@ -87,6 +87,40 @@ class CompresorDeImagenesTest {
      * más allá del Content-Type ya validado en AgregarEvidenciaService. Si ImageIO no puede
      * decodificarlo pese a eso, no es un caso de borde de formato: se rechaza.
      */
+    /**
+     * Una PNG de un solo color pesa pocos KB pero declara miles de millones de píxeles: decodificarla reservaría gigas de
+     * memoria y, con ExitOnOutOfMemoryError, tumbaría el proceso. Las dimensiones se leen de la cabecera y se rechazan antes.
+     */
+    @Test
+    void unaImagenConDemasiadosPixelesSeRechazaSinDecodificarla() throws IOException {
+        BufferedImage enorme = new BufferedImage(6000, 6000, BufferedImage.TYPE_BYTE_BINARY);
+        ByteArrayOutputStream png = new ByteArrayOutputStream();
+        ImageIO.write(enorme, "png", png);
+        assertThat(png.size()).as("pesa poco aunque declare 36 megapíxeles").isLessThan(1_000_000);
+
+        assertThatThrownBy(() -> CompresorDeImagenes.recomprimir(".png", png.toByteArray()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("píxeles");
+    }
+
+    /** Una PNG de ruido a 1600 px no pierde calidad al recodificarse y pesa ~7 MB: sin tope, cada foto llenaría el disco. */
+    @Test
+    void unaPngQueSigueSiendoPesadaTrasProcesarseSeRechaza() throws IOException {
+        BufferedImage ruido = new BufferedImage(1600, 1600, BufferedImage.TYPE_INT_RGB);
+        Random azar = new Random(7);
+        for (int y = 0; y < 1600; y++) {
+            for (int x = 0; x < 1600; x++) {
+                ruido.setRGB(x, y, azar.nextInt(0xFFFFFF));
+            }
+        }
+        ByteArrayOutputStream png = new ByteArrayOutputStream();
+        ImageIO.write(ruido, "png", png);
+
+        assertThatThrownBy(() -> CompresorDeImagenes.recomprimir(".png", png.toByteArray()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("pesa demasiado");
+    }
+
     @Test
     void unContenidoNoDecodificableDebeRechazarse() {
         byte[] basura = {9, 9, 9};

@@ -105,6 +105,15 @@ aguavigia:
       - ruta: /api/reportes/**
         limite: 30
         ventana-segundos: 60
+      # Una foto se decodifica y se guarda (hasta 10 MB): 10 por 10 minutos por IP, ademas del limite anterior.
+      # Va con `*` porque el patron se compara con la ruta completa (`/api/reportes/{id}/foto`).
+      - ruta: /api/reportes/*/foto
+        limite: 10
+        ventana-segundos: 600
+      # Leer fotos: cada GET con un nombre bien formado hace una consulta. Una pagina con varias fotos cabe de sobra.
+      - ruta: /api/fotos/**
+        limite: 120
+        ventana-segundos: 60
       # M13 — un sensor mal configurado o una clave filtrada no debe poder inundar el consenso.
       - ruta: /api/iot/presion
         limite: 60

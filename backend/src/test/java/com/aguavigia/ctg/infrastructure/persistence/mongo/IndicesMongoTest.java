@@ -139,6 +139,40 @@ class IndicesMongoTest {
         assertThat(ttl.get().getExpireAfter()).contains(java.time.Duration.ofDays(365));
     }
 
+    /**
+     * Solo caducan los eventos que traen `venceEn` (los de la ciudadanía): los del panel no lo llevan y se conservan,
+     * porque son la evidencia de quién hizo qué.
+     */
+    @Test
+    void debeExpirarLosEventosDeAuditoriaQueTraenFechaDeVencimiento() {
+        indicesMongo.asegurarIndices();
+
+        var ttl = mongoTemplate.indexOps(EventoAuditoriaDocumento.class).getIndexInfo().stream()
+                .filter(indice -> "venceEn_1".equals(indice.getName())).findFirst();
+        assertThat(ttl).isPresent();
+        assertThat(ttl.get().getExpireAfter()).contains(java.time.Duration.ZERO);
+    }
+
+    /** Un token de subida que nadie usó no debe quedarse en la base: Mongo lo borra solo al llegar su fecha. */
+    @Test
+    void debeExpirarLosTokensDeSubidaDeFotoAlLlegarSuFecha() {
+        indicesMongo.asegurarIndices();
+
+        var ttl = mongoTemplate.indexOps(SubidaDeFotoDocumento.class).getIndexInfo().stream()
+                .filter(indice -> "venceEn_1".equals(indice.getName())).findFirst();
+        assertThat(ttl).isPresent();
+        assertThat(ttl.get().getExpireAfter()).contains(java.time.Duration.ZERO);
+    }
+
+    /** Servir una foto busca el reporte por su URL: sin índice sería un recorrido de toda la colección. */
+    @Test
+    void debeAsegurarElIndiceDeLaUrlDeLaFotoDeLosReportes() {
+        indicesMongo.asegurarIndices();
+
+        Set<String> indicesReportes = nombresDeIndices(mongoTemplate.indexOps(ReporteCiudadanoDocumento.class).getIndexInfo());
+        assertThat(indicesReportes).contains("fotoUrl_1");
+    }
+
     @Test
     void conRetencionDeDispositivosCeroNoDebenExpirar() {
         new IndicesMongo(mongoTemplate, 365, 0).asegurarIndices();

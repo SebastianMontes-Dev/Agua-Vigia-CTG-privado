@@ -112,6 +112,42 @@ class ReporteCiudadanoMongoAdapterTest {
     }
 
     @Test
+    void asignarFotoSoloSiNoTieneYSinPisarLoDemas() {
+        ReporteId id = new ReporteId("r-foto");
+        adaptador.guardar(new ReporteCiudadano(id, new SectorId("manga"), TipoReporte.SIN_AGUA, null,
+                new HuellaDispositivo("h"), AHORA));
+        // Una aprobación que llega «en medio»: asignar la foto no puede devolver el reporte a PENDIENTE.
+        adaptador.guardar(adaptador.buscarPorId(id).orElseThrow().aprobar());
+
+        assertThat(adaptador.asignarFotoSiNoTiene(id, "/api/fotos/a.jpg", "s".repeat(64))).isTrue();
+        assertThat(adaptador.asignarFotoSiNoTiene(id, "/api/fotos/b.jpg", "t".repeat(64))).isFalse();
+
+        ReporteCiudadano leido = adaptador.buscarPorId(id).orElseThrow();
+        assertThat(leido.fotoUrl()).isEqualTo("/api/fotos/a.jpg");
+        assertThat(leido.fotoSha256()).isEqualTo("s".repeat(64));
+        assertThat(leido.estadoModeracion()).isEqualTo(com.aguavigia.ctg.domain.EstadoModeracion.APROBADO);
+        assertThat(adaptador.asignarFotoSiNoTiene(new ReporteId("no-existe"), "/x", "y")).isFalse();
+    }
+
+    @Test
+    void marcarFotoDescartadaSoloSiHayFotoYSinTocarElReporte() {
+        ReporteId id = new ReporteId("r-descarte");
+        adaptador.guardar(new ReporteCiudadano(id, new SectorId("manga"), TipoReporte.SIN_AGUA, null,
+                new HuellaDispositivo("h"), AHORA).aprobar());
+
+        assertThat(adaptador.marcarFotoDescartada(id)).as("sin foto").isFalse();
+
+        adaptador.asignarFotoSiNoTiene(id, "/api/fotos/a.jpg", "s".repeat(64));
+        assertThat(adaptador.marcarFotoDescartada(id)).isTrue();
+
+        ReporteCiudadano leido = adaptador.buscarPorId(id).orElseThrow();
+        assertThat(leido.fotoDescartada()).isTrue();
+        assertThat(leido.fotoEsPublica()).isFalse();
+        assertThat(leido.estadoModeracion()).isEqualTo(com.aguavigia.ctg.domain.EstadoModeracion.APROBADO);
+        assertThat(adaptador.marcarFotoDescartada(new ReporteId("no-existe"))).isFalse();
+    }
+
+    @Test
     void debeGuardarUnReporteSinCoordenada() {
         ReporteCiudadano reporte = new ReporteCiudadano(
                 new ReporteId("r2"), new SectorId("bocagrande"), TipoReporte.PRESION_BAJA,
@@ -307,4 +343,41 @@ class ReporteCiudadanoMongoAdapterTest {
         assertThat(adaptador.buscarPorId(new ReporteId("r21")).orElseThrow().fotoUrl())
                 .isEqualTo("/fotos/dos.jpg");
     }
+    private static ReporteCiudadano conFoto(String id, String url) {
+        return new ReporteCiudadano(new ReporteId(id), new SectorId("bocagrande"), TipoReporte.SIN_AGUA, null,
+                new HuellaDispositivo("hash-" + id), AHORA).aprobar().conFoto(url, "b".repeat(64));
+    }
+
+    /** El hash de la foto y su descarte deben volver tal como se guardaron: de ellos depende qué se sirve al público. */
+    @Test
+    void debeGuardarYLeerElHashYElDescarteDeLaFoto() {
+        adaptador.guardar(conFoto("r30", "/api/fotos/uno.jpg").descartarFoto());
+
+        ReporteCiudadano leido = adaptador.buscarPorId(new ReporteId("r30")).orElseThrow();
+
+        assertThat(leido.fotoSha256()).isEqualTo("b".repeat(64));
+        assertThat(leido.fotoDescartada()).isTrue();
+        assertThat(leido.fotoEsPublica()).isFalse();
+    }
+
+    @Test
+    void buscarPorNombreDeFotoDebeEncontrarElReporteSeaLaUrlLaViejaOLaNueva() {
+        adaptador.guardar(conFoto("r31", "/api/fotos/nueva.jpg"));
+        adaptador.guardar(conFoto("r32", "/fotos/vieja.png"));
+
+        assertThat(adaptador.buscarPorNombreDeFoto("nueva.jpg")).map(r -> r.id().valor()).contains("r31");
+        assertThat(adaptador.buscarPorNombreDeFoto("vieja.png")).map(r -> r.id().valor()).contains("r32");
+    }
+
+    /** Un nombre que solo termina igual no es el mismo archivo: servirlo mostraría la foto de otro reporte. */
+    @Test
+    void buscarPorNombreDeFotoNoDebeCoincidirConUnNombreQueSoloTerminaIgual() {
+        adaptador.guardar(conFoto("r33", "/api/fotos/abc.jpg"));
+
+        assertThat(adaptador.buscarPorNombreDeFoto("c.jpg")).isEmpty();
+        assertThat(adaptador.buscarPorNombreDeFoto("..abc.jpg")).isEmpty();
+        assertThat(adaptador.buscarPorNombreDeFoto("inexistente.jpg")).isEmpty();
+    }
+
+
 }

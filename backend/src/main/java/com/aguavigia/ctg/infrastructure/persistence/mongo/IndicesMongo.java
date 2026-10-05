@@ -142,6 +142,16 @@ public class IndicesMongo {
             log.info("Indices de `tokens_cuenta` asegurados: usuarioId y expiraEn (TTL)");
         });
 
+        intentar("SubidasDeFoto", () -> {
+            // El token de subida vive 10 minutos como mucho; lo que nadie usó, Mongo lo borra solo.
+            mongoTemplate.indexOps(SubidaDeFotoDocumento.class).ensureIndex(
+                    new Index().on("venceEn", Sort.Direction.ASC).expire(Duration.ZERO));
+            // Servir una foto busca el reporte por su URL.
+            mongoTemplate.indexOps(ReporteCiudadanoDocumento.class).ensureIndex(
+                    new Index().on("fotoUrl", Sort.Direction.ASC).sparse());
+            log.info("Indices de `subidas_foto` (TTL) y de `reportes.fotoUrl` asegurados");
+        });
+
         intentar("Auditoria", () -> {
             var indicesAuditoria = mongoTemplate.indexOps(EventoAuditoriaDocumento.class);
             indicesAuditoria.ensureIndex(new Index().on("ocurrioEn", Sort.Direction.DESC));

@@ -6,6 +6,7 @@ import com.aguavigia.ctg.application.AutenticarUsuarioService;
 import com.aguavigia.ctg.application.CambiarClaveService;
 import com.aguavigia.ctg.application.ConfirmarSuscripcionService;
 import com.aguavigia.ctg.application.EmisorDeTokensDeCuenta;
+import com.aguavigia.ctg.application.EmitirTokenDeSubidaService;
 import com.aguavigia.ctg.application.EvaluarConsensoService;
 import com.aguavigia.ctg.application.ExpirarCortesVencidosService;
 import com.aguavigia.ctg.application.LimitesDeReporte;
@@ -38,8 +39,10 @@ import com.aguavigia.ctg.domain.port.out.ReservaDeEvaluacionPort;
 import com.aguavigia.ctg.domain.port.out.RevocacionSesionPort;
 import com.aguavigia.ctg.domain.port.out.SectorRepository;
 import com.aguavigia.ctg.domain.port.out.SegundoFactorPort;
+import com.aguavigia.ctg.domain.port.out.SubidaDeFotoRepository;
 import com.aguavigia.ctg.domain.port.out.SuscripcionRepository;
 import com.aguavigia.ctg.domain.port.out.TiempoConstantePort;
+import com.aguavigia.ctg.domain.port.out.TokenDeSubidaPort;
 import com.aguavigia.ctg.domain.port.out.TransaccionPort;
 import com.aguavigia.ctg.domain.port.out.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Value;
@@ -91,6 +94,14 @@ public class CasosDeUsoConfig {
             AuditoriaRepository auditoria, UsuarioRepository usuarios, RelojPort reloj,
             @Value("${aguavigia.retencion.auditoria-vecinos-dias:180}") long diasDeVecinos) {
         return new RegistroDeAuditoria(auditoria, usuarios, reloj, Duration.ofDays(diasDeVecinos));
+    }
+
+    /** El token de subida de la foto vive unos minutos (D10): el tiempo de elegir la foto y mandarla, no más. */
+    @Bean
+    public EmitirTokenDeSubidaService emitirTokenDeSubidaService(
+            SubidaDeFotoRepository subidas, TokenDeSubidaPort tokens, RelojPort reloj,
+            @Value("${aguavigia.reportes.vigencia-subida-minutos:10}") long vigenciaMinutos) {
+        return new EmitirTokenDeSubidaService(subidas, tokens, reloj, Duration.ofMinutes(vigenciaMinutos));
     }
 
     @Bean
