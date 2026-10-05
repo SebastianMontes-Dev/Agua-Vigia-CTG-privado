@@ -78,16 +78,21 @@ reporte (`verificacion`) y el quórum de un barrio exige que parte del sustento 
   (`localStorage`), no en cada reporte. Máximo **10 por hora por IP** (`429 limite-de-peticiones-excedido`, con `Retry-After`).
   `X-Dispositivo` ya está permitida por CORS.
 - **Vecino registrado** (rol `VECINO`; su sesión sirve en `/api/vecino/**` y, del panel, solo en `GET /api/veedor/yo` y `POST /api/veedor/sesion/cierre`, que muestran o cierran lo propio):
-  - `POST /api/cuentas/vecino` `{correo, nombre, clave, barrioId, consentimiento{privacidad, avisos}}` → `202` siempre, exista o
-    no el correo (no revela qué correos tienen cuenta). `privacidad` debe ser `true`; `avisos` es una casilla aparte y por defecto
-    falsa. `barrioId` es el slug de `GET /api/sectores`. Clave de 12 caracteres o más. `400` si algo no cumple.
-  - **Verificar el correo:** el enlace del correo abre la página de cortesía (mecanismo de `correos-y-enlaces.md`) y, para un
-    vecino, la cuenta queda **ACTIVA sin aprobación de nadie**. La página dice «ya puedes iniciar sesión».
+  - `POST /api/cuentas/vecino` `{correo, nombre, barrioId, consentimiento{privacidad, avisos}}` → `202` siempre, exista o no el
+    correo (no revela qué correos tienen cuenta). **No lleva `clave`**: si un cliente viejo la manda, se ignora. `privacidad` debe
+    ser `true`; `avisos` es una casilla aparte y por defecto falsa. `barrioId` es el slug de `GET /api/sectores`. `400` si algo
+    no cumple.
+  - **Elegir la clave y activar la cuenta:** el correo trae un enlace que abre la misma pantalla de las invitaciones
+    (`GET /api/cuentas/enlaces/invitacion?token=…`, formulario de clave). Al enviarla (`POST /api/cuentas/invitacion`
+    `{token, clave}` o el formulario HTML) la cuenta queda **ACTIVA sin aprobación de nadie**, con clave de 12 caracteres o más.
+    Así nadie puede registrar el correo de otra persona con una clave suya. Quien perdió el correo lo pide de nuevo con
+    `POST /api/cuentas/verificacion/reenvio` `{correo}` (cada 2 minutos como mucho). Mientras la cuenta no tenga clave,
+    `POST /api/vecino/sesion` responde `401`, igual que con una clave mala.
   - `POST /api/vecino/sesion` `{correo, clave}` → `200 {token, usuarioId, nombre, correo, permisos}` (8 h). Una cuenta del panel
     no entra por aquí ni una de vecino por `/api/veedor/sesion`: ambos casos dan la misma `401` que una clave mala. `403` si la
-    cuenta no está activa (correo sin confirmar) o está suspendida; `423` por bloqueo de la cuenta; `429` por IP.
+    cuenta está suspendida; `423` por bloqueo de la cuenta; `429` por IP.
   - `GET /api/vecino/yo` → perfil (`barrioId`, `barrioVerificado`, `barrioVerificadoEn`, `recibeAvisos`, `consentimientos[]`).
-  - `PATCH /api/vecino/perfil` → cambia nombre, barrio y la casilla de avisos; solo se aplica lo que viene. Cambiar de barrio anula la verificación anterior.
+  - `PATCH /api/vecino/perfil` → cambia nombre, barrio y la casilla de avisos; solo se aplica lo que viene. Cambiar de barrio anula la verificación anterior. `409 conflicto-de-estado` si la cuenta cambió mientras se guardaba (una suspensión, por ejemplo): reintentar.
   - `POST /api/vecino/sesion/cierre` → `204`. Revoca **todas** las sesiones vivas de la cuenta, no solo la del navegador.
   - `POST /api/vecino/verificacion-barrio` `{coordenada, precisionMetros}` → `200` con el perfil. **La coordenada se usa y se
     descarta: ni se guarda ni se audita.** Máximo **3 intentos por día** (`429 limite-de-peticiones-excedido` con `Retry-After`);
@@ -104,6 +109,87 @@ reporte (`verificacion`) y el quórum de un barrio exige que parte del sustento 
 | `dispositivo-invalido` | 401 | Reportar o confirmar sin `X-Dispositivo` válido (falta, no lo firmó este servidor o el dispositivo ya no existe) | Pedir otro con `POST /api/dispositivos` y reintentar una vez. **No** cerrar la sesión de un vecino por este error |
 | `ubicacion-imprecisa` | 422 | `precisionMetros` peor que 200 m en la verificación de barrio | Pedir GPS y reintentar; no cuenta como intento |
 | `ubicacion-fuera-del-barrio` | 422 | La coordenada no cae en el barrio declarado | Ofrecer corregir el barrio (`PATCH /api/vecino/perfil`) o reintentar desde casa |
+| `conflicto-de-estado` | 409 | `PATCH /api/vecino/perfil` o `POST /api/vecino/verificacion-barrio` con la cuenta cambiada por otro entre la lectura y el guardado | Volver a pedir el perfil y repetir; no pierde nada |
 | `limite-de-peticiones-excedido` | 429 | Tope por IP (`/api/dispositivos`, `/api/vecino/sesion`, `/api/cuentas/**`) o agotar los 3 intentos diarios de verificación | Esperar `Retry-After` segundos |
 
 Los límites y la lista completa de errores están en `errores-y-limites.md`.
+
+## F3 — Fotos, ingesta y «¿ya volvió el agua?»
+
+Las fotos dejan de ser un directorio público: la sube solo quien creó el reporte, y se ve cuando el reporte se aprueba. La ingesta
+de Acuacar ya no publica todo sola, y llega un enlace de un toque para confirmar que volvió el agua.
+
+### Rompe
+
+| Cambio | Qué adapta el frontend |
+|---|---|
+| **`/fotos/**` desaparece.** Las fotos salen por `GET /api/fotos/{nombre}`. `fotoUrl` ya viene con la ruta nueva, también en reportes viejos | Quitar `/fotos` del proxy de Vite (el proxy de `/api` ya cubre la ruta nueva) y no armar rutas a mano: usar `fotoUrl` |
+| **`POST /api/reportes/{id}/foto` exige la cabecera `X-Subida`** con el `subidaToken` que devuelve `POST /api/reportes`. Sin él, `403 subida-no-autorizada` | Guardar `subidaToken` al crear el reporte y mandarlo al subir la foto. Es de un solo uso y vence a los 10 min; no hay forma de pedirlo otra vez. `X-Subida` ya está permitida por CORS |
+| **WebP se rechaza con `415 formato-no-permitido`** (antes `400`) | No ofrecer WebP en el selector (`accept="image/jpeg,image/png"`) y reaccionar por el `type` |
+| `GET /api/fotos/{nombre}` responde `404` mientras el reporte no esté aprobado | No pidas la imagen si `fotoEstado` es `EN_REVISION`: muestra «en revisión» |
+| `PropuestaIngestaRespuesta` gana `motivoDeRevision` | Mostrarlo a quien revisa la cola de ingesta |
+
+### Nuevo
+
+- `ReporteRespuesta` gana **`fotoEstado`** (`SIN_FOTO`, `EN_REVISION`, `PUBLICA`, `DESCARTADA`) y, solo al crear, **`subidaToken`**.
+- La cola de moderación (`ReporteModeracionRespuesta`) gana `fotoEstado` y `fotoUrl` (ruta del panel `/api/veedor/fotos/{nombre}`, que exige sesión con `VER_PANEL`: pídela con `fetch` y la cabecera `Authorization`, no con un `<img src>`).
+- `PATCH /api/veedor/reportes/{id}/foto/descartar` (`MODERAR_REPORTES`): retira solo la foto.
+- **`POST /api/sectores/{sectorId}/restablecimiento?token=…`** → `201` con el reporte. Es lo que llama la pantalla «¿ya volvió el agua?» a la que lleva el
+  correo de aviso: `{urlFrontend}/sectores/{id}/restablecimiento?token=…`. **Hay que construir esa pantalla** (un botón; no votes al cargar la página).
+  Detalle en `correos-y-enlaces.md`.
+- El correo de aviso de un barrio sin servicio o con presión baja trae el enlace anterior.
+
+### Errores
+
+| `type` | Código | Cuándo | Qué hace el frontend |
+|---|---|---|---|
+| `subida-no-autorizada` | 403 | Falta `X-Subida`, ya se usó, venció o es de otro reporte (también si el reporte no existe) | Decir que la foto ya no se puede subir; no reintentar |
+| `formato-no-permitido` | 415 | La foto no es JPEG ni PNG | Pedir otra imagen |
+| `enlace-invalido` | 403 | El enlace de «¿ya volvió?» venció, es de otro barrio o la suscripción ya no está confirmada | Mostrar «este enlace ya no sirve» y llevar al barrio |
+
+### Lo que cambia sin tocar el contrato
+
+- Acuacar ya no publica todo sola: un boletín poco fiable o sin sentido espera al veedor (con `motivoDeRevision`). Un boletín con
+  **varias zonas** (cada una con su horario) genera un corte por zona.
+- Los boletines de **histórico** (ventana terminada hace más de 72 h) no mueven el mapa: quedan como corte `EXPIRADO` y evento `CORTE_EXPIRADO` en la bitácora, con la fecha del hecho.
+- Un boletín de «servicio restablecido» **de hace más de 72 h** ya no fija `CON_SERVICIO`: el barrio vuelve a «sin datos».
+- Un aviso de aplazamiento o cancelación se reconoce y **no** se publica como corte nuevo (hoy se registra en el log; un flujo de anulación desde la cola llega con la simulación).
+
+## F4 — Datos, modo del sistema y calidad del Índice
+
+Un solo `docker compose up` deja la base lista, y la API ahora dice qué es real y qué es sintético. No hay nada que **rompa**; todo
+lo siguiente es nuevo o añade campos.
+
+### Nuevo
+
+- **`GET /api/sistema/modo`** → `{ "modo": "REAL" | "SIMULACION", "cuentasSinteticas": 30000 }`. Público, sin sesión. Pídelo al abrir
+  la aplicación (se recuerda un minuto en el servidor).
+  - `modo`: **muestra un banner permanente si es `SIMULACION`**. Una simulación nunca se presenta como real. En la instancia real es
+    `REAL` y no hace falta mostrar nada.
+  - `cuentasSinteticas`: cuántas cuentas de vecino creó el propio sistema para probar el volumen. **No son personas.** Si la
+    interfaz habla de ellas, la frase exacta es «cuentas sintéticas generadas por el sistema con las reglas de alta de un vecino»;
+    nunca «30 000 personas se registraron» ni se cuentan como adopción. Con 0 no hay nada que decir.
+- **`GET /api/cumplimiento/calidad?sectorId=`** → `{ cierresMedidos, cierresProvisionales, porcentajeProvisional, cortesSinCierreConfirmado,
+  cortesAnulados }`. **Responde siempre**, incluso cuando `GET /api/cumplimiento` da `400` por no haber un solo cierre: es lo que permite
+  mostrar «sin datos suficientes» **con cifras** («12 cortes vencidos sin cierre confirmado») en vez de una pantalla vacía.
+- `IndiceCumplimientoRespuesta` (global, por sector y por corte) gana tres campos, siempre presentes:
+  - `porcentajeProvisional` (0 a 100): de los cierres que sostienen el Índice, cuántos solo los sostienen vecinos o sensores y un veedor o
+    un boletín aún puede corregir. **Publícalo junto al porcentaje**: el número es tan sólido como esto.
+  - `cortesSinCierreConfirmado`: cortes cuya ventana prometida ya terminó y en los que algún barrio no tiene cierre (incluye los que
+    expiraron). No cuentan a favor ni en contra de Acuacar: se declaran, no se esconden.
+  - `cortesAnulados`: cortes publicados por error y retirados; no entran al Índice.
+- `GET /api/veedor/reportes/pendientes`: cada reporte gana **`senalRed`** (booleano): verdadero si viene de una red (resumen diario de la IP, que
+  no sale por la API) que ya envió una ráfaga de reportes a ese barrio (por defecto 5 en 30 minutos). **No bloquea nada**: es dónde mirar
+  primero. Es una señal para el veedor, no una acusación: una sala o una antena móvil comparten red.
+- `GET /api/veedor/usuarios` (`UsuarioRespuesta`): gana **`sintetica`** (booleano). Con 30 000 cuentas sintéticas en la base, el listado del
+  administrador las incluye (las más nuevas primero: una cuenta que se registre de verdad aparece arriba); `sintetica: true` permite
+  distinguirlas y ocultarlas. Ninguna puede iniciar sesión: su correo es de un dominio reservado (`.invalid`) y nadie conoce su clave.
+
+### Cambia sin tocar la forma
+
+- **El Índice se mide por par corte-barrio**, no por corte: un corte que agrupa veinte barrios y los restablece a horas distintas aporta
+  veinte mediciones, cada una con su duración real (y la prometida del corte). `cantidadCortes` de la serie mensual cuenta esos pares. Los
+  cierres de los cortes anteriores a F1, que solo traían `finReal`, se leen igual.
+- La cola de moderación sigue siendo la misma lista paginada; solo suma `senalRed`.
+- Lo que se siembra al arrancar ya no incluye reportes, cortes ni estados de barrio inventados: el mapa arranca en «sin datos» salvo los
+  barrios con un boletín real de Acuacar vigente. La interfaz no debe suponer que hay datos de ejemplo.

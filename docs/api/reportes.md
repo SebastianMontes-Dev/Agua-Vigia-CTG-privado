@@ -10,7 +10,8 @@ el estado del sector cambia solo (consenso).
 |---|---|---|
 | `POST /api/dispositivos` | Pedir la identidad de dispositivo (una vez). `201 {token}`. | 10/hora |
 | `POST /api/reportes` | Registrar un reporte. `201`. | 30/min |
-| `POST /api/reportes/{id}/foto` | Adjuntar una foto al reporte. | 30/min |
+| `POST /api/reportes/{id}/foto` | Adjuntar una foto al reporte; exige `X-Subida`. | 10/10 min y 30/min |
+| `GET /api/fotos/{nombre}` | Ver la foto de un reporte aprobado. Sin sesión. | — |
 | `POST /api/reportes/{id}/confirmar` | Otro vecino confirma un reporte. | 30/min |
 
 Esquemas en [`referencia-de-rutas.md`](referencia-de-rutas.md).
@@ -54,11 +55,13 @@ Respuesta `201`:
 
 ```json
 { "id": "3b1f…", "sectorId": "bocagrande", "tipo": "SIN_AGUA",
-  "timestamp": "2026-08-08T15:30:00Z", "fotoUrl": null, "confirmaciones": 0,
-  "verificacion": "UBICACION_VERIFICADA" }
+  "timestamp": "2026-08-08T15:30:00Z", "fotoUrl": null, "fotoEstado": "SIN_FOTO", "confirmaciones": 0,
+  "verificacion": "UBICACION_VERIFICADA", "subidaToken": "q7Zk…" }
 ```
 
 `sectorId` en la respuesta es **siempre** el sector real, también cuando lo infirió el servidor.
+
+`subidaToken` solo viene en esta respuesta (la de crear): es el permiso de **un solo uso** para subir la foto de este reporte (ver más abajo). Si el cliente lo pierde, no hay forma de pedirlo otra vez; la foto es opcional.
 
 `verificacion` lo decide el servidor: `CUENTA_VERIFICADA` (un vecino con el barrio verificado que reporta en ese barrio),
 `UBICACION_VERIFICADA` (precisión ≤ 200 m y dentro del barrio) o `NINGUNA`. Un reporte sin verificar **sigue contando**, pero
@@ -119,16 +122,34 @@ cambio con la evidencia.
 
 ## `POST /api/reportes/{id}/foto`
 
-`multipart/form-data`, con **una parte llamada `foto`**. Devuelve el reporte con `fotoUrl` relleno.
+`multipart/form-data`, con **una parte llamada `foto`**, y la cabecera **`X-Subida`** con el `subidaToken` que devolvió `POST /api/reportes`. Devuelve el reporte con `fotoUrl` y `fotoEstado` rellenos.
+
+El token es de **un solo uso**, está atado a ese reporte y **vence a los 10 minutos**. Sin él —o con uno gastado, vencido o de otro reporte— responde `403 subida-no-autorizada`, y es la misma respuesta si el reporte no existe: no sirve para averiguar qué ids hay. El archivo se valida antes de gastar el token, así que un archivo rechazado deja reintentar.
 
 | Regla | Valor |
 |---|---|
-| Tipos | `image/jpeg`, `image/png`. **WebP se rechaza** (no se le puede quitar el EXIF). Se verifica la **firma binaria**, no solo el `Content-Type`. |
+| Tipos | `image/jpeg`, `image/png`. **WebP se rechaza con `415 formato-no-permitido`** (no se le puede quitar el EXIF): no lo ofrezcas en el selector. Se verifica la **firma binaria**, no solo el `Content-Type`. |
 | Tamaño máximo | **10 MB** → `413` con `type: archivo-demasiado-grande`. |
 | Procesado | JPEG y PNG se reescalan a un lado máximo de 1600 px (JPEG a calidad 0,75). Se descarta el EXIF, **incluida la ubicación GPS de la foto**. |
-| URL resultante | Relativa: `/fotos/<uuid>.<ext>`. Se sirve del mismo origen, con caché de un día. |
+| URL resultante | Relativa: `/api/fotos/<uuid>.<ext>`, del mismo origen. La ruta vieja `/fotos/**` ya no existe. |
+| Quién la ve | El público, solo cuando el reporte está **aprobado** y el veedor no descartó la foto. Antes responde `404`, igual que si no existiera. |
 
-Errores: `400` (tipo o firma inválidos, falta la parte `foto`), `404` (el reporte no existe), `413`.
+Errores: `400` (firma inválida, falta la parte `foto`), `403 subida-no-autorizada`, `409` (el reporte ya tiene foto), `413`, `415 formato-no-permitido`.
+
+### `fotoEstado`
+
+| Valor | Qué hacer |
+|---|---|
+| `SIN_FOTO` | No hay foto. |
+| `EN_REVISION` | Hay foto pero el reporte espera moderación. **No pidas la imagen** (daría `404`): muestra «en revisión». |
+| `PUBLICA` | Pídela en `fotoUrl`. |
+| `DESCARTADA` | El veedor la retiró (o descartó el reporte). No se muestra. |
+
+La foto **nunca cuenta como voto**: es evidencia para quien modera.
+
+## `GET /api/fotos/{nombre}`
+
+Sin sesión. Devuelve la imagen (`image/jpeg` o `image/png`) con `X-Content-Type-Options: nosniff` y caché de un minuto. `404` si no existe, si su reporte no está aprobado o si se descartó: es el mismo `404` a propósito.
 
 La foto es **evidencia**, no contenido público destacado. La purga de binarios pasados 365 días (minimización de
 datos, conservando el reporte) existe pero está **desactivada por defecto** (`application.yml:132`; `ADR-027`, `ADR-085`).

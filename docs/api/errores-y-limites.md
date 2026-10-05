@@ -48,13 +48,16 @@ se pueda visitar**.
 | *(sin type propio)* | 401 | Sin token, token inválido, caducado o revocado. **Cerrar sesión.** |
 | `acceso-denegado` | 403 | La sesión no tiene el permiso que exige la operación. |
 | `cuenta-no-habilitada` | 403 | La cuenta no puede iniciar sesión. Ver la propiedad `estado`. |
+| `enlace-invalido` | 403 | El enlace de «¿ya volvió el agua?» venció, es de otro barrio o su suscripción ya no recibe avisos. |
+| `subida-no-autorizada` | 403 | Subir una foto sin `X-Subida`, o con un token ya usado, vencido o de otro reporte. Es la misma respuesta si el reporte no existe. |
 | `recurso-no-encontrado` | 404 | El recurso de la URL no existe (o la ruta no existe). |
 | `metodo-no-permitido` | 405 | La ruta existe, pero no con ese verbo. |
 | `formato-no-aceptable` | 406 | El `Accept` pide un formato que la ruta no produce (p. ej. JSON en el `GET` de una página HTML). Trae `tiposSoportados`. |
-| `conflicto-de-estado` | 409 | La petición está bien formada, pero no aplica al estado actual del recurso. |
+| `conflicto-de-estado` | 409 | La petición está bien formada, pero no aplica al estado actual del recurso, o la cuenta cambió mientras se guardaba (el perfil y la verificación de barrio de un vecino). |
 | `ubicacion-fuera-del-barrio` | 422 | La coordenada no cae dentro del barrio declarado por el vecino. |
 | `ubicacion-imprecisa` | 422 | La lectura tiene una precisión peor que 200 m (ubicación aproximada por red). **No gasta un intento.** |
 | `tipo-de-contenido-no-soportado` | 415 | El cuerpo no es JSON (o no es del tipo que la ruta acepta). |
+| `formato-no-permitido` | 415 | La foto no es JPEG ni PNG (WebP, por ejemplo). |
 | `archivo-demasiado-grande` | 413 | La foto pasa de 10 MB. |
 | `cuenta-bloqueada` | 423 | Demasiados intentos fallidos contra esa cuenta. Ver `segundosRestantes`. |
 | `limite-reportes-excedido` | 429 | La identidad (dispositivo o vecino) agotó su cupo de reportes en ese barrio (RF006). |
@@ -84,6 +87,10 @@ segundos) y `type: limite-de-peticiones-excedido`.
 | `/api/veedor/segundo-factor/**` | 10 | 5 min |
 | `/api/veedor/cuenta/**` | 10 | 5 min |
 | `/api/reportes/**` | 30 | 1 min |
+| `/api/reportes/*/foto` (además del anterior) | 10 | 10 min |
+| `/api/fotos/**` | 120 | 1 min |
+| `GET /api/sistema/modo` | 60 | 1 min |
+| `/api/sectores/*/restablecimiento` | 10 | 10 min |
 | `/api/iot/presion` | 60 | 1 min |
 | `/api/cuentas/**` (incluye el registro de vecinos) | 10 | 10 min |
 | `/api/vecino/sesion` | 10 | 10 min |
@@ -97,6 +104,12 @@ Hay **tres frenos distintos que dan `429` o `423`**, y no son lo mismo:
 3. **Por cuenta** (`423 cuenta-bloqueada`): 5 fallos de login en 15 minutos bloquean esa cuenta 15 minutos.
 
 Además, **verificar el barrio** (`POST /api/vecino/verificacion-barrio`) tiene un cupo propio de **3 intentos por día y por cuenta**: al agotarlo responde `429 limite-de-peticiones-excedido` con `Retry-After`. Una lectura imprecisa (`ubicacion-imprecisa`) no gasta intento. Si Redis no responde, ese cupo falla abierto, igual que el límite por IP.
+
+> **Instancias de simulación y de carga.** Los topes de la tabla son los de la instancia real. `RATE_LIMIT_FACTOR` los multiplica (por
+> defecto 1; nunca los aprieta; tope 1000) para quien necesite crear cientos de dispositivos desde un solo equipo, pero **no mueve** los
+> de ingreso, segundo factor, cambio de clave, altas ni correos (`/api/veedor/sesion`, `/api/vecino/sesion`, `/api/cuentas/**`,
+> `/api/suscripciones/**`, `/api/veedor/segundo-factor/**`, `/api/veedor/cuenta/**`): esos solo los mueve `RATE_LIMIT_FACTOR_CUENTAS`,
+> pensado para la simulación, y el backend avisa en el log al arrancar si alguno vale más de 1. No es algo que el cliente deba contemplar.
 
 > **NAT y barrios enteros.** Un edificio o una antena móvil entera sale por una sola IP. Los límites son
 > holgados a propósito para no castigar a un barrio sin agua que reporta a la vez; el límite fino por

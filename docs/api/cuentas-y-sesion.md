@@ -14,9 +14,9 @@ sesión de un vecino sirve en `/api/vecino/**` y no abre ninguna ruta del panel 
 | `POST /api/cuentas/registro` | Pedir una cuenta del panel. | `202`, sin cuerpo |
 | `POST /api/cuentas/vecino` | Registrarse como vecino (ver [Vecino registrado](#vecino-registrado)). | `202`, siempre |
 | `POST /api/vecino/sesion` | Iniciar sesión como vecino. | `200` con la sesión |
-| `POST /api/cuentas/verificacion?token=…` | Verificar el correo (panel o vecino). | `204` |
-| `POST /api/cuentas/verificacion/reenvio` | Reenviar el correo de verificación (`{ correo }`). | `202`, siempre |
-| `POST /api/cuentas/invitacion` | Aceptar una invitación y fijar la clave. | `204` |
+| `POST /api/cuentas/verificacion?token=…` | Verificar el correo de una cuenta del panel. | `204` |
+| `POST /api/cuentas/verificacion/reenvio` | Reenviar el correo de verificación o, a un vecino sin clave, el enlace para elegirla (`{ correo }`). | `202`, siempre |
+| `POST /api/cuentas/invitacion` | Aceptar una invitación del panel o activar la cuenta de un vecino, fijando la clave. | `204` |
 | `POST /api/cuentas/restablecimiento` | Pedir restablecer la clave. | `202`, siempre |
 | `POST /api/cuentas/clave` | Fijar la clave nueva con el token del correo. | `204` |
 | `GET/POST /api/cuentas/enlaces/{verificar,invitacion,restablecer}` | **Páginas HTML** de cortesía para los enlaces del correo. | HTML |
@@ -184,8 +184,10 @@ Límite: `/api/veedor/segundo-factor/**` admite 10 peticiones por IP cada 5 minu
 
 ## Vecino registrado
 
-Un vecino se registra con correo, nombre, clave, **barrio** y consentimiento (`POST /api/cuentas/vecino`). Al confirmar el
-correo la cuenta queda **ACTIVA sin aprobación de un administrador**: solo gestiona su propio perfil. Ya no hay «ciudadano sin
+Un vecino se registra con correo, nombre, **barrio** y consentimiento (`POST /api/cuentas/vecino`); **no manda clave**. El correo
+trae un enlace para elegirla (la misma pantalla de las invitaciones) y al hacerlo la cuenta queda **ACTIVA sin aprobación de un
+administrador**: solo gestiona su propio perfil. Si eligiera la clave quien rellena el formulario, podría registrar el correo de
+otra persona con una clave suya y quedarse con la cuenta cuando ella confirmara el enlace. Ya no hay «ciudadano sin
 cuenta» obligado: reportar sigue siendo posible sin cuenta, y la cuenta añade `CUENTA_VERIFICADA` a sus reportes cuando prueba
 su barrio.
 
@@ -205,7 +207,7 @@ porque solo muestran o cierran lo propio; ninguna otra ruta de `/api/veedor/**`.
 
 | Rol | Permisos |
 |---|---|
-| `VECINO` | Solo `GESTIONAR_PERFIL_PROPIO`. Nunca recibe permisos de panel: no se invita, aprueba ni convierte entre vecino y panel |
+| `VECINO` | Solo `GESTIONAR_PERFIL_PROPIO`. Nunca recibe permisos de panel: no se invita, aprueba ni convierte entre vecino y panel. Ningún rol del panel, ni el ADMIN, tiene ese permiso ni puede recibirlo |
 | `OBSERVADOR` | `VER_PANEL`, `CONFIGURAR_SEGUNDO_FACTOR` |
 | `VEEDOR` | Los del observador + `MODERAR_REPORTES`, `GESTIONAR_CORTES`, `REVISAR_INGESTA` |
 | `ADMIN` | Todos, incluidos `GESTIONAR_USUARIOS` y `VER_AUDITORIA` |

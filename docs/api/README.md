@@ -76,9 +76,9 @@ docker compose up -d --build --wait
 - API en `http://localhost:8081` (el compose de desarrollo publica el backend directo).
 - Documentación interactiva: `http://localhost:8081/swagger-ui.html`.
 - Correo de pruebas (Mailhog): `http://localhost:8025`; todo correo que envíe el backend aparece ahí.
-- Datos: `node scripts/sembrar-sectores.mjs` carga los 211 sectores;
-  `scripts/sembrar-demo.mjs` afecta unos barrios enviando reportes a la API (el consenso real escribe la bitácora)
-  y `scripts/sembrar-historico-cortes.mjs` carga cortes históricos de ejemplo.
+- Datos: `docker compose up` carga los 211 sectores (`sembrador`) y el backend crea en segundo plano **30 000 cuentas sintéticas** de vecino
+  (`GET /api/sistema/modo` las cuenta). **No hay reportes, cortes ni estados inventados**: el mapa muestra los boletines reales de Acuacar y lo que
+  reporten vecinos de verdad. `scripts/sembrar-demo.mjs` (a mano) afecta unos barrios enviando reportes a la API, cada uno con su dispositivo.
   Detalle en [`docs/ingenieria/entorno-local.md`](../ingenieria/entorno-local.md).
 
 ## Qué debe saber ya quien construya la interfaz

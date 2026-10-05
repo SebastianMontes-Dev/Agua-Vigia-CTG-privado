@@ -26,8 +26,8 @@ las claves viven en el `.env` local (ignorado por git) o se generan al arrancar.
 | Clave del primer ADMIN | Con `usuarios` vacía, el backend crea `admin@aguavigia.local` con clave aleatoria y la imprime **una sola vez** en el log | `scripts/restablecer-admin.mjs` (solo contra base local) |
 | `IOT_KEY` | Opcional. Si se define debe medir **≥ 32 caracteres** (p. ej. `openssl rand -hex 16`) o el backend no arranca | Vacía: `/api/iot/presion` responde 503 |
 | `TELEGRAM_BOT_TOKEN` | `.env` | Vacío: el canal queda apagado |
-| Clave de las cuentas de demostración | **No está en el repo.** Sale de `CLAVE_DEMO` si la defines, o se genera al azar en cada siembra y se imprime una vez | Resembrar |
-| Tokens de invitación/verificación sembrados | Derivados de un secreto que solo existe durante esa ejecución; no se pueden calcular desde el repo | — |
+| Clave de las cuentas sintéticas de vecino | **Nadie la conoce.** El backend genera una contraseña aleatoria, guarda solo su hash BCrypt (uno, compartido) y descarta la contraseña: esas cuentas no pueden iniciar sesión (ADR-094) | — |
+| Clave de `sembrar-usuarios-demo.mjs` (cuentas de panel a mano, ya fuera del arranque) | **No está en el repo.** Sale de `CLAVE_DEMO` si la defines, o se genera al azar y se imprime una vez | Volver a correrlo |
 
 Leer la clave del ADMIN (PowerShell): `docker compose logs backend | findstr ADMINISTRADOR`. Guárdala en tu gestor de contraseñas.
 

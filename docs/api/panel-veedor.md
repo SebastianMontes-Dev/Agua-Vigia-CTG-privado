@@ -88,7 +88,9 @@ Un corte que nadie cierra ni confirma pasa a `EXPIRADO` a las 72 h del fin prome
 (ver [Errores y límites §Paginación](errores-y-limites.md#paginación)). Cada elemento trae `id`, `sectorId`,
 `tipo`, `coordenada` (opcional, aproximada a unos 110 m), `timestamp`, `estadoModeracion` y `verificacion`
 (`CUENTA_VERIFICADA`, `UBICACION_VERIFICADA` o `NINGUNA`: cuánto respalda el servidor que quien reportó está en el barrio).
-La red de origen no sale por la API. Aún no hay señal de ráfagas por red (`senalRed`).
+La red de origen no sale por la API. `senalRed` es verdadero si el reporte viene de una red que ya envió una ráfaga a ese barrio
+(`aguavigia.moderacion.rafaga-minima`, 5 reportes, en `aguavigia.moderacion.rafaga-ventana-minutos`, 30 minutos): una señal para mirar primero, **no un bloqueo**
+(una sala o una antena móvil comparten red). Solo viene en esta cola; en el resto de respuestas de moderación es nulo.
 
 - `PATCH …/{id}/aprobar` y `…/descartar` → el reporte con su estado nuevo. `404` si no existe.
 - **Un reporte descartado deja de contar** para el consenso y para las confirmaciones, pero **sigue
@@ -103,7 +105,14 @@ El sistema lee los boletines de **Acuacar** (solo su API REST de WordPress, `app
 
 `GET /api/veedor/ingesta/propuestas` (paginada) devuelve las propuestas: qué sector, qué estado propone,
 de qué fuente, el enlace al original, la **`citaTextual`** exacta que la respalda y una `confianza` entre 0 y
-1 (sirve para ordenar la cola, **no para publicar sola**).
+1 (sirve para ordenar la cola, **no para publicar sola**) y, desde F3, **`motivoDeRevision`**: por qué la propuesta espera
+al veedor en vez de haberse publicado sola (confianza baja, ventana de más de 72 h, inicio a más de 7 días de la publicación,
+más de 40 barrios, un nombre ambiguo, o que viene de prensa). Es nulo si salió sola. Muéstralo junto a la cita: es lo que
+el veedor necesita para decidir.
+
+Un boletín de Acuacar **fiable y con sentido se publica solo**; uno que no pasa las compuertas llega aquí. Un boletín cuya
+ventana ya había terminado hace más de 72 h al ingerirse (el histórico) **no llega a la cola ni mueve el mapa**: se guarda
+como corte `EXPIRADO` y deja un evento `CORTE_EXPIRADO` en la bitácora con la fecha del hecho (ver ADR-092).
 
 - `PATCH …/propuestas/{id}/aprobar` aplica el cambio y anexa el evento a la bitácora.
 - `PATCH …/propuestas/{id}/descartar` la rechaza.
@@ -115,6 +124,11 @@ de qué fuente, el enlace al original, la **`citaTextual`** exacta que la respal
   descartada o descartar una aprobada (#96). Aprobar una propuesta de prensa **sin ventana horaria
   declarada** responde `200` pero **no cambia el estado del sector**: la interfaz debe deshabilitar los botones de
   una propuesta ya resuelta y no fiarse de que un `200` implique que el mapa cambió; vuelve a pedir `GET /api/sectores`.
+
+**Fotos.** La cola de moderación (`GET /api/veedor/reportes/pendientes`) trae `fotoEstado` (`SIN_FOTO`, `EN_REVISION`, `PUBLICA`, `DESCARTADA`)
+y `fotoUrl`, que apunta a `/api/veedor/fotos/{nombre}` (`VER_PANEL`): el panel ve la foto en cualquier estado; el público, solo con el
+reporte aprobado. `PATCH /api/veedor/reportes/{id}/foto/descartar` (`MODERAR_REPORTES`) retira solo la foto, sin tocar el reporte ni su voto
+(`404` si el reporte no existe, `409` si no tiene foto).
 
 **Regla ética del proyecto (`ADR-006`): nada llega al mapa sin verificación.** Si la propuesta no puede citar
 la frase exacta del boletín que la respalda, no debe aprobarse. La interfaz de revisión debe mostrar la
@@ -136,7 +150,7 @@ cuanto se procesa con éxito: es lo que está roto ahora, no un histórico (`Ing
 
 | Ruta | Efecto |
 |---|---|
-| `GET /api/veedor/usuarios?estado=…&barrioId=…&pagina&tamano` | Lista paginada, filtrable por estado de cuenta y por barrio donde vive la persona (`barrioId`, slug de un sector; `AdminUsuariosController.java:77`). `400` si el estado no existe. |
+| `GET /api/veedor/usuarios?estado=…&barrioId=…&pagina&tamano` | Lista paginada, filtrable por estado de cuenta y por barrio donde vive la persona (`barrioId`, slug de un sector; `AdminUsuariosController.java:77`). `400` si el estado no existe. **Incluye las cuentas de vecino sintéticas** (`sintetica: true`; ADR-094): son decenas de miles, las más nuevas van primero. |
 | `POST /api/veedor/usuarios/invitaciones` `{ correo, nombre, rol }` | Crea una cuenta `INVITADA` y envía el correo. `409` si el correo ya tiene cuenta. |
 | `POST …/{id}/invitacion/reenvio` | Reenvía la invitación a una cuenta `INVITADA` (invalida el enlace anterior y reinicia sus 7 días). `202`; `404` si no existe; `409` si la cuenta ya no está `INVITADA`. |
 | `PATCH …/{id}/aprobacion` `{ rol, concedidos, revocados }` | Aprueba una cuenta de registro abierto, asignándole rol. |

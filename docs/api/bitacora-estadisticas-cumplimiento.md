@@ -12,6 +12,7 @@ que promete**. Todo público, sin sesión.
 | `GET /api/estadisticas/exportar.csv` | Lo mismo en CSV. | — |
 | `GET /api/cumplimiento` | Índice de Cumplimiento **global**. | — |
 | `GET /api/cumplimiento/sectores/{id}` | El de un sector. | — |
+| `GET /api/cumplimiento/calidad?sectorId` | Cuántos cierres sostienen el Índice y cuántos cortes no se pudieron medir. **Responde aunque no haya ni un cierre.** | — |
 | `GET /api/cumplimiento/cortes/{id}` | El de **un corte** concreto. | — |
 | `GET /api/cumplimiento/serie?sectorId&desde&hasta` | Evolución **mensual**. | — |
 | `GET /api/cumplimiento/serie.csv` | La serie en CSV. | — |
@@ -29,11 +30,20 @@ desviacionSegundos      = duración real − duración prometida
 
 ```json
 { "sectorId": "manga", "duracionPrometidaSegundos": 28800, "duracionRealSegundos": 43200,
-  "desviacionSegundos": 14400, "porcentajeCumplimiento": 66.67 }
+  "desviacionSegundos": 14400, "porcentajeCumplimiento": 66.67,
+  "porcentajeProvisional": 0.0, "cortesSinCierreConfirmado": 2, "cortesAnulados": 1 }
 ```
 
 - Un corte que dura **lo prometido o menos** da 100 % (el tope). Uno que dura el doble, 50 %.
-- **Solo cuentan los cortes cerrados** (con hora real de fin). Un corte abierto todavía no se puede medir.
+- **Se mide por par corte-barrio**: un corte que agrupa varios barrios cuenta una vez por cada barrio con cierre, con la hora real de ese barrio.
+- **Solo cuentan los cierres** (un barrio con hora real de restablecimiento). Un barrio sin cierre todavía no se puede medir.
+- **La calidad del dato viaja con el número** y debe mostrarse con él:
+  - `porcentajeProvisional`: de los cierres, cuántos (0 a 100) solo los sostienen vecinos o sensores y aún puede corregirlos un veedor o un boletín.
+  - `cortesSinCierreConfirmado`: cortes ya vencidos en los que algún barrio no tiene cierre (incluye los `EXPIRADO`). **Ni a favor ni en contra
+    de Acuacar**: sin ellos el Índice premiaría a quien deja los cortes sin cerrar.
+  - `cortesAnulados`: publicados por error y retirados; no entran.
+- `GET /api/cumplimiento/calidad` da lo mismo en conjunto (`cierresMedidos`, `cierresProvisionales`, `porcentajeProvisional`,
+  `cortesSinCierreConfirmado`, `cortesAnulados`) y **existe aunque no haya cierres**, cuando el Índice responde `400`.
 - El agregado global suma **duraciones**, no promedia porcentajes: un corte largo pesa más que uno corto.
 - `sectorId` es nulo en el índice global.
 
@@ -41,7 +51,7 @@ desviacionSegundos      = duración real − duración prometida
 
 | Código | Cuándo |
 |---|---|
-| `400` | No hay cortes cerrados (globalmente o para ese sector): **no hay nada que medir**. Muéstralo como «aún sin datos», no como error. |
+| `400` | No hay cierres (globalmente o para ese sector): **no hay nada que medir**. Muéstralo como «sin datos suficientes», no como error, y pide `GET /api/cumplimiento/calidad` para decir cuánto falta con cifras. |
 | `404` | `GET /cumplimiento/cortes/{id}` con un corte inexistente. |
 | `409` | `GET /cumplimiento/cortes/{id}` de un corte **todavía abierto**. |
 

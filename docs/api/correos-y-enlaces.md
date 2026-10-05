@@ -15,7 +15,7 @@ en local (`ADR-080`).
 | Correo | Cuándo | Enlace | Vigencia |
 |---|---|---|---|
 | Confirmar suscripción | `POST /api/suscripciones` | `…/avisos/confirmar?token=…` y baja `…/avisos/baja?token=…` | 48 h |
-| Aviso de cambio de estado | Cambia el estado de un sector suscrito | Ver el sector: `…/sectores/{id}` · baja: `…/avisos/baja?token=…` | — |
+| Aviso de cambio de estado | Cambia el estado de un sector suscrito | Ver el sector: `…/sectores/{id}` · baja: `…/avisos/baja?token=…` · **si el barrio quedó sin servicio o con presión baja:** «Sí, ya volvió el agua» → `…/sectores/{id}/restablecimiento?token=…` (pantalla del frontend) | 24 h el enlace de restablecimiento |
 | Verificar cuenta | `POST /api/cuentas/registro` | `…/api/cuentas/enlaces/verificar?token=…` | 48 h |
 | Aceptar invitación | Un ADMIN invita | `…/api/cuentas/enlaces/invitacion?token=…` | 7 días |
 | Restablecer clave | `POST /api/cuentas/restablecimiento` | `…/api/cuentas/enlaces/restablecer?token=…` | 30 min |
@@ -68,3 +68,17 @@ token no quede en cachés ni se filtre por la cabecera `Referer`.
 
 Todo correo que envíe el backend en desarrollo aparece en **Mailhog**: `http://localhost:8025`. No sale
 nada a Internet.
+
+## «¿Ya volvió el agua?» con un toque
+
+El aviso de un barrio **sin servicio** o con **presión baja** trae un enlace firmado a una pantalla **del frontend**:
+`{urlFrontend}/sectores/{id}/restablecimiento?token=…`. Esa pantalla muestra un botón y, al pulsarlo, llama a
+`POST /api/sectores/{id}/restablecimiento?token=…` (sin sesión ni `X-Dispositivo`). Debe ser un botón y no la carga de la página:
+algunos clientes de correo abren los enlaces por su cuenta y no deben votar.
+
+- El token lo firma el servidor y lleva barrio, suscripción y vencimiento (24 h, `aguavigia.restablecimiento.horas-vigencia-enlace`).
+  No es de un solo uso: pulsarlo otra vez vuelve a pasar por el cupo de reportes (3 por barrio cada 30 min), no suma votos.
+- Registra un reporte `SERVICIO_RESTABLECIDO` de esa suscripción: **un toque no cambia el estado solo**; cuenta como un voto más
+  para el quórum de restablecimiento (el de cada barrio es más bajo que el de una avería, ver `reportes.md`).
+- `201` con el reporte · `403 enlace-invalido` si venció, es de otro barrio o la suscripción ya no está confirmada (mismo error
+  en todos los casos) · `429` si agotó el cupo · `400` si falta el token.
