@@ -58,7 +58,10 @@ public class PipelineOrquestador {
 
     private final AcuacarApiCollector acuacarApiCollector;
     private final RssCollector rssCollector;
-    /** Solo existe con `aguavigia.ingesta.modo=local` (ADR-082): sustituye a Acuacar y a la prensa. */
+    /**
+     * Existe con `aguavigia.ingesta.modo=local` (ADR-082), donde sustituye a Acuacar y a la prensa, y con `auto`, donde es
+     * solo el respaldo de Acuacar en vivo (`esRespaldo()`).
+     */
     private final Optional<ColectorLocalDeBoletines> colectorLocal;
     private final DeduplicadorReciente deduplicador;
     private final HeuristicaExtractor extractor;
@@ -97,7 +100,8 @@ public class PipelineOrquestador {
     }
 
     /** Una sola réplica por ciclo: con varias, cada una ingería y duplicaba propuestas. Ver {@link EjecucionUnica}. */
-    @Scheduled(fixedDelayString = "${aguavigia.ingesta.intervalo-ms:600000}")
+    @Scheduled(initialDelayString = "${aguavigia.ingesta.retraso-inicial-ms:60000}",
+            fixedDelayString = "${aguavigia.ingesta.intervalo-ms:600000}")
     public void ejecutarCicloEnUnaReplica() {
         ejecucionUnica.ejecutar("ingesta", Duration.ofMinutes(9), Duration.ofMinutes(5), this::ejecutarCiclo);
     }
@@ -111,20 +115,29 @@ public class PipelineOrquestador {
      */
     public void ejecutarCiclo() {
         // Modo local: los boletines guardados ocupan el lugar de Acuacar y no se toca la red ni la prensa.
-        List<DocumentoCrudo> deAcuacar = recolectar("acuacar", () -> colectorLocal.isPresent()
-                ? colectorLocal.get().obtenerDesde(desdeDondeLeer("acuacar"))
-                : acuacarApiCollector.obtenerDesde(desdeDondeLeer("acuacar")));
-        List<DocumentoCrudo> deRss = colectorLocal.isPresent()
+        boolean sustituyeALaRed = colectorLocal.filter(local -> !local.esRespaldo()).isPresent();
+        Optional<ColectorLocalDeBoletines> respaldo = colectorLocal.filter(ColectorLocalDeBoletines::esRespaldo);
+
+        Lectura deAcuacar = sustituyeALaRed
+                ? new Lectura(recolectar("acuacar", () -> colectorLocal.get().obtenerDesde(desdeDondeLeer("acuacar"))), false)
+                : recolectarConRespaldo("acuacar", () -> acuacarApiCollector.obtenerDesde(desdeDondeLeer("acuacar")), respaldo);
+        List<DocumentoCrudo> deRss = sustituyeALaRed
                 ? List.of()
                 : recolectar("rss", () -> rssCollector.obtenerDesde(desdeDondeLeer("rss")));
 
         List<DocumentoCrudo> documentos = new ArrayList<>();
-        documentos.addAll(deAcuacar);
+        documentos.addAll(deAcuacar.documentos());
         documentos.addAll(deRss);
 
         // listarTodos() una sola vez por ciclo: son 213 barrios y antes se pedia dentro del bucle,
         // una vez por documento que pasara el prefiltro.
         List<Sector> sectores = sectorRepository.listarTodos();
+        if (sectores.isEmpty()) {
+            // El backend arranca y corre su primer ciclo antes de que el sembrador cargue los barrios. Sin catálogo ningún nombre
+            // se reconoce: procesar descartaría todo y avanzar la marca perdería el histórico para siempre.
+            log.warn("Ingesta: todavía no hay barrios sembrados; no se procesa nada y la marca no avanza. Se reintenta en el próximo ciclo.");
+            return;
+        }
 
         EmparejadorDeSectores emparejador = new EmparejadorDeSectores(sectores);
         for (DocumentoCrudo documento : documentos) {
@@ -137,7 +150,11 @@ public class PipelineOrquestador {
             procesar(documento, emparejador);
         }
 
-        avanzarMarca("acuacar", deAcuacar);
+        // Lo leído del respaldo no avanza la marca: al volver Acuacar en vivo hay que leer todo lo que quedó sin leer, no
+        // solo lo posterior a los pocos boletines guardados.
+        if (!deAcuacar.deRespaldo()) {
+            avanzarMarca("acuacar", deAcuacar.documentos());
+        }
         avanzarMarca("rss", deRss);
     }
 
@@ -176,6 +193,29 @@ public class PipelineOrquestador {
 
     private interface Colector {
         List<DocumentoCrudo> obtener();
+    }
+
+    private record Lectura(List<DocumentoCrudo> documentos, boolean deRespaldo) {
+    }
+
+    /**
+     * Acuacar en vivo; si falla y hay respaldo local (modo auto), sus boletines reales ocupan el lugar de esta lectura.
+     * El fallo en vivo queda registrado igual que sin respaldo: el panel debe decir que la fuente no responde.
+     */
+    private Lectura recolectarConRespaldo(String nombre, Colector enVivo, Optional<ColectorLocalDeBoletines> respaldo) {
+        try {
+            List<DocumentoCrudo> documentos = enVivo.obtener();
+            estadoColectores.registrarExito(nombre, documentos.size());
+            return new Lectura(documentos, false);
+        } catch (Exception fallo) {
+            estadoColectores.registrarFallo(nombre, fallo.toString());
+            if (respaldo.isEmpty()) {
+                log.warn("El colector '{}' falló en este ciclo, se sigue con el resto: {}", nombre, fallo.toString());
+                return new Lectura(List.of(), false);
+            }
+            log.warn("El colector '{}' falló en este ciclo, se usan los boletines reales guardados: {}", nombre, fallo.toString());
+            return new Lectura(respaldo.get().obtenerDesde(ORIGEN), true);
+        }
     }
 
     /**

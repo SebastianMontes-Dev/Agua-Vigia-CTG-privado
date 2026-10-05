@@ -234,6 +234,9 @@ aguavigia:
     lectura-timeout-ms: 15000
     # Cada cuanto corre PipelineOrquestador.ejecutarCiclo() (M9). 10 minutos por defecto.
     intervalo-ms: ${INGESTA_INTERVALO_MS:600000}
+    # El primer ciclo espera un minuto: con un solo docker compose up el sembrador carga los barrios unos segundos despues de arrancar el
+    # backend, y un ciclo sin barrios no hace nada (esperaria otros 10 minutos).
+    retraso-inicial-ms: ${INGESTA_RETRASO_INICIAL_MS:60000}
     # en-vivo (por defecto): consulta a Acuacar y a los feeds de prensa. local: lee boletines reales de Acuacar
     # guardados en ingesta-local/ y no toca la red, para presentar sin internet (ADR-082).
     modo: ${INGESTA_MODO:en-vivo}

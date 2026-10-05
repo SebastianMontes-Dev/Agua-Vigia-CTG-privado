@@ -5,7 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 
@@ -24,6 +25,10 @@ import java.util.List;
  * `ingesta-local/boletines-acuacar.json`, tal como los devuelve su API pública. La demo funciona igual con o
  * sin red.
  *
+ * Con `aguavigia.ingesta.modo=auto` no sustituye a nadie: es el respaldo de Acuacar en vivo y solo se lee cuando la
+ * consulta en vivo falla (sin red, User-Agent sin configurar, sitio caído), de modo que un `docker compose up` sin
+ * internet sigue teniendo boletines reales con qué trabajar.
+ *
  * Sigue el mismo camino que un boletín en vivo —limpieza, deduplicación por hash, prefiltro, extractor y
  * propuesta—. Acuacar es fuente oficial, así que sus propuestas se publican solas (ADR-034), como en vivo; la cola
  * de revisión del veedor solo se alimenta de la prensa, que en este modo no se lee. Y como el hash de un boletín
@@ -32,7 +37,7 @@ import java.util.List;
  * No inventa nada: el archivo trae la fecha de captura y su origen. Para renovarlo, ver `ingesta-local/README.md`.
  */
 @Component
-@ConditionalOnProperty(prefix = "aguavigia.ingesta", name = "modo", havingValue = "local")
+@ConditionalOnExpression("'${aguavigia.ingesta.modo:en-vivo}' == 'local' or '${aguavigia.ingesta.modo:en-vivo}' == 'auto'")
 public class ColectorLocalDeBoletines implements FuenteDatosPort {
 
     private static final Logger log = LoggerFactory.getLogger(ColectorLocalDeBoletines.class);
@@ -42,15 +47,33 @@ public class ColectorLocalDeBoletines implements FuenteDatosPort {
     private static final ZoneId ZONA_CARTAGENA = ZoneId.of("America/Bogota");
 
     private final List<DocumentoCrudo> boletines;
+    private final boolean respaldo;
+
+    /** Modo local: ocupa el lugar de Acuacar. */
+    public ColectorLocalDeBoletines(ObjectMapper mapper) {
+        this(mapper, RECURSO, false);
+    }
 
     @Autowired
-    public ColectorLocalDeBoletines(ObjectMapper mapper) {
-        this(mapper, RECURSO);
+    public ColectorLocalDeBoletines(ObjectMapper mapper,
+                                    @Value("#{'auto'.equals('${aguavigia.ingesta.modo:en-vivo}')}") boolean respaldo) {
+        this(mapper, RECURSO, respaldo);
     }
 
     ColectorLocalDeBoletines(ObjectMapper mapper, String recurso) {
+        this(mapper, recurso, false);
+    }
+
+    ColectorLocalDeBoletines(ObjectMapper mapper, String recurso, boolean respaldo) {
+        this.respaldo = respaldo;
         this.boletines = cargar(mapper, recurso);
-        log.info("Ingesta en modo local: {} boletines reales de Acuacar cargados de '{}'", boletines.size(), recurso);
+        log.info("Ingesta en modo {}: {} boletines reales de Acuacar cargados de '{}'",
+                respaldo ? "auto (respaldo de Acuacar en vivo)" : "local", boletines.size(), recurso);
+    }
+
+    /** Verdadero en modo auto: solo se lee si Acuacar en vivo falla. Falso en modo local: ocupa su lugar. */
+    public boolean esRespaldo() {
+        return respaldo;
     }
 
     @Override

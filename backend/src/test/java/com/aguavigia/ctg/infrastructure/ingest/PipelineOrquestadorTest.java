@@ -190,6 +190,91 @@ class PipelineOrquestadorTest {
         assertThat(estadoColectores.estados()).extracting(EstadoColector::nombre).containsExactly("acuacar");
     }
 
+    // --- Sin barrios sembrados no se lee nada ---
+
+    /**
+     * Con un solo `docker compose up` el backend arranca y ejecuta su primer ciclo antes de que el sembrador cargue los barrios. Con
+     * el catálogo vacío ningún nombre se reconoce, así que todo boletín se descartaba y la marca avanzaba: el histórico completo se
+     * perdía para siempre. Sin barrios, el ciclo no procesa nada y no mueve la marca; el próximo lo reintenta desde el mismo punto.
+     */
+    @Test
+    void sinSectoresSembradosElCicloNoProcesaNadaNiAvanzaLaMarca() {
+        given(acuacar.obtenerDesde(any())).willReturn(List.of(documento("Corte en Manga por daño en la red")));
+        given(sectores.listarTodos()).willReturn(List.of());
+
+        orquestador.ejecutarCiclo();
+
+        verify(registrarPropuesta, never()).registrarAviso(any());
+        verify(deduplicador, never()).marcarComoVisto(any());
+        verify(marcas, never()).save(any());
+    }
+
+    /**
+     * El primer ciclo no corre al instante: con un solo `docker compose up` los barrios los carga el sembrador unos segundos después
+     * de que el backend arranque, y el ciclo sin barrios no hace nada hasta el siguiente (10 minutos).
+     */
+    @Test
+    void elPrimerCicloEsperaUnRatoParaQueElSembradorCarguelosBarrios() throws Exception {
+        org.springframework.scheduling.annotation.Scheduled programada = PipelineOrquestador.class
+                .getMethod("ejecutarCicloEnUnaReplica").getAnnotation(org.springframework.scheduling.annotation.Scheduled.class);
+
+        assertThat(programada.initialDelayString()).contains("aguavigia.ingesta.retraso-inicial-ms");
+    }
+
+    // --- Modo auto: en vivo, con respaldo a los boletines locales ---
+
+    private PipelineOrquestador orquestadorAuto(ColectorLocalDeBoletines respaldo) {
+        given(respaldo.esRespaldo()).willReturn(true);
+        return new PipelineOrquestador(acuacar, rss, Optional.of(respaldo), deduplicador, extractor,
+                sectores, registrarPropuesta, estadoColectores, marcas, fallidos, reloj,
+                (nombre, maximo, minimo, tarea) -> tarea.run());
+    }
+
+    @Test
+    void enModoAutoConAcuacarCaidoSeUsanLosBoletinesLocalesYElFalloQuedaVisible() {
+        ColectorLocalDeBoletines local = mock(ColectorLocalDeBoletines.class);
+        given(local.obtenerDesde(any())).willReturn(List.of(documento("Corte en Manga por daño en la red")));
+        given(acuacar.obtenerDesde(any())).willThrow(new IllegalStateException("acuacar.com responde 503"));
+        given(extractor.extraerPorZonas(any())).willReturn(List.of(eventoParaSectores(List.of("Manga"))));
+        given(sectores.listarTodos()).willReturn(
+                List.of(new Sector(new SectorId("manga"), "Manga", 1000, EstadoServicio.CON_SERVICIO)));
+
+        orquestadorAuto(local).ejecutarCiclo();
+
+        verify(registrarPropuesta).registrarAviso(argThat(aviso -> aviso.sectores().contains(new SectorId("manga"))));
+        // El panel debe seguir diciendo que Acuacar en vivo no responde: el respaldo no esconde la caída.
+        assertThat(estadoColectores.estados())
+                .filteredOn(e -> e.nombre().equals("acuacar")).extracting(EstadoColector::fallosConsecutivos)
+                .containsExactly(1);
+    }
+
+    /** Si la marca avanzara con los 13 boletines locales, al volver Acuacar solo se leería lo posterior y se perdería el histórico. */
+    @Test
+    void enModoAutoElRespaldoNoAvanzaLaMarcaDeAcuacar() {
+        ColectorLocalDeBoletines local = mock(ColectorLocalDeBoletines.class);
+        given(local.obtenerDesde(any())).willReturn(List.of(documento("Corte en Manga por daño en la red")));
+        given(acuacar.obtenerDesde(any())).willThrow(new IllegalStateException("sin red"));
+        given(extractor.extraerPorZonas(any())).willReturn(List.of());
+        given(sectores.listarTodos()).willReturn(List.of());
+
+        orquestadorAuto(local).ejecutarCiclo();
+
+        verify(marcas, never()).save(argThat(marca -> "acuacar".equals(marca.getFuente())));
+    }
+
+    @Test
+    void enModoAutoConAcuacarSanoNoSeTocanLosBoletinesLocales() {
+        ColectorLocalDeBoletines local = mock(ColectorLocalDeBoletines.class);
+        given(acuacar.obtenerDesde(any())).willReturn(List.of(documento("Corte en Manga por daño en la red")));
+        given(extractor.extraerPorZonas(any())).willReturn(List.of());
+        given(sectores.listarTodos()).willReturn(List.of());
+
+        orquestadorAuto(local).ejecutarCiclo();
+
+        verify(local, never()).obtenerDesde(any());
+        verify(rss).obtenerDesde(any());
+    }
+
     // --- Aislamiento de fallos (RNF004) ---
 
     @Test
