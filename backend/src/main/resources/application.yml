@@ -94,6 +94,13 @@ aguavigia:
       # invalida al confirmarse un corte; este TTL solo acota lo que cambie por fuera del adaptador.
       sectores: 15
   rate-limit:
+    # Multiplica el limite de las reglas (nunca las aprieta; tope 1000), SALVO las de claves y correos. 1 en la instancia real.
+    # La simulacion y las pruebas de carga crean cientos de dispositivos desde una sola IP y no cabrian en los topes reales.
+    factor: ${RATE_LIMIT_FACTOR:1}
+    # Mando aparte para las rutas de ingreso, 2.o factor, cambio de clave, altas y correos (RateLimitProperties.RUTAS_DE_CUENTAS):
+    # subir `factor` para una prueba de carga no debe aflojar el freno a la fuerza bruta. Solo la simulacion, que registra cientos
+    # de cuentas por HTTP desde un equipo, lo sube. Arrancar con un valor mayor que 1 deja un aviso en el log.
+    factor-cuentas: ${RATE_LIMIT_FACTOR_CUENTAS:1}
     # Limite por IP, no por huella (ADR-018). Cierra el hueco que ADR-016 dejo senalado.
     reglas:
       # Fuerza bruta contra la unica credencial del veedor: 8h de sesion (RNF011) valen mas que
@@ -119,6 +126,11 @@ aguavigia:
       # Leer fotos: cada GET con un nombre bien formado hace una consulta. Una pagina con varias fotos cabe de sobra.
       - ruta: /api/fotos/**
         limite: 120
+        ventana-segundos: 60
+      # El modo del sistema lo pide cada pantalla al abrirse y por debajo cuenta cuentas sinteticas (con un recuerdo de un
+      # minuto en el servidor): 60 por minuto por IP sobra para una persona y acota a quien lo martille.
+      - ruta: /api/sistema/modo
+        limite: 60
         ventana-segundos: 60
       # «¿Ya volvio el agua?» con un toque: es publico (lo identifica el token del enlace) y escribe un voto. Tras Docker
       # Desktop todos los clientes comparten IP, asi que el tope es global en local.

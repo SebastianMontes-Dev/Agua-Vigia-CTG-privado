@@ -2,6 +2,8 @@ package com.aguavigia.ctg.infrastructure.config;
 
 import com.aguavigia.ctg.infrastructure.ratelimit.RateLimitProperties;
 import com.aguavigia.ctg.infrastructure.ratelimit.RateLimitingInterceptor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
@@ -35,6 +37,8 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @EnableConfigurationProperties(RateLimitProperties.class)
 public class RateLimitConfig implements WebMvcConfigurer {
 
+    private static final Logger LOG = LoggerFactory.getLogger(RateLimitConfig.class);
+
     private final RateLimitProperties propiedades;
     private final RedisTemplate<String, String> redis;
 
@@ -42,6 +46,15 @@ public class RateLimitConfig implements WebMvcConfigurer {
                             @Qualifier("redisTemplate") RedisTemplate<String, String> redis) {
         this.propiedades = propiedades;
         this.redis = redis;
+        if (propiedades.factor() > 1) {
+            LOG.warn("Los topes por IP estan multiplicados por {} (aguavigia.rate-limit.factor): esta no es la instancia real.",
+                    propiedades.factor());
+        }
+        if (propiedades.factorCuentas() > 1) {
+            LOG.warn("Los topes de las claves, el 2.o factor y los correos salientes estan multiplicados por {} "
+                    + "(aguavigia.rate-limit.factor-cuentas): el freno a la fuerza bruta esta aflojado, solo para simulacion.",
+                    propiedades.factorCuentas());
+        }
     }
 
     @Override
