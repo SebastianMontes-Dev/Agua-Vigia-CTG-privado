@@ -15,11 +15,18 @@ useDefault = true
 # RFC 4226/6238 (Base32 de "12345678901234567890"), usada en TotpAdapterTest.java para verificar
 # el formato de la URI otpauth://. No es un secreto real — la regla es sobre el valor exacto, no
 # sobre una ruta, para no eximir de escaneo ningún archivo completo.
+#
+# Claves de prueba de los tests de los adaptadores HMAC (HmacFirmaDeEnlacesAdapterTest, HmacFirmaDeDispositivosAdapterTest,
+# HmacHashDeRedAdapterTest): constantes `SECRETO` de un test, con la entropía de una clave real y por eso marcadas por
+# `generic-api-key`. No protegen nada: el adaptador de producción lee su secreto de `config_sistema`, nunca de aquí. Como
+# en ADR-043, la excepción es sobre el valor exacto y no sobre la ruta, para no eximir de escaneo ningún archivo completo.
 [allowlist]
-description = "Excepciones evaluadas y aceptadas: clave de desarrollo local ya retirada (ADR-031) y semilla TOTP del RFC (ADR-043)"
+description = "Excepciones evaluadas y aceptadas: clave de desarrollo local ya retirada (ADR-031), semilla TOTP del RFC (ADR-043) y claves de prueba de los tests HMAC"
 regexes = [
   '''GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ''',
   '''jHZczrMtY\+dNWbYoCFZe3ZOvDUl8j7rWqVDeEeLMfIQ=''',
+  '''secreto-de-prueba-que-nadie-mas-conoce-0123456789''',
+  '''secreto-de-red-de-prueba-0123456789-abcdefghij''',
 ]
 
 # El modelo NoSQL de Moon Modeler (docs/modelo-nosql-moon-modeler.dmm) guarda cada relación entre colecciones con un
