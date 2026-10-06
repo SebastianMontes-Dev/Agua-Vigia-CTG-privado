@@ -15,16 +15,30 @@ servers:
 - url: /
   description: Mismo origen que sirve la API
 tags:
-- name: Suscripciones
-  description: Alertas por correo cuando cambia el estado de un sector
-- name: Sectores
-  description: Sectores de Cartagena y su estado del servicio
+- name: Sistema
+  description: Qué instancia es y cuánto de lo que contiene es sintético
 - name: Veedor - Moderación
   description: Moderar reportes ciudadanos pendientes (RF018)
 - name: Cuentas
   description: Páginas HTML a las que llevan los enlaces de los correos de cuenta
 - name: Open311
   description: API abierta bajo el estándar Open311 GeoReport v2 (RF039)
+- name: IoT
+  description: Telemetría de sensores de presión de la red (autenticada con X-IoT-Key)
+- name: Cuentas
+  description: "Alta, verificacion y recuperacion de cuentas del panel"
+- name: Vecinos
+  description: "Registro, ingreso y perfil de los vecinos"
+- name: Veedor - Disputas
+  description: Barrios cuyo estado oficial contradicen los vecinos
+- name: Veedor - Ingesta
+  description: Revisión de las propuestas de la ingesta automatizada (M9)
+- name: Veedor - Cuentas
+  description: Gestion de cuentas y permisos del panel (solo ADMIN)
+- name: Suscripciones
+  description: Alertas por correo cuando cambia el estado de un sector
+- name: Sectores
+  description: Sectores de Cartagena y su estado del servicio
 - name: Veedor - Ingesta
   description: Salud de los colectores del pipeline de ingesta (RNF007)
 - name: Cumplimiento
@@ -35,28 +49,18 @@ tags:
   description: M7 — Estadísticas Públicas (RF023)
 - name: Veedor - Ingesta
   description: "Documentos de la ingesta que siguen fallando, con su motivo (RNF006)"
-- name: IoT
-  description: Telemetría de sensores de presión de la red (autenticada con X-IoT-Key)
+- name: Fotos
+  description: "Fotos de los reportes: públicas solo si el reporte está aprobado"
 - name: Bitácora
   description: "Bitácora pública de eventos, de solo anexado (RF026-RF028)"
-- name: Cuentas
-  description: "Alta, verificacion y recuperacion de cuentas del panel"
 - name: Sectores
   description: Estado del servicio de agua por sector de Cartagena
 - name: Veedor - Cuenta propia
   description: Cambios que una persona hace sobre su propia cuenta
-- name: Vecinos
-  description: "Registro, ingreso y perfil de los vecinos"
 - name: Veedor - Cortes
   description: Registro y cierre de cortes oficiales (RF016-RF017)
-- name: Veedor - Disputas
-  description: Barrios cuyo estado oficial contradicen los vecinos
 - name: Reportes
   description: "Reportes ciudadanos de estado del servicio, sin registro"
-- name: Veedor - Ingesta
-  description: Revisión de las propuestas de la ingesta automatizada (M9)
-- name: Veedor - Cuentas
-  description: Gestion de cuentas y permisos del panel (solo ADMIN)
 - name: Veedor - Segundo factor
   description: Alta y baja del TOTP de la propia cuenta
 - name: Veedor
@@ -524,8 +528,8 @@ paths:
               schema:
                 $ref: "#/components/schemas/SesionVecino"
         "403":
-          description: La cuenta existe pero aun no esta activa (correo sin confirmar)
-            o esta suspendida
+          description: "La cuenta esta suspendida (si aun no eligio su clave, responde\
+            \ 401 como con una clave incorrecta)"
           content:
             application/json:
               schema:
@@ -700,6 +704,54 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
+  /api/sectores/{sectorId}/restablecimiento:
+    post:
+      tags:
+      - Reportes
+      summary: Confirmar con un toque que volvió el agua
+      description: |-
+        El `token` es el del enlace del correo de aviso. Sin sesion ni `X-Dispositivo`: lo que identifica a
+        quien toca es el token, que firma el servidor, vence y es de un barrio y una suscripcion. Registra un
+        reporte `SERVICIO_RESTABLECIDO` en ese barrio, con el mismo cupo y el mismo quorum de cualquier otro
+        reporte: un toque no cambia el estado por si solo.
+      operationId: confirmarRestablecimiento
+      parameters:
+      - name: sectorId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: token
+        in: query
+        required: true
+        schema:
+          type: string
+      responses:
+        "201":
+          description: Voto registrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReporteRespuesta"
+        "400":
+          description: Falta el token
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: "El enlace no sirve (type `enlace-invalido`): vencio, es de\
+            \ otro barrio o ya no recibes los avisos"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "429":
+          description: Se agoto el cupo de reportes de esta suscripcion en el barrio
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
   /api/reportes:
     post:
       tags:
@@ -713,7 +765,8 @@ paths:
         `coordenada` o ambos (RF007): con solo la coordenada el servidor infiere el sector que la
         contiene y responde 400 si cae fuera de todo barrio de Cartagena. La coordenada se envia solo si
         el usuario autorizo compartir su ubicacion; con su `precisionMetros` el servidor verifica el
-        reporte (campo `verificacion` de la respuesta) y guarda solo una aproximacion de ella.
+        reporte (campo `verificacion` de la respuesta) y guarda solo una aproximacion de ella. La respuesta trae
+        `subidaToken`, el permiso de un solo uso para subir la foto de este reporte.
       operationId: registrar_1
       parameters:
       - name: X-Dispositivo
@@ -759,12 +812,21 @@ paths:
       tags:
       - Reportes
       summary: Agregar evidencia a un reporte
-      description: Permite subir una foto y asociarla a un reporte existente (M10).
+      description: |-
+        Sube la foto de un reporte (M10). Exige la cabecera `X-Subida` con el `subidaToken` que recibio
+        quien creo el reporte: sirve una sola vez y vence a los pocos minutos. Solo JPEG y PNG (se
+        comprueba la firma del archivo, no solo el tipo declarado). La foto queda en revision: el publico
+        la ve cuando el veedor aprueba el reporte, y nunca cuenta como voto.
       operationId: agregarEvidencia
       parameters:
       - name: id
         in: path
         required: true
+        schema:
+          type: string
+      - name: X-Subida
+        in: header
+        required: false
         schema:
           type: string
       requestBody:
@@ -786,13 +848,27 @@ paths:
               schema:
                 $ref: "#/components/schemas/ReporteRespuesta"
         "400":
-          description: Error en la solicitud
+          description: Falta el archivo o no es una imagen valida
           content:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
-        "404":
-          description: Reporte no encontrado
+        "403":
+          description: "Falta el token de subida, ya se uso, vencio o es de otro reporte\
+            \ (type `subida-no-autorizada`); es la misma respuesta si el reporte no\
+            \ existe"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: El reporte ya tiene foto
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "415":
+          description: "Formato no permitido, como WebP (type `formato-no-permitido`)"
           content:
             application/problem+json:
               schema:
@@ -950,8 +1026,9 @@ paths:
       - Vecinos
       summary: Registrarse como vecino
       description: |-
-        Crea la cuenta en PENDIENTE_VERIFICACION y envia el enlace de confirmacion. Al
-        confirmar el correo la cuenta queda ACTIVA, sin aprobacion de un administrador.
+        Crea la cuenta sin clave y envia al correo el enlace para elegirla. Al elegirla la
+        cuenta queda ACTIVA, sin aprobacion de un administrador. La clave no viaja aqui: asi
+        nadie puede registrar el correo de otra persona con una clave suya.
         Exige el barrio y aceptar el aviso de privacidad; la casilla de avisos es aparte.
         Responde 202 aunque el correo ya tenga cuenta, para no revelar que direcciones
         estan registradas.
@@ -966,8 +1043,8 @@ paths:
         "202":
           description: Solicitud recibida; revisa tu correo
         "400":
-          description: "Correo mal formado, clave que no cumple la politica, barrio\
-            \ ausente o inexistente, o privacidad no aceptada"
+          description: "Correo mal formado, barrio ausente o inexistente, o privacidad\
+            \ no aceptada"
   /api/cuentas/restablecimiento:
     post:
       tags:
@@ -1372,6 +1449,54 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/UsuarioRespuesta"
+        "401":
+          description: "Sin sesión, token inválido, caducado o revocado"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: La sesión no tiene el permiso que exige esta operación
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+      security:
+      - bearerAuth: []
+  /api/veedor/reportes/{id}/foto/descartar:
+    patch:
+      tags:
+      - Veedor - Moderación
+      summary: Descartar solo la foto de un reporte
+      description: |-
+        El reporte sigue como esta (su voto no cambia); la foto deja de servirse al publico y el panel la
+        sigue viendo como evidencia.
+      operationId: descartarFoto
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Foto descartada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReporteModeracionRespuesta"
+        "404":
+          description: El reporte no existe
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: El reporte no tiene foto
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
         "401":
           description: "Sin sesión, token inválido, caducado o revocado"
           content:
@@ -1969,7 +2094,8 @@ paths:
       summary: "Listar los reportes pendientes de moderación, más antiguos primero"
       description: |-
         Paginado, con el total y el enlace a la siguiente página en las cabeceras
-        `X-Total-Count` y `Link`. Por defecto 50; el máximo por página es 200.
+        `X-Total-Count` y `Link`. Por defecto 50; el máximo por página es 200. Cada reporte trae `senalRed`:
+        verdadero si viene de una red que ya envió una ráfaga de reportes a ese barrio (D9).
       operationId: listarPendientes
       parameters:
       - name: pagina
@@ -2114,6 +2240,46 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/DocumentoFallidoRespuesta"
+        "403":
+          description: La sesión no tiene el permiso que exige esta operación
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+      security:
+      - bearerAuth: []
+  /api/veedor/fotos/{nombre}:
+    get:
+      tags:
+      - Fotos
+      summary: Ver la foto de cualquier reporte (panel)
+      description: "Para moderar: el panel ve la foto en cualquier estado, aprobada\
+        \ o no."
+      operationId: fotoDelPanel
+      parameters:
+      - name: nombre
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: La imagen (image/jpeg o image/png)
+          content:
+            image/jpeg: {}
+        "404":
+          description: Ningun reporte reclama esa foto
+          content:
+            '*/*':
+              schema:
+                type: string
+                format: byte
+        "401":
+          description: "Sin sesión, token inválido, caducado o revocado"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
         "403":
           description: La sesión no tiene el permiso que exige esta operación
           content:
@@ -2301,6 +2467,23 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Open311Response"
+  /api/sistema/modo:
+    get:
+      tags:
+      - Sistema
+      summary: Modo del sistema
+      description: |-
+        `modo` es REAL o SIMULACION: la interfaz muestra un banner permanente en la simulacion, que nunca se
+        presenta como real. `cuentasSinteticas` es cuantas cuentas de vecino las creo el sistema para probar el
+        volumen: se dicen tal cual, no son adopcion. Se recuerda un minuto.
+      operationId: modo
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModoDelSistemaRespuesta"
   /api/sectores:
     get:
       tags:
@@ -2421,6 +2604,34 @@ paths:
           description: Geometrías
           content:
             application/geo+json: {}
+  /api/fotos/{nombre}:
+    get:
+      tags:
+      - Fotos
+      summary: Ver la foto de un reporte aprobado
+      description: |-
+        Sin sesion. Responde 404 si la foto no existe, si su reporte aun no esta aprobado o si el veedor la
+        descarto: son el mismo 404 a proposito, para que nadie pueda sondear que fotos hay. La interfaz
+        debe mirar `fotoEstado` del reporte y no pedir la imagen mientras este EN_REVISION.
+      operationId: foto
+      parameters:
+      - name: nombre
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: La imagen (image/jpeg o image/png)
+          content:
+            image/jpeg: {}
+        "404":
+          description: No hay una foto publica con ese nombre
+          content:
+            '*/*':
+              schema:
+                type: string
+                format: byte
   /api/estadisticas:
     get:
       tags:
@@ -2595,6 +2806,29 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
+  /api/cumplimiento/calidad:
+    get:
+      tags:
+      - Cumplimiento
+      summary: "Calidad del dato del índice: cuánto se midió y cuánto no"
+      description: |-
+        Cuantos cierres sostienen el indice, cuantos son provisionales, y cuantos cortes ya vencidos no tienen
+        cierre en algun barrio. Responde aunque no haya un solo cierre —cuando `/api/cumplimiento` responde
+        400—: es lo que permite mostrar «sin datos suficientes» con cifras. `sectorId` es opcional.
+      operationId: calidad
+      parameters:
+      - name: sectorId
+        in: query
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Calidad calculada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CalidadDelCumplimientoRespuesta"
   /api/bitacora:
     get:
       tags:
@@ -2777,6 +3011,11 @@ components:
         actualizadoEn:
           type: string
           format: date-time
+        sintetica:
+          type: boolean
+          description: |-
+            Cuenta de vecino creada por el sistema para probar el volumen (ADR-094): no es una persona registrada y no puede
+            iniciar sesion. El listado las incluye; esta marca permite ocultarlas.
       description: "Cuenta del panel, tal como la ve un ADMIN"
     CredencialVeedor:
       required:
@@ -3149,6 +3388,42 @@ components:
           type: string
           format: date-time
       description: "Suscripción creada, pendiente de confirmación por correo (RF013)"
+    ReporteRespuesta:
+      type: object
+      properties:
+        id:
+          type: string
+        sectorId:
+          type: string
+        tipo:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        fotoUrl:
+          type: string
+          description: |-
+            Ruta de la foto: `/api/fotos/{nombre}`. Existir no significa que se pueda ver: el servidor la sirve al
+            publico solo si `fotoEstado` es PUBLICA; antes responde 404.
+        fotoEstado:
+          type: string
+          description: |-
+            SIN_FOTO, EN_REVISION (el reporte espera moderacion), PUBLICA o DESCARTADA. Con EN_REVISION la interfaz
+            muestra «en revision» en vez de pedir la imagen.
+        confirmaciones:
+          type: integer
+          format: int32
+        verificacion:
+          type: string
+          description: |-
+            Cuanto respalda el servidor que quien reporta esta en el barrio: CUENTA_VERIFICADA, UBICACION_VERIFICADA
+            o NINGUNA. Lo decide el servidor; el cliente solo lo muestra.
+        subidaToken:
+          type: string
+          description: |-
+            Solo al crear el reporte: el token con el que su autor sube la foto en `POST /api/reportes/{id}/foto`
+            (cabecera `X-Subida`). De un solo uso y vence a los pocos minutos; no se vuelve a entregar.
+      description: Reporte ciudadano registrado
     SolicitudReporte:
       required:
       - tipo
@@ -3181,29 +3456,6 @@ components:
         Reporte ciudadano (RF005-RF008). La identidad de quien reporta no va en el cuerpo: viaja en la
         cabecera `X-Dispositivo` (token de `POST /api/dispositivos`) o en la sesion de un vecino
         (`Authorization: Bearer`). Un campo `huella` en el cuerpo, como el de versiones anteriores, se ignora.
-    ReporteRespuesta:
-      type: object
-      properties:
-        id:
-          type: string
-        sectorId:
-          type: string
-        tipo:
-          type: string
-        timestamp:
-          type: string
-          format: date-time
-        fotoUrl:
-          type: string
-        confirmaciones:
-          type: integer
-          format: int32
-        verificacion:
-          type: string
-          description: |-
-            Cuanto respalda el servidor que quien reporta esta en el barrio: CUENTA_VERIFICADA, UBICACION_VERIFICADA
-            o NINGUNA. Lo decide el servidor; el cliente solo lo muestra.
-      description: Reporte ciudadano registrado
     IotCoordenada:
       type: object
       properties:
@@ -3280,7 +3532,6 @@ components:
     SolicitudRegistroVecino:
       required:
       - barrioId
-      - clave
       - consentimiento
       - correo
       - nombre
@@ -3294,10 +3545,6 @@ components:
           maxLength: 80
           minLength: 2
           type: string
-        clave:
-          minLength: 1
-          type: string
-          description: Minimo 12 caracteres. La politica completa vive en ClaveEnClaro.
         barrioId:
           minLength: 1
           type: string
@@ -3403,6 +3650,20 @@ components:
           type: string
           description: "CUENTA_VERIFICADA, UBICACION_VERIFICADA o NINGUNA: cuánto\
             \ respalda el servidor que quien reporta está en el barrio"
+        fotoEstado:
+          type: string
+          description: "SIN_FOTO, EN_REVISION, PUBLICA o DESCARTADA"
+        fotoUrl:
+          type: string
+          description: "Ruta de la foto para el panel (`/api/veedor/fotos/{nombre}`),\
+            \ que la ve en cualquier estado. Nulo si no hay foto"
+        senalRed:
+          type: boolean
+          description: "Solo en la cola de pendientes: el reporte viene de una red\
+            \ (resumen diario de la IP, que no se expone) que ya envio una rafaga\
+            \ de reportes a este barrio. No bloquea nada: es donde mirar primero.\
+            \ Nulo en el resto de respuestas"
+          nullable: true
       description: Reporte ciudadano en la cola de moderación del veedor (RF018)
     PropuestaIngestaRespuesta:
       type: object
@@ -3453,6 +3714,12 @@ components:
             estado del sector evolucione solo (ADR-033) y lo que alimenta el Índice de
             Cumplimiento (RF020-RF022).
           format: date-time
+          nullable: true
+        motivoDeRevision:
+          type: string
+          description: |-
+            Por qué esta propuesta espera al veedor en vez de haberse publicado sola (D5): confianza baja, una
+            ventana de más de 72 horas, más de 40 barrios, un nombre ambiguo, o que viene de prensa. Nulo si salió sola.
           nullable: true
       description: |-
         Propuesta de cambio de estado detectada por la ingesta automatizada (M9), esperando la
@@ -3713,6 +3980,18 @@ components:
           format: date-time
           nullable: true
       description: service_request de Open311 GeoReport v2
+    ModoDelSistemaRespuesta:
+      type: object
+      properties:
+        modo:
+          type: string
+          description: REAL o SIMULACION
+        cuentasSinteticas:
+          type: integer
+          description: Cuentas de vecino creadas por el sistema para probar el volumen;
+            no son personas registradas
+          format: int64
+      description: Qué instancia es esta y cuánto de lo que contiene es sintético
     RespuestaSectores:
       type: object
       properties:
@@ -3773,6 +4052,22 @@ components:
           type: number
           description: Capado en 100 cuando el corte termina antes o a tiempo
           format: double
+        porcentajeProvisional:
+          type: number
+          description: |-
+            De los cierres que sostienen este indice, que porcentaje (0 a 100) solo lo sostienen vecinos o sensores y un
+            veedor o un boletin aun puede corregir. Publicalo junto al porcentaje: el numero es solo tan solido como esto.
+          format: double
+        cortesSinCierreConfirmado:
+          type: integer
+          description: |-
+            Cortes cuya ventana prometida ya termino y en los que algun barrio no tiene cierre (incluidos los que expiraron
+            sin confirmacion). No cuentan a favor ni en contra de Acuacar: se declaran.
+          format: int64
+        cortesAnulados:
+          type: integer
+          description: "Cortes publicados por error y retirados: no entran al indice"
+          format: int64
       description: |-
         Índice de Cumplimiento (RF020-RF022): comparación explícita entre duración prometida y
         real, nunca un porcentaje aislado.
@@ -3805,6 +4100,33 @@ components:
             sobre veinte no significan lo mismo.
           format: int32
       description: Un mes de la evolución del Índice de Cumplimiento (RF024)
+    CalidadDelCumplimientoRespuesta:
+      type: object
+      properties:
+        cierresMedidos:
+          type: integer
+          description: Pares corte-barrio con cierre que entran al indice
+          format: int64
+        cierresProvisionales:
+          type: integer
+          description: "De ellos, los que solo sostienen vecinos o sensores"
+          format: int64
+        porcentajeProvisional:
+          type: number
+          description: "cierresProvisionales sobre cierresMedidos, de 0 a 100"
+          format: double
+        cortesSinCierreConfirmado:
+          type: integer
+          description: "Cortes ya vencidos con algun barrio sin cierre, incluidos\
+            \ los expirados"
+          format: int64
+        cortesAnulados:
+          type: integer
+          description: Cortes retirados por error
+          format: int64
+      description: |-
+        Lo que sostiene el Indice de Cumplimiento: cuantos cierres se midieron y cuantos cortes no se pudieron medir. Existe aunque
+        no haya un solo cierre (el indice entonces responde 400): es lo que permite decir «sin datos suficientes» con cifras.
     EventoBitacoraRespuesta:
       type: object
       properties:

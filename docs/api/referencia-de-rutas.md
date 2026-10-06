@@ -6,7 +6,7 @@
 >
 > Las **guías** de esta carpeta explican el porqué y los flujos; esta página es el catálogo exacto.
 
-**77 operaciones** en 71 rutas, más las páginas HTML de cortesía y el SSE.
+**83 operaciones** en 77 rutas, más las páginas HTML de cortesía y el SSE.
 
 Leyenda de **Acceso**: *Público* no exige token · *Sesión + `PERMISO`* exige `Authorization: Bearer <token>` de una
 cuenta que tenga ese permiso · *Sesión (cualquier cuenta)* exige token pero ningún permiso concreto.
@@ -16,13 +16,15 @@ Todo error sale en RFC 7807: ver [Errores y límites](errores-y-limites.md).
 
 - [Bitácora](#bit-cora) (2)
 - [Cuentas](#cuentas) (13)
-- [Cumplimiento](#cumplimiento) (5)
+- [Cumplimiento](#cumplimiento) (6)
 - [Dispositivos](#dispositivos) (1)
 - [Estadisticas](#estadisticas) (2)
+- [Fotos](#fotos) (2)
 - [IoT](#iot) (1)
 - [Open311](#open311) (1)
-- [Reportes](#reportes) (3)
+- [Reportes](#reportes) (4)
 - [Sectores](#sectores) (5)
+- [Sistema](#sistema) (1)
 - [Suscripciones](#suscripciones) (5)
 - [Vecinos](#vecinos) (6)
 - [Veedor](#veedor) (3)
@@ -31,7 +33,7 @@ Todo error sale en RFC 7807: ver [Errores y límites](errores-y-limites.md).
 - [Veedor - Cuentas](#veedor-cuentas) (8)
 - [Veedor - Disputas](#veedor-disputas) (1)
 - [Veedor - Ingesta](#veedor-ingesta) (6)
-- [Veedor - Moderación](#veedor-moderaci-n) (3)
+- [Veedor - Moderación](#veedor-moderaci-n) (4)
 - [Veedor - Segundo factor](#veedor-segundo-factor) (3)
 - [Esquemas](#esquemas)
 
@@ -253,6 +255,19 @@ Requiere GESTIONAR_USUARIOS. El enlace anterior deja de servir y se reinicia su 
 | **Cuerpo** | — |
 | **Respuestas** | `200` Índice calculado → [IndiceCumplimientoRespuesta](#esquema-indicecumplimientorespuesta)<br>`400` Todavía no hay cortes cerrados → [ProblemDetail](#esquema-problemdetail) |
 
+### `GET /api/cumplimiento/calidad`
+
+**Calidad del dato del índice: cuánto se midió y cuánto no**
+
+Cuantos cierres sostienen el indice, cuantos son provisionales, y cuantos cortes ya vencidos no tienen cierre en algun barrio. Responde aunque no haya un solo cierre —cuando `/api/cumplimiento` responde 400—: es lo que permite mostrar «sin datos suficientes» con cifras. `sectorId` es opcional.
+
+| | |
+|---|---|
+| **Acceso** | Público |
+| **Parámetros** | `sectorId` (query) |
+| **Cuerpo** | — |
+| **Respuestas** | `200` Calidad calculada → [CalidadDelCumplimientoRespuesta](#esquema-calidaddelcumplimientorespuesta) |
+
 ### `GET /api/cumplimiento/cortes/{corteId}`
 
 **Índice de un corte cerrado**
@@ -346,6 +361,36 @@ Separador `;` y BOM UTF-8, para que Excel en español lo abra sin romper las til
 | **Cuerpo** | — |
 | **Respuestas** | `200` CSV generado → string |
 
+## Fotos
+
+Fotos de los reportes: públicas solo si el reporte está aprobado
+
+### `GET /api/fotos/{nombre}`
+
+**Ver la foto de un reporte aprobado**
+
+Sin sesion. Responde 404 si la foto no existe, si su reporte aun no esta aprobado o si el veedor la descarto: son el mismo 404 a proposito, para que nadie pueda sondear que fotos hay. La interfaz debe mirar `fotoEstado` del reporte y no pedir la imagen mientras este EN_REVISION.
+
+| | |
+|---|---|
+| **Acceso** | Público |
+| **Parámetros** | `nombre` (path, obligatorio) |
+| **Cuerpo** | — |
+| **Respuestas** | `200` La imagen (image/jpeg o image/png) → —<br>`404` No hay una foto publica con ese nombre → string (byte) |
+
+### `GET /api/veedor/fotos/{nombre}`
+
+**Ver la foto de cualquier reporte (panel)**
+
+Para moderar: el panel ve la foto en cualquier estado, aprobada o no.
+
+| | |
+|---|---|
+| **Acceso** | Sesión + `VER_PANEL` |
+| **Parámetros** | `nombre` (path, obligatorio) |
+| **Cuerpo** | — |
+| **Respuestas** | `200` La imagen (image/jpeg o image/png) → —<br>`401` Sin sesión, token inválido, caducado o revocado → [ProblemDetail](#esquema-problemdetail)<br>`403` La sesión no tiene el permiso que exige esta operación → [ProblemDetail](#esquema-problemdetail)<br>`404` Ningun reporte reclama esa foto → string (byte) |
+
 ## IoT
 
 Telemetría de sensores de presión de la red (autenticada con X-IoT-Key)
@@ -388,7 +433,7 @@ Reportes ciudadanos de estado del servicio, sin registro
 
 **Registrar un reporte ciudadano**
 
-Sin registro ni cuenta (RF005), pero con identidad: la cabecera `X-Dispositivo` (token de `POST /api/dispositivos`) o la sesion de un vecino. Sin ninguna de las dos responde 401 `dispositivo-invalido`. Limita automaticamente los reportes por identidad en la ventana vigente (RF006, 3 para un dispositivo y 5 para un vecino) — ver 429. Hace falta el `sectorId`, la `coordenada` o ambos (RF007): con solo la coordenada el servidor infiere el sector que la contiene y responde 400 si cae fuera de todo barrio de Cartagena. La coordenada se envia solo si el usuario autorizo compartir su ubicacion; con su `precisionMetros` el servidor verifica el reporte (campo `verificacion` de la respuesta) y guarda solo una aproximacion de ella.
+Sin registro ni cuenta (RF005), pero con identidad: la cabecera `X-Dispositivo` (token de `POST /api/dispositivos`) o la sesion de un vecino. Sin ninguna de las dos responde 401 `dispositivo-invalido`. Limita automaticamente los reportes por identidad en la ventana vigente (RF006, 3 para un dispositivo y 5 para un vecino) — ver 429. Hace falta el `sectorId`, la `coordenada` o ambos (RF007): con solo la coordenada el servidor infiere el sector que la contiene y responde 400 si cae fuera de todo barrio de Cartagena. La coordenada se envia solo si el usuario autorizo compartir su ubicacion; con su `precisionMetros` el servidor verifica el reporte (campo `verificacion` de la respuesta) y guarda solo una aproximacion de ella. La respuesta trae `subidaToken`, el permiso de un solo uso para subir la foto de este reporte.
 
 | | |
 |---|---|
@@ -414,14 +459,27 @@ Permite a otro vecino confirmar un reporte ciudadano (M11). Sin cuerpo: la ident
 
 **Agregar evidencia a un reporte**
 
-Permite subir una foto y asociarla a un reporte existente (M10).
+Sube la foto de un reporte (M10). Exige la cabecera `X-Subida` con el `subidaToken` que recibio quien creo el reporte: sirve una sola vez y vence a los pocos minutos. Solo JPEG y PNG (se comprueba la firma del archivo, no solo el tipo declarado). La foto queda en revision: el publico la ve cuando el veedor aprueba el reporte, y nunca cuenta como voto.
 
 | | |
 |---|---|
 | **Acceso** | Público |
-| **Parámetros** | `id` (path, obligatorio) |
+| **Parámetros** | `id` (path, obligatorio)<br>`X-Subida` (header) |
 | **Cuerpo** | object (`multipart/form-data`) |
-| **Respuestas** | `200` Evidencia agregada → [ReporteRespuesta](#esquema-reporterespuesta)<br>`400` Error en la solicitud → [ProblemDetail](#esquema-problemdetail)<br>`404` Reporte no encontrado → [ProblemDetail](#esquema-problemdetail) |
+| **Respuestas** | `200` Evidencia agregada → [ReporteRespuesta](#esquema-reporterespuesta)<br>`400` Falta el archivo o no es una imagen valida → [ProblemDetail](#esquema-problemdetail)<br>`403` Falta el token de subida, ya se uso, vencio o es de otro reporte (type `subida-no-autorizada`); es la misma respuesta s… → [ProblemDetail](#esquema-problemdetail)<br>`409` El reporte ya tiene foto → [ProblemDetail](#esquema-problemdetail)<br>`415` Formato no permitido, como WebP (type `formato-no-permitido`) → [ProblemDetail](#esquema-problemdetail) |
+
+### `POST /api/sectores/{sectorId}/restablecimiento`
+
+**Confirmar con un toque que volvió el agua**
+
+El `token` es el del enlace del correo de aviso. Sin sesion ni `X-Dispositivo`: lo que identifica a quien toca es el token, que firma el servidor, vence y es de un barrio y una suscripcion. Registra un reporte `SERVICIO_RESTABLECIDO` en ese barrio, con el mismo cupo y el mismo quorum de cualquier otro reporte: un toque no cambia el estado por si solo.
+
+| | |
+|---|---|
+| **Acceso** | Público |
+| **Parámetros** | `sectorId` (path, obligatorio)<br>`token` (query, obligatorio) |
+| **Cuerpo** | — |
+| **Respuestas** | `201` Voto registrado → [ReporteRespuesta](#esquema-reporterespuesta)<br>`400` Falta el token → [ProblemDetail](#esquema-problemdetail)<br>`403` El enlace no sirve (type `enlace-invalido`): vencio, es de otro barrio o ya no recibes los avisos → [ProblemDetail](#esquema-problemdetail)<br>`429` Se agoto el cupo de reportes de esta suscripcion en el barrio → [ProblemDetail](#esquema-problemdetail) |
 
 ## Sectores
 
@@ -489,6 +547,23 @@ Conexión abierta (`text/event-stream`) que AVISA de que algo cambió; no envía
 | **Parámetros** | — |
 | **Cuerpo** | — |
 | **Respuestas** | `429` Tope de conexiones en vivo alcanzado; reintentar tras Retry-After → [ProblemDetail](#esquema-problemdetail) |
+
+## Sistema
+
+Qué instancia es y cuánto de lo que contiene es sintético
+
+### `GET /api/sistema/modo`
+
+**Modo del sistema**
+
+`modo` es REAL o SIMULACION: la interfaz muestra un banner permanente en la simulacion, que nunca se presenta como real. `cuentasSinteticas` es cuantas cuentas de vecino las creo el sistema para probar el volumen: se dicen tal cual, no son adopcion. Se recuerda un minuto.
+
+| | |
+|---|---|
+| **Acceso** | Público |
+| **Parámetros** | — |
+| **Cuerpo** | — |
+| **Respuestas** | `200` OK → [ModoDelSistemaRespuesta](#esquema-mododelsistemarespuesta) |
 
 ## Suscripciones
 
@@ -567,14 +642,14 @@ Registro, ingreso y perfil de los vecinos
 
 **Registrarse como vecino**
 
-Crea la cuenta en PENDIENTE_VERIFICACION y envia el enlace de confirmacion. Al confirmar el correo la cuenta queda ACTIVA, sin aprobacion de un administrador. Exige el barrio y aceptar el aviso de privacidad; la casilla de avisos es aparte. Responde 202 aunque el correo ya tenga cuenta, para no revelar que direcciones estan registradas.
+Crea la cuenta sin clave y envia al correo el enlace para elegirla. Al elegirla la cuenta queda ACTIVA, sin aprobacion de un administrador. La clave no viaja aqui: asi nadie puede registrar el correo de otra persona con una clave suya. Exige el barrio y aceptar el aviso de privacidad; la casilla de avisos es aparte. Responde 202 aunque el correo ya tenga cuenta, para no revelar que direcciones estan registradas.
 
 | | |
 |---|---|
 | **Acceso** | Público |
 | **Parámetros** | — |
 | **Cuerpo** | [SolicitudRegistroVecino](#esquema-solicitudregistrovecino) (`application/json`) |
-| **Respuestas** | `202` Solicitud recibida; revisa tu correo<br>`400` Correo mal formado, clave que no cumple la politica, barrio ausente o inexistente, o privacidad no aceptada |
+| **Respuestas** | `202` Solicitud recibida; revisa tu correo<br>`400` Correo mal formado, barrio ausente o inexistente, o privacidad no aceptada |
 
 ### `PATCH /api/vecino/perfil`
 
@@ -600,7 +675,7 @@ Devuelve un token JWT valido por 8 horas que sirve en `/api/vecino/**` (y, del p
 | **Acceso** | Público |
 | **Parámetros** | — |
 | **Cuerpo** | [CredencialVecino](#esquema-credencialvecino) (`application/json`) |
-| **Respuestas** | `200` Credencial correcta, token emitido → [SesionVecino](#esquema-sesionvecino)<br>`401` Credencial incorrecta → [SesionVecino](#esquema-sesionvecino)<br>`403` La cuenta existe pero aun no esta activa (correo sin confirmar) o esta suspendida → [SesionVecino](#esquema-sesionvecino)<br>`423` Cuenta bloqueada por intentos fallidos → [SesionVecino](#esquema-sesionvecino)<br>`429` Demasiados intentos desde esta IP → [SesionVecino](#esquema-sesionvecino) |
+| **Respuestas** | `200` Credencial correcta, token emitido → [SesionVecino](#esquema-sesionvecino)<br>`401` Credencial incorrecta → [SesionVecino](#esquema-sesionvecino)<br>`403` La cuenta esta suspendida (si aun no eligio su clave, responde 401 como con una clave incorrecta) → [SesionVecino](#esquema-sesionvecino)<br>`423` Cuenta bloqueada por intentos fallidos → [SesionVecino](#esquema-sesionvecino)<br>`429` Demasiados intentos desde esta IP → [SesionVecino](#esquema-sesionvecino) |
 
 ### `POST /api/vecino/sesion/cierre`
 
@@ -924,7 +999,7 @@ Cada barrio trae `reportesEnContra`: cuántos vecinos sostienen que el estado of
 
 ## Veedor - Ingesta
 
-Salud de los colectores del pipeline de ingesta (RNF007)
+Revisión de las propuestas de la ingesta automatizada (M9)
 
 ### `GET /api/veedor/ingesta/fallidos`
 
@@ -1030,11 +1105,24 @@ Moderar reportes ciudadanos pendientes (RF018)
 | **Cuerpo** | — |
 | **Respuestas** | `200` Reporte descartado → [ReporteModeracionRespuesta](#esquema-reportemoderacionrespuesta)<br>`401` Sin sesión, token inválido, caducado o revocado → [ProblemDetail](#esquema-problemdetail)<br>`403` La sesión no tiene el permiso que exige esta operación → [ProblemDetail](#esquema-problemdetail)<br>`404` El reporte no existe → [ProblemDetail](#esquema-problemdetail) |
 
+### `PATCH /api/veedor/reportes/{id}/foto/descartar`
+
+**Descartar solo la foto de un reporte**
+
+El reporte sigue como esta (su voto no cambia); la foto deja de servirse al publico y el panel la sigue viendo como evidencia.
+
+| | |
+|---|---|
+| **Acceso** | Sesión + `MODERAR_REPORTES` |
+| **Parámetros** | `id` (path, obligatorio) |
+| **Cuerpo** | — |
+| **Respuestas** | `200` Foto descartada → [ReporteModeracionRespuesta](#esquema-reportemoderacionrespuesta)<br>`401` Sin sesión, token inválido, caducado o revocado → [ProblemDetail](#esquema-problemdetail)<br>`403` La sesión no tiene el permiso que exige esta operación → [ProblemDetail](#esquema-problemdetail)<br>`404` El reporte no existe → [ProblemDetail](#esquema-problemdetail)<br>`409` El reporte no tiene foto → [ProblemDetail](#esquema-problemdetail) |
+
 ### `GET /api/veedor/reportes/pendientes`
 
 **Listar los reportes pendientes de moderación, más antiguos primero**
 
-Paginado, con el total y el enlace a la siguiente página en las cabeceras `X-Total-Count` y `Link`. Por defecto 50; el máximo por página es 200.
+Paginado, con el total y el enlace a la siguiente página en las cabeceras `X-Total-Count` y `Link`. Por defecto 50; el máximo por página es 200. Cada reporte trae `senalRed`: verdadero si viene de una red que ya envió una ráfaga de reportes a ese barrio (D9).
 
 | | |
 |---|---|
@@ -1101,6 +1189,20 @@ Datos para dar de alta el segundo factor. El secreto solo se muestra aqui, una v
 |---|---|---|---|---|
 | `uri` | string |  |  | URI otpauth:// para pintar el QR |
 | `secreto` | string |  |  | El mismo secreto en Base32, para teclearlo si la camara falla |
+
+<a id="esquema-calidaddelcumplimientorespuesta"></a>
+
+### CalidadDelCumplimientoRespuesta
+
+Lo que sostiene el Indice de Cumplimiento: cuantos cierres se midieron y cuantos cortes no se pudieron medir. Existe aunque no haya un solo cierre (el indice entonces responde 400): es lo que permite decir «sin datos suficientes» con cifras.
+
+| Campo | Tipo | Oblig. | Nulo | Descripción |
+|---|---|---|---|---|
+| `cierresMedidos` | integer (int64) |  |  | Pares corte-barrio con cierre que entran al indice |
+| `cierresProvisionales` | integer (int64) |  |  | De ellos, los que solo sostienen vecinos o sensores |
+| `porcentajeProvisional` | number (double) |  |  | cierresProvisionales sobre cierresMedidos, de 0 a 100 |
+| `cortesSinCierreConfirmado` | integer (int64) |  |  | Cortes ya vencidos con algun barrio sin cierre, incluidos los expirados |
+| `cortesAnulados` | integer (int64) |  |  | Cortes retirados por error |
 
 <a id="esquema-cierrerespuesta"></a>
 
@@ -1281,6 +1383,9 @@ Evento de la bitácora pública, de solo anexado (RF026-RF028)
 | `duracionRealSegundos` | integer (int64) |  |  |  |
 | `desviacionSegundos` | integer (int64) |  |  | duracionReal - duracionPrometida. Negativa si terminó antes de lo prometido |
 | `porcentajeCumplimiento` | number (double) |  |  | Capado en 100 cuando el corte termina antes o a tiempo |
+| `porcentajeProvisional` | number (double) |  |  | De los cierres que sostienen este indice, que porcentaje (0 a 100) solo lo sostienen vecinos o sensores y un veedor o un boletin aun puede corregir. Publicalo junto al porcentaje: el numero es solo tan solido como esto. |
+| `cortesSinCierreConfirmado` | integer (int64) |  |  | Cortes cuya ventana prometida ya termino y en los que algun barrio no tiene cierre (incluidos los que expiraron sin confirmacion). No cuentan a favor ni en contra de Acuacar: se declaran. |
+| `cortesAnulados` | integer (int64) |  |  | Cortes publicados por error y retirados: no entran al indice |
 
 <a id="esquema-iotcoordenada"></a>
 
@@ -1301,6 +1406,17 @@ Evento de la bitácora pública, de solo anexado (RF026-RF028)
 | `sectorId` | string | sí |  |  |
 | `presionPsi` | number (double) |  |  |  |
 | `coordenada` | [IotCoordenada](#esquema-iotcoordenada) |  |  |  |
+
+<a id="esquema-mododelsistemarespuesta"></a>
+
+### ModoDelSistemaRespuesta
+
+Qué instancia es esta y cuánto de lo que contiene es sintético
+
+| Campo | Tipo | Oblig. | Nulo | Descripción |
+|---|---|---|---|---|
+| `modo` | string |  |  | REAL o SIMULACION |
+| `cuentasSinteticas` | integer (int64) |  |  | Cuentas de vecino creadas por el sistema para probar el volumen; no son personas registradas |
 
 <a id="esquema-open311response"></a>
 
@@ -1371,6 +1487,7 @@ Propuesta de cambio de estado detectada por la ingesta automatizada (M9), espera
 | `estadoRevision` | string |  |  | PENDIENTE, APROBADA o DESCARTADA |
 | `inicioDeclarado` | string (date-time) |  | sí | Inicio de la ventana que el boletín prometió. Nulo cuando el texto no la declaraba: no se estima (ADR-006). |
 | `finPrometido` | string (date-time) |  | sí | Fin prometido de la misma ventana. Junto con el inicio es lo que permite que el estado del sector evolucione solo (ADR-033) y lo que alimenta el Índice de Cumplimiento (RF020-RF022). |
+| `motivoDeRevision` | string |  | sí | Por qué esta propuesta espera al veedor en vez de haberse publicado sola (D5): confianza baja, una ventana de más de 72 horas, más de 40 barrios, un nombre ambiguo, o que viene de prensa. Nulo si salió sola. |
 
 <a id="esquema-puntoserierespuesta"></a>
 
@@ -1402,6 +1519,9 @@ Reporte ciudadano en la cola de moderación del veedor (RF018)
 | `timestamp` | string (date-time) |  |  |  |
 | `estadoModeracion` | string |  |  | PENDIENTE, APROBADO o DESCARTADO |
 | `verificacion` | string |  |  | CUENTA_VERIFICADA, UBICACION_VERIFICADA o NINGUNA: cuánto respalda el servidor que quien reporta está en el barrio |
+| `fotoEstado` | string |  |  | SIN_FOTO, EN_REVISION, PUBLICA o DESCARTADA |
+| `fotoUrl` | string |  |  | Ruta de la foto para el panel (`/api/veedor/fotos/{nombre}`), que la ve en cualquier estado. Nulo si no hay foto |
+| `senalRed` | boolean |  | sí | Solo en la cola de pendientes: el reporte viene de una red (resumen diario de la IP, que no se expone) que ya envio una rafaga de reportes a este barrio. No bloquea nada: es donde mirar primero. Nulo en el resto de respuestas |
 
 <a id="esquema-reporterespuesta"></a>
 
@@ -1415,9 +1535,11 @@ Reporte ciudadano registrado
 | `sectorId` | string |  |  |  |
 | `tipo` | string |  |  |  |
 | `timestamp` | string (date-time) |  |  |  |
-| `fotoUrl` | string |  |  |  |
+| `fotoUrl` | string |  |  | Ruta de la foto: `/api/fotos/{nombre}`. Existir no significa que se pueda ver: el servidor la sirve al publico solo si `fotoEstado` es PUBLICA; antes responde 404. |
+| `fotoEstado` | string |  |  | SIN_FOTO, EN_REVISION (el reporte espera moderacion), PUBLICA o DESCARTADA. Con EN_REVISION la interfaz muestra «en revision» en vez de pedir la imagen. |
 | `confirmaciones` | integer (int32) |  |  |  |
 | `verificacion` | string |  |  | Cuanto respalda el servidor que quien reporta esta en el barrio: CUENTA_VERIFICADA, UBICACION_VERIFICADA o NINGUNA. Lo decide el servidor; el cliente solo lo muestra. |
+| `subidaToken` | string |  |  | Solo al crear el reporte: el token con el que su autor sube la foto en `POST /api/reportes/{id}/foto` (cabecera `X-Subida`). De un solo uso y vence a los pocos minutos; no se vuelve a entregar. |
 
 <a id="esquema-respaldorespuesta"></a>
 
@@ -1655,7 +1777,6 @@ Registro de un vecino. Confirmar el correo activa la cuenta: no hay aprobacion d
 |---|---|---|---|---|
 | `correo` | string (email) | sí |  |  |
 | `nombre` | string | sí |  |  |
-| `clave` | string | sí |  | Minimo 12 caracteres. La politica completa vive en ClaveEnClaro. |
 | `barrioId` | string | sí |  | Slug del barrio donde vives (uno de `GET /api/sectores`). 400 si no existe. |
 | `consentimiento` | [Consentimiento](#esquema-consentimiento) | sí |  |  |
 
@@ -1748,6 +1869,7 @@ Cuenta del panel, tal como la ve un ADMIN
 | `segundoFactorActivo` | boolean |  |  |  |
 | `creadoEn` | string (date-time) |  |  |  |
 | `actualizadoEn` | string (date-time) |  |  |  |
+| `sintetica` | boolean |  |  | Cuenta de vecino creada por el sistema para probar el volumen (ADR-094): no es una persona registrada y no puede iniciar sesion. El listado las incluye; esta marca permite ocultarlas. |
 
 <a id="esquema-ventanaprometidarespuesta"></a>
 

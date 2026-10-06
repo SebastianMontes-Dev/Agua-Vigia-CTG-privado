@@ -140,10 +140,11 @@ class ContratoOpenApiTest {
         var contrato = Json.mapper().readTree(mockMvc.perform(get("/v3/api-docs"))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
         // ruta -> método y códigos de error que debe declarar como ProblemDetail. Confirmar no tiene cuerpo
-        // (la identidad viaja en cabecera), así que no hay 400 y sí 401 `dispositivo-invalido`.
+        // (la identidad viaja en cabecera), así que no hay 400 y sí 401 `dispositivo-invalido`. La foto exige el token de
+        // subida: 403 si falta o no vale, y 415 si el formato no se acepta.
         record ErroresPublicos(String metodo, java.util.List<String> codigos) {}
         var rutas = java.util.Map.of(
-                "/api/reportes/{id}/foto", new ErroresPublicos("post", java.util.List.of("400", "404")),
+                "/api/reportes/{id}/foto", new ErroresPublicos("post", java.util.List.of("400", "403", "409", "415")),
                 "/api/reportes/{id}/confirmar", new ErroresPublicos("post", java.util.List.of("401", "404")),
                 "/api/sectores/{sectorId}/cortes", new ErroresPublicos("get", java.util.List.of("404")),
                 "/api/bitacora/{id}/sustento", new ErroresPublicos("get", java.util.List.of("404")));
