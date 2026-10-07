@@ -1,0 +1,270 @@
+# Guion completo de la simulación (plan §12): un día de Cartagena, de las 08:00 en adelante, en el que Acuacar anuncia cortes, los vecinos reportan,
+# el veedor modera y el sistema decide. Cada acto hace cosas por la API real y, al terminar, ASIERTA lo que debe haberse visto: el mismo guion es la
+# prueba de aceptación que corre en CI. «minuto» son minutos simulados desde `hora`; `duracion` es lo que tarda el acto (sus aserciones corren al final).
+#
+# Umbrales con las poblaciones reales (tope 3–15): Albornoz 3, Crespo 6, Bocagrande 6, Manga 11, Nelson Mandela y San Fernando 15.
+# Quórum de restablecimiento tras el fin prometido: max(2, ceil(umbral/2)) → Manga 6, Nelson Mandela y San Fernando 8.
+# Solo intervienen Acuacar, los vecinos, el veedor y el reloj: ningún dispositivo de campo forma parte de la simulación.
+
+version: 1
+nombre: AguaVigía — día simulado completo
+velocidad: 60
+hora: "08:00"
+
+actos:
+  # ── 08:00 · el mapa vacío honesto ─────────────────────────────────────────────────────────────────────────────────────────────
+  - id: estado-inicial
+    titulo: Estado inicial
+    minuto: 0
+    acciones:
+      - tipo: preparar-panel
+    aserciones:
+      - { tipo: modo, valor: SIMULACION }
+      - { tipo: todos-sin-datos }
+
+  # ── 08:00–08:10 · registro masivo por HTTP real ───────────────────────────────────────────────────────────────────────────────
+  - id: registro-masivo
+    titulo: Registro masivo de vecinos
+    minuto: 0
+    duracion: 10
+    acciones:
+      - tipo: registrar-vecinos
+        cantidad: 300
+        barrios-clave: { manga: 30, nelson-mandela: 45, san-fernando: 25, albornoz: 8, crespo: 8, bocagrande: 12 }
+        fuera-del-barrio: 6
+        fraccion-verifican: 0.8
+        semilla: 1
+        concurrencia: 16
+      - tipo: suscribir-correos
+        cantidad: 3
+        barrios: [manga, nelson-mandela, san-fernando]
+    aserciones:
+      - { tipo: vecinos-registrados, minimo: 300, verificados-minimo: 200, fuera-rechazados: 6 }
+
+  # ── 08:20 · boletín A: corte de hoy de 10:00 a 16:00 ──────────────────────────────────────────────────────────────────────────
+  - id: boletin-a
+    titulo: Boletín A — corte programado en tres barrios
+    minuto: 20
+    acciones:
+      - { tipo: boletin, id: 1, plantilla: corte, barrios: [manga, nelson-mandela, san-fernando], desde: "10:00", hasta: "16:00", dia: hoy }
+    aserciones:
+      - { tipo: estado-sector, barrio: manga, estado: CORTE_PROGRAMADO, origen: ACUACAR }
+      - { tipo: estado-sector, barrio: nelson-mandela, estado: CORTE_PROGRAMADO, origen: ACUACAR }
+      - { tipo: estado-sector, barrio: san-fernando, estado: CORTE_PROGRAMADO, origen: ACUACAR }
+      - { tipo: avisos-por-correo, barrio: manga, minimo: 1 }
+      - { tipo: avisos-por-correo, barrio: nelson-mandela, minimo: 1 }
+      - { tipo: avisos-por-correo, barrio: san-fernando, minimo: 1 }
+
+  # ── 09:00 · boletín B de baja confianza: va a la cola, no al mapa ──────────────────────────────────────────────────────────────
+  - id: boletin-b
+    titulo: Boletín B — mención suelta de baja confianza
+    minuto: 60
+    acciones:
+      - { tipo: boletin, id: 2, plantilla: baja-confianza, barrios: [torices] }
+    aserciones:
+      - { tipo: propuestas-pendientes, minimo: 1 }
+      - { tipo: estado-sector, barrio: torices, estado: null }
+
+  - id: veedor-descarta-b
+    titulo: El veedor descarta el boletín B
+    minuto: 62
+    acciones:
+      - { tipo: veedor-descarta-propuesta, boletin: 2 }
+    aserciones:
+      - { tipo: propuestas-pendientes, cantidad: 0 }
+
+  # ── 10:00 · empieza la ventana: el barrido la pone SIN_SERVICIO ────────────────────────────────────────────────────────────────
+  - id: inicia-ventana
+    titulo: Inicia la ventana oficial
+    minuto: 120
+    aserciones:
+      - { tipo: estado-sector, barrio: manga, estado: SIN_SERVICIO, origen: ACUACAR }
+      - { tipo: estado-sector, barrio: nelson-mandela, estado: SIN_SERVICIO, origen: ACUACAR }
+      - { tipo: estado-sector, barrio: san-fernando, estado: SIN_SERVICIO, origen: ACUACAR }
+
+  # ── 10:30 · vecinos sin boletín: Albornoz alcanza su umbral (3) ────────────────────────────────────────────────────────────────
+  - id: albornoz
+    titulo: Albornoz — vecinos sin boletín alcanzan el quórum
+    minuto: 150
+    acciones:
+      - { tipo: reportes, barrio: albornoz, tipo-reporte: SIN_AGUA, etiqueta: alb, verificados: 2, anonimos: 1, anonimos-con-ubicacion: 1 }
+      - { tipo: foto, reporte: alb, indice: 2 }
+    aserciones:
+      - { tipo: estado-sector, barrio: albornoz, estado: SIN_SERVICIO, origen: VECINOS, respaldo-vecinos: 3 }
+
+  # ── 10:30 · ráfaga anónima desde una sola red: Crespo NO cambia ────────────────────────────────────────────────────────────────
+  - id: crespo-rafaga
+    titulo: Crespo — ráfaga anónima sin ubicación
+    minuto: 150
+    acciones:
+      - { tipo: reportes, barrio: crespo, tipo-reporte: SIN_AGUA, etiqueta: cre, anonimos: 6 }
+    aserciones:
+      - { tipo: estado-sector, barrio: crespo, estado: null }
+      - { tipo: senal-de-red, barrio: crespo, minimo: 1 }
+
+  # ── 10:50 · spam moderado en Bocagrande ───────────────────────────────────────────────────────────────────────────────────────
+  - id: bocagrande
+    titulo: Bocagrande — seis reportes alcanzan el quórum
+    minuto: 170
+    acciones:
+      - { tipo: reportes, barrio: bocagrande, tipo-reporte: SIN_AGUA, etiqueta: boca, verificados: 3, anonimos: 3 }
+      - { tipo: foto, reporte: boca, indice: 0 }
+      - { tipo: foto, reporte: boca, indice: 1 }
+    aserciones:
+      - { tipo: estado-sector, barrio: bocagrande, estado: SIN_SERVICIO, origen: VECINOS }
+
+  - id: bocagrande-moderacion
+    titulo: Bocagrande — el veedor descarta dos reportes y modera las fotos
+    minuto: 175
+    acciones:
+      - { tipo: veedor-reportes, accion: descartar, etiqueta: boca, indices: [4, 5] }
+      - { tipo: veedor-foto, accion: aprobar, etiqueta: boca, indice: 0 }
+      - { tipo: veedor-foto, accion: descartar, etiqueta: boca, indice: 1 }
+    aserciones:
+      - { tipo: estado-sector, barrio: bocagrande, estado: null }
+      - { tipo: bitacora-contiene, barrio: bocagrande, tipo-evento: CONSENSO_REVERTIDO, minimo: 1 }
+      - { tipo: foto-publica, etiqueta: boca, indice: 0, publica: true }
+      - { tipo: foto-publica, etiqueta: boca, indice: 1, publica: false }
+
+  # ── 11:20 · los vecinos contradicen lo oficial en Manga ───────────────────────────────────────────────────────────────────────
+  - id: manga-disputa
+    titulo: Manga — once vecinos dicen que el agua volvió en plena ventana
+    minuto: 200
+    acciones:
+      - { tipo: reportes, barrio: manga, tipo-reporte: SERVICIO_RESTABLECIDO, etiqueta: manga-rest, verificados: 5, anonimos: 6 }
+    aserciones:
+      - { tipo: estado-sector, barrio: manga, estado: SIN_SERVICIO, origen: ACUACAR, en-disputa: true }
+      - { tipo: disputas, barrio: manga, presente: true }
+
+  - id: manga-cierre
+    titulo: Manga — el veedor cierra solo ese barrio a las 11:10
+    minuto: 205
+    acciones:
+      - { tipo: veedor-cierra-barrio, barrio: manga, hora: "11:10" }
+    aserciones:
+      - { tipo: estado-sector, barrio: manga, estado: CON_SERVICIO }
+      - { tipo: estado-sector, barrio: nelson-mandela, estado: SIN_SERVICIO }
+      - { tipo: estado-sector, barrio: san-fernando, estado: SIN_SERVICIO }
+      - { tipo: disputas, barrio: manga, presente: false }
+
+  # ── 16:00 · llega el fin prometido: la promesa no es una prueba ───────────────────────────────────────────────────────────────
+  - id: fin-prometido
+    titulo: Llega el fin prometido y el agua no está confirmada
+    minuto: 480
+    aserciones:
+      - { tipo: estado-sector, barrio: nelson-mandela, estado: SIN_SERVICIO, por-confirmar: true }
+      - { tipo: estado-sector, barrio: san-fernando, estado: SIN_SERVICIO, por-confirmar: true }
+
+  # ── 16:10–16:25 · Nelson Mandela: ocho vecinos confirman (quórum reducido) ────────────────────────────────────────────────────
+  - id: nm-restablecimiento
+    titulo: Nelson Mandela — los vecinos confirman el restablecimiento
+    minuto: 490
+    duracion: 15
+    acciones:
+      - { tipo: reportes, barrio: nelson-mandela, tipo-reporte: SERVICIO_RESTABLECIDO, etiqueta: nm-rest, verificados: 5, anonimos: 3, repartir: true }
+    aserciones:
+      - { tipo: estado-sector, barrio: nelson-mandela, estado: CON_SERVICIO }
+      - { tipo: corte, barrio: nelson-mandela, cierre: { fuente: VECINOS, provisional: true, hora: "16:10", tolerancia: 6 } }
+
+  # ── 17:00 · el veedor revisa los cortes vencidos ──────────────────────────────────────────────────────────────────────────────
+  - id: veedor-revisa-vencidos
+    titulo: El veedor revisa los cortes vencidos
+    minuto: 540
+    acciones:
+      - { tipo: veedor-confirma-cierre, barrio: nelson-mandela, hora: "16:05" }
+    aserciones:
+      - { tipo: corte, barrio: nelson-mandela, cierre: { provisional: false, hora: "16:05", tolerancia: 1 } }
+      - { tipo: cortes-vencidos, barrio: san-fernando, presente: true }
+      - { tipo: corte, barrio: san-fernando, sin-cierre: true }
+
+  # ── 17:10–17:20 · San Fernando: ocho vecinos dicen que el agua volvió (cierre provisional) ───────────────────────────────────────
+  - id: sf-restablecimiento
+    titulo: San Fernando — los vecinos confirman el restablecimiento
+    minuto: 550
+    duracion: 10
+    acciones:
+      - { tipo: reportes, barrio: san-fernando, tipo-reporte: SERVICIO_RESTABLECIDO, etiqueta: sf-rest, verificados: 5, anonimos: 3, repartir: true }
+    aserciones:
+      - { tipo: estado-sector, barrio: san-fernando, estado: CON_SERVICIO }
+      - { tipo: corte, barrio: san-fernando, cierre: { fuente: VECINOS, provisional: true, hora: "17:10", tolerancia: 6 } }
+
+  # ── 18:00 · un restablecimiento SOLO de vecinos puede no ser efectivo: el corte se reabre ───────────────────────────────────────
+  - id: sf-reapertura
+    titulo: San Fernando — el agua vuelve a faltar y el mismo corte se reabre
+    minuto: 600
+    acciones:
+      - { tipo: reportes, barrio: san-fernando, tipo-reporte: SIN_AGUA, etiqueta: sf-reabre, verificados: 15 }
+    aserciones:
+      # Los vecinos solo disparan la reapertura: lo que sostiene el estado es el corte oficial vuelto a abrir (origen ACUACAR).
+      - { tipo: estado-sector, barrio: san-fernando, estado: SIN_SERVICIO, origen: ACUACAR }
+      - { tipo: corte, barrio: san-fernando, sin-cierre: true }
+
+  # ── 18:20 · lo que confirmó el veedor es definitivo (D15) ────────────────────────────────────────────────────────────────────────
+  # El corte de Nelson Mandela NO se reabre: su cierre lo confirmó el veedor. Los vecinos, con un quórum nuevo, sí hacen que el mapa vuelva a
+  # decir «sin servicio» (origen VECINOS), y la duración medida del primer corte se conserva en el Índice.
+  - id: nm-despues-del-cierre-confirmado
+    titulo: Nelson Mandela — el agua vuelve a faltar después de un cierre confirmado
+    minuto: 620
+    acciones:
+      - { tipo: reportes, barrio: nelson-mandela, tipo-reporte: SIN_AGUA, etiqueta: nm-reabre, verificados: 15 }
+    aserciones:
+      - { tipo: estado-sector, barrio: nelson-mandela, estado: SIN_SERVICIO, origen: VECINOS }
+      - { tipo: corte, barrio: nelson-mandela, cierre: { provisional: false, hora: "16:05", tolerancia: 1 } }
+
+  # ── 19:40 · anuncio y aplazamiento en Crespo ──────────────────────────────────────────────────────────────────────────────────
+  - id: crespo-anuncio
+    titulo: Crespo — anuncio de un corte para mañana y aviso de aplazamiento
+    minuto: 700
+    acciones:
+      - { tipo: boletin, id: 3, plantilla: corte, barrios: [crespo], desde: "09:00", hasta: "15:00", dia: manana }
+    aserciones:
+      - { tipo: estado-sector, barrio: crespo, estado: CORTE_PROGRAMADO, origen: ACUACAR }
+
+  # El aplazamiento se reconoce pero NO crea un corte nuevo ni anula el anterior: casar un aviso de «se aplaza» con un corte exige una heurística
+  # de barrios y fecha, y esa decisión la toma el veedor (ADR-096).
+  - id: crespo-aplazamiento
+    titulo: Crespo — llega el aviso «se aplaza»
+    minuto: 702
+    acciones:
+      - { tipo: boletin, id: 4, plantilla: aplazamiento, barrios: [crespo], dia: manana }
+    aserciones:
+      - { tipo: estado-sector, barrio: crespo, estado: CORTE_PROGRAMADO, origen: ACUACAR }
+
+  - id: crespo-anulacion
+    titulo: Crespo — el veedor anula el corte aplazado
+    minuto: 705
+    acciones:
+      - { tipo: veedor-anula-corte, barrio: crespo, motivo: "Acuacar aplazó la suspensión (boletín simulado 4)" }
+    aserciones:
+      - { tipo: estado-sector, barrio: crespo, estado: null }
+      - { tipo: indice-excluye-anulados, barrio: crespo }
+
+  # ── Salto de reloj: el tiempo sin renovación borra lo que nadie respalda ─────────────────────────────────────────────────────────
+  - id: salto-7h
+    titulo: Pasan 7 horas sin renovar nada
+    minuto: 710
+    acciones:
+      - { tipo: saltar, horas: 7 }
+    aserciones:
+      - { tipo: estado-sector, barrio: albornoz, estado: SIN_SERVICIO }
+      - { tipo: sector-sin-verificacion-reciente, barrio: albornoz, horas: 6 }
+
+  # Desde el minuto 700 (19:40) y tras el salto anterior (+7 h) faltan 65 h para cumplir las 72 h después de las 16:00 prometidas a San Fernando.
+  - id: salto-expiracion
+    titulo: "Pasan 65 horas más: expiran los cortes sin renovación"
+    minuto: 720
+    acciones:
+      - { tipo: saltar, horas: 65 }
+    aserciones:
+      - { tipo: corte, barrio: san-fernando, estado: EXPIRADO }
+      - { tipo: estado-sector, barrio: san-fernando, estado: null }
+      - { tipo: bitacora-contiene, barrio: san-fernando, tipo-evento: CORTE_EXPIRADO, minimo: 1 }
+      - { tipo: estado-sector, barrio: albornoz, estado: null }
+
+  # ── Cierre del guion: el Índice de Cumplimiento con la calidad del dato ──────────────────────────────────────────────────────────
+  - id: cierre
+    titulo: Índice de Cumplimiento y calidad del dato
+    minuto: 730
+    aserciones:
+      - { tipo: cumplimiento-sector, barrio: manga, prometido-horas: 6, real-minutos: 70, tolerancia-min: 6 }
+      - { tipo: calidad-del-cumplimiento, sin-cierre-confirmado-minimo: 1, anulados-minimo: 1, cierres-medidos-minimo: 1 }

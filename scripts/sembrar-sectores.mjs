@@ -9,10 +9,14 @@
 //   cd scripts && npm install
 //   MONGODB_URI="mongodb://localhost:27017/?directConnection=true" node sembrar-sectores.mjs
 //
-// Es idempotente: borra la coleccion `sectores` antes de volver a insertar.
+// Es idempotente: borra la coleccion `sectores` antes de volver a insertar. Por eso se niega a correr contra una base que no
+// es local (--permitir-remoto) o que ya guarda datos que no son de demostracion (--sobre-datos-reales): dejaria los 211 barrios
+// sin estado.
 
 import { MongoClient } from 'mongodb';
+import { motivoParaNoContinuar } from './lib/guarda-destructiva.mjs';
 import { readFile } from 'node:fs/promises';
+import { parseArgs } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
@@ -26,6 +30,12 @@ const POBLACION_PATH = path.join(RAIZ, 'data/geoespacial/poblacion-barrios.json'
 // que no resuelve desde el host.
 const MONGODB_URI = process.env.MONGODB_URI ?? 'mongodb://localhost:27017/?directConnection=true';
 const DB_NAME = process.env.MONGODB_DB ?? 'aguavigia';
+const { values } = parseArgs({
+  options: {
+    'permitir-remoto': { type: 'boolean', default: false },
+    'sobre-datos-reales': { type: 'boolean', default: false },
+  },
+});
 
 const LOCALIDAD_POR_CODIGO = {
   LH: 'Histórica y del Caribe Norte',
@@ -127,6 +137,13 @@ async function main() {
     await client.connect();
     const db = client.db(DB_NAME);
     const coleccion = db.collection('sectores');
+
+    const motivo = await motivoParaNoContinuar({ uri: MONGODB_URI, db, accion: 'borrar y volver a sembrar la coleccion sectores',
+      permitirRemoto: values['permitir-remoto'], sobreDatosReales: values['sobre-datos-reales'] });
+    if (motivo) {
+      console.error(motivo);
+      process.exit(1);
+    }
 
     await coleccion.deleteMany({});
     await coleccion.insertMany(documentos);

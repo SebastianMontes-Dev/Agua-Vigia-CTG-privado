@@ -40,6 +40,7 @@
  *   --sin-respaldo         no hacer el respaldo de Mongo
  *   --sin-reinicio         no tocar el backend (debe estar ya con el perfil `carga`)
  *   --dejar-perfil         no devolver el backend a su perfil normal al terminar
+ *   --sobre-datos-reales   seguir aunque la base tenga reportes, cortes, propuestas o cuentas reales (por defecto se niega)
  *   --proyecto agua-vigia-ctg   nombre del proyecto de Docker Compose
  *
  * LÍMITE FÍSICO: el generador y el backend comparten el mismo PC. Las cifras dicen el orden de magnitud que aguanta
@@ -52,6 +53,7 @@ import readline from 'node:readline/promises';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { MongoClient } from 'mongodb';
+import { buscarDatosReales, mensajeDatosReales } from '../lib/datos-reales.mjs';
 
 const { values } = parseArgs({
     options: {
@@ -71,6 +73,7 @@ const { values } = parseArgs({
         restaurar: { type: 'boolean', default: false },
         'sin-reinicio': { type: 'boolean', default: false },
         'dejar-perfil': { type: 'boolean', default: false },
+        'sobre-datos-reales': { type: 'boolean', default: false },
         proyecto: { type: 'string', default: process.env.COMPOSE_PROJECT_NAME ?? 'agua-vigia-ctg' },
     },
 });
@@ -275,6 +278,10 @@ async function main() {
     try {
         const sectores = await db.collection('sectores').countDocuments({});
         if (sectores === 0) fallar('No hay sectores en la base. Corre: node scripts/sembrar-sectores.mjs');
+        if (!values['sobre-datos-reales']) {
+            const reales = await buscarDatosReales(db);
+            if (reales.length > 0) fallar(mensajeDatosReales(reales));
+        }
         let cuentas = await db.collection('usuarios').countDocuments({});
         if (cuentas < MINIMO_CUENTAS) {
             console.log(`  Hay ${formato(cuentas)} cuentas y se exigen ${formato(MINIMO_CUENTAS)}: sembrando…`);

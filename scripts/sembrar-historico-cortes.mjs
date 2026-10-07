@@ -5,18 +5,30 @@
  * NO corre en el arranque (ADR-094): son datos inventados y la instancia real no los lleva. Queda para quien los pida a mano
  * (las pruebas E2E del frontend). El histórico real sale de los boletines de Acuacar.
  *
+ * Inserta cortes inventados con origen OFICIAL_ACUACAR: en una base real eso contradeciria la regla 4 de la etica de datos (nada
+ * llega al mapa sin la frase del boletin). Por eso se niega a correr contra una base que no es local (--permitir-remoto) o que
+ * ya guarda datos que no son de demostracion (--sobre-datos-reales), y marca lo que inserta con `datosDeDemostracion`.
+ *
  * Uso:
  *   cd scripts && npm install
  *   MONGODB_URI="mongodb://localhost:27017/?directConnection=true" node sembrar-historico-cortes.mjs
  */
 
 import { MongoClient } from 'mongodb';
+import { motivoParaNoContinuar } from './lib/guarda-destructiva.mjs';
+import { parseArgs } from 'node:util';
 
 // directConnection=true: Mongo local es un replica set de un nodo; sin esto el driver
 // descubre que el miembro se anuncia como `mongo:27017` (nombre solo resoluble dentro de
 // Docker) e intenta reconectarse ahi.
 const MONGODB_URI = process.env.MONGODB_URI ?? 'mongodb://localhost:27017/?directConnection=true';
 const DB_NAME = process.env.MONGODB_DB ?? 'aguavigia';
+const { values } = parseArgs({
+  options: {
+    'permitir-remoto': { type: 'boolean', default: false },
+    'sobre-datos-reales': { type: 'boolean', default: false },
+  },
+});
 
 // Rango de fechas: Mayo 1, 2026 a Julio 31, 2026
 const START_DATE = new Date('2026-05-01T00:00:00Z').getTime();
@@ -38,6 +50,14 @@ async function main() {
     const sectoresCol = db.collection('sectores');
     const cortesCol = db.collection('cortes');
     const reportesCol = db.collection('reportes');
+
+    const motivo = await motivoParaNoContinuar({ uri: MONGODB_URI, db,
+      accion: 'borrar e inventar cortes y reportes historicos (mayo a julio de 2026)',
+      permitirRemoto: values['permitir-remoto'], sobreDatosReales: values['sobre-datos-reales'] });
+    if (motivo) {
+      console.error(motivo);
+      process.exit(1);
+    }
 
     const sectores = await sectoresCol.find({}).project({ slug: 1, geometry: 1 }).toArray();
     if (sectores.length === 0) {
@@ -88,7 +108,8 @@ async function main() {
         finReal,
         causa: randomItem(causas),
         origen: randomItem(origenes),
-        estado: 'RESTABLECIDO'
+        estado: 'RESTABLECIDO',
+        datosDeDemostracion: true
       });
     }
 
@@ -134,7 +155,8 @@ async function main() {
         longitud,
         huella: generateRandomHash(),
         timestamp,
-        estadoModeracion: randomItem(estadosModeracion)
+        estadoModeracion: randomItem(estadosModeracion),
+        datosDeDemostracion: true
       });
     }
 

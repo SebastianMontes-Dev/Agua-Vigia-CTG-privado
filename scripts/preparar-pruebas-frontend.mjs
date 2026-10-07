@@ -1,8 +1,27 @@
+// Fixtures de las pruebas E2E del frontend: pisa el estado de tres barrios y borra los reportes de Arroyo Grande. Se niega a
+// correr contra una base que no es local (--permitir-remoto) o que ya guarda datos reales (--sobre-datos-reales).
 import { MongoClient } from 'mongodb';
-const cliente = new MongoClient(process.env.MONGODB_URI ?? 'mongodb://localhost:27017/?directConnection=true');
+import { parseArgs } from 'node:util';
+import { motivoParaNoContinuar } from './lib/guarda-destructiva.mjs';
+
+const { values } = parseArgs({
+  options: {
+    'permitir-remoto': { type: 'boolean', default: false },
+    'sobre-datos-reales': { type: 'boolean', default: false },
+  },
+});
+const MONGODB_URI = process.env.MONGODB_URI ?? 'mongodb://localhost:27017/?directConnection=true';
+const cliente = new MongoClient(MONGODB_URI);
 await cliente.connect();
 try {
-  const base = cliente.db('aguavigia');
+  const base = cliente.db(process.env.MONGODB_DB ?? 'aguavigia');
+  const motivo = await motivoParaNoContinuar({ uri: MONGODB_URI, db: base,
+    accion: 'dejar los barrios de las pruebas del frontend y borrar los reportes de arroyo-grande',
+    permitirRemoto: values['permitir-remoto'], sobreDatosReales: values['sobre-datos-reales'] });
+  if (motivo) {
+    console.error(motivo);
+    process.exit(1);
+  }
   const sectores = base.collection('sectores');
   if (await sectores.countDocuments() !== 211) throw new Error('Las pruebas requieren los 211 sectores de la siembra local');
   const viejo = new Date(Date.now() - 48 * 60 * 60 * 1000);

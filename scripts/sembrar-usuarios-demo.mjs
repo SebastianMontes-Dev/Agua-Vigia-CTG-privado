@@ -175,7 +175,11 @@ async function main() {
 
     for (const [nombre, coleccion] of [['usuarios', usuarios], ['tokens_cuenta', tokens],
       ['auditoria_cuentas', auditoria], ['suscripciones', suscripciones]]) {
-      const previas = await coleccion.deleteMany({ datosDeDemostracion: true });
+      // En 'usuarios' no se tocan las cuentas SEMBRADO: son las sintéticas que crea el backend (ADR-094), no las de este script.
+      const filtro = nombre === 'usuarios'
+        ? { datosDeDemostracion: true, origen: { $ne: 'SEMBRADO' } }
+        : { datosDeDemostracion: true };
+      const previas = await coleccion.deleteMany(filtro);
       if (previas.deletedCount > 0) console.log(`Retirados ${previas.deletedCount} documentos de demostración de '${nombre}' de una siembra anterior.`);
     }
 
