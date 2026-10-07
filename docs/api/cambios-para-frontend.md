@@ -3,6 +3,17 @@
 El backend manda y el frontend se adapta (decisión del dueño, 2026-09-30). Cada fase añade aquí su sección: qué rompe, qué es
 nuevo y qué debe cambiar el frontend. Sin periodo de compatibilidad: lo viejo se elimina.
 
+## Reducción del backend (R0–R9, desde 2026-10-06): el contrato no cambia
+
+El backend se reestructura por dentro ([`docs/reduccion/`](../reduccion/README.md), ADR-098). **No hay nada que adaptar
+por esta causa:**
+- rutas, JSON, nombres de esquema, `operationId`, códigos de estado, `type` RFC 7807 y cabeceras quedan idénticos
+- cada fase se compara contra una línea base antes de fusionarse a `main`
+
+Si el frontend nota una diferencia tras una fusión de la reducción, es un **defecto del backend**: se avisa a Sebastian y
+no se adapta el frontend. Las secciones F0–F6 de abajo siguen vigentes; son cambios anteriores que el frontend aún debe
+adoptar.
+
 ## F0 — Base
 
 ### Rompe

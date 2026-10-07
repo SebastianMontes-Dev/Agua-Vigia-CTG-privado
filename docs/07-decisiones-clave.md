@@ -13,8 +13,8 @@ Cada fila tiene su número de ADR para buscarla ahí. Las decisiones tomadas des
 
 | ADR | Decisión | Por qué |
 |---|---|---|
-| 001 | **Arquitectura Limpia** con puertos y adaptadores | Dominio testeable sin framework; SOLID demostrable. El MVC anterior mezclaba lógica en los controladores |
-| 002 | La regla de capas se verifica con **ArchUnit** en la build | Que `domain/` no importe Spring ni Mongo no depende de la disciplina de nadie: si se rompe, la build falla |
+| 001 | **Arquitectura Limpia** con puertos y adaptadores *(en revisión por ADR-098: pasa a paquetes por funcionalidad con reglas puras)* | Dominio testeable sin framework; SOLID demostrable. El MVC anterior mezclaba lógica en los controladores |
+| 002 | La regla de capas se verifica con **ArchUnit** en la build *(se conserva con otras reglas, ADR-098)* | Que `domain/` no importe Spring ni Mongo no depende de la disciplina de nadie: si se rompe, la build falla |
 | 003 | **MongoDB** para datos y **Redis** para estado efímero | Cortes = documentos variables + consultas geoespaciales; Redis para rate limiting, ventana de consenso y pub/sub |
 | 004 | Consumir la **API REST de Acuacar**, no scrapear HTML | Fuente oficial estable y sin conflicto con `robots.txt` |
 | 005 | Respetar `robots.txt` aunque sea evadible; sin disfrazar el `User-Agent` | Coherencia ética del proyecto (ver `06-etica-de-datos.md`) |
@@ -500,3 +500,65 @@ que venza el bloqueo (molestia, no brecha); no hay enfriamiento por cuenta en el
 
 - **Gana:** una carga medida con método y límites dichos, métricas con una guía de lectura en vez de umbrales inventados, tres escrituras que dejaron de pisarse, y scripts que ya no pueden borrar la base real
   por descuido. **Pierde:** las cifras de carga son de un PC compartido y no valen como capacidad de un servidor; la deuda de arriba sigue ahí hasta que haya datos que la justifiquen.
+
+## 5. Reducción estructural (2026-10-06)
+
+### ADR-098 — Reducción estructural por funcionalidad
+
+**Estado: aceptada; en ejecución por fases (R0–R9, [`docs/reduccion/`](reduccion/README.md)).** Propuesta por Yordy, la ejecuta Sebastian.
+
+**Contexto.** El backend tiene 523 archivos `.java` (~28 000 líneas) y 247 de test (~34 000) para 89 endpoints:
+- 57 interfaces `port/in`, todas con una sola implementación
+- 44 `port/out`, de las que solo 3 tienen dos implementaciones
+- 49 DTO con 9 mappers
+- un `CasosDeUsoConfig` que cablea a mano 57 servicios
+
+Para tocar una funcionalidad hay que abrir 6–8 archivos en 4 paquetes. El proyecto es académico, corre en local (ADR-057/080)
+y hay que sustentarlo. Ese andamiaje cuesta más de lo que protege.
+
+**Decisión.** Se pasa a paquetes por funcionalidad (`sectores`, `cortes`, `reportes`, `bitacora`, `cumplimiento`,
+`estadisticas`, `ingesta`, `suscripciones`, `cuentas`, `sistema`, más `compartido`). Cada uno tiene:
+- un controlador sin lógica
+- uno o pocos `@Service` concretos
+- un almacén por agregado (Spring Data / `MongoTemplate`)
+- el modelo como `@Document`
+- un archivo de DTO
+- las reglas de negocio en `reglas/`, en Java puro
+
+Solo quedan las interfaces con varias implementaciones reales (reloj, fuentes de ingesta, Telegram, notificación de cuenta).
+Se retiran MapStruct y el cableado a mano. **No se quita ninguna funcionalidad y el contrato HTTP queda congelado**: rutas,
+JSON, códigos, `type` RFC 7807, cabeceras, colecciones y campos.
+
+**Qué se conserva de ADR-001/002.** La idea de fondo: las reglas de negocio no dependen del framework y eso lo verifica la
+build. ArchUnit hace cumplir que:
+- `..reglas..` no importe Spring ni Mongo
+- los controladores no toquen almacenes
+- `compartido` no dependa de las funcionalidades
+- solo `bitacora` cree eventos
+- el estado de un barrio tenga un único escritor (ADR-087)
+- toda ruta del panel y del vecino exija `@PreAuthorize`
+
+Se acepta un ciclo deliberado: cortes, reportes e ingesta ↔ recálculo de estado. Corre en la misma transacción que la
+escritura que lo provoca.
+
+**Cómo se evita la regresión.** Ninguna fase se fusiona a `main` sin pasar la «puerta»:
+- `mvnw verify`
+- comparación del `/v3/api-docs` normalizado contra la línea base de R0
+- comparación de la forma de todas las respuestas GET
+- `verificar-flujos.mjs` ampliado a los 89 endpoints
+- el guion de simulación
+
+Además se usa un patrón de estrangulamiento (la clase nueva implementa la interfaz vieja mientras quedan consumidores
+viejos), y las operaciones atómicas se copian literal (`docs/reduccion/invariantes.md`).
+
+- **Gana:**
+  - una funcionalidad se lee en un solo paquete
+  - unas 250–300 clases menos (meta orientativa)
+  - el jurado ve la regla de oro en `reglas/` sin recorrer puertos vacíos
+  - el frontend no se entera: el contrato no cambia
+- **Pierde:**
+  - la simetría de «un caso de uso = una clase = una interfaz»
+  - las capas ya no se distinguen por paquete, sino por convención y por ArchUnit
+  - el cambio es grande y se reparte en 10 fases
+- **Se revierte** con la etiqueta `pre-reduccion` (o `reduccion-R<n>` para volver a una fase), porque el contrato no cambió.
+

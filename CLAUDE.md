@@ -25,6 +25,14 @@ docker compose up -d --build backend   # levanta también sus dependencias; API 
 node scripts/generar-referencia-api.mjs  # regenera docs/api/referencia-de-rutas.md desde el contrato
 ```
 
+## Reducción del backend en curso (desde 2026-10-06)
+
+El backend se está reestructurando por funcionalidad, sin cambiar el contrato ni el comportamiento. **Manda
+[`docs/reduccion/`](docs/reduccion/README.md)**: allí están las fases (R0–R9), las convenciones nuevas, la puerta que se
+comprueba al cerrar cada fase y los invariantes. Mientras dure:
+- conviven la estructura de abajo y los paquetes por funcionalidad
+- el trabajo va en la rama `refactor/reduccion-backend` y se fusiona a `main` al cerrar cada fase; es la única excepción a «directo a `main`»
+
 ## Arquitectura (no negociable)
 
 Arquitectura Limpia (puertos y adaptadores), dependencias siempre hacia adentro:
@@ -47,7 +55,7 @@ Arquitectura Limpia (puertos y adaptadores), dependencias siempre hacia adentro:
 
 ## Git y autoría
 
-- Todo va **directo a `main`**, sin ramas ni PR. Conventional Commits en español (`tipo(scope): descripción`), un commit por unidad de trabajo.
+- Todo va **directo a `main`**, sin ramas ni PR (excepción: `refactor/reduccion-backend`, ver arriba). Conventional Commits en español (`tipo(scope): descripción`), un commit por unidad de trabajo.
 - Commit y push solo cuando el dueño lo pide. Verificar en local antes de empujar y revisar el CI después.
 - **El agente nunca figura como colaborador**: sin `Co-Authored-By` ni firmas de IA en commits o PR (lo refuerzan `includeCoAuthoredBy: false` y `.github/workflows/autoria.yml`).
 - Fechas en hora de Cartagena (UTC-5). Sin secretos versionados: van en `.env` (ignorado por git); `.env.example` es la plantilla.
