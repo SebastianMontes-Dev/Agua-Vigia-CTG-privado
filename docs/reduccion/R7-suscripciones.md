@@ -3,23 +3,14 @@
 **Objetivo:** mover a `suscripciones/` los avisos. Son las suscripciones por correo (doble opt-in, confirmar, cancelar),
 las notificaciones cuando cambia un sector y Telegram, que está apagado sin `TELEGRAM_BOT_TOKEN` (ADR-066).
 
-Riesgo: medio. Choca con la rama `feat/f4-avisos` de Yordy (ver abajo). Esfuerzo: 1–2 sesiones.
+Riesgo: medio. Esfuerzo: 1–2 sesiones.
 
-## Antes de empezar: decidir con Yordy
+## Nota sobre `feat/f4-avisos`
 
-La rama `feat/f4-avisos` toca backend que esta fase mueve:
-- `infrastructure/mail/MailNotificacionAdapter.java`
-- `ValidacionDeUrlPublicaProd.java` (nuevo, exige la URL del frontend en el perfil `prod`)
-- `application-dev.yml`, `application-docker.yml`, `docker-compose.yml`, `.env.example`
-- sus tests
-
-Opciones:
-1. **Recomendada:** Yordy rebasa `feat/f4-avisos` sobre `main` y fusiona solo esos cambios de backend **antes** de R7. Luego R7 los mueve como cualquier otra clase.
-2. Se descartan y Yordy los rehace sobre la estructura nueva.
-
-No se empieza R7 sin esta decisión anotada aquí:
-
-> Decisión: _pendiente_
+Esa rama de Yordy tocaba el correo de suscripciones. El PR #98 ya había llevado su contenido a `main`, así que se archivó
+como `archivo/yordy-2026-10-06/f4-avisos` y se borró el 2026-10-06. Lo único que no llegó a `main`,
+`ValidacionDeUrlPublicaProd` (exigir la URL del frontend en el perfil `prod`), no aplica a un proyecto que corre en local.
+R7 no tiene nada que esperar.
 
 ## Estructura destino
 
@@ -60,7 +51,6 @@ suscripciones/
 
 ```
 Lee docs/reduccion/README.md, docs/reduccion/invariantes.md y docs/reduccion/R7-suscripciones.md.
-Comprueba que la «Decisión» sobre feat/f4-avisos esté anotada; si está pendiente, detente y pregúntame.
 Ejecuta R7 en refactor/reduccion-backend (antes: git merge main) según la estructura destino. Listeners siguen @Async,
 enlaces y plantillas de correo idénticos, Telegram desactivado sin token. Tests: mismos casos y aserciones.
 Corre la puerta completa y muéstrame la salida. No hagas merge a main sin que yo lo confirme. Si usas subagentes, usa model sonnet.

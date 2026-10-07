@@ -52,6 +52,6 @@ Tres a seis líneas en la conversación, no en un archivo:
 
 ## 5. Registra
 
-- Decisión visual nueva o cambio de una existente → `registrar-decision` (ADR) y actualización de `identidad.md`.
-- Avance de fase → `docs/ingenieria/plan-frontend.md` y `docs/gestion/sprint-7.md` §2.
-- Defecto visual encontrado → `registrar-bug`, aunque se corrija en el acto.
+- Decisión visual nueva o cambio de una existente → una fila en `docs/07-decisiones-clave.md` y la actualización de `identidad.md`.
+- Avance de fase → la tabla «Fases» de `docs/frontend/README.md` (✅ con fecha y PR).
+- Pantalla nueva que no está en `docs/diseno/guia-frontend.md` §5 → se añade allí antes de construirla.

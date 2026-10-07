@@ -302,19 +302,10 @@ Fechas en `America/Bogota`, español de Colombia, formato de 12 horas. En otra f
 
 ## 7. Aplicación por Claude Code
 
-Esta es una entrega documental sobre `d366ad9`. Los cambios de F1 que ya estaban en esa base no son implementación de esta guía. Integrar primero las dependencias de esa rama cuando se lleve a `main`; no copiar esta rama entera como si fuera un cambio exclusivamente documental contra el `main` anterior.
-
-| Orden | Trabajo posterior | Evidencia de salida |
-|---|---|---|
-| 1. Fundamentos ✅ 2026-09-25 | Migrar el acento claro de §2.1 en DESIGN.md y tokens.css juntos; ampliar pares de contraste; reemplazar la propuesta numérica por enlace canónico. Mantener los estados y contratos | Hecho: pruebas de tokens y contraste, tema manual en ambas direcciones, muestrario con las combinaciones del acento en 360/1280 px y ambos temas. REC-019 resuelta |
-| 2. F1 🟡 2026-09-25 | Adaptar los cuatro prototipos a esta guía; añadir ejemplos de cuentas/panel y condiciones sin datos. Medir y preparar PMTiles; conservar glifos locales | Prototipos adaptados (Artifact, versión 3) y 62 capturas en 360/768/1280 px y ambos temas. Falta el PMTiles y la revisión visual del dueño; la aprobación del documento no la sustituye |
-| 3. Mapa y reportes | Aplicar ficha, navegación, lista, búsqueda, tiempo y flujo de reporte; estados de error contra API real | RF001–RF008, RF037–RF038 y casos de §8 |
-| 4. Historia pública | Cumplimiento, estadísticas, bitácora y sustento sin datos inventados | Correspondencia entre cada cifra y respuesta; CSV y paginación coherentes |
-| 5. Avisos y cuentas | Formularios, enlaces y TOTP; aplicar decisión técnica pendiente sobre URLs de correo en su fase correspondiente | Recorridos de enlace válido, vencido, usado, doble pulsación y segundo factor |
-| 6. Panel | Colas, formularios, cuentas, auditoría y seguridad | Permisos, teclado, conflictos y sesiones vencidas contra backend real |
-| 7. Integración | Seguir F6 del plan, sin cambiar el stack aquí | Pruebas funcionales, accesibilidad y rendimiento registradas |
-
-No modificar las tablas de colores semánticos, generar tipos de API a mano, reutilizar los controles del Artifact o añadir endpoints para imitar sus datos de ejemplo. Cada fase conserva su PR y registros según el plan; esta guía no publica ni fusiona cambios.
+El plan por fases vive en [`docs/frontend/`](../frontend/README.md) (FE0–FE7, 2026-10-06). Reemplaza la tabla de órdenes 1–7
+que había aquí; la historia de esa tabla está en git. Este documento sigue mandando sobre **qué** muestra cada pantalla (§5)
+y **cómo** se acepta (§8). El plan manda sobre **en qué orden** se construye. No modificar las tablas de colores semánticos,
+no generar tipos de API a mano y no añadir endpoints para imitar datos de ejemplo.
 
 <a id="8-aceptacion-y-verificacion"></a>
 

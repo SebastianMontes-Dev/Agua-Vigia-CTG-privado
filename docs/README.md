@@ -13,6 +13,7 @@ Guías por tema, escritas conforme se valida cada parte del backend. Un dato viv
 | [07 · Decisiones clave](07-decisiones-clave.md) | Hecha |
 | 08 · Guion de la presentación | Pendiente |
 | [Reducción del backend (R0–R9)](reduccion/README.md) | Plan aprobado el 2026-10-06; en curso |
+| [Plan del frontend (FE0–FE7)](frontend/README.md) | Plan del 2026-10-06; en curso |
 
 Referencia para el frontend (no se toca sin Yordy): [`api/`](api/) (contrato, flujos, errores) y [`diseno/`](diseno/).
 La documentación anterior está en el historial: `git show pre-limpieza-docs:<ruta>`.
