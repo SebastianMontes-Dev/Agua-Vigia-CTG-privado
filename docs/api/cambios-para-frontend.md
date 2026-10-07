@@ -193,3 +193,51 @@ lo siguiente es nuevo o añade campos.
 - La cola de moderación sigue siendo la misma lista paginada; solo suma `senalRed`.
 - Lo que se siembra al arrancar ya no incluye reportes, cortes ni estados de barrio inventados: el mapa arranca en «sin datos» salvo los
   barrios con un boletín real de Acuacar vigente. La interfaz no debe suponer que hay datos de ejemplo.
+
+## F5 — Simulación (instancia aparte) y dos correcciones que verás en el mapa y en el Índice
+
+**No rompe nada** y el contrato (`backend/openapi.yaml`) no cambia: las rutas nuevas solo existen en la instancia de simulación y no entran en él.
+
+### Nuevo (solo en la instancia de simulación)
+
+- Hay una **segunda API** para ensayar el sistema con un guion acelerado de un día entero (300 vecinos, boletines, veedor, saltos de reloj). Se levanta con
+  `docker compose --profile simulacion up -d --build backend-sim` y escucha en **http://localhost:8082** (la real sigue en 8081); su base (`aguavigia_sim`) y su Redis (db 1) son
+  aparte, así que **el mapa real no cambia nunca**. Para ver la simulación en tu interfaz: `AGUAVIGIA_BACKEND=http://localhost:8082`. Guía y guion en `scripts/simulacion/README.md`.
+- `GET /api/sistema/modo` responde `"modo": "SIMULACION"` ahí: **muestra el banner permanente** que ya pedía F4. Es la forma de no confundir una simulación con datos reales.
+- `GET|POST /api/sim/**` (reloj, boletines simulados, reinicio, sesión de ADMIN de simulación) lo usa solo el simulador, con la cabecera `X-Sim-Key`. **El frontend no los llama.** En la instancia real
+  responden 404.
+- Tras iniciar el simulador, esa API tiene cuentas del panel de la simulación (`veedor1@sim.aguavigia.test`, etc.; sus claves son aleatorias y no se guardan). Si necesitas entrar al panel con la
+  simulación en marcha, pídele a Sebastián una sesión de simulación; no hay credenciales fijas.
+
+### Cambia sin tocar la forma (las dos salieron de correr la simulación contra el backend)
+
+- **Un corte anunciado para más tarde ahora sí llega al mapa.** Un boletín con ventana futura quedaba en la cola de fallidos y el barrio no cambiaba. Ahora el barrio muestra
+  `estado: "CORTE_PROGRAMADO"` (origen `ACUACAR`, con `ventanaPrometida`) hasta que empieza la ventana y luego `SIN_SERVICIO`. Si tu leyenda o tus colores no contemplaban `CORTE_PROGRAMADO`
+  como estado de un barrio, ahora aparece de verdad.
+- **El Índice recupera los barrios cerrados de un corte que expiró.** Si un corte de varios barrios expiraba porque uno nunca se cerró, se perdían las duraciones de los demás. Ahora cada barrio con cierre
+  cuenta (`GET /api/cumplimiento/sectores/{id}` puede dar 200 donde antes daba 400, y `cantidadCortes` de la serie mensual sube). Nada cambia en los campos.
+- El visor web de Mongo (`--profile demo`) pasó de 8082 a **8083**, porque el 8082 es ahora la simulación (solo afecta a quien lo use a mano).
+
+## F6 — Métricas de calibración para el panel
+
+**No rompe nada.** Una ruta nueva, solo para el panel, ya en `backend/openapi.yaml` (regenera los tipos de `frontend/src/api/generado/esquema.ts`).
+
+### Nuevo
+
+- **`GET /api/veedor/sistema/metricas`** (sesión con el permiso `VER_PANEL`; sin sesión 401, sin el permiso 403) → contadores de **este proceso** desde `desde`:
+  - `cambiosDeEstado`: `{ "SIN_SERVICIO/VECINOS": 4, "CON_SERVICIO/VEEDOR": 1, "SIN_DATOS/SIN_ORIGEN": 2 }` (estado y origen del cambio; `SIN_DATOS/SIN_ORIGEN` es el regreso a «sin datos»).
+  - `disputasAbiertas`: barrios que entraron en disputa.
+  - `quorumsRechazadosPorComposicion`: `{ "SIN_AGUA": 7 }`, por tipo de reporte. Cuenta **episodios**: un quórum que llegó al umbral pero no a la composición (sin cuentas verificadas o desde una sola red).
+  - `reportesPorNivelDeVerificacion`: `{ "NINGUNA": 120, "UBICACION_VERIFICADA": 14, "CUENTA_VERIFICADA": 30 }`.
+  - `fallosDeColectores`: `{ "acuacar": 1 }`.
+  - `tiempoHastaElCambioDeEstado`: `{ cambios, promedioSegundos, maximoSegundos }`, del primer reporte que sostiene un estado de los vecinos a su publicación.
+- **Cómo mostrarlo:** es una pantalla técnica del panel (tabla o tarjetas), no una página pública. Un **reinicio del backend lo pone a cero** (`desde` lo dice: muéstralo siempre junto a las cifras) y, con varias réplicas, cada una cuenta las suyas. Los mapas pueden venir vacíos: no supongas claves.
+- No hay SSE ni paginación: es una lectura puntual, se pide al abrir la pantalla o con un botón «Actualizar».
+
+### Cambia el contrato en un punto (cierre de F6)
+
+- **`POST /api/suscripciones`: `sectorIds` admite entre 1 y 211 elementos** (`maxItems: 211` en `backend/openapi.yaml`). Con más responde **400** en formato RFC 7807, igual que con la lista vacía. Los
+  ids repetidos se ignoran en silencio (se suscribe una vez a cada barrio). Una pantalla de «seguir barrios» no debería poder pasar de ahí: la ciudad tiene 211. Regenera los tipos de
+  `frontend/src/api/generado/esquema.ts` (el `maxItems` sale en el esquema).
+- **Exportaciones CSV (`GET /api/estadisticas/exportar.csv`, `GET /api/cumplimiento/serie.csv`):** un texto que empiece por `=`, `+`, `-` o `@` sale con una comilla simple delante (`'=...`) para que Excel no lo abra como fórmula.
+  Las cifras no cambian. Solo importa si el frontend muestra o procesa ese texto del CSV: no debería.

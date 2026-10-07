@@ -132,6 +132,10 @@ confiable, ver arriba), corrige la población, y **no** siembra `estadoActual` �
 la aplicación, no dato de referencia; queda para que D2/D3 decidan el valor inicial en el adaptador de
 `SectorRepository` cuando `/backend` exista.
 
+**Guarda (ADR-097):** como borra la colección entera, se niega a correr si la URI no es local (`--permitir-remoto`) o si la base
+ya guarda reportes, cortes, propuestas o cuentas que no son de demostración (`--sobre-datos-reales`). Sobre una base recién creada
+no cambia nada.
+
 ---
 
 ## Próximo paso

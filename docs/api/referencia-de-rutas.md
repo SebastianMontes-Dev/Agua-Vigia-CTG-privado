@@ -6,7 +6,7 @@
 >
 > Las **guías** de esta carpeta explican el porqué y los flujos; esta página es el catálogo exacto.
 
-**83 operaciones** en 77 rutas, más las páginas HTML de cortesía y el SSE.
+**84 operaciones** en 78 rutas, más las páginas HTML de cortesía y el SSE.
 
 Leyenda de **Acceso**: *Público* no exige token · *Sesión + `PERMISO`* exige `Authorization: Bearer <token>` de una
 cuenta que tenga ese permiso · *Sesión (cualquier cuenta)* exige token pero ningún permiso concreto.
@@ -35,6 +35,7 @@ Todo error sale en RFC 7807: ver [Errores y límites](errores-y-limites.md).
 - [Veedor - Ingesta](#veedor-ingesta) (6)
 - [Veedor - Moderación](#veedor-moderaci-n) (4)
 - [Veedor - Segundo factor](#veedor-segundo-factor) (3)
+- [Veedor - Sistema](#veedor-sistema) (1)
 - [Esquemas](#esquemas)
 
 ## Bitácora
@@ -1174,6 +1175,23 @@ Devuelve una sesion nueva de alcance COMPLETO. Es lo que permite que un ADMIN re
 | **Cuerpo** | [SolicitudCodigo](#esquema-solicitudcodigo) (`application/json`) |
 | **Respuestas** | `200` Segundo factor activo; sesion nueva emitida → [SesionVeedor](#esquema-sesionveedor)<br>`401` El codigo no coincide → [SesionVeedor](#esquema-sesionveedor)<br>`403` La sesión no tiene el permiso que exige esta operación → [ProblemDetail](#esquema-problemdetail)<br>`409` No hay un alta en curso → [SesionVeedor](#esquema-sesionveedor) |
 
+## Veedor - Sistema
+
+Contadores para calibrar umbrales y plazos
+
+### `GET /api/veedor/sistema/metricas`
+
+**Contadores de calibración del sistema**
+
+Cambios de estado, disputas, quórums rechazados por composición, reportes por nivel de verificación, fallos de colectores y el tiempo entre el primer reporte y el cambio de estado. Son de este proceso desde `desde`: un reinicio los pone a cero. Sirven para calibrar los umbrales y los plazos, que son valores iniciales sin datos reales que los respalden.
+
+| | |
+|---|---|
+| **Acceso** | Sesión + `VER_PANEL` |
+| **Parámetros** | — |
+| **Cuerpo** | — |
+| **Respuestas** | `200` OK → [MetricasDelSistemaRespuesta](#esquema-metricasdelsistemarespuesta)<br>`401` Sin sesión, token inválido, caducado o revocado → [ProblemDetail](#esquema-problemdetail)<br>`403` La sesión no tiene el permiso que exige esta operación → [ProblemDetail](#esquema-problemdetail) |
+
 ## Esquemas
 
 Los tipos que viajan en cuerpos y respuestas. Un campo **nullable** puede llegar como `null`: significa «sin
@@ -1406,6 +1424,22 @@ Evento de la bitácora pública, de solo anexado (RF026-RF028)
 | `sectorId` | string | sí |  |  |
 | `presionPsi` | number (double) |  |  |  |
 | `coordenada` | [IotCoordenada](#esquema-iotcoordenada) |  |  |  |
+
+<a id="esquema-metricasdelsistemarespuesta"></a>
+
+### MetricasDelSistemaRespuesta
+
+Contadores de calibración (D37) de este proceso desde `desde`. Un reinicio los pone a cero; con varias réplicas, cada una cuenta los suyos.
+
+| Campo | Tipo | Oblig. | Nulo | Descripción |
+|---|---|---|---|---|
+| `desde` | string (date-time) |  |  | Desde cuándo cuentan estos contadores |
+| `cambiosDeEstado` | mapa de integer (int64) |  |  | Cambios de estado publicados, por «ESTADO/ORIGEN» (SIN_DATOS/SIN_ORIGEN es el regreso a «sin datos») |
+| `disputasAbiertas` | integer (int64) |  |  | Barrios que entraron en disputa (los vecinos contradicen lo oficial) |
+| `quorumsRechazadosPorComposicion` | mapa de integer (int64) |  |  | Quórums que llegaron al umbral pero no a la composición (verificación o redes distintas), por tipo de reporte y por episodio |
+| `reportesPorNivelDeVerificacion` | mapa de integer (int64) |  |  | Reportes recibidos por nivel de verificación: NINGUNA, UBICACION_VERIFICADA o CUENTA_VERIFICADA |
+| `fallosDeColectores` | mapa de integer (int64) |  |  | Fallos de cada colector de ingesta, por nombre |
+| `tiempoHastaElCambioDeEstado` | [TiempoHastaElCambio](#esquema-tiempohastaelcambio) |  |  |  |
 
 <a id="esquema-mododelsistemarespuesta"></a>
 
@@ -1812,7 +1846,7 @@ Solicitud para suscribirse a los avisos de uno o más sectores
 | Campo | Tipo | Oblig. | Nulo | Descripción |
 |---|---|---|---|---|
 | `correo` | string (email) | sí |  | Correo al que llegarán los avisos |
-| `sectorIds` | lista de string | sí |  | Identificadores de los sectores a seguir |
+| `sectorIds` | lista de string | sí |  | Identificadores de los sectores a seguir (211 barrios tiene la ciudad: más no caben) |
 
 <a id="esquema-solicitudverificacionbarrio"></a>
 
@@ -1838,6 +1872,18 @@ Suscripción creada, pendiente de confirmación por correo (RF013)
 | `sectorIds` | lista de string |  |  |  |
 | `estado` | string |  |  | PENDIENTE_CONFIRMACION, CONFIRMADA o CANCELADA |
 | `creadaEn` | string (date-time) |  |  |  |
+
+<a id="esquema-tiempohastaelcambio"></a>
+
+### TiempoHastaElCambio
+
+Cambios medidos y cuánto tardaron, en segundos
+
+| Campo | Tipo | Oblig. | Nulo | Descripción |
+|---|---|---|---|---|
+| `cambios` | integer (int64) |  |  |  |
+| `promedioSegundos` | integer (int64) |  |  |  |
+| `maximoSegundos` | integer (int64) |  |  |  |
 
 <a id="esquema-tokendedispositivorespuesta"></a>
 

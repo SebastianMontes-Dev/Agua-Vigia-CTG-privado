@@ -34,7 +34,7 @@ Leer la clave del ADMIN (PowerShell): `docker compose logs backend | findstr ADM
 ## 3. Exposición de la red
 
 Todos los puertos de `docker-compose.yml` se publican solo en `127.0.0.1` (Mongo 27017, Redis 6379, Mailhog 1025/8025, API 8081,
-visor 8082). Dentro de la red interna de compose, Mongo escucha en todas sus interfaces para que el backend lo alcance; hacia la
+API de la simulación 8082 —solo con el perfil `simulacion`—, visor 8083). Dentro de la red interna de compose, Mongo escucha en todas sus interfaces para que el backend lo alcance; hacia la
 red del aula no se ve. Mongo y Redis siguen **sin autenticación**: es aceptable solo porque no salen del equipo.
 
 ## 4. Perfiles
@@ -50,4 +50,4 @@ red del aula no se ve. Mongo y Redis siguen **sin autenticación**: es aceptable
 - **`IOT_KEY` es una clave compartida**, no se puede rotar por sensor.
 - **Historial de git:** una clave de desarrollo y una clave de demostración estuvieron publicadas en un repo público. Ya no están en
   ningún archivo vigente y se consideran expuestas (no usarlas jamás); seguirán en el historial mientras no se reescriba.
-  `.gitleaks.toml` conserva la exención del valor antiguo solo para que el escaneo del historial no falle.
+  El valor ya no está ni en `.gitleaks.toml`: el escaneo del historial lo exime con cuatro huellas de commit y línea en `.gitleaksignore`, que no lo contienen (ADR-097 §5).
