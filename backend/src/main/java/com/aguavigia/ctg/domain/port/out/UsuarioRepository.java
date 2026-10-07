@@ -39,6 +39,9 @@ public interface UsuarioRepository {
      */
     long contarActivosPorRol(RolVeedor rol);
 
+    /** La cuenta más antigua de ese rol (el ADMIN inicial, si es el rol ADMIN), de cualquier estado. */
+    Optional<Usuario> buscarPrimeroPorRol(RolVeedor rol);
+
     /** Cuántas cuentas sintéticas (de demostración) hay, de cualquier estado. */
     long contarSinteticas();
 

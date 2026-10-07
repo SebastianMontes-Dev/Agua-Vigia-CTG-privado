@@ -30,7 +30,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * en cada cambio costaba ~1,25 GB por evento con 50 000 conexiones abiertas.
  *
  * Backplane (estado-del-backend.md #6.1): la actualización se publica en el canal Redis
- * {@link #CANAL} y cada instancia suscrita avisa a sus propios clientes. Nadie depende de
+ * {@link #CANAL} (o su variante por modo, ver {@link #canalPara}) y cada instancia suscrita avisa a sus propios clientes. Nadie depende de
  * deserializar el estado de otra instancia.
  *
  * Qué evita cada pieza a esa escala:
@@ -49,6 +49,18 @@ public class SseSectoresBroadcaster implements MessageListener, CanalEnVivoPort<
 
     static final String CANAL = "aguavigia:sse:sectores";
 
+    /**
+     * Pub/Sub de Redis ignora el número de base de datos, así que la instancia de simulación (que usa otra base para
+     * aislar sus llaves) compartía canal con la real y cada recálculo simulado avisaba a los clientes reales. La
+     * instancia real conserva el nombre de siempre; cualquier otro modo lo sufija.
+     */
+    static String canalPara(String modo) {
+        if (modo == null || modo.isBlank() || modo.trim().equalsIgnoreCase("REAL")) {
+            return CANAL;
+        }
+        return CANAL + ":" + modo.trim().toLowerCase(java.util.Locale.ROOT);
+    }
+
     private static final long CADUCIDAD_BASE_MS = 600_000L;
     private static final long CADUCIDAD_JITTER_MS = 120_000L;
     private static final long REINTENTO_BASE_MS = 3_000L;
@@ -59,18 +71,21 @@ public class SseSectoresBroadcaster implements MessageListener, CanalEnVivoPort<
     private final RedisTemplate<String, String> redisTemplate;
     private final Executor difusion;
     private final int maxConexiones;
+    private final String canal;
     private final Set<SseEmitter> emisores = ConcurrentHashMap.newKeySet();
     private final AtomicBoolean pendiente = new AtomicBoolean(false);
     private final AtomicReference<Instant> ultimoCambio = new AtomicReference<>();
 
     @Autowired
     public SseSectoresBroadcaster(RelojPort reloj, RedisTemplate<String, String> redisTemplate,
-                                   @Value("${aguavigia.sse.max-conexiones:20000}") int maxConexiones) {
-        this(reloj, redisTemplate, Executors.newVirtualThreadPerTaskExecutor(), maxConexiones);
+                                   @Value("${aguavigia.sse.max-conexiones:20000}") int maxConexiones,
+                                   @Value("${aguavigia.sistema.modo:REAL}") String modo) {
+        this(reloj, redisTemplate, Executors.newVirtualThreadPerTaskExecutor(), maxConexiones, canalPara(modo));
     }
 
     SseSectoresBroadcaster(RelojPort reloj, RedisTemplate<String, String> redisTemplate, Executor difusion,
-                           int maxConexiones) {
+                           int maxConexiones, String canal) {
+        this.canal = canal;
         this.reloj = reloj;
         this.redisTemplate = redisTemplate;
         this.difusion = difusion;
@@ -102,6 +117,10 @@ public class SseSectoresBroadcaster implements MessageListener, CanalEnVivoPort<
         return emitter;
     }
 
+    String canal() {
+        return canal;
+    }
+
     public int conexionesActivas() {
         return emisores.size();
     }
@@ -111,7 +130,7 @@ public class SseSectoresBroadcaster implements MessageListener, CanalEnVivoPort<
      * suscritas, no solo la que procesó el cambio.
      */
     public void notificarActualizacion() {
-        redisTemplate.convertAndSend(CANAL, reloj.ahora().toString());
+        redisTemplate.convertAndSend(canal, reloj.ahora().toString());
     }
 
     /** Solo marca que hay un cambio por difundir: el envío lo hace {@link #difundirPendiente()}. */

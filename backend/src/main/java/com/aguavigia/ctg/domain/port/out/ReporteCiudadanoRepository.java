@@ -1,5 +1,6 @@
 package com.aguavigia.ctg.domain.port.out;
 
+import com.aguavigia.ctg.domain.EstadoModeracion;
 import com.aguavigia.ctg.domain.EvidenciaVencida;
 import com.aguavigia.ctg.domain.HuellaDispositivo;
 import com.aguavigia.ctg.domain.Pagina;
@@ -62,6 +63,23 @@ public interface ReporteCiudadanoRepository {
      * @return false si el reporte no existe o ya tenía foto
      */
     boolean asignarFotoSiNoTiene(ReporteId id, String fotoUrl, String fotoSha256);
+
+    /**
+     * Suma la huella a las confirmaciones sin tocar nada más y solo si el reporte no está descartado. No es
+     * leer→modificar→guardar: guardar el documento entero devolvía a la vida un reporte que el veedor descartó entre
+     * la lectura y la escritura, y pisaba las confirmaciones que llegaron en medio. Repetir la misma huella no falla.
+     *
+     * @return false si el reporte no existe o está descartado
+     */
+    boolean agregarConfirmacionSiVigente(ReporteId id, HuellaDispositivo huella);
+
+    /**
+     * Cambia solo la decisión de moderación, sin tocar confirmaciones ni foto (mismo motivo que
+     * {@link #agregarConfirmacionSiVigente}). Es idempotente: poner el estado que ya tiene no falla.
+     *
+     * @return false si el reporte no existe
+     */
+    boolean cambiarEstadoDeModeracion(ReporteId id, EstadoModeracion estado);
 
     /** Marca la foto como descartada sin tocar el resto del reporte. @return false si el reporte no existe o no tiene foto */
     boolean marcarFotoDescartada(ReporteId id);

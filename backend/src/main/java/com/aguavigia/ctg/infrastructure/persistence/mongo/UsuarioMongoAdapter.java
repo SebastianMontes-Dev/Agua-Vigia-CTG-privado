@@ -72,7 +72,9 @@ public class UsuarioMongoAdapter implements UsuarioRepository {
         documento.setRol(usuario.permisos().rol().name());
         documento.setBarrio(usuario.barrio() == null ? null : usuario.barrio().valor());
         documento.setDatosDeDemostracion(usuario.datosDeDemostracion());
-        documento.setOrigen(usuario.datosDeDemostracion() ? "SEMBRADO" : null);
+        // Solo las sintéticas (vecinos de la fábrica del sistema) son SEMBRADO: las cuentas de panel de demostración
+        // llevan la marca pero tienen titular, y el sembrador no debe tratarlas como suyas.
+        documento.setOrigen(usuario.esSintetica() ? "SEMBRADO" : null);
         documento.setPermisosConcedidos(aNombres(usuario.permisos().concedidos()));
         documento.setPermisosRevocados(aNombres(usuario.permisos().revocados()));
         documento.setSecretoTotp(usuario.segundoFactor() == null
@@ -127,8 +129,13 @@ public class UsuarioMongoAdapter implements UsuarioRepository {
     }
 
     @Override
+    public Optional<Usuario> buscarPrimeroPorRol(RolVeedor rol) {
+        return repositorio.findFirstByRolOrderByCreadoEnAsc(rol.name()).map(UsuarioMongoAdapter::aDominio);
+    }
+
+    @Override
     public long contarSinteticas() {
-        return repositorio.countByDatosDeDemostracion(true);
+        return repositorio.countByRolAndOrigen(RolVeedor.VECINO.name(), "SEMBRADO");
     }
 
     @Override

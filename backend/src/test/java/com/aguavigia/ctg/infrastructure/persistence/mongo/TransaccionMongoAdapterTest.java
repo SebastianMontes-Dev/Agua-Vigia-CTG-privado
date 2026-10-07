@@ -2,6 +2,7 @@ package com.aguavigia.ctg.infrastructure.persistence.mongo;
 
 import com.mongodb.MongoException;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.mongodb.UncategorizedMongoDbException;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.TransactionException;
@@ -108,6 +109,53 @@ class TransaccionMongoAdapterTest {
         }
 
         assertThat(gestor.intentos).isZero();
+    }
+
+    /**
+     * `MongoTemplate` y los repositorios traducen la `MongoException` antes de que salga del adaptador: la etiqueta
+     * `TransientTransactionError` queda en la causa de la excepción de Spring, no en la de arriba.
+     */
+    @Test
+    void debeReintentarCuandoSpringTradujoLaFallaTransitoriaYLaEtiquetaQuedoEnLaCausa() {
+        GestorDeTransaccionesFalso gestor = new GestorDeTransaccionesFalso();
+        TransaccionMongoAdapter adaptador = new TransaccionMongoAdapter(gestor);
+        AtomicInteger llamadas = new AtomicInteger();
+
+        String resultado = adaptador.ejecutar(() -> {
+            if (llamadas.getAndIncrement() < 1) {
+                MongoException causa = new MongoException("conflicto de escritura");
+                causa.addLabel(MongoException.TRANSIENT_TRANSACTION_ERROR_LABEL);
+                throw new UncategorizedMongoDbException("conflicto de escritura", causa);
+            }
+            return "listo al segundo intento";
+        });
+
+        assertThat(resultado).isEqualTo("listo al segundo intento");
+        assertThat(gestor.intentos).isEqualTo(2);
+    }
+
+    @Test
+    void noDebeReintentarUnaFallaTraducidaSinLaEtiquetaDeTransitoria() {
+        GestorDeTransaccionesFalso gestor = new GestorDeTransaccionesFalso();
+        TransaccionMongoAdapter adaptador = new TransaccionMongoAdapter(gestor);
+
+        assertThatThrownBy(() -> adaptador.ejecutar(() -> {
+            throw new UncategorizedMongoDbException("falla permanente", new MongoException("sin etiqueta"));
+        })).isInstanceOf(UncategorizedMongoDbException.class);
+
+        assertThat(gestor.intentos).isEqualTo(1);
+    }
+
+    @Test
+    void noDebeReintentarUnaFallaDeDominioAunqueSuCausaSeaUnaExcepcionCualquiera() {
+        GestorDeTransaccionesFalso gestor = new GestorDeTransaccionesFalso();
+        TransaccionMongoAdapter adaptador = new TransaccionMongoAdapter(gestor);
+
+        assertThatThrownBy(() -> adaptador.ejecutar(() -> {
+            throw new IllegalStateException("regla violada", new IllegalArgumentException("otra"));
+        })).isInstanceOf(IllegalStateException.class);
+
+        assertThat(gestor.intentos).isEqualTo(1);
     }
 
     @Test

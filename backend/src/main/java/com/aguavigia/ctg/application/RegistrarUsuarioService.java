@@ -76,11 +76,14 @@ public class RegistrarUsuarioService implements RegistrarUsuarioUseCase {
             // Un alta nueva cifra la clave (BCrypt, ~100 ms); sin este gasto equivalente, la
             // respuesta más rápida delataría qué correos ya tienen cuenta.
             cifrador.gastarTiempoEquivalente();
-            notificaciones.avisarCambioDeAcceso(existente.get(),
-                    "Alguien intentó registrarse con tu correo",
-                    "Recibimos una solicitud de registro en AguaVigía con esta dirección, que ya "
-                            + "tiene cuenta. No hicimos ningún cambio. Si fuiste tú y no recuerdas "
-                            + "tu clave, usa la opción de restablecerla desde el ingreso del veedor.");
+            // Una cuenta sintética no tiene titular a quien avisar (su dirección es de un dominio reservado).
+            if (!existente.get().esSintetica()) {
+                notificaciones.avisarCambioDeAcceso(existente.get(),
+                        "Alguien intentó registrarse con tu correo",
+                        "Recibimos una solicitud de registro en AguaVigía con esta dirección, que ya "
+                                + "tiene cuenta. No hicimos ningún cambio. Si fuiste tú y no recuerdas "
+                                + "tu clave, usa la opción de restablecerla desde el ingreso del veedor.");
+            }
             return;
         }
 

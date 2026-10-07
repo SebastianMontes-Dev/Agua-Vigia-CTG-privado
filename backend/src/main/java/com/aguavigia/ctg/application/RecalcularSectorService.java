@@ -32,6 +32,7 @@ import com.aguavigia.ctg.domain.TipoReporte;
 import com.aguavigia.ctg.domain.port.in.RecalcularSectorUseCase;
 import com.aguavigia.ctg.domain.port.in.RegistrarEventoBitacoraUseCase;
 import com.aguavigia.ctg.domain.port.out.CorteAguaRepository;
+import com.aguavigia.ctg.domain.port.out.MetricasDelSistemaPort;
 import com.aguavigia.ctg.domain.port.out.PropuestaIngestaRepository;
 import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.ReporteCiudadanoRepository;
@@ -60,9 +61,9 @@ import java.util.stream.Stream;
  * vence) se guardan sin ruido, aunque la disputa deja su anotación en la bitácora. Lo que cambia junto al
  * estado —el corte que los vecinos cierran o reabren y su evento— se escribe en la misma transacción.
  *
- * Límites conocidos: un boletín que declara presión baja con ventana no se puede representar todavía
- * (el resolutor solo conoce la ventana de corte), y una ventana sin fin declarado tampoco; ninguno de los
- * dos afirma nada del presente.
+ * Límites conocidos: un boletín sin inicio o sin fin declarado no se puede representar como ventana y no
+ * afirma nada del presente. Las métricas (D37) se cuentan al terminar este recálculo; si lo llama un caso de
+ * uso que ya tiene una transacción abierta y esa se revierte después, el contador queda sumado de más.
  */
 public class RecalcularSectorService implements RecalcularSectorUseCase {
 
@@ -83,6 +84,7 @@ public class RecalcularSectorService implements RecalcularSectorUseCase {
     private final TransaccionPort transaccion;
     private final Duration ventanaConsenso;
     private final int redesMinimas;
+    private final MetricasDelSistemaPort metricas;
 
     public RecalcularSectorService(SectorRepository sectores, CorteAguaRepository cortes,
                                    PropuestaIngestaRepository propuestas, ReporteCiudadanoRepository reportes,
@@ -90,7 +92,22 @@ public class RecalcularSectorService implements RecalcularSectorUseCase {
                                    RegistrarEventoBitacoraUseCase registrarEvento, RelojPort reloj,
                                    TransaccionPort transaccion, Duration ventanaConsenso,
                                    int redesMinimas) {
+        this(sectores, cortes, propuestas, reportes, estrategia, resolutor, registrarEvento, reloj, transaccion, ventanaConsenso,
+                redesMinimas, MetricasDelSistemaPort.NINGUNA);
+    }
+
+    public RecalcularSectorService(SectorRepository sectores, CorteAguaRepository cortes,
+                                   PropuestaIngestaRepository propuestas, ReporteCiudadanoRepository reportes,
+                                   EstrategiaConsenso estrategia, ResolutorDeEstadoSector resolutor,
+                                   RegistrarEventoBitacoraUseCase registrarEvento, RelojPort reloj,
+                                   TransaccionPort transaccion, Duration ventanaConsenso,
+                                   int redesMinimas, MetricasDelSistemaPort metricas) {
+        if (redesMinimas < 1) {
+            throw new IllegalArgumentException(
+                    "aguavigia.consenso.redes-minimas debe ser al menos 1 (era " + redesMinimas + "): con 0 redes el quórum no exigiría diversidad");
+        }
         this.redesMinimas = redesMinimas;
+        this.metricas = metricas;
         this.sectores = sectores;
         this.cortes = cortes;
         this.propuestas = propuestas;
@@ -140,10 +157,26 @@ public class RecalcularSectorService implements RecalcularSectorUseCase {
         publicado = conOrigenDeSensores(sector, publicado, vecinos);
         boolean cambioElEstado = aplicar(sector, publicado, aprobadas, cortesDelSector, reapertura, vecinos,
                 memoriaDescartada, ahora);
+        if (cambioElEstado) {
+            medirElCambio(sectorId, publicado, vecinos, ahora);
+        }
         List<ReporteId> sustento = cambioElEstado && OrigenEstado.votan(publicado.origen())
                 ? idsDe(vecinos.sustentoDe(publicado.estado()))
                 : List.of();
         return new ResultadoDeRecalculo(publicado, cambioElEstado, sustento);
+    }
+
+    /** D37: el cambio que este recálculo sí movió y, si lo sostienen los vecinos o los sensores, cuánto tardó desde el primer reporte. */
+    private void medirElCambio(SectorId sectorId, EstadoPublicado publicado, VotosDeVecinos vecinos, Instant ahora) {
+        metricas.cambioDeEstado(sectorId, publicado.estado(), publicado.origen());
+        if (publicado.estado() == null || !OrigenEstado.votan(publicado.origen())) {
+            return;
+        }
+        vecinos.quorums().stream()
+                .filter(q -> q.estado() == publicado.estado() && q.alcanzado())
+                .map(q -> q.primerReporte() != null ? q.primerReporte() : q.ultimoReporte())
+                .min(Comparator.naturalOrder())
+                .ifPresent(primero -> metricas.tiempoHastaElCambioDeEstado(Duration.between(primero, ahora)));
     }
 
     private static List<ReporteId> idsDe(List<ReporteCiudadano> reportes) {
@@ -202,9 +235,13 @@ public class RecalcularSectorService implements RecalcularSectorUseCase {
                 continue;
             }
             CierreDeCorte cierre = corte == null ? null : corte.cierreDe(sectorId).orElse(null);
+            // CORTE_PROGRAMADO es la etiqueta que la ingesta pone a un boletín cuya ventana aún no empezaba; la ventana siempre
+            // afirma un corte, y el resolutor lo muestra programado hasta que empiece.
+            EstadoServicio enVentana = propuesta.estadoPropuesto() == EstadoServicio.CORTE_PROGRAMADO
+                    ? EstadoServicio.SIN_SERVICIO : propuesta.estadoPropuesto();
             afirmaciones.add(propuesta.esDeFuenteOficial()
-                    ? new VentanaOficial(propuesta.inicioDeclarado(), propuesta.finPrometido(), cierre, propuesta.estadoPropuesto())
-                    : new PrensaAprobada(propuesta.inicioDeclarado(), propuesta.finPrometido(), cierre, propuesta.estadoPropuesto()));
+                    ? new VentanaOficial(propuesta.inicioDeclarado(), propuesta.finPrometido(), cierre, enVentana)
+                    : new PrensaAprobada(propuesta.inicioDeclarado(), propuesta.finPrometido(), cierre, enVentana));
         }
         return afirmaciones;
     }
@@ -228,6 +265,12 @@ public class RecalcularSectorService implements RecalcularSectorUseCase {
                 ? reportes.listarRecientesPorSector(sector.id(), ventanaConsenso)
                 : List.of();
         VotosDeVecinos vecinos = VotosDeVecinos.formar(recientes, umbral, redesMinimas);
+        // D37: lo que llegó al umbral pero no a la composición es justo lo que hay que ver para calibrar (una sola red, sin cuentas verificadas).
+        for (QuorumVecinos quorum : vecinos.quorums()) {
+            if (quorum.respaldo() >= quorum.umbral() && !quorum.composicionValida()) {
+                metricas.quorumRechazadoPorComposicion(sector.id(), quorum.tipo());
+            }
+        }
         return conMemoria ? vecinos.conMemoria(MemoriaDelBarrio.recordado(sector)) : vecinos;
     }
 
@@ -397,10 +440,14 @@ public class RecalcularSectorService implements RecalcularSectorUseCase {
         // Solo se abre la disputa (el estado no cambia): el compare-and-set no alcanza para que dos recálculos simultáneos
         // no anoten el mismo evento, porque los dos ven el mismo estado; hace falta que además siga sin estar abierta.
         boolean soloAbreLaDisputa = !cambiaElEstado && publicado.enDisputa() && !sector.marcas().enDisputa();
+        boolean abreLaDisputa = publicado.enDisputa() && !sector.marcas().enDisputa();
+        boolean[] disputaEscrita = {false};
 
         // Estado + evento en la misma transacción: si el registro del evento falla, revierte también el
         // estado — sin esto quedaba un cambio publicado sin la cita que lo sustenta en la bitácora (RF028).
         boolean movioElEstado = transaccion.ejecutar(() -> {
+            // Un reintento empieza de cero: lo que el intento anterior dejó marcado ya no vale.
+            disputaEscrita[0] = false;
             // Las lecturas van dentro: si la transacción se reintenta, decide sobre cortes frescos. Antes de escribir
             // nada, para no tener que deshacer el compare-and-set si un corte ya no admite el cambio.
             Optional<List<CorteAgua>> actualizados = reaplicarSobreLosCortesFrescos(cambiosDeCortes);
@@ -415,8 +462,12 @@ public class RecalcularSectorService implements RecalcularSectorUseCase {
             }
             actualizados.get().forEach(cortes::guardar);
             eventos.forEach(registrarEvento::registrar);
+            disputaEscrita[0] = abreLaDisputa;
             return cambiaElEstado;
         });
+        if (disputaEscrita[0]) {
+            metricas.disputaAbierta();
+        }
         if (!cambiaElEstado) {
             verificarSiToca(sector, publicado, vecinos, ahora);
         }

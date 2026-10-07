@@ -300,6 +300,14 @@ public record Usuario(
         return permisos.rol() == RolVeedor.VECINO;
     }
 
+    /**
+     * Una cuenta sintética de vecino (D20): nadie es su titular. Las cuentas de panel de demostración que siembra
+     * `sembrar-usuarios-demo.mjs` también llevan `datosDeDemostracion`, pero tienen claves conocidas y sí se usan.
+     */
+    public boolean esSintetica() {
+        return datosDeDemostracion && esVecino();
+    }
+
     public Usuario verificarBarrio(Instant momento) {
         exigirVecino();
         return copiaDeVecino(nombre, barrio, consentimientos, true, momento, momento);

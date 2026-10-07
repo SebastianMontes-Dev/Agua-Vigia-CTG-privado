@@ -14,6 +14,7 @@ import com.aguavigia.ctg.infrastructure.persistence.mongo.MarcaDeIngestaMongoRep
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.aguavigia.ctg.infrastructure.scheduling.EjecucionUnica;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -63,6 +64,8 @@ public class PipelineOrquestador {
      * solo el respaldo de Acuacar en vivo (`esRespaldo()`).
      */
     private final Optional<ColectorLocalDeBoletines> colectorLocal;
+    /** Existe con `aguavigia.ingesta.modo=simulacion` (D38): sustituye a Acuacar y a la prensa con lo que el simulador le entrega. */
+    private final Optional<ColectorSimulado> colectorSimulado;
     private final DeduplicadorReciente deduplicador;
     private final HeuristicaExtractor extractor;
     private final SectorRepository sectorRepository;
@@ -85,6 +88,25 @@ public class PipelineOrquestador {
                                DocumentoFallidoMongoRepository fallidos,
                                RelojPort reloj,
                                EjecucionUnica ejecucionUnica) {
+        this(acuacarApiCollector, rssCollector, colectorLocal, deduplicador, extractor, sectorRepository, registrarPropuesta,
+                estadoColectores, marcas, fallidos, reloj, ejecucionUnica, Optional.empty());
+    }
+
+    @Autowired
+    public PipelineOrquestador(AcuacarApiCollector acuacarApiCollector,
+                               RssCollector rssCollector,
+                               Optional<ColectorLocalDeBoletines> colectorLocal,
+                               DeduplicadorReciente deduplicador,
+                               HeuristicaExtractor extractor,
+                               SectorRepository sectorRepository,
+                               RegistrarPropuestaIngestaUseCase registrarPropuesta,
+                               EstadoColectorRegistry estadoColectores,
+                               MarcaDeIngestaMongoRepository marcas,
+                               DocumentoFallidoMongoRepository fallidos,
+                               RelojPort reloj,
+                               EjecucionUnica ejecucionUnica,
+                               Optional<ColectorSimulado> colectorSimulado) {
+        this.colectorSimulado = colectorSimulado;
         this.acuacarApiCollector = acuacarApiCollector;
         this.rssCollector = rssCollector;
         this.colectorLocal = colectorLocal;
@@ -113,13 +135,17 @@ public class PipelineOrquestador {
      * así que el ciclo no veía absolutamente nada y los boletines de corte de julio y agosto nunca
      * se ingirieron.
      */
-    public void ejecutarCiclo() {
-        // Modo local: los boletines guardados ocupan el lugar de Acuacar y no se toca la red ni la prensa.
-        boolean sustituyeALaRed = colectorLocal.filter(local -> !local.esRespaldo()).isPresent();
+    // synchronized: en la simulación el ciclo también lo dispara cada boletín inyectado, y dos ciclos a la vez procesarían un mismo
+    // documento dos veces antes de que el deduplicador lo vea. Entre réplicas manda EjecucionUnica; esto cubre la misma JVM.
+    public synchronized void ejecutarCiclo() {
+        // Modo local o simulación: sus boletines ocupan el lugar de Acuacar y no se toca la red ni la prensa.
+        boolean sustituyeALaRed = colectorSimulado.isPresent()
+                || colectorLocal.filter(local -> !local.esRespaldo()).isPresent();
         Optional<ColectorLocalDeBoletines> respaldo = colectorLocal.filter(ColectorLocalDeBoletines::esRespaldo);
+        FuenteDatosPort sustituto = colectorSimulado.<FuenteDatosPort>map(c -> c).orElseGet(() -> colectorLocal.orElse(null));
 
         Lectura deAcuacar = sustituyeALaRed
-                ? new Lectura(recolectar("acuacar", () -> colectorLocal.get().obtenerDesde(desdeDondeLeer("acuacar"))), false)
+                ? new Lectura(recolectar("acuacar", () -> sustituto.obtenerDesde(desdeDondeLeer("acuacar"))), false)
                 : recolectarConRespaldo("acuacar", () -> acuacarApiCollector.obtenerDesde(desdeDondeLeer("acuacar")), respaldo);
         List<DocumentoCrudo> deRss = sustituyeALaRed
                 ? List.of()

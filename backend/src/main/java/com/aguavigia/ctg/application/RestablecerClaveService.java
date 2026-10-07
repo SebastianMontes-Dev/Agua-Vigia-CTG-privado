@@ -67,6 +67,9 @@ public class RestablecerClaveService implements RestablecerClaveUseCase {
                 // la aprobación.
                 .filter(usuario -> usuario.estado() != EstadoCuenta.RECHAZADA
                         && usuario.estado() != EstadoCuenta.INVITADA)
+                // Una cuenta sintética no tiene titular: su correo es de un dominio reservado y el enlace daría una
+                // vía para apropiarse de ella.
+                .filter(usuario -> !usuario.esSintetica())
                 .ifPresent(usuario -> notificaciones.enviarEnlaceDeRestablecimiento(usuario,
                         emisorDeTokens.emitir(usuario.id(), TipoTokenCuenta.RESTABLECER_CLAVE))));
     }

@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.Size;
 
 import java.util.List;
 
@@ -16,6 +17,7 @@ public record SolicitudSuscripcion(
         String correo,
 
         @NotEmpty
-        @Schema(description = "Identificadores de los sectores a seguir")
+        @Size(min = 1, max = 211)
+        @Schema(description = "Identificadores de los sectores a seguir (211 barrios tiene la ciudad: más no caben)")
         List<String> sectorIds) {
 }

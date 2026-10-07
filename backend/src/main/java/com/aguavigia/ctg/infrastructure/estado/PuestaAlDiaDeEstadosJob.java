@@ -6,6 +6,7 @@ import com.aguavigia.ctg.domain.port.in.RepoblarContadorDeReportesUseCase;
 import com.aguavigia.ctg.infrastructure.scheduling.EjecucionUnica;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -32,25 +33,29 @@ public class PuestaAlDiaDeEstadosJob {
     private final PonerAlDiaSectoresUseCase ponerAlDia;
     private final RepoblarContadorDeReportesUseCase repoblarContador;
     private final EjecucionUnica ejecucionUnica;
+    private final Duration bloqueoMinimo;
 
     public PuestaAlDiaDeEstadosJob(ExpirarCortesVencidosUseCase expirar, PonerAlDiaSectoresUseCase ponerAlDia,
-                                   RepoblarContadorDeReportesUseCase repoblarContador, EjecucionUnica ejecucionUnica) {
+                                   RepoblarContadorDeReportesUseCase repoblarContador, EjecucionUnica ejecucionUnica,
+                                   @Value("${aguavigia.estado.puesta-al-dia-ms:300000}") long intervaloMs) {
         this.expirar = expirar;
         this.ponerAlDia = ponerAlDia;
         this.repoblarContador = repoblarContador;
         this.ejecucionUnica = ejecucionUnica;
+        // El bloqueo mínimo no puede superar al intervalo: con 1 minuto fijo, un intervalo de 5 s (la simulación) seguía corriendo cada minuto.
+        this.bloqueoMinimo = Duration.ofMillis(Math.max(1, Math.min(60_000, intervaloMs)));
     }
 
     @EventListener(ApplicationReadyEvent.class)
     public void alArrancar() {
-        ejecucionUnica.ejecutar(TAREA, Duration.ofMinutes(5), Duration.ofMinutes(1), this::ponerAlDia);
+        ejecucionUnica.ejecutar(TAREA, Duration.ofMinutes(5), bloqueoMinimo, this::ponerAlDia);
     }
 
     /** El primer ciclo espera un intervalo completo: al arrancar ya corrió {@link #alArrancar()}. */
     @Scheduled(initialDelayString = "${aguavigia.estado.puesta-al-dia-ms:300000}",
             fixedDelayString = "${aguavigia.estado.puesta-al-dia-ms:300000}")
     public void ponerAlDiaEnUnaReplica() {
-        ejecucionUnica.ejecutar(TAREA, Duration.ofMinutes(5), Duration.ofMinutes(1), this::ponerAlDia);
+        ejecucionUnica.ejecutar(TAREA, Duration.ofMinutes(5), bloqueoMinimo, this::ponerAlDia);
     }
 
     void repoblarElContador() {

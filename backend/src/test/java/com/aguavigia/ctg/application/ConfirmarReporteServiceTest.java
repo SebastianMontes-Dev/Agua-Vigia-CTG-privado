@@ -33,7 +33,7 @@ class ConfirmarReporteServiceTest {
         reportes = mock(ReporteCiudadanoRepository.class);
         servicio = new ConfirmarReporteService(reportes);
 
-        given(reportes.guardar(any(ReporteCiudadano.class))).willAnswer(invocacion -> invocacion.getArgument(0));
+        given(reportes.agregarConfirmacionSiVigente(any(), any())).willReturn(true);
     }
 
     private ReporteCiudadano reporteOriginal() {
@@ -48,7 +48,28 @@ class ConfirmarReporteServiceTest {
         ReporteCiudadano confirmado = servicio.confirmar(new ReporteId("r1"), new HuellaDispositivo("hash-vecino"));
 
         assertThat(confirmado.numeroConfirmaciones()).isEqualTo(1);
-        verify(reportes).guardar(confirmado);
+        verify(reportes).agregarConfirmacionSiVigente(new ReporteId("r1"), new HuellaDispositivo("hash-vecino"));
+        verify(reportes, never()).guardar(any());
+    }
+
+    @Test
+    void confirmarSuPropioReporteNoEscribeNada() {
+        given(reportes.buscarPorId(new ReporteId("r1"))).willReturn(Optional.of(reporteOriginal()));
+
+        ReporteCiudadano resultado = servicio.confirmar(new ReporteId("r1"), new HuellaDispositivo("hash-autor"));
+
+        assertThat(resultado.numeroConfirmaciones()).isZero();
+        verify(reportes, never()).agregarConfirmacionSiVigente(any(), any());
+    }
+
+    /** Lo descartaron entre la lectura y la escritura: la escritura atómica lo rechaza y el ciudadano ve «no existe». */
+    @Test
+    void siElReporteSeDescartaEntreLaLecturaYLaEscrituraDebeRechazarlo() {
+        given(reportes.buscarPorId(new ReporteId("r1"))).willReturn(Optional.of(reporteOriginal()));
+        given(reportes.agregarConfirmacionSiVigente(any(), any())).willReturn(false);
+
+        assertThatThrownBy(() -> servicio.confirmar(new ReporteId("r1"), new HuellaDispositivo("hash-vecino")))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test

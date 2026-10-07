@@ -490,6 +490,30 @@ class CorteAguaMongoAdapterTest {
         assertThat(adaptador.agregarCerrados(new SectorId("bocagrande")).cantidadCortes()).isZero();
     }
 
+    /**
+     * El corte de varios barrios que expira porque uno nunca se cerró no puede borrar la medición de los que sí: Manga y Nelson Mandela
+     * tenían su hora de cierre (D14) y salían del Índice solo porque San Fernando seguía pendiente.
+     */
+    @Test
+    void unCorteExpiradoConservaLosCierresDeLosBarriosQueSiSeCerraron() {
+        adaptador.guardar(corteConCierres("expirado-parcial", List.of("manga", "san-fernando"), Duration.ofHours(6),
+                java.util.Map.of("manga", cierreA(3, false))).expirar());
+
+        AgregadoDuraciones agregado = adaptador.agregarCerrados(null);
+
+        assertThat(agregado.cantidadCortes()).as("pares corte-barrio con cierre").isEqualTo(1);
+        assertThat(agregado.duracionReal()).isEqualTo(Duration.ofHours(3));
+        assertThat(adaptador.agregarCerrados(new SectorId("manga")).cantidadCortes()).isEqualTo(1);
+        assertThat(adaptador.agregarCerrados(new SectorId("san-fernando")).cantidadCortes()).as("el pendiente no cuenta").isZero();
+    }
+
+    @Test
+    void unCorteExpiradoSinNingunCierreNoEntraAlIndice() {
+        adaptador.guardar(corteDePrueba("expirado-sin-cierres", EstadoCorte.CONFIRMADO, List.of("manga")).expirar());
+
+        assertThat(adaptador.agregarCerrados(null).cantidadCortes()).isZero();
+    }
+
     @Test
     void cadaBarrioDeUnCorteCerradoCuentaConSuPropiaHoraDeCierre() {
         adaptador.guardar(corteConCierres("completo", List.of("manga", "bocagrande"), Duration.ofHours(6),

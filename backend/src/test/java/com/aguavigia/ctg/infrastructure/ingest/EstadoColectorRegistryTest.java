@@ -13,6 +13,19 @@ class EstadoColectorRegistryTest {
 
     private final EstadoColectorRegistry registro = new EstadoColectorRegistry(() -> AHORA);
 
+    /** D37: los fallos de cada colector se cuentan además de registrarse, para ver cuál se cae y cuánto. */
+    @Test
+    void cuentaCadaFalloDeColectorEnLasMetricas() {
+        com.aguavigia.ctg.domain.port.out.MetricasDelSistemaPort metricas = org.mockito.Mockito.mock(com.aguavigia.ctg.domain.port.out.MetricasDelSistemaPort.class);
+        EstadoColectorRegistry conMetricas = new EstadoColectorRegistry(() -> AHORA, metricas);
+
+        conMetricas.registrarFallo("acuacar", "timeout");
+        conMetricas.registrarExito("acuacar", 3);
+
+        org.mockito.Mockito.verify(metricas).falloDeColector("acuacar");
+        org.mockito.Mockito.verifyNoMoreInteractions(metricas);
+    }
+
     @Test
     void sinCiclosNoDebeHaberSaludNiColectoresCaidos() {
         assertThat(registro.salud()).isEmpty();

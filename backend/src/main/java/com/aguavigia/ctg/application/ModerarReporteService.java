@@ -1,6 +1,7 @@
 package com.aguavigia.ctg.application;
 
 import com.aguavigia.ctg.domain.EntidadNoEncontradaException;
+import com.aguavigia.ctg.domain.EstadoModeracion;
 import com.aguavigia.ctg.domain.ReporteCiudadano;
 import com.aguavigia.ctg.domain.ReporteId;
 import com.aguavigia.ctg.domain.port.in.ModerarReporteUseCase;
@@ -31,17 +32,28 @@ public class ModerarReporteService implements ModerarReporteUseCase {
     @Override
     public ReporteCiudadano aprobar(ReporteId id) {
         ReporteCiudadano reporte = buscarOLanzar(id);
-        return reportes.guardar(reporte.aprobar());
+        cambiarDecision(id, EstadoModeracion.APROBADO);
+        return reporte.aprobar();
     }
 
     @Override
     public ReporteCiudadano descartar(ReporteId id) {
         ReporteCiudadano reporte = buscarOLanzar(id);
         return transaccion.ejecutar(() -> {
-            ReporteCiudadano descartado = reportes.guardar(reporte.descartar());
-            recalcular.reevaluarTrasDescarte(descartado.sectorId());
-            return descartado;
+            cambiarDecision(id, EstadoModeracion.DESCARTADO);
+            recalcular.reevaluarTrasDescarte(reporte.sectorId());
+            return reporte.descartar();
         });
+    }
+
+    /**
+     * Escribe solo la decisión, no el documento entero: una confirmación que llegó entre la lectura y la escritura no
+     * se pierde. Si el reporte ya no existe (la retención lo borró) no hay nada que decidir ni que reevaluar.
+     */
+    private void cambiarDecision(ReporteId id, EstadoModeracion estado) {
+        if (!reportes.cambiarEstadoDeModeracion(id, estado)) {
+            throw new EntidadNoEncontradaException("No existe el reporte '" + id.valor() + "'");
+        }
     }
 
     private ReporteCiudadano buscarOLanzar(ReporteId id) {

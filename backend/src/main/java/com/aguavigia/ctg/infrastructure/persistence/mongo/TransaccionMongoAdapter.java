@@ -14,8 +14,8 @@ import java.util.function.Supplier;
  * `MongoTransaccionConfig`): `MongoTemplate` y los `MongoRepository` ya inyectados en los adaptadores
  * de este paquete se unen solos a la sesión activa, sin que ninguno necesite conocer esta clase.
  *
- * Reintenta hasta {@link #MAX_INTENTOS} veces cuando Mongo etiqueta la falla como
- * `TransientTransactionError` — un conflicto de escritura entre dos transacciones concurrentes sobre
+ * Reintenta hasta {@link #MAX_INTENTOS} veces cuando Mongo etiqueta la falla (o alguna de sus causas, porque Spring
+ * la traduce) como `TransientTransactionError` — un conflicto de escritura entre dos transacciones concurrentes sobre
  * el mismo documento, previsto y documentado por el propio driver. Cualquier otra excepción revierte
  * y se propaga en el primer intento: no es segura de reintentar sola (podría ser una regla de
  * dominio violada, no un problema pasajero de Mongo).
@@ -43,13 +43,30 @@ public class TransaccionMongoAdapter implements TransaccionPort {
         for (int intento = 1; intento <= MAX_INTENTOS; intento++) {
             try {
                 return transactionTemplate.execute(status -> accion.get());
-            } catch (MongoException falla) {
-                if (!falla.hasErrorLabel(MongoException.TRANSIENT_TRANSACTION_ERROR_LABEL)) {
+            } catch (RuntimeException falla) {
+                if (!esFallaTransitoria(falla)) {
                     throw falla;
                 }
                 ultimaFallaTransitoria = falla;
             }
         }
         throw ultimaFallaTransitoria;
+    }
+
+    /**
+     * `MongoTemplate` y los repositorios traducen la `MongoException` a una excepción de Spring antes de que llegue
+     * aquí; la etiqueta queda en alguna causa de la cadena, no en la excepción de arriba.
+     */
+    private static boolean esFallaTransitoria(Throwable falla) {
+        for (Throwable actual = falla; actual != null; actual = actual.getCause()) {
+            if (actual instanceof MongoException mongo
+                    && mongo.hasErrorLabel(MongoException.TRANSIENT_TRANSACTION_ERROR_LABEL)) {
+                return true;
+            }
+            if (actual.getCause() == actual) {
+                break;
+            }
+        }
+        return false;
     }
 }

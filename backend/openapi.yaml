@@ -19,6 +19,8 @@ tags:
   description: Qué instancia es y cuánto de lo que contiene es sintético
 - name: Veedor - Moderación
   description: Moderar reportes ciudadanos pendientes (RF018)
+- name: Veedor - Sistema
+  description: Contadores para calibrar umbrales y plazos
 - name: Cuentas
   description: Páginas HTML a las que llevan los enlaces de los correos de cuenta
 - name: Open311
@@ -2087,6 +2089,37 @@ paths:
                 $ref: "#/components/schemas/ProblemDetail"
       security:
       - bearerAuth: []
+  /api/veedor/sistema/metricas:
+    get:
+      tags:
+      - Veedor - Sistema
+      summary: Contadores de calibración del sistema
+      description: |-
+        Cambios de estado, disputas, quórums rechazados por composición, reportes por nivel de verificación, fallos de colectores y
+        el tiempo entre el primer reporte y el cambio de estado. Son de este proceso desde `desde`: un reinicio los pone a cero. Sirven
+        para calibrar los umbrales y los plazos, que son valores iniciales sin datos reales que los respalden.
+      operationId: consultarMetricasDelSistema
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MetricasDelSistemaRespuesta"
+        "401":
+          description: "Sin sesión, token inválido, caducado o revocado"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: La sesión no tiene el permiso que exige esta operación
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+      security:
+      - bearerAuth: []
   /api/veedor/reportes/pendientes:
     get:
       tags:
@@ -3363,12 +3396,15 @@ components:
           format: email
           example: vecino@correo.com
         sectorIds:
+          maxItems: 211
           minItems: 1
           type: array
-          description: Identificadores de los sectores a seguir
+          description: "Identificadores de los sectores a seguir (211 barrios tiene\
+            \ la ciudad: más no caben)"
           items:
             type: string
-            description: Identificadores de los sectores a seguir
+            description: "Identificadores de los sectores a seguir (211 barrios tiene\
+              \ la ciudad: más no caben)"
       description: Solicitud para suscribirse a los avisos de uno o más sectores
     SuscripcionRespuesta:
       type: object
@@ -3765,6 +3801,69 @@ components:
           nullable: true
       description: Cambios al perfil. Solo se aplica lo que viene; un campo ausente
         no se toca.
+    MetricasDelSistemaRespuesta:
+      type: object
+      properties:
+        desde:
+          type: string
+          description: Desde cuándo cuentan estos contadores
+          format: date-time
+        cambiosDeEstado:
+          type: object
+          additionalProperties:
+            type: integer
+            description: "Cambios de estado publicados, por «ESTADO/ORIGEN» (SIN_DATOS/SIN_ORIGEN\
+              \ es el regreso a «sin datos»)"
+            format: int64
+          description: "Cambios de estado publicados, por «ESTADO/ORIGEN» (SIN_DATOS/SIN_ORIGEN\
+            \ es el regreso a «sin datos»)"
+        disputasAbiertas:
+          type: integer
+          description: Barrios que entraron en disputa (los vecinos contradicen lo
+            oficial)
+          format: int64
+        quorumsRechazadosPorComposicion:
+          type: object
+          additionalProperties:
+            type: integer
+            description: "Quórums que llegaron al umbral pero no a la composición\
+              \ (verificación o redes distintas), por tipo de reporte y por episodio"
+            format: int64
+          description: "Quórums que llegaron al umbral pero no a la composición (verificació\
+            n o redes distintas), por tipo de reporte y por episodio"
+        reportesPorNivelDeVerificacion:
+          type: object
+          additionalProperties:
+            type: integer
+            description: "Reportes recibidos por nivel de verificación: NINGUNA, UBICACION_VERIFICADA\
+              \ o CUENTA_VERIFICADA"
+            format: int64
+          description: "Reportes recibidos por nivel de verificación: NINGUNA, UBICACION_VERIFICADA\
+            \ o CUENTA_VERIFICADA"
+        fallosDeColectores:
+          type: object
+          additionalProperties:
+            type: integer
+            description: "Fallos de cada colector de ingesta, por nombre"
+            format: int64
+          description: "Fallos de cada colector de ingesta, por nombre"
+        tiempoHastaElCambioDeEstado:
+          $ref: "#/components/schemas/TiempoHastaElCambio"
+      description: "Contadores de calibración (D37) de este proceso desde `desde`.\
+        \ Un reinicio los pone a cero; con varias réplicas, cada una cuenta los suyos."
+    TiempoHastaElCambio:
+      type: object
+      properties:
+        cambios:
+          type: integer
+          format: int64
+        promedioSegundos:
+          type: integer
+          format: int64
+        maximoSegundos:
+          type: integer
+          format: int64
+      description: "Cambios medidos y cuánto tardaron, en segundos"
     SaludColectorRespuesta:
       type: object
       properties:

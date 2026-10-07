@@ -23,6 +23,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 class SuscribirseServiceTest {
@@ -58,6 +59,20 @@ class SuscribirseServiceTest {
         assertThat(suscripcion.correo()).isEqualTo(CORREO);
         assertThat(suscripcion.creadaEn()).isEqualTo(AHORA);
         assertThat(suscripcion.tokenConfirmacion()).isNotBlank();
+        verify(notificaciones).enviarConfirmacionSuscripcion(suscripcion, List.of(bocagrande));
+    }
+
+    /** Repetir un barrio no multiplica las consultas ni deja la suscripción con duplicados: se pregunta una vez por barrio. */
+    @Test
+    void unBarrioRepetidoSeConsultaYSeGuardaUnaSolaVez() {
+        Sector bocagrande = new Sector(new SectorId("bocagrande"), "BOCAGRANDE", 12000, EstadoServicio.SIN_SERVICIO);
+        given(sectores.buscarPorId(new SectorId("bocagrande"))).willReturn(Optional.of(bocagrande));
+
+        Suscripcion suscripcion = servicio.suscribir(CORREO, List.of(
+                new SectorId("bocagrande"), new SectorId("bocagrande"), new SectorId("bocagrande")));
+
+        assertThat(suscripcion.sectorIds()).containsExactly(new SectorId("bocagrande"));
+        verify(sectores, times(1)).buscarPorId(new SectorId("bocagrande"));
         verify(notificaciones).enviarConfirmacionSuscripcion(suscripcion, List.of(bocagrande));
     }
 

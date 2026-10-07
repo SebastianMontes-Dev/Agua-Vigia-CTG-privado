@@ -24,6 +24,8 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
@@ -91,6 +93,17 @@ class SuscripcionControllerTest {
                                 {"correo":"no-es-un-correo","sectorIds":["bocagrande"]}"""))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.title").value("Peticion invalida"));
+    }
+
+    /** Sin tope, una sola petición anónima con cientos de miles de ids disparaba una consulta a Mongo por cada uno. */
+    @Test
+    void debeResponder400SiPidenMasSectoresQueBarriosTieneLaCiudad() throws Exception {
+        String ids = IntStream.rangeClosed(1, 212).mapToObj(n -> "\"b" + n + "\"").collect(Collectors.joining(","));
+
+        mockMvc.perform(post("/api/suscripciones")
+                        .contentType("application/json")
+                        .content("{\"correo\":\"vecino@correo.com\",\"sectorIds\":[" + ids + "]}"))
+                .andExpect(status().isBadRequest());
     }
 
     @Test

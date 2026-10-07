@@ -20,5 +20,7 @@ public interface UsuarioMongoRepository extends MongoRepository<UsuarioDocumento
 
     long countByRolAndEstado(String rol, String estado);
 
-    long countByDatosDeDemostracion(boolean datosDeDemostracion);
+    long countByRolAndOrigen(String rol, String origen);
+
+    Optional<UsuarioDocumento> findFirstByRolOrderByCreadoEnAsc(String rol);
 }

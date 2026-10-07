@@ -173,10 +173,10 @@ public class CorteAguaMongoAdapter implements CorteAguaRepository {
     /**
      * Cada par corte-barrio con cierre es una fila (D14): un barrio restablecido a la una hora cuenta aunque otro del mismo corte siga
      * sin servicio, y cada uno con su propia hora. Los documentos anteriores a los cierres por sector no traen la lista: su
-     * `finReal` vale para todos sus barrios. Los anulados no entran al Índice (se publicaron por error) y los expirados no tienen cierre.
+     * `finReal` vale para todos sus barrios. Los anulados no entran al Índice (se publicaron por error). Un expirado entra por los barrios que sí se cerraron (el filtro de abajo deja fuera los que no tienen ninguno): que otro barrio del mismo corte nunca se cerrara no borra lo medido.
      */
     private static List<AggregationOperation> paresCerrados(SectorId sectorId, Instant desde, Instant hasta) {
-        Document primero = new Document("estado", new Document("$nin", List.of("ANULADO", "EXPIRADO")))
+        Document primero = new Document("estado", new Document("$ne", "ANULADO"))
                 .append("$or", List.of(new Document("finReal", new Document("$ne", null)),
                         new Document("cierres.0", new Document("$exists", true))));
         if (sectorId != null) {

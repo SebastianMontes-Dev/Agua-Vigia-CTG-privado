@@ -190,6 +190,29 @@ class PipelineOrquestadorTest {
         assertThat(estadoColectores.estados()).extracting(EstadoColector::nombre).containsExactly("acuacar");
     }
 
+    // --- Modo simulación (D38) ---
+
+    @Test
+    void enModoSimulacionElColectorSimuladoOcupaElLugarDeAcuacarYDeLaPrensa() {
+        ColectorSimulado simulado = new ColectorSimulado(true);
+        simulado.encolar(new com.aguavigia.ctg.domain.BoletinSimulado(1, AHORA.minusSeconds(60), null,
+                "[SIMULACIÓN] Corte", "<p>Corte en Manga por daño en la red</p>", null));
+        given(extractor.extraerPorZonas(any())).willReturn(List.of(eventoParaSectores(List.of("Manga"))));
+        given(sectores.listarTodos()).willReturn(
+                List.of(new Sector(new SectorId("manga"), "Manga", 1000, EstadoServicio.CON_SERVICIO)));
+        var orquestadorSim = new PipelineOrquestador(acuacar, rss, Optional.empty(), deduplicador, extractor,
+                sectores, registrarPropuesta, estadoColectores, marcas, fallidos, reloj,
+                (nombre, maximo, minimo, tarea) -> tarea.run(), Optional.of(simulado));
+
+        orquestadorSim.ejecutarCiclo();
+
+        verify(acuacar, never()).obtenerDesde(any());
+        verify(rss, never()).obtenerDesde(any());
+        verify(registrarPropuesta).registrarAviso(argThat(aviso ->
+                aviso.sectores().contains(new SectorId("manga")) && "acuacar".equals(aviso.fuente())));
+        assertThat(estadoColectores.hayAlgunColectorCaido()).isFalse();
+    }
+
     // --- Sin barrios sembrados no se lee nada ---
 
     /**

@@ -47,7 +47,7 @@ class ModerarReporteServiceTest {
         });
         servicio = new ModerarReporteService(reportes, recalcular, transaccion);
 
-        given(reportes.guardar(any(ReporteCiudadano.class))).willAnswer(invocacion -> invocacion.getArgument(0));
+        given(reportes.cambiarEstadoDeModeracion(any(), any())).willReturn(true);
     }
 
     private ReporteCiudadano reportePendiente() {
@@ -62,6 +62,8 @@ class ModerarReporteServiceTest {
         ReporteCiudadano aprobado = servicio.aprobar(new ReporteId("r1"));
 
         assertThat(aprobado.estadoModeracion()).isEqualTo(EstadoModeracion.APROBADO);
+        verify(reportes).cambiarEstadoDeModeracion(new ReporteId("r1"), EstadoModeracion.APROBADO);
+        verify(reportes, never()).guardar(any());
     }
 
     @Test
@@ -90,7 +92,7 @@ class ModerarReporteServiceTest {
 
         servicio.descartar(new ReporteId("r1"));
 
-        orden.verify(reportes).guardar(any(ReporteCiudadano.class));
+        orden.verify(reportes).cambiarEstadoDeModeracion(new ReporteId("r1"), EstadoModeracion.DESCARTADO);
         orden.verify(recalcular).reevaluarTrasDescarte(any());
     }
 
@@ -131,6 +133,18 @@ class ModerarReporteServiceTest {
         ReporteCiudadano descartado = servicio.descartar(new ReporteId("r1"));
 
         assertThat(descartado.estadoModeracion()).isEqualTo(EstadoModeracion.DESCARTADO);
+    }
+
+    /** Lo borró la retención entre la lectura y la escritura: no se reevalúa ningún barrio por un reporte que ya no está. */
+    @Test
+    void siElReporteDesaparecioAntesDeEscribirLaDecisionDebeRechazarlaYNoReevaluar() {
+        given(reportes.buscarPorId(new ReporteId("r1"))).willReturn(Optional.of(reportePendiente()));
+        given(reportes.cambiarEstadoDeModeracion(any(), any())).willReturn(false);
+
+        assertThatThrownBy(() -> servicio.descartar(new ReporteId("r1"))).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> servicio.aprobar(new ReporteId("r1"))).isInstanceOf(IllegalArgumentException.class);
+
+        verify(recalcular, never()).reevaluarTrasDescarte(any());
     }
 
     @Test

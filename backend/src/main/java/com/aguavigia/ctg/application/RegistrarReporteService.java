@@ -14,8 +14,12 @@ import com.aguavigia.ctg.domain.port.in.RegistrarReporteUseCase;
 import com.aguavigia.ctg.domain.port.out.ContadorReportesPort;
 import com.aguavigia.ctg.domain.port.out.HashDeRedPort;
 import com.aguavigia.ctg.domain.port.out.RelojPort;
+import com.aguavigia.ctg.domain.port.out.MetricasDelSistemaPort;
 import com.aguavigia.ctg.domain.port.out.ReporteCiudadanoRepository;
 import com.aguavigia.ctg.domain.port.out.SectorRepository;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -33,8 +37,8 @@ import java.util.UUID;
  *
  * El cupo se reserva de forma atómica en Redis (`intentarReservarCupo`) y no contando en Mongo
  * antes de guardar: entre la consulta y la escritura cabían dos peticiones simultáneas del mismo
- * dispositivo, y ambas pasaban. Mongo en instancia única no ofrece transacciones multi-documento
- * con las que cerrar esa ventana; un INCR sí es atómico. Sigue siendo una llave distinta de la del
+ * dispositivo, y ambas pasaban. Una transacción de Mongo no serializa dos lecturas del mismo conteo
+ * (cada una ve su instantánea); un INCR sí es atómico. Sigue siendo una llave distinta de la del
  * consenso: ese ZSET alimenta RF009-RF011 y a propósito no deduplica por huella, y mezclar ambos
  * controles haría que cambiar uno rompiera el otro sin avisar.
  *
@@ -47,6 +51,8 @@ import java.util.UUID;
  */
 public class RegistrarReporteService implements RegistrarReporteUseCase {
 
+    private static final Logger log = LoggerFactory.getLogger(RegistrarReporteService.class);
+
     /** Las fechas del sistema son las de Cartagena: de ahí sale el día de la sal de la red. */
     private static final ZoneId ZONA_DE_CARTAGENA = ZoneId.of("America/Bogota");
 
@@ -58,6 +64,7 @@ public class RegistrarReporteService implements RegistrarReporteUseCase {
     private final LimitesDeReporte limites;
     private final HashDeRedPort hashDeRed;
     private final double precisionMaximaMetros;
+    private final MetricasDelSistemaPort metricas;
 
     public RegistrarReporteService(SectorRepository sectores,
                                     ReporteCiudadanoRepository reportes,
@@ -67,6 +74,20 @@ public class RegistrarReporteService implements RegistrarReporteUseCase {
                                     HashDeRedPort hashDeRed,
                                     LimitesDeReporte limites,
                                     double precisionMaximaMetros) {
+        this(sectores, reportes, contadorReportes, evaluarConsenso, reloj, hashDeRed, limites, precisionMaximaMetros,
+                MetricasDelSistemaPort.NINGUNA);
+    }
+
+    public RegistrarReporteService(SectorRepository sectores,
+                                    ReporteCiudadanoRepository reportes,
+                                    ContadorReportesPort contadorReportes,
+                                    EvaluarConsensoUseCase evaluarConsenso,
+                                    RelojPort reloj,
+                                    HashDeRedPort hashDeRed,
+                                    LimitesDeReporte limites,
+                                    double precisionMaximaMetros,
+                                    MetricasDelSistemaPort metricas) {
+        this.metricas = metricas;
         this.sectores = sectores;
         this.reportes = reportes;
         this.contadorReportes = contadorReportes;
@@ -101,7 +122,7 @@ public class RegistrarReporteService implements RegistrarReporteUseCase {
         //    DESCARTADO, moderar a un spammer le reiniciaria el cupo.
         // 2. Redis cierra la ventana de carrera. Entre contar en Mongo y guardar el reporte caben
         //    dos peticiones simultaneas del mismo dispositivo que leen el mismo conteo y pasan las
-        //    dos; INCR es atomico y Mongo en instancia unica no da transacciones multi-documento.
+        //    dos; INCR es atomico, y una transaccion de Mongo no serializa esas dos lecturas.
         //
         // Mongo va primero para no gastar un cupo de Redis en una peticion que ya iba a rechazarse.
         long yaReportados = reportes.contarRecientesPorSectorYDispositivo(sectorId, ventanaLimite, huella);
@@ -129,8 +150,16 @@ public class RegistrarReporteService implements RegistrarReporteUseCase {
         ReporteCiudadano reporte = esSensor ? ciudadano.comoDeSensor() : ciudadano;
 
         ReporteCiudadano guardado = reportes.guardar(reporte);
+        metricas.reporteRecibido(nivel);
         contadorReportes.registrar(sectorId, huella);
-        evaluarConsenso.evaluar(sectorId);
+        // El reporte ya está guardado: si el recálculo falla, un error aquí haría que el ciudadano reintentara y lo
+        // duplicara. El barrido de puesta al día vuelve a evaluar el sector.
+        try {
+            evaluarConsenso.evaluar(sectorId);
+        } catch (RuntimeException falla) {
+            log.warn("El reporte {} quedó guardado pero no se pudo evaluar el consenso de '{}'; lo recalculará el barrido",
+                    guardado.id().valor(), sectorId.valor(), falla);
+        }
         return guardado;
     }
 

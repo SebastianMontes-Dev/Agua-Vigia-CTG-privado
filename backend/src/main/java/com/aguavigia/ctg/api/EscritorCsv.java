@@ -2,6 +2,7 @@ package com.aguavigia.ctg.api;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.regex.Pattern;
 
 /**
  * RF025 — exportación en formato abierto. Escrito a mano y no con una librería: dos exportaciones
@@ -28,6 +29,9 @@ final class EscritorCsv {
      * español abra el archivo bien.
      */
     private static final Locale LOCALE_CO = Locale.forLanguageTag("es-CO");
+
+    /** Una cifra, con signo o sin él: no es una fórmula aunque empiece por `-` o `+`. */
+    private static final Pattern NUMERO = Pattern.compile("[+-]?\\d+([.,]\\d+)?");
 
     private EscritorCsv() {
     }
@@ -58,11 +62,23 @@ final class EscritorCsv {
     }
 
     /**
+     * Excel y LibreOffice abren como fórmula una celda que empieza por `=`, `+`, `-` o `@` (OWASP, «CSV injection»): un
+     * `=HYPERLINK(...)` en la causa de un boletín exfiltraría datos de quien abra el archivo. Los textos vienen de terceros,
+     * así que se les antepone una comilla simple, que Excel muestra como texto. Las cifras se dejan como están.
+     */
+    private static String neutralizarFormula(String texto) {
+        if (texto.isEmpty() || "=+-@".indexOf(texto.charAt(0)) < 0 || NUMERO.matcher(texto).matches()) {
+            return texto;
+        }
+        return "'" + texto;
+    }
+
+    /**
      * Un nombre de barrio con `;`, comillas o un salto de línea rompería el archivo entero — y los
      * nombres vienen de un GeoJSON de terceros, no de una lista que controlemos.
      */
     private static String escapar(String valor) {
-        String texto = valor == null ? "" : valor;
+        String texto = neutralizarFormula(valor == null ? "" : valor);
         if (texto.indexOf(SEPARADOR) < 0 && texto.indexOf('"') < 0
                 && texto.indexOf('\n') < 0 && texto.indexOf('\r') < 0) {
             return texto;

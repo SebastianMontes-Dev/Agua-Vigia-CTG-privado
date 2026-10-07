@@ -58,7 +58,9 @@ public class IndicesMongo {
             // El Indice de Cumplimiento y las estadisticas agregan solo los cortes cerrados (`finReal`
             // no nulo); sin este indice cada agregacion recorria la coleccion entera.
             indicesCortes.ensureIndex(new Index().on("finReal", Sort.Direction.ASC));
-            log.info("Indices de `cortes` asegurados: sectoresAfectados y finReal");
+            // La calidad del dato cuenta los cortes ANULADO por igualdad; sin este indice recorria la coleccion entera.
+            indicesCortes.ensureIndex(new Index().on("estado", Sort.Direction.ASC));
+            log.info("Indices de `cortes` asegurados: sectoresAfectados, finReal y estado");
         });
 
             // Cada POST /api/reportes cuenta lo que el dispositivo ya envio (cupo RF006) y evalua el
@@ -117,7 +119,11 @@ public class IndicesMongo {
             // existeDelBoletin: la ingesta pregunta, por cada aviso, si ese boletin ya se registro para ese barrio.
             indicesPropuestas.ensureIndex(new CompoundIndexDefinition(
                     new Document("sectorId", 1).append("urlOriginal", 1)));
-            log.info("Indices de `propuestas_ingesta` asegurados: estadoRevision+detectadaEn, sectorId+estadoPropuesto+estadoRevision y sectorId+urlOriginal");
+            // Las propuestas de una revision que aun no vencieron (estadoRevision + finPrometido >= ahora): sin el segundo
+            // campo en el indice Mongo leia todas las de esa revision y filtraba la vigencia en memoria.
+            indicesPropuestas.ensureIndex(new CompoundIndexDefinition(
+                    new Document("estadoRevision", 1).append("finPrometido", 1)));
+            log.info("Indices de `propuestas_ingesta` asegurados: estadoRevision+detectadaEn, sectorId+estadoPropuesto+estadoRevision, sectorId+urlOriginal y estadoRevision+finPrometido");
         });
 
             // El correo es la identidad de acceso: el indice unico es la unica garantia real de

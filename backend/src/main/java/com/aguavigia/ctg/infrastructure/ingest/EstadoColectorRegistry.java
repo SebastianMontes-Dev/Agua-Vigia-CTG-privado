@@ -1,8 +1,10 @@
 package com.aguavigia.ctg.infrastructure.ingest;
 
 import com.aguavigia.ctg.domain.SaludDeColector;
+import com.aguavigia.ctg.domain.port.out.MetricasDelSistemaPort;
 import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.SaludDeColectoresPort;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -29,9 +31,16 @@ public class EstadoColectorRegistry implements SaludDeColectoresPort {
 
     private final Map<String, EstadoColector> porNombre = new ConcurrentHashMap<>();
     private final RelojPort reloj;
+    private final MetricasDelSistemaPort metricas;
 
     public EstadoColectorRegistry(RelojPort reloj) {
+        this(reloj, MetricasDelSistemaPort.NINGUNA);
+    }
+
+    @Autowired
+    public EstadoColectorRegistry(RelojPort reloj, MetricasDelSistemaPort metricas) {
         this.reloj = reloj;
+        this.metricas = metricas;
     }
 
     public void registrarExito(String colector, int itemsObtenidos) {
@@ -41,6 +50,7 @@ public class EstadoColectorRegistry implements SaludDeColectoresPort {
     }
 
     public void registrarFallo(String colector, String motivo) {
+        metricas.falloDeColector(colector);
         porNombre.compute(colector, (nombre, estado) ->
                 (estado == null ? EstadoColector.inicial(nombre) : estado)
                         .conFallo(reloj.ahora(), motivo));

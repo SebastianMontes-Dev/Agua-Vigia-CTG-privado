@@ -38,7 +38,8 @@ public class SuscribirseService implements SuscribirseUseCase {
     }
 
     @Override
-    public Suscripcion suscribir(CorreoElectronico correo, List<SectorId> sectorIds) {
+    public Suscripcion suscribir(CorreoElectronico correo, List<SectorId> idsPedidos) {
+        List<SectorId> sectorIds = idsPedidos.stream().distinct().toList();
         List<Sector> sectoresSuscritos = sectorIds.stream()
                 .map(id -> sectores.buscarPorId(id)
                         .orElseThrow(() -> new IllegalArgumentException("No existe el sector '" + id.valor() + "'")))

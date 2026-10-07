@@ -85,11 +85,14 @@ public class RegistrarVecinoService implements RegistrarVecinoUseCase {
 
         var existente = usuarios.buscarPorCorreo(normalizado);
         if (existente.isPresent()) {
-            notificaciones.avisarCambioDeAcceso(existente.get(),
-                    "Alguien intentó registrarse con tu correo",
-                    "Recibimos una solicitud de registro en AguaVigía con esta dirección, que ya "
-                            + "tiene cuenta. No hicimos ningún cambio. Si fuiste tú y no recuerdas "
-                            + "tu clave, puedes restablecerla desde el ingreso.");
+            // A una cuenta sintética no se le avisa: no tiene titular y su dirección es de un dominio reservado.
+            if (!existente.get().esSintetica()) {
+                notificaciones.avisarCambioDeAcceso(existente.get(),
+                        "Alguien intentó registrarse con tu correo",
+                        "Recibimos una solicitud de registro en AguaVigía con esta dirección, que ya "
+                                + "tiene cuenta. No hicimos ningún cambio. Si fuiste tú y no recuerdas "
+                                + "tu clave, puedes restablecerla desde el ingreso.");
+            }
             return;
         }
 

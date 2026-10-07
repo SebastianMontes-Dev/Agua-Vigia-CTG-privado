@@ -109,7 +109,10 @@ public class AutenticarUsuarioService implements AutenticarUsuarioUseCase {
         }
 
         Optional<Usuario> encontrado = usuarios.buscarPorCorreo(correo.normalizado());
-        if (encontrado.isEmpty()) {
+        // Las cuentas sintéticas no tienen titular: comparten una clave precalculada, así que se tratan como un
+        // correo inexistente aunque alguien la acierte. Las de panel de demostración (VEEDOR/OBSERVADOR) no son
+        // sintéticas en este sentido y sí pueden entrar.
+        if (encontrado.isEmpty() || encontrado.get().esSintetica()) {
             // Se gasta el mismo tiempo que un BCrypt real y no se audita: auditar cada intento
             // contra un correo inventado dejaría que cualquiera llenara la tabla de auditoría desde
             // fuera. Para ese caso ya está el límite por IP de ADR-018.
@@ -120,7 +123,16 @@ public class AutenticarUsuarioService implements AutenticarUsuarioUseCase {
 
         Usuario usuario = encontrado.get();
 
-        if (usuario.claveHash() == null || !cifrador.coincide(claveEnClaro, usuario.claveHash())) {
+        boolean claveCorrecta;
+        if (usuario.claveHash() == null) {
+            // Una invitación pendiente no tiene hash que comparar: se gasta igual el tiempo de un BCrypt, o el cronómetro
+            // diría qué correos tienen una invitación sin aceptar.
+            cifrador.gastarTiempoEquivalente();
+            claveCorrecta = false;
+        } else {
+            claveCorrecta = cifrador.coincide(claveEnClaro, usuario.claveHash());
+        }
+        if (!claveCorrecta) {
             fallar(usuario, "Clave incorrecta", clave, contexto);
             throw new CredencialInvalidaException("Correo o clave incorrectos.");
         }

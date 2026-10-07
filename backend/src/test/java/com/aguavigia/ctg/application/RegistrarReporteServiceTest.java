@@ -93,6 +93,21 @@ class RegistrarReporteServiceTest {
         assertThat(deCiudadano.esSensor()).isFalse();
     }
 
+    /** D37: cuántos reportes llegan con cada nivel de verificación es lo que dice si el quórum puede llegar a cumplirse. */
+    @Test
+    void cuentaCadaReporteSegunSuNivelDeVerificacion() {
+        com.aguavigia.ctg.domain.port.out.MetricasDelSistemaPort metricas = mock(com.aguavigia.ctg.domain.port.out.MetricasDelSistemaPort.class);
+        RegistrarReporteService conMetricas = new RegistrarReporteService(sectores, reportes, contadorReportes, evaluarConsenso, () -> AHORA,
+                mock(com.aguavigia.ctg.domain.port.out.HashDeRedPort.class),
+                new LimitesDeReporte(LIMITE, LIMITE_SENSOR, 5, java.time.Duration.ofMinutes(30)), 200.0, metricas);
+        Sector bocagrande = new Sector(new SectorId("bocagrande"), "BOCAGRANDE", 12000, EstadoServicio.SIN_SERVICIO);
+        given(sectores.buscarPorId(new SectorId("bocagrande"))).willReturn(Optional.of(bocagrande));
+
+        conMetricas.registrar(new SectorId("bocagrande"), TipoReporte.SIN_AGUA, null, HUELLA, false);
+
+        verify(metricas).reporteRecibido(com.aguavigia.ctg.domain.NivelDeVerificacion.NINGUNA);
+    }
+
     @Test
     void debeAceptarUnReporteSinCoordenada() {
         Sector bocagrande = new Sector(new SectorId("bocagrande"), "BOCAGRANDE", 12000, EstadoServicio.SIN_SERVICIO);
@@ -114,6 +129,25 @@ class RegistrarReporteServiceTest {
         verify(reportes, never()).guardar(any());
         verify(contadorReportes, never()).registrar(any(), any());
         verify(evaluarConsenso, never()).evaluar(any());
+    }
+
+    /**
+     * El reporte ya quedó guardado cuando se evalúa el consenso: si esa evaluación falla (Redis caído, un conflicto
+     * de escritura) el ciudadano no debe ver un error, porque reintentaría y duplicaría el reporte. El barrido de
+     * puesta al día recalcula el sector más tarde.
+     */
+    @Test
+    void unaFallaAlEvaluarElConsensoNoDebeHacerFallarUnReporteYaGuardado() {
+        Sector bocagrande = new Sector(new SectorId("bocagrande"), "BOCAGRANDE", 12000, EstadoServicio.SIN_SERVICIO);
+        given(sectores.buscarPorId(new SectorId("bocagrande"))).willReturn(Optional.of(bocagrande));
+        given(evaluarConsenso.evaluar(any())).willThrow(new IllegalStateException("redis caído"));
+
+        ReporteCiudadano reporte = servicio.registrar(
+                new SectorId("bocagrande"), TipoReporte.SIN_AGUA, null, HUELLA, false);
+
+        assertThat(reporte.tipo()).isEqualTo(TipoReporte.SIN_AGUA);
+        verify(reportes).guardar(any(ReporteCiudadano.class));
+        verify(contadorReportes).registrar(new SectorId("bocagrande"), HUELLA);
     }
 
     @Test

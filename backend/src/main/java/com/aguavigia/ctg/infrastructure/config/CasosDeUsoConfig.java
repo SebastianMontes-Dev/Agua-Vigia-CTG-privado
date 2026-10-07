@@ -79,8 +79,12 @@ import java.time.Duration;
                         + "(ActualizarEstadosPorVentana|ActualizarPerfilVecino|AutenticarUsuario|CambiarClave|ImportarVecinosSinteticos"
                         + "|ConfirmarSuscripcion|ConsultarModoDelSistema|EmitirTokenDeSubida|EvaluarConsenso|ExpirarCortesVencidos|ListarReportesPendientes|RecalcularSector|RepoblarContadorDeReportes"
                         + "|RegistrarLecturaDePresion|RegistrarPropuestaIngesta|RegistrarReporte|RegistrarVecino"
-                        + "|RevisarPropuestaIngesta|VerificarBarrioVecino)Service"))
+                        + "|RevisarPropuestaIngesta|VerificarBarrioVecino"
+                        // Los de la simulación los declara SimulacionConfig, solo con aguavigia.sim.habilitada=true.
+                        + "|ControlarRelojDeSimulacion|InyectarBoletinSimulado|IniciarSesionDeAdminDeSimulacion|ReiniciarSimulacion)Service"))
 public class CasosDeUsoConfig {
+
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(CasosDeUsoConfig.class);
 
     @Bean
     public AutenticarUsuarioService autenticarUsuarioService(
@@ -250,9 +254,14 @@ public class CasosDeUsoConfig {
             ReporteCiudadanoRepository reportes, EstrategiaConsenso estrategia, ResolutorDeEstadoSector resolutor,
             RegistrarEventoBitacoraUseCase registrarEvento, RelojPort reloj, TransaccionPort transaccion,
             @Value("${aguavigia.consenso.ventana-minutos:30}") long ventanaMinutos,
-            @Value("${aguavigia.consenso.redes-minimas:2}") int redesMinimas) {
+            @Value("${aguavigia.consenso.redes-minimas:2}") int redesMinimas,
+            com.aguavigia.ctg.domain.port.out.MetricasDelSistemaPort metricas) {
+        if (redesMinimas < 2) {
+            log.warn("aguavigia.consenso.redes-minimas=1: el quórum no exige redes distintas, una sola red puede mover el mapa. "
+                    + "Es una concesión del entorno local (ADR-090); en una presentación desde una sola red se dice abiertamente.");
+        }
         return new RecalcularSectorService(sectores, cortes, propuestas, reportes, estrategia, resolutor,
-                registrarEvento, reloj, transaccion, Duration.ofMinutes(ventanaMinutos), redesMinimas);
+                registrarEvento, reloj, transaccion, Duration.ofMinutes(ventanaMinutos), redesMinimas, metricas);
     }
 
     @Bean
@@ -273,10 +282,10 @@ public class CasosDeUsoConfig {
             @Value("${aguavigia.reportes.ventana-limite-minutos:30}") long ventanaLimiteMinutos,
             @Value("${aguavigia.reportes.limite-por-vecino:5}") int limitePorVecino,
             @Value("${aguavigia.ubicacion.precision-maxima-metros:200}") double precisionMaximaMetros,
-            HashDeRedPort hashDeRed) {
+            HashDeRedPort hashDeRed, com.aguavigia.ctg.domain.port.out.MetricasDelSistemaPort metricas) {
         return new RegistrarReporteService(sectores, reportes, contadorReportes, evaluarConsenso, reloj, hashDeRed,
                 new LimitesDeReporte(limitePorDispositivo, limitePorSensor, limitePorVecino,
                         Duration.ofMinutes(ventanaLimiteMinutos)),
-                precisionMaximaMetros);
+                precisionMaximaMetros, metricas);
     }
 }

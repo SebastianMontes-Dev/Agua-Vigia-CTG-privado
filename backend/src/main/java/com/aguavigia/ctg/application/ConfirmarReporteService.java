@@ -39,7 +39,12 @@ public class ConfirmarReporteService implements ConfirmarReporteUseCase {
 
         ReporteCiudadano reporteConfirmado = reporte.confirmar(huella);
 
-        reportes.guardar(reporteConfirmado);
+        // Confirmar el propio reporte o repetir una confirmación no cambia nada. Lo demás se escribe como una sola
+        // operación atómica y no con el documento entero: si el veedor lo descartó desde que se leyó, no se revive.
+        if (reporteConfirmado != reporte
+                && !reportes.agregarConfirmacionSiVigente(reporteId, huella)) {
+            throw new EntidadNoEncontradaException("No existe el reporte '" + reporteId.valor() + "'");
+        }
 
         return reporteConfirmado;
     }

@@ -20,7 +20,7 @@ public class SseConfig {
             RedisConnectionFactory connectionFactory, SseSectoresBroadcaster broadcaster) {
         RedisMessageListenerContainer contenedor = new RedisMessageListenerContainer();
         contenedor.setConnectionFactory(connectionFactory);
-        contenedor.addMessageListener(broadcaster, new ChannelTopic(SseSectoresBroadcaster.CANAL));
+        contenedor.addMessageListener(broadcaster, new ChannelTopic(broadcaster.canal()));
         return contenedor;
     }
 }

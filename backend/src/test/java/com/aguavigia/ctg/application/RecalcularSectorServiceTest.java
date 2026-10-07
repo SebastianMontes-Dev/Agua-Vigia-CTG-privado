@@ -28,6 +28,7 @@ import com.aguavigia.ctg.domain.TipoReporte;
 import com.aguavigia.ctg.domain.VentanaTiempo;
 import com.aguavigia.ctg.domain.port.in.RegistrarEventoBitacoraUseCase;
 import com.aguavigia.ctg.domain.port.out.CorteAguaRepository;
+import com.aguavigia.ctg.domain.port.out.MetricasDelSistemaPort;
 import com.aguavigia.ctg.domain.port.out.PropuestaIngestaRepository;
 import com.aguavigia.ctg.domain.port.out.ReporteCiudadanoRepository;
 import com.aguavigia.ctg.domain.port.out.SectorRepository;
@@ -173,6 +174,18 @@ class RecalcularSectorServiceTest {
         return captor.getValue();
     }
 
+    /** Con 0 redes mínimas la composición del quórum no exigiría nada: la configuración errónea debe fallar al arrancar. */
+    @Test
+    void rechazaUnMinimoDeRedesMenorQueUno() {
+        for (int invalido : new int[] {0, -1}) {
+            assertThatThrownBy(() -> new RecalcularSectorService(sectores, cortes, propuestas, reportes, sector -> 3,
+                    new ResolutorDeEstadoSector(ReglasDeEstado.porDefecto()), registrarEvento,
+                    () -> ahora, transaccion, VENTANA_CONSENSO, invalido))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("redes");
+        }
+    }
+
     @Test
     void unBarrioInexistenteSeRechaza() {
         given(sectores.buscarPorId(MANGA)).willReturn(Optional.empty());
@@ -207,6 +220,35 @@ class RecalcularSectorServiceTest {
             assertThat(evento.tipo()).isEqualTo(TipoEvento.CORTE_DETECTADO_POR_INGESTA);
             assertThat(evento.estado()).isEqualTo(EstadoServicio.SIN_SERVICIO);
             assertThat(evento.urlOriginal()).isEqualTo("https://acuacar.com/2854");
+        }
+
+        /**
+         * La ingesta etiqueta CORTE_PROGRAMADO un boletín cuya ventana aún no empieza (PipelineOrquestador). Esa etiqueta es del
+         * momento, no de la ventana: la propuesta aprobada debe seguir afirmando un corte, y el resolutor lo muestra programado
+         * hasta que empiece. Antes la ventana rechazaba la etiqueta y el boletín anunciado para mañana nunca llegaba al mapa.
+         */
+        @Test
+        void unBoletinAnunciadoAntesDeQueEmpieceSuVentanaPublicaCorteProgramado() {
+            ahora = INICIO.minusSeconds(7200);
+            dadoUnSector(EstadoServicio.CON_SERVICIO);
+            given(propuestas.listarAprobadasPorSector(MANGA)).willReturn(
+                    List.of(boletin("acuacar", EstadoServicio.CORTE_PROGRAMADO, INICIO, FIN)));
+
+            EstadoPublicado publicado = recalcular();
+
+            assertThat(publicado.estado()).isEqualTo(EstadoServicio.CORTE_PROGRAMADO);
+        }
+
+        /** Y la misma propuesta, ya dentro de la ventana, es un corte en curso. */
+        @Test
+        void esaMismaPropuestaDentroDeLaVentanaPublicaSinServicio() {
+            dadoUnSector(EstadoServicio.CORTE_PROGRAMADO);
+            given(propuestas.listarAprobadasPorSector(MANGA)).willReturn(
+                    List.of(boletin("acuacar", EstadoServicio.CORTE_PROGRAMADO, INICIO, FIN)));
+
+            EstadoPublicado publicado = recalcular();
+
+            assertThat(publicado.estado()).isEqualTo(EstadoServicio.SIN_SERVICIO);
         }
 
         /** El par estado + evento es una sola unidad: si el evento falla, el estado no puede quedar publicado. */
@@ -1191,6 +1233,152 @@ class RecalcularSectorServiceTest {
             recalcular();
 
             verify(sectores, never()).confirmarEstado(any(), any());
+        }
+    }
+
+    /**
+     * D37: lo que hay que medir para calibrar los umbrales. Cada cifra sale del único escritor del estado: si se contara en otra capa, un
+     * cambio que pierde la carrera contra otro proceso se contaría dos veces.
+     */
+    @Nested
+    class Metricas {
+
+        private MetricasDelSistemaPort metricas;
+
+        @BeforeEach
+        void conMetricas() {
+            metricas = mock(MetricasDelSistemaPort.class);
+            servicio = new RecalcularSectorService(sectores, cortes, propuestas, reportes, sector -> 3,
+                    new ResolutorDeEstadoSector(ReglasDeEstado.porDefecto()), registrarEvento,
+                    () -> ahora, transaccion, VENTANA_CONSENSO, 2, metricas);
+        }
+
+        private ReporteCiudadano deLaRed(String id, NivelDeVerificacion nivel, String red) {
+            return new ReporteCiudadano(new ReporteId(id), MANGA, TipoReporte.SIN_AGUA, null,
+                    new HuellaDispositivo("h-" + id), ahora.minusSeconds(100)).conIdentidad(nivel, red);
+        }
+
+        @Test
+        void unCambioDeEstadoPorVecinosSeCuentaYSeMideCuantoTardoDesdeElPrimerReporte() {
+            dadoUnSector(EstadoServicio.CON_SERVICIO);
+            dadosLosVotos(TipoReporte.SIN_AGUA, 3,
+                    reporte("r1", TipoReporte.SIN_AGUA, ahora.minusSeconds(300)),
+                    reporte("r2", TipoReporte.SIN_AGUA, ahora.minusSeconds(200)),
+                    reporte("r3", TipoReporte.SIN_AGUA, ahora.minusSeconds(100)));
+
+            recalcular();
+
+            verify(metricas).cambioDeEstado(MANGA, EstadoServicio.SIN_SERVICIO, OrigenEstado.VECINOS);
+            verify(metricas).tiempoHastaElCambioDeEstado(Duration.ofSeconds(300));
+        }
+
+        @Test
+        void sinCambioDeEstadoNoSeCuentaNiSeMideNada() {
+            dadoUnSector(null);
+
+            recalcular();
+
+            verify(metricas, never()).cambioDeEstado(any(), any(), any());
+            verify(metricas, never()).tiempoHastaElCambioDeEstado(any());
+        }
+
+        @Test
+        void siOtroProcesoGanoLaCarreraEsteRecalculoNoCuentaElCambio() {
+            dadoUnSector(EstadoServicio.CON_SERVICIO);
+            given(sectores.publicarSiEs(any(), any(), any(), any())).willReturn(false);
+            dadosLosVotos(TipoReporte.SIN_AGUA, 3,
+                    reporte("r1", TipoReporte.SIN_AGUA, ahora.minusSeconds(300)),
+                    reporte("r2", TipoReporte.SIN_AGUA, ahora.minusSeconds(200)),
+                    reporte("r3", TipoReporte.SIN_AGUA, ahora.minusSeconds(100)));
+
+            recalcular();
+
+            verify(metricas, never()).cambioDeEstado(any(), any(), any());
+        }
+
+        @Test
+        void unaDisputaQueSeAbreSeCuentaUnaVez() {
+            dadoUnSector(EstadoServicio.SIN_SERVICIO, INICIO, INICIO, marcasDeAcuacar());
+            given(propuestas.listarAprobadasPorSector(MANGA)).willReturn(List.of(boletinDeAcuacar()));
+            dadosLosVotos(TipoReporte.SERVICIO_RESTABLECIDO, 3,
+                    reporte("r1", TipoReporte.SERVICIO_RESTABLECIDO, ahora.minusSeconds(300)),
+                    reporte("r2", TipoReporte.SERVICIO_RESTABLECIDO, ahora.minusSeconds(200)),
+                    reporte("r3", TipoReporte.SERVICIO_RESTABLECIDO, ahora.minusSeconds(100)));
+
+            recalcular();
+
+            verify(metricas).disputaAbierta();
+        }
+
+        @Test
+        void siOtroProcesoAbrioLaDisputaAntesNoSeCuenta() {
+            dadoUnSector(EstadoServicio.SIN_SERVICIO, INICIO, INICIO, marcasDeAcuacar());
+            given(propuestas.listarAprobadasPorSector(MANGA)).willReturn(List.of(boletinDeAcuacar()));
+            given(sectores.abrirDisputaSiEs(any(), any(), any())).willReturn(false);
+            dadosLosVotos(TipoReporte.SERVICIO_RESTABLECIDO, 3,
+                    reporte("r1", TipoReporte.SERVICIO_RESTABLECIDO, ahora.minusSeconds(300)),
+                    reporte("r2", TipoReporte.SERVICIO_RESTABLECIDO, ahora.minusSeconds(200)),
+                    reporte("r3", TipoReporte.SERVICIO_RESTABLECIDO, ahora.minusSeconds(100)));
+
+            recalcular();
+
+            verify(metricas, never()).disputaAbierta();
+        }
+
+        /**
+         * Un reintento de la transacción vuelve a decidir sobre datos frescos: si el primer intento marcó que escribía la
+         * disputa pero se revirtió, y en el segundo otro proceso ya la había abierto, la métrica no puede quedar contada.
+         */
+        @Test
+        void siLaTransaccionSeReintentaYElSegundoIntentoNoEscribeLaDisputaNoSeCuenta() {
+            TransaccionPort conUnReintento = new TransaccionPort() {
+                @Override
+                public <T> T ejecutar(java.util.function.Supplier<T> accion) {
+                    accion.get(); // primer intento: se da por revertido
+                    return accion.get();
+                }
+            };
+            servicio = new RecalcularSectorService(sectores, cortes, propuestas, reportes, sector -> 3,
+                    new ResolutorDeEstadoSector(ReglasDeEstado.porDefecto()), registrarEvento,
+                    () -> ahora, conUnReintento, VENTANA_CONSENSO, 2, metricas);
+            dadoUnSector(EstadoServicio.SIN_SERVICIO, INICIO, INICIO, marcasDeAcuacar());
+            given(propuestas.listarAprobadasPorSector(MANGA)).willReturn(List.of(boletinDeAcuacar()));
+            given(sectores.abrirDisputaSiEs(any(), any(), any())).willReturn(true, false);
+            dadosLosVotos(TipoReporte.SERVICIO_RESTABLECIDO, 3,
+                    reporte("r1", TipoReporte.SERVICIO_RESTABLECIDO, ahora.minusSeconds(300)),
+                    reporte("r2", TipoReporte.SERVICIO_RESTABLECIDO, ahora.minusSeconds(200)),
+                    reporte("r3", TipoReporte.SERVICIO_RESTABLECIDO, ahora.minusSeconds(100)));
+
+            recalcular();
+
+            verify(metricas, never()).disputaAbierta();
+        }
+
+        /** Tres reportes anónimos de una sola red llegan al umbral pero no a la composición: es lo que más importa ver al calibrar. */
+        @Test
+        void unQuorumQueLlegaAlUmbralPeroNoALaComposicionSeCuentaComoRechazado() {
+            dadoUnSector(null);
+            dadosLosVotos(TipoReporte.SIN_AGUA, 3,
+                    deLaRed("r1", NivelDeVerificacion.NINGUNA, "red-a"),
+                    deLaRed("r2", NivelDeVerificacion.NINGUNA, "red-a"),
+                    deLaRed("r3", NivelDeVerificacion.NINGUNA, "red-a"));
+
+            recalcular();
+
+            verify(metricas).quorumRechazadoPorComposicion(MANGA, TipoReporte.SIN_AGUA);
+            verify(metricas, never()).cambioDeEstado(any(), any(), any());
+        }
+
+        @Test
+        void unQuorumQueNoLlegaAlUmbralNoSeCuentaComoRechazado() {
+            dadoUnSector(null);
+            dadosLosVotos(TipoReporte.SIN_AGUA, 2,
+                    deLaRed("r1", NivelDeVerificacion.NINGUNA, "red-a"),
+                    deLaRed("r2", NivelDeVerificacion.NINGUNA, "red-a"));
+
+            recalcular();
+
+            verify(metricas, never()).quorumRechazadoPorComposicion(any(), any());
         }
     }
 }

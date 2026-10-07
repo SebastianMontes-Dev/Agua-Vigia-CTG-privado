@@ -57,6 +57,17 @@ class IndicesMongoTest {
         assertThat(indicesCortes).contains("sectoresAfectados_1", "finReal_1");
     }
 
+    /** La calidad del dato cuenta los cortes anulados, y la cola del veedor pide propuestas por revisión y vigencia. */
+    @Test
+    void debeAsegurarLosIndicesDeEstadoDeCortesYDeVigenciaDePropuestas() {
+        indicesMongo.asegurarIndices();
+
+        assertThat(nombresDeIndices(mongoTemplate.indexOps(CorteAguaDocumento.class).getIndexInfo()))
+                .contains("estado_1");
+        assertThat(nombresDeIndices(mongoTemplate.indexOps(PropuestaIngestaDocumento.class).getIndexInfo()))
+                .contains("estadoRevision_1_finPrometido_1");
+    }
+
     @Test
     void debeAsegurarLosIndicesDeReportesSuscripcionesYBitacora() {
         indicesMongo.asegurarIndices();

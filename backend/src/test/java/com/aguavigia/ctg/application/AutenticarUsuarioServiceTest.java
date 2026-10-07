@@ -250,6 +250,64 @@ class AutenticarUsuarioServiceTest {
         verify(cifrador).gastarTiempoEquivalente();
     }
 
+    /**
+     * Una cuenta invitada que aún no fijó su clave no tiene hash que comparar. Si esa rama respondiera sin gastar el
+     * BCrypt que sí gasta una clave equivocada, el cronómetro diría qué correos tienen una invitación pendiente.
+     */
+    @Test
+    void conUnaCuentaSinClaveTodaviaDebeGastarElMismoTiempoQueUnIntentoReal() {
+        Usuario invitada = new Usuario(new UsuarioId("u-2"), CORREO, "Ana", null, EstadoCuenta.INVITADA,
+                PermisosEfectivos.deRol(RolVeedor.VECINO), null, AHORA, AHORA,
+                new com.aguavigia.ctg.domain.SectorId("manga"));
+        existeLaCuenta(invitada);
+
+        assertThatExceptionOfType(CredencialInvalidaException.class)
+                .isThrownBy(() -> servicio.autenticarVecino(CORREO, CLAVE, CONTEXTO))
+                .withMessage("Correo o clave incorrectos.");
+
+        verify(cifrador).gastarTiempoEquivalente();
+        verify(cifrador, never()).coincide(anyString(), any());
+    }
+
+    private Usuario deDemostracion(RolVeedor rol) {
+        return new Usuario(new UsuarioId("u-9"), CORREO, "Cuenta sintética 000009", HASH, EstadoCuenta.ACTIVA,
+                PermisosEfectivos.deRol(rol), null, AHORA, AHORA,
+                rol == RolVeedor.VECINO ? new com.aguavigia.ctg.domain.SectorId("manga") : null,
+                java.util.List.of(), false, null, true);
+    }
+
+    /**
+     * Nadie es titular de una cuenta sintética: se responde como a un correo inexistente, con el mismo tiempo y sin
+     * auditar, aunque alguien acertara la clave compartida. Auditar cada intento dejaría que cualquiera llenara la
+     * auditoría de 30 000 cuentas desde fuera.
+     */
+    @Test
+    void unaCuentaSinteticaDebeTratarseComoUnCorreoInexistente() {
+        existeLaCuenta(deDemostracion(RolVeedor.VECINO));
+        laClaveEsCorrecta();
+
+        assertThatExceptionOfType(CredencialInvalidaException.class)
+                .isThrownBy(() -> servicio.autenticarVecino(CORREO, CLAVE, CONTEXTO))
+                .withMessage("Correo o clave incorrectos.");
+
+        verify(cifrador).gastarTiempoEquivalente();
+        verify(cifrador, never()).coincide(anyString(), any());
+        verify(intentos).registrarFallo(eq("ana@ejemplo.org|10.0.0.1"), any(), eq(5), any());
+        verify(auditoria, never()).registrarConAutor(any(), any(), any(), anyString(), any());
+        verify(emisor, never()).emitir(any(), any());
+    }
+
+    /** Las cuentas de panel que siembra sembrar-usuarios-demo.mjs llevan la marca de demostración y claves conocidas. */
+    @Test
+    void unaCuentaDePanelDeDemostracionDebePoderEntrar() {
+        existeLaCuenta(deDemostracion(RolVeedor.VEEDOR));
+        laClaveEsCorrecta();
+
+        var sesion = servicio.autenticar(CORREO, CLAVE, null, CONTEXTO);
+
+        assertThat(sesion.token()).isEqualTo("token-emitido");
+    }
+
     @Test
     void unCorreoInexistenteTambienDebeContarComoIntentoFallido() {
         given(usuarios.buscarPorCorreo(any())).willReturn(Optional.empty());

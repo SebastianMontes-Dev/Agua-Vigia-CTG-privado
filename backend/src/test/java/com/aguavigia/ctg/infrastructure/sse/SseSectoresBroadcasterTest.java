@@ -22,6 +22,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
@@ -62,7 +63,7 @@ class SseSectoresBroadcasterTest {
     void montar() {
         reloj = mock(RelojPort.class);
         redisTemplate = mock(RedisTemplate.class);
-        broadcaster = new SseSectoresBroadcaster(reloj, redisTemplate, Runnable::run, MAXIMO);
+        broadcaster = new SseSectoresBroadcaster(reloj, redisTemplate, Runnable::run, MAXIMO, CANAL);
         mockMvc = MockMvcBuilders.standaloneSetup(new ControladorDePrueba(broadcaster)).build();
         given(reloj.ahora()).willReturn(INSTANTE);
     }
@@ -97,6 +98,29 @@ class SseSectoresBroadcasterTest {
         broadcaster.notificarActualizacion();
 
         verify(redisTemplate).convertAndSend(eq(CANAL), any());
+    }
+
+    /**
+     * Pub/Sub de Redis ignora el número de base de datos: la instancia de simulación (base 1) y la real (base 0)
+     * compartían canal, y cada recálculo simulado avisaba a los clientes de la instancia real.
+     */
+    @Test
+    void laInstanciaRealUsaElCanalDeSiempreYLaSimuladaUnoPropio() {
+        assertThat(SseSectoresBroadcaster.canalPara("REAL")).isEqualTo(CANAL);
+        assertThat(SseSectoresBroadcaster.canalPara(null)).isEqualTo(CANAL);
+        assertThat(SseSectoresBroadcaster.canalPara("SIMULACION")).isNotEqualTo(CANAL).startsWith(CANAL);
+    }
+
+    @Test
+    void notificarActualizacionDebePublicarEnElCanalConQueSeConstruyo() {
+        SseSectoresBroadcaster simulada = new SseSectoresBroadcaster(reloj, redisTemplate, Runnable::run, MAXIMO,
+                SseSectoresBroadcaster.canalPara("SIMULACION"));
+
+        simulada.notificarActualizacion();
+
+        verify(redisTemplate).convertAndSend(eq(SseSectoresBroadcaster.canalPara("SIMULACION")), any());
+        verify(redisTemplate, never()).convertAndSend(eq(CANAL), any());
+        assertThat(simulada.canal()).isEqualTo(SseSectoresBroadcaster.canalPara("SIMULACION"));
     }
 
     @Test

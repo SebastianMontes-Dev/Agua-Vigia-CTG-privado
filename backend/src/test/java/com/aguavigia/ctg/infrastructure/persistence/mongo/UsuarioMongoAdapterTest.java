@@ -160,6 +160,18 @@ class UsuarioMongoAdapterTest {
     }
 
     @Test
+    void debeBuscarLaCuentaMasAntiguaDeUnRol() {
+        adaptador.guardar(new Usuario(new UsuarioId("adm-2"), new CorreoElectronico("segundo@ejemplo.org"), "Segundo", HASH,
+                EstadoCuenta.ACTIVA, PermisosEfectivos.deRol(RolVeedor.ADMIN), null, T0.plusSeconds(60), T0.plusSeconds(60)));
+        adaptador.guardar(new Usuario(new UsuarioId("adm-1"), new CorreoElectronico("primero@ejemplo.org"), "Primero", HASH,
+                EstadoCuenta.ACTIVA, PermisosEfectivos.deRol(RolVeedor.ADMIN), null, T0, T0));
+        adaptador.guardar(cuenta("a", "a@ejemplo.org", EstadoCuenta.ACTIVA, null, T0.minusSeconds(600)));
+
+        assertThat(adaptador.buscarPrimeroPorRol(RolVeedor.ADMIN)).map(u -> u.id().valor()).contains("adm-1");
+        assertThat(adaptador.buscarPrimeroPorRol(RolVeedor.VECINO)).isEmpty();
+    }
+
+    @Test
     void debeContarSoloLasCuentasActivasDeUnRol() {
         adaptador.guardar(cuenta("a", "a@ejemplo.org", EstadoCuenta.ACTIVA, null, T0));
         adaptador.guardar(cuenta("b", "b@ejemplo.org", EstadoCuenta.SUSPENDIDA, null, T0));
@@ -201,6 +213,37 @@ class UsuarioMongoAdapterTest {
         adaptador.guardar(cuenta("real", "ana@correo.com", EstadoCuenta.ACTIVA, new SectorId("manga"), T0));
 
         assertThat(adaptador.contarSinteticas()).isEqualTo(2);
+    }
+
+    /**
+     * Las cuentas de panel de demostración (sembrar-usuarios-demo.mjs) llevan datosDeDemostracion pero tienen titular y
+     * claves reales: no son sintéticas, ni se marcan SEMBRADO ni se cuentan. Si se marcaran, el sembrador (que solo borra
+     * lo que no es SEMBRADO) las dejaría duplicadas y la bandera pública `cuentasSinteticas` mentiría.
+     */
+    @Test
+    void unaCuentaDePanelDeDemostracionNoEsSinteticaNiSeMarcaSembradaNiSeCuenta() {
+        adaptador.guardar(new Usuario(new UsuarioId("panel-1"), new CorreoElectronico("veedor@demo.aguavigia.invalid"),
+                "Veedor de demostración", HASH, EstadoCuenta.ACTIVA, PermisosEfectivos.deRol(RolVeedor.VEEDOR),
+                null, T0, T0, null, java.util.List.of(), false, null, true));
+        adaptador.guardar(sintetica(1));
+
+        org.bson.Document crudo = mongoTemplate.getDb().getCollection("usuarios")
+                .find(new org.bson.Document("_id", "panel-1")).first();
+        assertThat(crudo.getBoolean("datosDeDemostracion")).isTrue();
+        assertThat(crudo.get("origen")).isNull();
+        assertThat(adaptador.contarSinteticas()).isEqualTo(1);
+    }
+
+    /** Un vecino con la marca pero sin pasar por la fábrica del sistema tampoco cuenta: el criterio es rol + origen. */
+    @Test
+    void contarSinteticasExigeRolVecinoYOrigenSembrado() {
+        mongoTemplate.getDb().getCollection("usuarios").insertOne(new org.bson.Document("_id", "x-1")
+                .append("correo", "x1@demo.aguavigia.invalid").append("nombre", "X").append("estado", "ACTIVA")
+                .append("rol", "VEEDOR").append("datosDeDemostracion", true).append("origen", "SEMBRADO")
+                .append("creadoEn", java.util.Date.from(T0)).append("actualizadoEn", java.util.Date.from(T0)));
+        adaptador.guardar(sintetica(2));
+
+        assertThat(adaptador.contarSinteticas()).isEqualTo(1);
     }
 
     @Test

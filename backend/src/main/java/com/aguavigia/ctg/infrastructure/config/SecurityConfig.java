@@ -56,6 +56,9 @@ public class SecurityConfig {
     private static final String[] RUTAS_PUBLICAS = {
             "/api/sectores/**", "/api/reportes/**", "/api/cumplimiento/**", "/api/estadisticas/**",
             "/api/bitacora/**", "/api/suscripciones/**", "/api/iot/**", "/api/v2/**", "/api/dispositivos/**",
+            // Simulación (D26): sin sesión pero con X-Sim-Key, y solo existe en la instancia de simulación: en la real no hay
+            // controlador y responde 404.
+            "/api/sim/**",
             "/actuator/health", "/actuator/health/**",
             // Páginas de error del contenedor: sin esto un 404 o un 500 saldrían como 401.
             "/error",

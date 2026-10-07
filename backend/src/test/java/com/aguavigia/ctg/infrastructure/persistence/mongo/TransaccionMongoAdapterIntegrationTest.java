@@ -9,9 +9,18 @@ import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -68,6 +77,68 @@ class TransaccionMongoAdapterIntegrationTest {
                 .as("el sector no debe quedar guardado si el evento de bitácora no se anexó")
                 .isEqualTo(0);
         assertThat(mongoTemplate.getCollection("eventos_bitacora").countDocuments()).isEqualTo(0);
+    }
+
+    /**
+     * Dos transacciones reales escriben el mismo documento: la segunda recibe un conflicto de escritura de Mongo,
+     * que `MongoTemplate` traduce a una excepción de Spring. El adaptador debe reconocerlo como transitorio y
+     * reintentar; antes solo miraba `MongoException` y la perdedora salía como error.
+     */
+    @Test
+    void dosTransaccionesConcurrentesSobreElMismoDocumentoDebenTerminarAmbasPorElReintento() throws Exception {
+        mongoTemplate.getCollection("sectores").insertOne(new Document("slug", "manga").append("n", 0));
+        Query todos = new Query();
+        CountDownLatch aEscribio = new CountDownLatch(1);
+        CountDownLatch bFallo = new CountDownLatch(1);
+        CountDownLatch aConfirmo = new CountDownLatch(1);
+        AtomicInteger intentosDeB = new AtomicInteger();
+
+        ExecutorService hilos = Executors.newFixedThreadPool(2);
+        try {
+            Future<?> a = hilos.submit(() -> {
+                transaccion.ejecutar(() -> {
+                    mongoTemplate.updateFirst(todos, new Update().inc("n", 1), "sectores");
+                    aEscribio.countDown();
+                    esperar(bFallo);
+                    return null;
+                });
+                aConfirmo.countDown();
+            });
+            Future<?> b = hilos.submit(() -> {
+                esperar(aEscribio);
+                transaccion.ejecutar(() -> {
+                    if (intentosDeB.incrementAndGet() > 1) {
+                        esperar(aConfirmo);
+                    }
+                    try {
+                        mongoTemplate.updateFirst(todos, new Update().inc("n", 1), "sectores");
+                    } catch (RuntimeException falla) {
+                        bFallo.countDown();
+                        throw falla;
+                    }
+                    return null;
+                });
+            });
+
+            a.get(30, TimeUnit.SECONDS);
+            b.get(30, TimeUnit.SECONDS);
+        } finally {
+            hilos.shutdownNow();
+        }
+
+        assertThat(intentosDeB.get()).as("B choca con A una vez y reintenta").isEqualTo(2);
+        assertThat(mongoTemplate.getCollection("sectores").find().first().getInteger("n")).isEqualTo(2);
+    }
+
+    private static void esperar(CountDownLatch cerrojo) {
+        try {
+            if (!cerrojo.await(20, TimeUnit.SECONDS)) {
+                throw new IllegalStateException("la otra transacción no avanzó a tiempo");
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(e);
+        }
     }
 
     @Test

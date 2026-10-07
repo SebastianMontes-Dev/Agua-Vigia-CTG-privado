@@ -129,6 +129,45 @@ class ReporteCiudadanoMongoAdapterTest {
         assertThat(adaptador.asignarFotoSiNoTiene(new ReporteId("no-existe"), "/x", "y")).isFalse();
     }
 
+    /** Antes se leía el reporte entero y se guardaba entero: una confirmación podía revivir un reporte ya descartado. */
+    @Test
+    void agregarConfirmacionNoReviveUnReporteDescartadoNiPisaOtrasConfirmaciones() {
+        ReporteId id = new ReporteId("r-confirmar");
+        adaptador.guardar(new ReporteCiudadano(id, new SectorId("manga"), TipoReporte.SIN_AGUA, null,
+                new HuellaDispositivo("autor"), AHORA));
+
+        assertThat(adaptador.agregarConfirmacionSiVigente(id, new HuellaDispositivo("v1"))).isTrue();
+        assertThat(adaptador.agregarConfirmacionSiVigente(id, new HuellaDispositivo("v1"))).as("repetida").isTrue();
+        assertThat(adaptador.agregarConfirmacionSiVigente(id, new HuellaDispositivo("v2"))).isTrue();
+        assertThat(adaptador.buscarPorId(id).orElseThrow().numeroConfirmaciones()).isEqualTo(2);
+
+        assertThat(adaptador.cambiarEstadoDeModeracion(id, EstadoModeracion.DESCARTADO)).isTrue();
+
+        assertThat(adaptador.agregarConfirmacionSiVigente(id, new HuellaDispositivo("v3"))).isFalse();
+        ReporteCiudadano leido = adaptador.buscarPorId(id).orElseThrow();
+        assertThat(leido.estadoModeracion()).isEqualTo(EstadoModeracion.DESCARTADO);
+        assertThat(leido.numeroConfirmaciones()).isEqualTo(2);
+        assertThat(adaptador.agregarConfirmacionSiVigente(new ReporteId("no-existe"), new HuellaDispositivo("v"))).isFalse();
+    }
+
+    /** La moderación cambia solo la decisión: las confirmaciones que llegaron «en medio» no se pierden. */
+    @Test
+    void cambiarEstadoDeModeracionNoPisaLasConfirmacionesNiLaFoto() {
+        ReporteId id = new ReporteId("r-moderar");
+        adaptador.guardar(new ReporteCiudadano(id, new SectorId("manga"), TipoReporte.SIN_AGUA, null,
+                new HuellaDispositivo("autor"), AHORA));
+        adaptador.agregarConfirmacionSiVigente(id, new HuellaDispositivo("v1"));
+        adaptador.asignarFotoSiNoTiene(id, "/api/fotos/a.jpg", "s".repeat(64));
+
+        assertThat(adaptador.cambiarEstadoDeModeracion(id, EstadoModeracion.APROBADO)).isTrue();
+
+        ReporteCiudadano leido = adaptador.buscarPorId(id).orElseThrow();
+        assertThat(leido.estadoModeracion()).isEqualTo(EstadoModeracion.APROBADO);
+        assertThat(leido.numeroConfirmaciones()).isEqualTo(1);
+        assertThat(leido.fotoUrl()).isEqualTo("/api/fotos/a.jpg");
+        assertThat(adaptador.cambiarEstadoDeModeracion(new ReporteId("no-existe"), EstadoModeracion.APROBADO)).isFalse();
+    }
+
     @Test
     void marcarFotoDescartadaSoloSiHayFotoYSinTocarElReporte() {
         ReporteId id = new ReporteId("r-descarte");

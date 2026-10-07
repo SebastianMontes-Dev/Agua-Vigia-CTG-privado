@@ -4,6 +4,8 @@ import com.aguavigia.ctg.domain.port.in.ActualizarEstadosPorVentanaUseCase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.aguavigia.ctg.infrastructure.scheduling.EjecucionUnica;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -26,16 +28,25 @@ public class PlanificadorDeVentanas {
 
     private final ActualizarEstadosPorVentanaUseCase actualizarEstados;
     private final EjecucionUnica ejecucionUnica;
+    private final Duration bloqueoMinimo;
 
     public PlanificadorDeVentanas(ActualizarEstadosPorVentanaUseCase actualizarEstados, EjecucionUnica ejecucionUnica) {
+        this(actualizarEstados, ejecucionUnica, 60_000);
+    }
+
+    @Autowired
+    public PlanificadorDeVentanas(ActualizarEstadosPorVentanaUseCase actualizarEstados, EjecucionUnica ejecucionUnica,
+                                  @Value("${aguavigia.ingesta.ventanas-intervalo-ms:60000}") long intervaloMs) {
         this.actualizarEstados = actualizarEstados;
         this.ejecucionUnica = ejecucionUnica;
+        // El bloqueo mínimo no puede superar al intervalo: con 30 s fijos, un intervalo de 5 s (la simulación) seguía corriendo cada 30.
+        this.bloqueoMinimo = Duration.ofMillis(Math.max(1, Math.min(30_000, intervaloMs)));
     }
 
     /** Una sola réplica por ciclo: las demás lo omiten. Ver {@link EjecucionUnica}. */
     @Scheduled(fixedDelayString = "${aguavigia.ingesta.ventanas-intervalo-ms:60000}")
     public void revisarVentanasEnUnaReplica() {
-        ejecucionUnica.ejecutar("ventanas", Duration.ofMinutes(1), Duration.ofSeconds(30), this::revisarVentanas);
+        ejecucionUnica.ejecutar("ventanas", Duration.ofMinutes(1), bloqueoMinimo, this::revisarVentanas);
     }
 
     public void revisarVentanas() {

@@ -61,6 +61,31 @@ class UsuarioSinteticoTest {
     }
 
     @Test
+    void unaSinteticaEsUnVecinoQueCreoElSistema() {
+        assertThat(sintetico().esSintetica()).isTrue();
+        assertThat(sintetico().aceptarInvitacion(CLAVE, MOMENTO).esSintetica()).isTrue();
+    }
+
+    @Test
+    void unaCuentaDePanelDeDemostracionNoEsSintetica() {
+        // Las siembra scripts/sembrar-usuarios-demo.mjs con claves conocidas: tienen que poder entrar al panel.
+        Usuario veedorDeDemostracion = new Usuario(new UsuarioId("u-4"), new CorreoElectronico("veedor@demo.aguavigia.local"),
+                "Veedor de demostración", CLAVE, EstadoCuenta.ACTIVA, PermisosEfectivos.deRol(RolVeedor.VEEDOR), null,
+                MOMENTO, MOMENTO, null, java.util.List.of(), false, null, true);
+
+        assertThat(veedorDeDemostracion.esSintetica()).isFalse();
+    }
+
+    @Test
+    void unVecinoRealNoEsSintetico() {
+        Usuario real = Usuario.registradoComoVecino(new UsuarioId("u-5"), new CorreoElectronico("ana@correo.com"), "Ana",
+                new SectorId("manga"), java.util.List.of(new Consentimiento(TipoConsentimiento.PRIVACIDAD, "borrador", MOMENTO)),
+                MOMENTO);
+
+        assertThat(real.esSintetica()).isFalse();
+    }
+
+    @Test
     void unaSinteticaSigueNecesitandoBarrio() {
         assertThatThrownBy(() -> Usuario.sinteticoComoVecino(new UsuarioId("u-3"),
                 new CorreoElectronico("s@demo.aguavigia.invalid"), "x", null, MOMENTO))

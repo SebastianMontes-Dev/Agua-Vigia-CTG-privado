@@ -173,6 +173,18 @@ class AltaYRecuperacionDeCuentaTest {
         assertThat(guardado.getValue().barrio()).isEqualTo(manga);
     }
 
+    @Test
+    void registrarseConElCorreoDeUnaCuentaSinteticaNoDebeAvisarANadie() {
+        given(usuarios.buscarPorCorreo(any())).willReturn(Optional.of(new Usuario(new UsuarioId("u-5"), CORREO,
+                "Cuenta sintética 000005", HASH, EstadoCuenta.ACTIVA, PermisosEfectivos.deRol(RolVeedor.VECINO),
+                null, AHORA, AHORA, new SectorId("manga"), java.util.List.of(), false, null, true)));
+
+        registro().registrar(CORREO, "Ana", CLAVE, CONTEXTO);
+
+        verify(usuarios, never()).guardar(any());
+        verify(notificaciones, never()).avisarCambioDeAcceso(any(), anyString(), anyString());
+    }
+
     /** RNF024: el 400 por barrio inexistente sale antes de mirar el correo, así que no delata cuentas. */
     @Test
     void registrarseConUnBarrioInexistenteDebeRechazarseIgualExistaONoElCorreo() {
@@ -234,6 +246,31 @@ class AltaYRecuperacionDeCuentaTest {
         restablecimiento().solicitar(CORREO, CONTEXTO);
 
         verify(notificaciones, never()).enviarEnlaceDeRestablecimiento(any(), anyString());
+    }
+
+    /** Nadie es titular de una cuenta sintética: el enlace iría a un dominio .invalid y daría una vía de toma de la cuenta. */
+    @Test
+    void noDebeMandarEnlaceDeRestablecimientoAUnaCuentaSintetica() {
+        given(usuarios.buscarPorCorreo(any())).willReturn(Optional.of(new Usuario(new UsuarioId("u-3"), CORREO,
+                "Cuenta sintética 000003", HASH, EstadoCuenta.ACTIVA, PermisosEfectivos.deRol(RolVeedor.VECINO),
+                null, AHORA, AHORA, new SectorId("manga"), java.util.List.of(), false, null, true)));
+
+        restablecimiento().solicitar(CORREO, CONTEXTO);
+
+        verify(notificaciones, never()).enviarEnlaceDeRestablecimiento(any(), anyString());
+        verify(emisorDeTokens, never()).emitir(any(), any());
+    }
+
+    /** Las cuentas de panel de demostración tienen titular (quien las usa) y claves reales. */
+    @Test
+    void debeMandarEnlaceDeRestablecimientoAUnaCuentaDePanelDeDemostracion() {
+        given(usuarios.buscarPorCorreo(any())).willReturn(Optional.of(new Usuario(new UsuarioId("u-4"), CORREO,
+                "Veedor de demostración", HASH, EstadoCuenta.ACTIVA, PermisosEfectivos.deRol(RolVeedor.VEEDOR),
+                null, AHORA, AHORA, null, java.util.List.of(), false, null, true)));
+
+        restablecimiento().solicitar(CORREO, CONTEXTO);
+
+        verify(notificaciones).enviarEnlaceDeRestablecimiento(any(), eq("token-en-claro"));
     }
 
     @Test

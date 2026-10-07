@@ -1,10 +1,13 @@
 package com.aguavigia.ctg.architecture;
 
 import com.aguavigia.ctg.domain.CorteId;
+import com.aguavigia.ctg.domain.EstadoServicio;
 import com.aguavigia.ctg.domain.EventoBitacora;
 import com.aguavigia.ctg.domain.EventoId;
+import com.aguavigia.ctg.domain.Sector;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.TipoEvento;
+import com.aguavigia.ctg.domain.port.out.SectorRepository;
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.domain.JavaMethod;
@@ -144,6 +147,23 @@ class ReglaDeOroArchitectureTest {
                         "com.aguavigia.ctg.infrastructure.persistence.mongo")
                 .should().callConstructor(EventoBitacora.class,
                         EventoId.class, TipoEvento.class, SectorId.class, CorteId.class, Instant.class, String.class);
+
+        regla.check(CLASES_PRODUCCION);
+    }
+
+    /**
+     * ADR-087: {@code RecalcularSectorService} es el único escritor del estado de un barrio, con compare-and-set
+     * (`publicarSiEs`, `abrirDisputaSiEs`, `confirmarEstado`). `SectorRepository.guardar` reemplaza el documento entero
+     * (estado y marcas incluidos) y `cambiarEstadoSiEs` cambia el estado sin sus marcas ni su bitácora: solo las
+     * pruebas los usan para sembrar un barrio. Que nadie en producción los llame es lo que hace cierto lo del
+     * «único escritor».
+     */
+    @Test
+    void nadaEnProduccionDebeEscribirElEstadoDeUnBarrioSaltandoseElUnicoEscritor() {
+        ArchRule regla = noClasses()
+                .should().callMethod(SectorRepository.class, "guardar", Sector.class)
+                .orShould().callMethod(SectorRepository.class, "cambiarEstadoSiEs",
+                        SectorId.class, EstadoServicio.class, EstadoServicio.class);
 
         regla.check(CLASES_PRODUCCION);
     }

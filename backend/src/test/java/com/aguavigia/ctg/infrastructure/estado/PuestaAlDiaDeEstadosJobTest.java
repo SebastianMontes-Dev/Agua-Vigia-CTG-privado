@@ -33,7 +33,7 @@ class PuestaAlDiaDeEstadosJobTest {
         ponerAlDia = mock(PonerAlDiaSectoresUseCase.class);
         repoblarContador = mock(RepoblarContadorDeReportesUseCase.class);
         ejecucionUnica = mock(EjecucionUnica.class);
-        job = new PuestaAlDiaDeEstadosJob(expirar, ponerAlDia, repoblarContador, ejecucionUnica);
+        job = new PuestaAlDiaDeEstadosJob(expirar, ponerAlDia, repoblarContador, ejecucionUnica, 300_000);
     }
 
     /** Expirar primero: así el recálculo ya ve el corte EXPIRADO y el barrio vuelve a «sin datos» en la misma pasada. */

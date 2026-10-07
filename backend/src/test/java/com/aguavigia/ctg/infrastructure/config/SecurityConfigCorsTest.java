@@ -35,6 +35,15 @@ class SecurityConfigCorsTest {
         assertThat(configuracionDe("/api/reportes/r1/foto").getAllowedHeaders()).contains("X-Subida");
     }
 
+    /**
+     * Solo el simulador (Node, que no tiene CORS) manda `X-Sim-Key`; el frontend no llama a `/api/sim/**`. Permitirla
+     * en el preflight dejaría a una página de otro origen autorizado intentar adivinar la clave desde un navegador.
+     */
+    @Test
+    void noDebePermitirLaCabeceraDeLaClaveDeSimulacion() {
+        assertThat(configuracionDe("/api/sim/reloj").getAllowedHeaders()).doesNotContain("X-Sim-Key");
+    }
+
     @Test
     void debeSeguirPermitiendoLaSesionYElTipoDeContenido() {
         assertThat(configuracionDe("/api/reportes").getAllowedHeaders())

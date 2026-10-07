@@ -194,6 +194,20 @@ class RegistrarVecinoServiceTest {
         verify(notificaciones).avisarCambioDeAcceso(any(), anyString(), anyString());
     }
 
+    /** Una cuenta sintética no tiene titular a quien avisar: el aviso iría a un dominio reservado .invalid. */
+    @Test
+    void conUnCorreoDeCuentaSinteticaNoDebeAvisarANadieNiCrearNada() {
+        given(usuarios.buscarPorCorreo(any())).willReturn(Optional.of(new Usuario(new UsuarioId("u-2"), CORREO,
+                "Cuenta sintética 000002", HASH, EstadoCuenta.ACTIVA, PermisosEfectivos.deRol(RolVeedor.VECINO),
+                null, AHORA, AHORA, MANGA, java.util.List.of(), false, null, true)));
+
+        registro().registrar(CORREO, "Vecina", MANGA, SOLO_PRIVACIDAD, CONTEXTO);
+
+        verify(usuarios, never()).guardar(any());
+        verify(notificaciones, never()).enviarActivacionDeVecino(any(), anyString());
+        verify(notificaciones, never()).avisarCambioDeAcceso(any(), anyString(), anyString());
+    }
+
     @Test
     void debeIgualarLaDuracionExistaONoElCorreo() {
         registro().registrar(CORREO, "Vecina", MANGA, SOLO_PRIVACIDAD, CONTEXTO);

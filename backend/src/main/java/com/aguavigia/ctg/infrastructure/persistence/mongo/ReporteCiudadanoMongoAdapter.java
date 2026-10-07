@@ -82,6 +82,21 @@ public class ReporteCiudadanoMongoAdapter implements ReporteCiudadanoRepository 
     }
 
     @Override
+    public boolean agregarConfirmacionSiVigente(ReporteId id, HuellaDispositivo huella) {
+        Query vigente = Query.query(Criteria.where("_id").is(id.valor())
+                .and("estadoModeracion").ne(EstadoModeracion.DESCARTADO.name()));
+        return mongoTemplate.updateFirst(vigente, new Update().addToSet("huellasConfirmacion", huella.hash()),
+                ReporteCiudadanoDocumento.class).getMatchedCount() == 1;
+    }
+
+    @Override
+    public boolean cambiarEstadoDeModeracion(ReporteId id, EstadoModeracion estado) {
+        return mongoTemplate.updateFirst(Query.query(Criteria.where("_id").is(id.valor())),
+                new Update().set("estadoModeracion", estado.name()),
+                ReporteCiudadanoDocumento.class).getMatchedCount() == 1;
+    }
+
+    @Override
     public boolean marcarFotoDescartada(ReporteId id) {
         Query conFoto = Query.query(Criteria.where("_id").is(id.valor()).and("fotoUrl").ne(null));
         return mongoTemplate.updateFirst(conFoto, new Update().set("fotoDescartada", true),
