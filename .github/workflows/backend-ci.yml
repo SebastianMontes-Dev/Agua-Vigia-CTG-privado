@@ -1,5 +1,9 @@
 name: Backend CI
 
+# Solo lee el repositorio: ningun job de este flujo publica, comenta ni escribe (el GITHUB_TOKEN por defecto puede hacerlo todo).
+permissions:
+  contents: read
+
 on:
   push:
     branches: [main, develop]

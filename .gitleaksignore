@@ -1,0 +1,10 @@
+# Huellas (commit:archivo:regla:linea) de hallazgos del HISTORIAL ya evaluados y aceptados. Ninguna lleva el valor del secreto.
+#
+# ADR-031: hasta el 2026-09-29 docs/ingenieria/entorno-local.md publicó una clave de desarrollo (JWT_SECRET). Ya no está en ningún
+# archivo vigente y se trata como EXPUESTA: no debe usarse en ningún `.env`. Antes la exención era un regex con el valor exacto
+# dentro de `.gitleaks.toml`, es decir, el mismo secreto en el árbol de trabajo; ahora la excepción es por commit y línea, y el
+# valor no aparece en ningún archivo vigente. Reescribir el historial invalida estas huellas, y entonces ya no hacen falta.
+243dfcb20afabb4ae97befd0a3d1096be0ecb114:docs/ingenieria/entorno-local.md:generic-api-key:52
+243dfcb20afabb4ae97befd0a3d1096be0ecb114:docs/ingenieria/entorno-local.md:generic-api-key:387
+79a67185b21101df5a6d97ccc314735434afbc22:docs/ingenieria/entorno-local.md:generic-api-key:44
+ad7d660e2591160bc969d70f0096dbf257336ccd:docs/ingenieria/entorno-local.md:generic-api-key:42

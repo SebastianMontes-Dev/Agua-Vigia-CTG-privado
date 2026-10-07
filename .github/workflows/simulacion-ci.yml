@@ -1,0 +1,72 @@
+name: Simulación (prueba de aceptación)
+
+# El guion de scripts/simulacion/guion-completo.yaml es también una prueba de aceptación: levanta la instancia de simulación en un compose
+# efímero, corre el día simulado a x300 por la API real (300 vecinos, boletines, veedor, saltos de reloj) y falla si falla una aserción o una
+# acción. Sirve de red de seguridad para lo que ninguna prueba unitaria ve: que las piezas, juntas, hagan lo que el plan promete.
+# La clave de /api/sim/** se genera en cada ejecución con preparar.mjs (queda en .env, ignorado por git): nunca se versiona.
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - "backend/**"
+      - "scripts/**"
+      - "data/geoespacial/**"
+      - "docker-compose.yml"
+      - ".github/workflows/simulacion-ci.yml"
+  pull_request:
+    paths:
+      - "backend/**"
+      - "scripts/**"
+      - "data/geoespacial/**"
+      - "docker-compose.yml"
+      - ".github/workflows/simulacion-ci.yml"
+
+jobs:
+  simulacion:
+    name: Guion completo a x300
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+
+      # Genera SIMULACION_CLAVE en .env (que está en .gitignore) sin imprimirla.
+      - name: Preparar la clave de la simulación
+        run: node scripts/simulacion/preparar.mjs
+
+      - name: Levantar la instancia de simulación
+        run: |
+          docker compose --profile simulacion build simulador
+          docker compose --profile simulacion up -d --build backend-sim
+
+      - name: Correr el guion completo a x300
+        run: |
+          set -o pipefail
+          mkdir -p resultados-simulacion
+          docker compose --profile simulacion run --rm simulador iniciar --velocidad 300 | tee resultados-simulacion/guion.log
+
+      # Si algo falla, el log del backend dice por qué. Se quita la línea del ADMIN inicial: el backend imprime su clave una sola vez.
+      - name: Log del backend de simulación
+        if: always()
+        run: |
+          mkdir -p resultados-simulacion
+          docker compose --profile simulacion logs --no-color backend-sim | grep -v "ADMINISTRADOR INICIAL" > resultados-simulacion/backend-sim.log || true
+
+      - name: Subir los registros
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: simulacion-logs
+          path: resultados-simulacion/
+          if-no-files-found: ignore
+
+      - name: Apagar
+        if: always()
+        run: docker compose --profile simulacion down -v

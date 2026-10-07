@@ -5,6 +5,10 @@ name: Contenedores y dependencias
 # compose mal editado no fallaba la build de nadie hasta que alguien intentaba levantar el entorno.
 # El proyecto corre solo en local (ADR-057, ADR-080): hay un único compose, el de docker-compose.yml.
 
+# Solo lee el repositorio: ningun job de este flujo publica, comenta ni escribe (el GITHUB_TOKEN por defecto puede hacerlo todo).
+permissions:
+  contents: read
+
 on:
   push:
     branches: [main, develop]

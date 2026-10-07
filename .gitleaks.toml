@@ -7,9 +7,10 @@ useDefault = true
 # `regexTarget` no existen ahí, y con ellas la excepción se ignora en silencio.
 
 # ADR-031: hasta el 2026-09-29 un documento del repo publicó una clave de desarrollo (JWT_SECRET). Ya no está en
-# ningún archivo vigente, pero sigue en el historial de git, que gitleaks también escanea: por eso el valor exacto
-# sigue exento aquí. Se trata como EXPUESTO: no debe usarse en ningún `.env`. El perfil `prod` exige un secreto propio
-# y aborta el arranque si falta (ValidacionDeSecretos).
+# ningún archivo vigente, pero sigue en el historial de git, que gitleaks también escanea. Su excepción ya no vive aquí
+# (era un regex con el valor exacto, o sea, el secreto en el árbol de trabajo): son cuatro huellas de commit y línea en
+# `.gitleaksignore`, que no llevan el valor. Se trata como EXPUESTO: no debe usarse en ningún `.env`. El perfil `prod`
+# exige un secreto propio y aborta el arranque si falta (ValidacionDeSecretos).
 #
 # Ver ADR-043: GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ es la semilla de prueba oficial de TOTP del
 # RFC 4226/6238 (Base32 de "12345678901234567890"), usada en TotpAdapterTest.java para verificar
@@ -21,10 +22,9 @@ useDefault = true
 # `generic-api-key`. No protegen nada: el adaptador de producción lee su secreto de `config_sistema`, nunca de aquí. Como
 # en ADR-043, la excepción es sobre el valor exacto y no sobre la ruta, para no eximir de escaneo ningún archivo completo.
 [allowlist]
-description = "Excepciones evaluadas y aceptadas: clave de desarrollo local ya retirada (ADR-031), semilla TOTP del RFC (ADR-043) y claves de prueba de los tests HMAC"
+description = "Excepciones evaluadas y aceptadas: semilla TOTP del RFC (ADR-043) y claves de prueba de los tests HMAC (la clave de desarrollo retirada de ADR-031 va por huella en .gitleaksignore)"
 regexes = [
   '''GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ''',
-  '''jHZczrMtY\+dNWbYoCFZe3ZOvDUl8j7rWqVDeEeLMfIQ=''',
   '''secreto-de-prueba-que-nadie-mas-conoce-0123456789''',
   '''secreto-de-red-de-prueba-0123456789-abcdefghij''',
 ]

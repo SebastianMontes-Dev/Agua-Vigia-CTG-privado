@@ -26,9 +26,6 @@ services:
     # --bind_ip_all es para que los otros contenedores lleguen a Mongo por la red interna de compose; hacia el
     # equipo solo se publica en 127.0.0.1 (abajo), así que nadie de la red del aula ve la base.
     command: ["--replSet", "rs0", "--bind_ip_all"]
-    env_file:
-      - path: .env
-        required: false
     environment:
       MONGO_INITDB_DATABASE: ${MONGO_INITDB_DATABASE:-aguavigia}
     ports:
@@ -102,10 +99,20 @@ services:
       dockerfile: Dockerfile
     container_name: aguavigia-backend
     restart: unless-stopped
-    env_file:
-      - path: .env
-        required: false
     environment:
+      # Variables que el backend lee y no tienen valor por defecto aquí. Van SIN valor a propósito: si están en .env (o en el
+      # entorno) llegan tal cual; si no, no existen en el contenedor y Spring aplica su valor por defecto. Un valor vacío NO
+      # equivale a ausente para Spring (taparía el valor por defecto). Se lista una a una en vez de `env_file: .env` para que
+      # nada más de .env (p. ej. GITHUB_PERSONAL_ACCESS_TOKEN) llegue al contenedor.
+      ADMIN_INICIAL_CORREO:
+      VEEDOR_PASSWORD_HASH:
+      JWT_SECRET:
+      IOT_KEY:
+      TELEGRAM_BOT_TOKEN:
+      INGESTA_INTERVALO_MS:
+      INGESTA_RETRASO_INICIAL_MS:
+      RATE_LIMIT_FACTOR_CUENTAS:
+      AGUAVIGIA_MODO:
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
       SERVER_PORT: ${SERVER_PORT:-8080}
       SPRING_DATA_MONGODB_URI: ${MONGODB_URI:-mongodb://mongo:27017/aguavigia?replicaSet=rs0}
@@ -156,6 +163,101 @@ services:
       retries: 5
       start_period: 30s
 
+  # SIMULACIÓN (D32): una segunda instancia del mismo backend, aparte de la real. Base `aguavigia_sim`, Redis db 1, reloj acelerado y
+  # boletines que llegan por POST /api/sim/boletines. Nada suyo toca la base real ni el Índice real; se borra con `simulador reiniciar`.
+  #
+  #   node scripts/simulacion/preparar.mjs                          → genera SIMULACION_CLAVE en .env si falta
+  #   docker compose --profile simulacion up -d --build             → backend-sim en http://localhost:8082
+  #   docker compose run --rm simulador iniciar                     → corre el guion (x60 por defecto); ver scripts/simulacion/README.md
+  #
+  # Sin SIMULACION_CLAVE las rutas /api/sim/** responden 503. El frontend la apunta con AGUAVIGIA_BACKEND=http://localhost:8082.
+  backend-sim:
+    image: aguavigia/backend:local
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: aguavigia-backend-sim
+    profiles: ["simulacion"]
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SERVER_PORT: "8080"
+      SPRING_DATA_MONGODB_URI: mongodb://mongo:27017/aguavigia_sim?replicaSet=rs0
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: "6379"
+      # La instancia real usa la base 0 de Redis: sin esto compartirían llaves (caché, rate limit, ventana de consenso).
+      SPRING_DATA_REDIS_DATABASE: "1"
+      SPRING_MAIL_HOST: mailhog
+      SPRING_MAIL_PORT: "1025"
+      CORS_ORIGENES: ${CORS_ORIGENES:-http://localhost:5173,http://localhost:4173,http://localhost:3000,http://localhost:4200}
+      AGUAVIGIA_APP_URL_PUBLICA: http://localhost:8082
+      AGUAVIGIA_APP_URL_FRONTEND: ${APP_URL_FRONTEND:-http://localhost:5173}
+      COLLECTOR_USER_AGENT: "${COLLECTOR_USER_AGENT:-AguaVigiaCTG-Bot/1.0 (+alertas@aguavigia.com)}"
+      # La simulación no lee Acuacar ni la prensa: sus boletines los entrega el simulador (ColectorSimulado).
+      INGESTA_MODO: simulacion
+      AGUAVIGIA_SIM_HABILITADA: "true"
+      # Vacía por defecto: las rutas /api/sim/** responden 503 hasta que preparar.mjs la genere. NO se exige con `:?` para que
+      # `docker compose up` de la instancia real nunca dependa de ella.
+      AGUAVIGIA_SIM_CLAVE: ${SIMULACION_CLAVE:-}
+      AGUAVIGIA_MODO: SIMULACION
+      # El barrido de ventanas corre cada 5 s reales para que, con el reloj acelerado, las transiciones se vean casi al instante.
+      AGUAVIGIA_INGESTA_VENTANAS_INTERVALO_MS: "5000"
+      # Lo mismo para la expiración de cortes y la puesta al día de los barrios (cada 5 min por defecto): tras un `saltar` se ven al instante.
+      AGUAVIGIA_ESTADO_PUESTA_AL_DIA_MS: "5000"
+      # Los vecinos de la simulación se registran por la API real: no hay cuentas sintéticas.
+      VECINOS_SINTETICOS: "0"
+      # Un solo equipo registra cientos de vecinos y de dispositivos: sin subir los topes por IP no cabrían. SOLO en esta instancia.
+      RATE_LIMIT_FACTOR: ${SIM_RATE_LIMIT_FACTOR:-1000}
+      RATE_LIMIT_FACTOR_CUENTAS: ${SIM_RATE_LIMIT_FACTOR:-1000}
+      # Desde un solo host no hay redes distintas (ADR-090): se baja el mínimo a 1 y se dice.
+      AGUAVIGIA_CONSENSO_REDES_MINIMAS: "1"
+    ports:
+      - "127.0.0.1:8082:8080"
+    depends_on:
+      mongo:
+        condition: service_healthy
+      mongo-init-replica:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      mailhog:
+        condition: service_started
+    networks:
+      - aguavigia
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health/readiness"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # El simulador (scripts/simulacion): corre el guion contra backend-sim por la API real y lo controla desde otra terminal.
+  #   docker compose run --rm simulador iniciar [--velocidad 60]    pausar | reanudar | velocidad <x> | saltar <horas> | reiniciar
+  # `reiniciar` suelta lo de `aguavigia_sim` y vuelve a sembrar los sectores; nunca toca la base real.
+  simulador:
+    image: aguavigia/sembrador:local
+    build:
+      context: .
+      dockerfile: scripts/Dockerfile
+    profiles: ["simulacion"]
+    restart: "no"
+    entrypoint: ["node", "simulacion/simulador.mjs"]
+    command: ["ayuda"]
+    environment:
+      API_URL: http://backend-sim:8080
+      SIMULACION_CLAVE: ${SIMULACION_CLAVE:-}
+      MONGODB_URI: mongodb://mongo:27017/?directConnection=true
+      MONGODB_DB: aguavigia_sim
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_DB: "1"
+      MAILHOG_URL: http://mailhog:8025
+    depends_on:
+      backend-sim:
+        condition: service_healthy
+    networks:
+      - aguavigia
+
   # Siembra de un solo uso (scripts/sembrador.mjs): al terminar de arrancar el backend carga los 211 barrios, espera a que el
   # backend termine de crear las cuentas sintéticas y sale. Es idempotente. También sirve para otros pasos sin instalar Node:
   # docker compose run --rm sembrador verificar
@@ -187,7 +289,7 @@ services:
       ME_CONFIG_MONGODB_URL: mongodb://mongo:27017/?directConnection=true
       ME_CONFIG_BASICAUTH: "false"
     ports:
-      - "127.0.0.1:8082:8081"
+      - "127.0.0.1:8083:8081"
     depends_on:
       mongo:
         condition: service_healthy

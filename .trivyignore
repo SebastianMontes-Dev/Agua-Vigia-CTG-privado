@@ -1,0 +1,7 @@
+# Hallazgos de Trivy aceptados a propósito. Cada línea lleva su motivo y una fecha de revisión (`exp:`): al vencer, Trivy vuelve a
+# reportarlo y hay que decidir de nuevo.
+
+# CVE-2026-47884 (crítica, spring-webmvc 6.2.19): ejecución remota de código en XsltView. AguaVigía no usa vistas XSLT: todos sus
+# controladores son @RestController (sin ViewResolver ni plantillas) y no hay Thymeleaf, FreeMarker ni XSLT en el backend, así que el
+# código vulnerable no es alcanzable. La corrección solo existe en Spring Framework 7.0.9 (Spring Boot 4): queda como deuda anotada.
+CVE-2026-47884 exp:2026-12-31
