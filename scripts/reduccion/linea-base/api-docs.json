@@ -1,0 +1,5478 @@
+{
+  "components": {
+    "schemas": {
+      "AltaSegundoFactorRespuesta": {
+        "properties": {
+          "secreto": {
+            "type": "string"
+          },
+          "uri": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "CalidadDelCumplimientoRespuesta": {
+        "properties": {
+          "cierresMedidos": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "cierresProvisionales": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "cortesAnulados": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "cortesSinCierreConfirmado": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "porcentajeProvisional": {
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "type": "object"
+      },
+      "CierreRespuesta": {
+        "properties": {
+          "fuente": {
+            "type": "string"
+          },
+          "hora": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "provisional": {
+            "type": "boolean"
+          },
+          "sectorId": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "Consentimiento": {
+        "properties": {
+          "avisos": {
+            "default": false,
+            "type": "boolean"
+          },
+          "privacidad": {
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "ConsentimientoRespuesta": {
+        "properties": {
+          "fecha": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "tipo": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "CoordenadaDTO": {
+        "properties": {
+          "latitud": {
+            "exclusiveMaximum": false,
+            "exclusiveMinimum": false,
+            "format": "double",
+            "maximum": 90,
+            "minimum": -90,
+            "type": "number"
+          },
+          "longitud": {
+            "exclusiveMaximum": false,
+            "exclusiveMinimum": false,
+            "format": "double",
+            "maximum": 180,
+            "minimum": -180,
+            "type": "number"
+          }
+        },
+        "required": [
+          "latitud",
+          "longitud"
+        ],
+        "type": "object"
+      },
+      "CorteRespuesta": {
+        "properties": {
+          "caducaEn": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "causa": {
+            "type": "string"
+          },
+          "cierres": {
+            "items": {
+              "$ref": "#/components/schemas/CierreRespuesta"
+            },
+            "type": "array"
+          },
+          "estado": {
+            "type": "string"
+          },
+          "finPrometido": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "inicio": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "motivoAnulacion": {
+            "nullable": true,
+            "type": "string"
+          },
+          "origen": {
+            "type": "string"
+          },
+          "sectoresAfectados": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "CredencialVecino": {
+        "properties": {
+          "clave": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "correo": {
+            "format": "email",
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "clave",
+          "correo"
+        ],
+        "type": "object"
+      },
+      "CredencialVeedor": {
+        "properties": {
+          "clave": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "codigoTotp": {
+            "type": "string"
+          },
+          "correo": {
+            "format": "email",
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "clave",
+          "correo"
+        ],
+        "type": "object"
+      },
+      "DocumentoFallidoRespuesta": {
+        "properties": {
+          "fuente": {
+            "type": "string"
+          },
+          "motivo": {
+            "type": "string"
+          },
+          "primerIntento": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "reintentos": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "titulo": {
+            "nullable": true,
+            "type": "string"
+          },
+          "ultimoIntento": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "urlOriginal": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "EstadisticaSectorRespuesta": {
+        "properties": {
+          "cantidadCortes": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "nombre": {
+            "type": "string"
+          },
+          "sectorId": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "EstadisticasRespuesta": {
+        "properties": {
+          "cortesPorDiaDeSemana": {
+            "additionalProperties": {
+              "format": "int32",
+              "type": "integer"
+            },
+            "type": "object"
+          },
+          "duracionPromedioHoras": {
+            "format": "double",
+            "type": "number"
+          },
+          "sectoresMasAfectados": {
+            "items": {
+              "$ref": "#/components/schemas/EstadisticaSectorRespuesta"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "EventoAuditoriaRespuesta": {
+        "properties": {
+          "accion": {
+            "type": "string"
+          },
+          "autorCorreo": {
+            "type": "string"
+          },
+          "detalle": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "ip": {
+            "type": "string"
+          },
+          "ocurrioEn": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "sujetoCorreo": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "EventoBitacoraRespuesta": {
+        "properties": {
+          "cantidadReportesSustento": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "corteId": {
+            "type": "string"
+          },
+          "descripcion": {
+            "type": "string"
+          },
+          "estado": {
+            "type": "string"
+          },
+          "fuente": {
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "imagenUrl": {
+            "type": "string"
+          },
+          "respaldo": {
+            "$ref": "#/components/schemas/RespaldoRespuesta"
+          },
+          "sectorId": {
+            "type": "string"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "tipo": {
+            "type": "string"
+          },
+          "urlOriginal": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "IndiceCumplimientoRespuesta": {
+        "properties": {
+          "cortesAnulados": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "cortesSinCierreConfirmado": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "desviacionSegundos": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "duracionPrometidaSegundos": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "duracionRealSegundos": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "porcentajeCumplimiento": {
+            "format": "double",
+            "type": "number"
+          },
+          "porcentajeProvisional": {
+            "format": "double",
+            "type": "number"
+          },
+          "sectorId": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "IotCoordenada": {
+        "properties": {
+          "lat": {
+            "exclusiveMaximum": false,
+            "exclusiveMinimum": false,
+            "format": "double",
+            "maximum": 90,
+            "minimum": -90,
+            "type": "number"
+          },
+          "lon": {
+            "exclusiveMaximum": false,
+            "exclusiveMinimum": false,
+            "format": "double",
+            "maximum": 180,
+            "minimum": -180,
+            "type": "number"
+          }
+        },
+        "type": "object"
+      },
+      "IotPresionRequest": {
+        "properties": {
+          "coordenada": {
+            "$ref": "#/components/schemas/IotCoordenada"
+          },
+          "presionPsi": {
+            "exclusiveMaximum": false,
+            "exclusiveMinimum": false,
+            "format": "double",
+            "maximum": 1000,
+            "minimum": 0,
+            "type": "number"
+          },
+          "sectorId": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": "string"
+          },
+          "sensorId": {
+            "maxLength": 64,
+            "minLength": 0,
+            "pattern": "[A-Za-z0-9._:-]+",
+            "type": "string"
+          }
+        },
+        "required": [
+          "sectorId",
+          "sensorId"
+        ],
+        "type": "object"
+      },
+      "MetricasDelSistemaRespuesta": {
+        "properties": {
+          "cambiosDeEstado": {
+            "additionalProperties": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "object"
+          },
+          "desde": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "disputasAbiertas": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "fallosDeColectores": {
+            "additionalProperties": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "object"
+          },
+          "quorumsRechazadosPorComposicion": {
+            "additionalProperties": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "object"
+          },
+          "reportesPorNivelDeVerificacion": {
+            "additionalProperties": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "object"
+          },
+          "tiempoHastaElCambioDeEstado": {
+            "$ref": "#/components/schemas/TiempoHastaElCambio"
+          }
+        },
+        "type": "object"
+      },
+      "ModoDelSistemaRespuesta": {
+        "properties": {
+          "cuentasSinteticas": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "modo": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "Open311Response": {
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "requested_datetime": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "service_code": {
+            "type": "string"
+          },
+          "service_name": {
+            "type": "string"
+          },
+          "service_request_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "updated_datetime": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "PerfilVecinoRespuesta": {
+        "properties": {
+          "actualizadoEn": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "barrioId": {
+            "type": "string"
+          },
+          "barrioVerificado": {
+            "type": "boolean"
+          },
+          "barrioVerificadoEn": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "consentimientos": {
+            "items": {
+              "$ref": "#/components/schemas/ConsentimientoRespuesta"
+            },
+            "type": "array"
+          },
+          "correo": {
+            "type": "string"
+          },
+          "creadoEn": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "estado": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "nombre": {
+            "type": "string"
+          },
+          "recibeAvisos": {
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "ProblemDetail": {
+        "properties": {
+          "detail": {
+            "nullable": true,
+            "type": "string"
+          },
+          "instance": {
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "properties": {
+            "additionalProperties": {
+              "type": "object"
+            },
+            "nullable": true,
+            "type": "object"
+          },
+          "status": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "title": {
+            "nullable": true,
+            "type": "string"
+          },
+          "type": {
+            "format": "uri",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "PropuestaIngestaRespuesta": {
+        "properties": {
+          "citaTextual": {
+            "type": "string"
+          },
+          "confianza": {
+            "format": "double",
+            "type": "number"
+          },
+          "detectadaEn": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "estadoPropuesto": {
+            "type": "string"
+          },
+          "estadoRevision": {
+            "type": "string"
+          },
+          "finPrometido": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "fuente": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "inicioDeclarado": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "motivoDeRevision": {
+            "nullable": true,
+            "type": "string"
+          },
+          "sectorId": {
+            "type": "string"
+          },
+          "urlOriginal": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "PuntoSerieRespuesta": {
+        "properties": {
+          "cantidadCortes": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "desviacionSegundos": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "duracionPrometidaSegundos": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "duracionRealSegundos": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "periodo": {
+            "type": "string"
+          },
+          "porcentajeCumplimiento": {
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "type": "object"
+      },
+      "ReporteModeracionRespuesta": {
+        "properties": {
+          "coordenada": {
+            "$ref": "#/components/schemas/CoordenadaDTO"
+          },
+          "estadoModeracion": {
+            "type": "string"
+          },
+          "fotoEstado": {
+            "type": "string"
+          },
+          "fotoUrl": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "sectorId": {
+            "type": "string"
+          },
+          "senalRed": {
+            "nullable": true,
+            "type": "boolean"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "tipo": {
+            "type": "string"
+          },
+          "verificacion": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ReporteRespuesta": {
+        "properties": {
+          "confirmaciones": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "fotoEstado": {
+            "type": "string"
+          },
+          "fotoUrl": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "sectorId": {
+            "type": "string"
+          },
+          "subidaToken": {
+            "type": "string"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "tipo": {
+            "type": "string"
+          },
+          "verificacion": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "RespaldoRespuesta": {
+        "nullable": true,
+        "properties": {
+          "umbral": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "vecinos": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "RespaldoVecinalRespuesta": {
+        "nullable": true,
+        "properties": {
+          "umbral": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "vecinos": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "RespuestaSectores": {
+        "properties": {
+          "generadoEn": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "sectores": {
+            "items": {
+              "$ref": "#/components/schemas/SectorRespuesta"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "SaludColectorRespuesta": {
+        "properties": {
+          "fallosConsecutivos": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "itemsProcesados": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "motivoDelUltimoFallo": {
+            "nullable": true,
+            "type": "string"
+          },
+          "nombre": {
+            "type": "string"
+          },
+          "tasaDeError": {
+            "format": "double",
+            "type": "number"
+          },
+          "ultimaEjecucionExitosa": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "ultimoFallo": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "SectorRespuesta": {
+        "properties": {
+          "actualizadoEn": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "enDisputa": {
+            "type": "boolean"
+          },
+          "estado": {
+            "enum": [
+              "CON_SERVICIO",
+              "SIN_SERVICIO",
+              "PRESION_BAJA",
+              "CORTE_PROGRAMADO"
+            ],
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "nombre": {
+            "type": "string"
+          },
+          "origen": {
+            "enum": [
+              "ACUACAR",
+              "VEEDOR",
+              "VECINOS",
+              "PRENSA",
+              "SENSOR"
+            ],
+            "nullable": true,
+            "type": "string"
+          },
+          "poblacion": {
+            "format": "int32",
+            "nullable": true,
+            "type": "integer"
+          },
+          "reportesEnContra": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "respaldo": {
+            "$ref": "#/components/schemas/RespaldoVecinalRespuesta"
+          },
+          "restablecimientoPorConfirmar": {
+            "type": "boolean"
+          },
+          "ventanaPrometida": {
+            "$ref": "#/components/schemas/VentanaPrometidaRespuesta"
+          },
+          "verificadoEn": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "SesionVecino": {
+        "properties": {
+          "correo": {
+            "type": "string"
+          },
+          "nombre": {
+            "type": "string"
+          },
+          "permisos": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "token": {
+            "type": "string"
+          },
+          "usuarioId": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "SesionVeedor": {
+        "properties": {
+          "alcance": {
+            "type": "string"
+          },
+          "correo": {
+            "type": "string"
+          },
+          "nombre": {
+            "type": "string"
+          },
+          "permisos": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "rol": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
+          },
+          "usuarioId": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "SolicitudAnulacion": {
+        "properties": {
+          "motivo": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "motivo"
+        ],
+        "type": "object"
+      },
+      "SolicitudCambioClave": {
+        "properties": {
+          "claveActual": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "claveNueva": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "claveActual",
+          "claveNueva"
+        ],
+        "type": "object"
+      },
+      "SolicitudCierreCorte": {
+        "properties": {
+          "horaReal": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "horaReal"
+        ],
+        "type": "object"
+      },
+      "SolicitudCodigo": {
+        "properties": {
+          "codigo": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "codigo"
+        ],
+        "type": "object"
+      },
+      "SolicitudCorte": {
+        "properties": {
+          "caducaEn": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "causa": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "finPrometido": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "inicio": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "sectoresAfectados": {
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "causa",
+          "finPrometido",
+          "inicio",
+          "sectoresAfectados"
+        ],
+        "type": "object"
+      },
+      "SolicitudFijarClave": {
+        "properties": {
+          "clave": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "token": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "clave",
+          "token"
+        ],
+        "type": "object"
+      },
+      "SolicitudInvitacion": {
+        "properties": {
+          "barrioId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "correo": {
+            "format": "email",
+            "minLength": 1,
+            "type": "string"
+          },
+          "nombre": {
+            "maxLength": 80,
+            "minLength": 2,
+            "type": "string"
+          },
+          "rol": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "correo",
+          "nombre",
+          "rol"
+        ],
+        "type": "object"
+      },
+      "SolicitudPerfilVecino": {
+        "properties": {
+          "barrioId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "nombre": {
+            "maxLength": 80,
+            "minLength": 2,
+            "type": "string"
+          },
+          "recibirAvisos": {
+            "nullable": true,
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "SolicitudPermisos": {
+        "properties": {
+          "concedidos": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "revocados": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "rol": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "rol"
+        ],
+        "type": "object"
+      },
+      "SolicitudReenvioVerificacion": {
+        "properties": {
+          "correo": {
+            "format": "email",
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "correo"
+        ],
+        "type": "object"
+      },
+      "SolicitudRegistro": {
+        "properties": {
+          "barrioId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "clave": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "correo": {
+            "format": "email",
+            "minLength": 1,
+            "type": "string"
+          },
+          "nombre": {
+            "maxLength": 80,
+            "minLength": 2,
+            "type": "string"
+          }
+        },
+        "required": [
+          "clave",
+          "correo",
+          "nombre"
+        ],
+        "type": "object"
+      },
+      "SolicitudRegistroVecino": {
+        "properties": {
+          "barrioId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "consentimiento": {
+            "$ref": "#/components/schemas/Consentimiento"
+          },
+          "correo": {
+            "format": "email",
+            "minLength": 1,
+            "type": "string"
+          },
+          "nombre": {
+            "maxLength": 80,
+            "minLength": 2,
+            "type": "string"
+          }
+        },
+        "required": [
+          "barrioId",
+          "consentimiento",
+          "correo",
+          "nombre"
+        ],
+        "type": "object"
+      },
+      "SolicitudReporte": {
+        "properties": {
+          "coordenada": {
+            "$ref": "#/components/schemas/CoordenadaDTO"
+          },
+          "precisionMetros": {
+            "format": "double",
+            "minimum": 0,
+            "nullable": true,
+            "type": "number"
+          },
+          "sectorId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "tipo": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "tipo"
+        ],
+        "type": "object"
+      },
+      "SolicitudRestablecer": {
+        "properties": {
+          "correo": {
+            "format": "email",
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "correo"
+        ],
+        "type": "object"
+      },
+      "SolicitudSuscripcion": {
+        "properties": {
+          "correo": {
+            "format": "email",
+            "minLength": 1,
+            "type": "string"
+          },
+          "sectorIds": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 211,
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "correo",
+          "sectorIds"
+        ],
+        "type": "object"
+      },
+      "SolicitudVerificacionBarrio": {
+        "properties": {
+          "coordenada": {
+            "$ref": "#/components/schemas/CoordenadaDTO"
+          },
+          "precisionMetros": {
+            "format": "double",
+            "minimum": 0,
+            "type": "number"
+          }
+        },
+        "required": [
+          "coordenada",
+          "precisionMetros"
+        ],
+        "type": "object"
+      },
+      "SuscripcionRespuesta": {
+        "properties": {
+          "correo": {
+            "type": "string"
+          },
+          "creadaEn": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "estado": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "sectorIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "TiempoHastaElCambio": {
+        "properties": {
+          "cambios": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "maximoSegundos": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "promedioSegundos": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "TokenDeDispositivoRespuesta": {
+        "properties": {
+          "token": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UsuarioRespuesta": {
+        "properties": {
+          "actualizadoEn": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "barrioId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "correo": {
+            "type": "string"
+          },
+          "creadoEn": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "estado": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "nombre": {
+            "type": "string"
+          },
+          "permisosConcedidos": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "permisosEfectivos": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "permisosRevocados": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "rol": {
+            "type": "string"
+          },
+          "segundoFactorActivo": {
+            "type": "boolean"
+          },
+          "sintetica": {
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "VentanaPrometidaRespuesta": {
+        "nullable": true,
+        "properties": {
+          "fin": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "inicio": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "bearerFormat": "JWT",
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
+  },
+  "openapi": "3.0.1",
+  "paths": {
+    "/api/bitacora": {
+      "get": {
+        "operationId": "listar_2",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "desde",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "hasta",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "pagina",
+            "required": false,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sectorId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "tamano",
+            "required": false,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "tipo",
+            "required": false,
+            "schema": {
+              "enum": [
+                "CORTE_ANUNCIADO",
+                "CORTE_CONFIRMADO_POR_CIUDADANOS",
+                "CORTE_RESTABLECIDO",
+                "CORTE_DETECTADO_POR_INGESTA"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/EventoBitacoraRespuesta"
+                  },
+                  "type": "array"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Bitácora"
+        ]
+      }
+    },
+    "/api/bitacora/{id}/sustento": {
+      "get": {
+        "operationId": "sustento",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "pagina",
+            "required": false,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "tamano",
+            "required": false,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Bitácora"
+        ]
+      }
+    },
+    "/api/cuentas/clave": {
+      "post": {
+        "operationId": "fijarClave",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SolicitudFijarClave"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "400": {}
+        },
+        "tags": [
+          "Cuentas"
+        ]
+      }
+    },
+    "/api/cuentas/enlaces/invitacion": {
+      "get": {
+        "operationId": "pantallaInvitacion",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Cuentas"
+        ]
+      },
+      "post": {
+        "operationId": "aceptarInvitacion",
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "properties": {
+                  "clave": {
+                    "type": "string"
+                  },
+                  "token": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "clave",
+                  "token"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Cuentas"
+        ]
+      }
+    },
+    "/api/cuentas/enlaces/restablecer": {
+      "get": {
+        "operationId": "pantallaRestablecer",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Cuentas"
+        ]
+      },
+      "post": {
+        "operationId": "restablecerClave",
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "properties": {
+                  "clave": {
+                    "type": "string"
+                  },
+                  "token": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "clave",
+                  "token"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Cuentas"
+        ]
+      }
+    },
+    "/api/cuentas/enlaces/verificar": {
+      "get": {
+        "operationId": "pantallaVerificar",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Cuentas"
+        ]
+      },
+      "post": {
+        "operationId": "verificarCorreo_1",
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "properties": {
+                  "token": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "token"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Cuentas"
+        ]
+      }
+    },
+    "/api/cuentas/invitacion": {
+      "post": {
+        "operationId": "aceptar",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SolicitudFijarClave"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "400": {}
+        },
+        "tags": [
+          "Cuentas"
+        ]
+      }
+    },
+    "/api/cuentas/registro": {
+      "post": {
+        "operationId": "registrarse_1",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SolicitudRegistro"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {},
+          "400": {}
+        },
+        "tags": [
+          "Cuentas"
+        ]
+      }
+    },
+    "/api/cuentas/restablecimiento": {
+      "post": {
+        "operationId": "pedirRestablecimiento",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SolicitudRestablecer"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {}
+        },
+        "tags": [
+          "Cuentas"
+        ]
+      }
+    },
+    "/api/cuentas/vecino": {
+      "post": {
+        "operationId": "registrarse",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SolicitudRegistroVecino"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {},
+          "400": {}
+        },
+        "tags": [
+          "Vecinos"
+        ]
+      }
+    },
+    "/api/cuentas/verificacion": {
+      "post": {
+        "operationId": "verificarCorreo",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {},
+          "400": {}
+        },
+        "tags": [
+          "Cuentas"
+        ]
+      }
+    },
+    "/api/cuentas/verificacion/reenvio": {
+      "post": {
+        "operationId": "reenviarVerificacion",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SolicitudReenvioVerificacion"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {},
+          "400": {}
+        },
+        "tags": [
+          "Cuentas"
+        ]
+      }
+    },
+    "/api/cumplimiento": {
+      "get": {
+        "operationId": "global",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndiceCumplimientoRespuesta"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Cumplimiento"
+        ]
+      }
+    },
+    "/api/cumplimiento/calidad": {
+      "get": {
+        "operationId": "calidad",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "sectorId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalidadDelCumplimientoRespuesta"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Cumplimiento"
+        ]
+      }
+    },
+    "/api/cumplimiento/cortes/{corteId}": {
+      "get": {
+        "operationId": "porCorte",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "corteId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndiceCumplimientoRespuesta"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Cumplimiento"
+        ]
+      }
+    },
+    "/api/cumplimiento/sectores/{sectorId}": {
+      "get": {
+        "operationId": "porSector",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sectorId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndiceCumplimientoRespuesta"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Cumplimiento"
+        ]
+      }
+    },
+    "/api/cumplimiento/serie": {
+      "get": {
+        "operationId": "serie",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "desde",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "hasta",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sectorId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PuntoSerieRespuesta"
+                  },
+                  "type": "array"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Cumplimiento"
+        ]
+      }
+    },
+    "/api/cumplimiento/serie.csv": {
+      "get": {
+        "operationId": "serieCsv",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "desde",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "hasta",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sectorId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Cumplimiento"
+        ]
+      }
+    },
+    "/api/dispositivos": {
+      "post": {
+        "operationId": "pedir",
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenDeDispositivoRespuesta"
+                }
+              }
+            }
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenDeDispositivoRespuesta"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Dispositivos"
+        ]
+      }
+    },
+    "/api/estadisticas": {
+      "get": {
+        "operationId": "globales",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EstadisticasRespuesta"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Estadisticas"
+        ]
+      }
+    },
+    "/api/estadisticas/exportar.csv": {
+      "get": {
+        "operationId": "exportarCsv",
+        "responses": {
+          "200": {
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Estadisticas"
+        ]
+      }
+    },
+    "/api/fotos/{nombre}": {
+      "get": {
+        "operationId": "foto",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "nombre",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "image/jpeg": {}
+            }
+          },
+          "404": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "format": "byte",
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Fotos"
+        ]
+      }
+    },
+    "/api/iot/presion": {
+      "post": {
+        "operationId": "reportarPresion",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-IoT-Key",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IotPresionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {},
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "IoT"
+        ]
+      }
+    },
+    "/api/reportes": {
+      "post": {
+        "operationId": "registrar_1",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Dispositivo",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SolicitudReporte"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReporteRespuesta"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Reportes"
+        ]
+      }
+    },
+    "/api/reportes/{id}/confirmar": {
+      "post": {
+        "operationId": "confirmar_2",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Dispositivo",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReporteRespuesta"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Reportes"
+        ]
+      }
+    },
+    "/api/reportes/{id}/foto": {
+      "post": {
+        "operationId": "agregarEvidencia",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Subida",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "properties": {
+                  "foto": {
+                    "format": "binary",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "foto"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReporteRespuesta"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "415": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Reportes"
+        ]
+      }
+    },
+    "/api/sectores": {
+      "get": {
+        "operationId": "listarSectores",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaSectores"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Sectores"
+        ]
+      }
+    },
+    "/api/sectores/geometria": {
+      "get": {
+        "operationId": "geometria",
+        "responses": {
+          "200": {
+            "content": {
+              "application/geo+json": {}
+            }
+          }
+        },
+        "tags": [
+          "Sectores"
+        ]
+      }
+    },
+    "/api/sectores/stream": {
+      "get": {
+        "operationId": "streamSectores",
+        "responses": {
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Sectores"
+        ]
+      }
+    },
+    "/api/sectores/{id}": {
+      "get": {
+        "operationId": "consultarSector",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SectorRespuesta"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Sectores"
+        ]
+      }
+    },
+    "/api/sectores/{sectorId}/cortes": {
+      "get": {
+        "operationId": "listar_1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sectorId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "pagina",
+            "required": false,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "tamano",
+            "required": false,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CorteRespuesta"
+                  },
+                  "type": "array"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Sectores"
+        ]
+      }
+    },
+    "/api/sectores/{sectorId}/restablecimiento": {
+      "post": {
+        "operationId": "confirmarRestablecimiento",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sectorId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReporteRespuesta"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Reportes"
+        ]
+      }
+    },
+    "/api/sistema/modo": {
+      "get": {
+        "operationId": "modo",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModoDelSistemaRespuesta"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Sistema"
+        ]
+      }
+    },
+    "/api/suscripciones": {
+      "post": {
+        "operationId": "suscribirse",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SolicitudSuscripcion"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuscripcionRespuesta"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Suscripciones"
+        ]
+      }
+    },
+    "/api/suscripciones/cancelar": {
+      "get": {
+        "operationId": "pantallaCancelar",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Suscripciones"
+        ]
+      },
+      "post": {
+        "operationId": "cancelar",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Accept",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              },
+              "text/html": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Suscripciones"
+        ]
+      }
+    },
+    "/api/suscripciones/confirmar": {
+      "get": {
+        "operationId": "pantallaConfirmar",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Suscripciones"
+        ]
+      },
+      "post": {
+        "operationId": "confirmar_1",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Accept",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              },
+              "text/html": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Suscripciones"
+        ]
+      }
+    },
+    "/api/v2/requests.json": {
+      "get": {
+        "operationId": "getRequests",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Open311Response"
+                  },
+                  "type": "array"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Open311"
+        ]
+      }
+    },
+    "/api/vecino/perfil": {
+      "patch": {
+        "operationId": "actualizarPerfil",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SolicitudPerfilVecino"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PerfilVecinoRespuesta"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PerfilVecinoRespuesta"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Vecinos"
+        ]
+      }
+    },
+    "/api/vecino/sesion": {
+      "post": {
+        "operationId": "iniciarSesion_1",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CredencialVecino"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SesionVecino"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SesionVecino"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SesionVecino"
+                }
+              }
+            }
+          },
+          "423": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SesionVecino"
+                }
+              }
+            }
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SesionVecino"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Vecinos"
+        ]
+      }
+    },
+    "/api/vecino/sesion/cierre": {
+      "post": {
+        "operationId": "cerrar_1",
+        "responses": {
+          "204": {}
+        },
+        "tags": [
+          "Vecinos"
+        ]
+      }
+    },
+    "/api/vecino/verificacion-barrio": {
+      "post": {
+        "operationId": "verificarBarrio",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SolicitudVerificacionBarrio"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PerfilVecinoRespuesta"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PerfilVecinoRespuesta"
+                }
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PerfilVecinoRespuesta"
+                }
+              }
+            }
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PerfilVecinoRespuesta"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Vecinos"
+        ]
+      }
+    },
+    "/api/vecino/yo": {
+      "get": {
+        "operationId": "yo_1",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PerfilVecinoRespuesta"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Vecinos"
+        ]
+      }
+    },
+    "/api/veedor/auditoria": {
+      "get": {
+        "operationId": "auditoria",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "pagina",
+            "required": false,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "tamano",
+            "required": false,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/EventoAuditoriaRespuesta"
+                  },
+                  "type": "array"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "Veedor - Cuentas"
+        ]
+      }
+    },
+    "/api/veedor/cortes": {
+      "get": {
+        "operationId": "listarPorSector",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "sectorId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CorteRespuesta"
+                  },
+                  "type": "array"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "Veedor - Cortes"
+        ]
+      },
+      "post": {
+        "operationId": "registrar",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SolicitudCorte"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CorteRespuesta"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "Veedor - Cortes"
+        ]
+      }
+    },
+    "/api/veedor/cortes/vencidos": {
+      "get": {
+        "operationId": "listarCortesVencidos",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CorteRespuesta"
+                  },
+                  "type": "array"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "Veedor - Cortes"
+        ]
+      }
+    },
+    "/api/veedor/cortes/{id}": {
+      "get": {
+        "operationId": "consultar",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CorteRespuesta"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "Veedor - Cortes"
+        ]
+      }
+    },
+    "/api/veedor/cortes/{id}/anulacion": {
+      "patch": {
+        "operationId": "anularCorte",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SolicitudAnulacion"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CorteRespuesta"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "Veedor - Cortes"
+        ]
+      }
+    },
+    "/api/veedor/cortes/{id}/cierre": {
+      "patch": {
+        "operationId": "cerrar_2",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SolicitudCierreCorte"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CorteRespuesta"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "Veedor - Cortes"
+        ]
+      }
+    },
+    "/api/veedor/cortes/{id}/sectores/{sectorId}/cierre": {
+      "patch": {
+        "operationId": "cerrarSector",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "sectorId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SolicitudCierreCorte"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CorteRespuesta"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "Veedor - Cortes"
+        ]
+      }
+    },
+    "/api/veedor/cortes/{id}/sectores/{sectorId}/confirmacion": {
+      "patch": {
+        "operationId": "confirmarCierre",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "sectorId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SolicitudCierreCorte"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CorteRespuesta"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "Veedor - Cortes"
+        ]
+      }
+    },
+    "/api/veedor/cuenta/clave": {
+      "post": {
+        "operationId": "cambiarClave",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SolicitudCambioClave"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "400": {},
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "423": {}
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "Veedor - Cuenta propia"
+        ]
+      }
+    },
+    "/api/veedor/disputas": {
+      "get": {
+        "operationId": "listarDisputas",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SectorRespuesta"
+                  },
+                  "type": "array"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "Veedor - Disputas"
+        ]
+      }
+    },
+    "/api/veedor/fotos/{nombre}": {
+      "get": {
+        "operationId": "fotoDelPanel",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "nombre",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "image/jpeg": {}
+            }
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "format": "byte",
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "Fotos"
+        ]
+      }
+    },
+    "/api/veedor/ingesta/fallidos": {
+      "get": {
+        "operationId": "fallidos",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/DocumentoFallidoRespuesta"
+                  },
+                  "type": "array"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/DocumentoFallidoRespuesta"
+                  },
+                  "type": "array"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "Veedor - Ingesta"
+        ]
+      }
+    },
+    "/api/veedor/ingesta/propuestas": {
+      "get": {
+        "operationId": "listarPendientes_1",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "pagina",
+            "required": false,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "tamano",
+            "required": false,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PropuestaIngestaRespuesta"
+                  },
+                  "type": "array"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "Veedor - Ingesta"
+        ]
+      }
+    },
+    "/api/veedor/ingesta/propuestas/{id}/anulacion": {
+      "patch": {
+        "operationId": "anularPropuesta",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SolicitudAnulacion"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PropuestaIngestaRespuesta"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "Veedor - Ingesta"
+        ]
+      }
+    },
+    "/api/veedor/ingesta/propuestas/{id}/aprobar": {
+      "patch": {
+        "operationId": "aprobar_2",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PropuestaIngestaRespuesta"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "Veedor - Ingesta"
+        ]
+      }
+    },
+    "/api/veedor/ingesta/propuestas/{id}/descartar": {
+      "patch": {
+        "operationId": "descartar_1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PropuestaIngestaRespuesta"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "Veedor - Ingesta"
+        ]
+      }
+    },
+    "/api/veedor/ingesta/salud": {
+      "get": {
+        "operationId": "salud",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SaludColectorRespuesta"
+                  },
+                  "type": "array"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SaludColectorRespuesta"
+                  },
+                  "type": "array"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "Veedor - Ingesta"
+        ]
+      }
+    },
+    "/api/veedor/reportes/pendientes": {
+      "get": {
+        "operationId": "listarPendientes",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "pagina",
+            "required": false,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "tamano",
+            "required": false,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ReporteModeracionRespuesta"
+                  },
+                  "type": "array"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "Veedor - Moderación"
+        ]
+      }
+    },
+    "/api/veedor/reportes/{id}/aprobar": {
+      "patch": {
+        "operationId": "aprobar_1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReporteModeracionRespuesta"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "Veedor - Moderación"
+        ]
+      }
+    },
+    "/api/veedor/reportes/{id}/descartar": {
+      "patch": {
+        "operationId": "descartar",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReporteModeracionRespuesta"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "Veedor - Moderación"
+        ]
+      }
+    },
+    "/api/veedor/reportes/{id}/foto/descartar": {
+      "patch": {
+        "operationId": "descartarFoto",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReporteModeracionRespuesta"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "Veedor - Moderación"
+        ]
+      }
+    },
+    "/api/veedor/segundo-factor/alta": {
+      "post": {
+        "operationId": "iniciar",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SolicitudCodigo"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AltaSegundoFactorRespuesta"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AltaSegundoFactorRespuesta"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AltaSegundoFactorRespuesta"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "Veedor - Segundo factor"
+        ]
+      }
+    },
+    "/api/veedor/segundo-factor/baja": {
+      "post": {
+        "operationId": "desactivar",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SolicitudCodigo"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "401": {},
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "409": {}
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "Veedor - Segundo factor"
+        ]
+      }
+    },
+    "/api/veedor/segundo-factor/confirmacion": {
+      "post": {
+        "operationId": "confirmar",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SolicitudCodigo"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SesionVeedor"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SesionVeedor"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SesionVeedor"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "Veedor - Segundo factor"
+        ]
+      }
+    },
+    "/api/veedor/sesion": {
+      "post": {
+        "operationId": "iniciarSesion",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CredencialVeedor"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SesionVeedor"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SesionVeedor"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SesionVeedor"
+                }
+              }
+            }
+          },
+          "423": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SesionVeedor"
+                }
+              }
+            }
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SesionVeedor"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Veedor"
+        ]
+      }
+    },
+    "/api/veedor/sesion/cierre": {
+      "post": {
+        "operationId": "cerrar",
+        "responses": {
+          "204": {},
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "Veedor"
+        ]
+      }
+    },
+    "/api/veedor/sistema/metricas": {
+      "get": {
+        "operationId": "consultarMetricasDelSistema",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetricasDelSistemaRespuesta"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "Veedor - Sistema"
+        ]
+      }
+    },
+    "/api/veedor/usuarios": {
+      "get": {
+        "operationId": "listar",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "barrioId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "estado",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "pagina",
+            "required": false,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "tamano",
+            "required": false,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/UsuarioRespuesta"
+                  },
+                  "type": "array"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "Veedor - Cuentas"
+        ]
+      }
+    },
+    "/api/veedor/usuarios/invitaciones": {
+      "post": {
+        "operationId": "invitar",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SolicitudInvitacion"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsuarioRespuesta"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsuarioRespuesta"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsuarioRespuesta"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "Veedor - Cuentas"
+        ]
+      }
+    },
+    "/api/veedor/usuarios/{id}/aprobacion": {
+      "patch": {
+        "operationId": "aprobar",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SolicitudPermisos"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsuarioRespuesta"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsuarioRespuesta"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "Veedor - Cuentas"
+        ]
+      }
+    },
+    "/api/veedor/usuarios/{id}/invitacion/reenvio": {
+      "post": {
+        "operationId": "reenviarInvitacion",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {},
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {},
+          "409": {}
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "Cuentas"
+        ]
+      }
+    },
+    "/api/veedor/usuarios/{id}/permisos": {
+      "patch": {
+        "operationId": "cambiarPermisos",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SolicitudPermisos"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsuarioRespuesta"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsuarioRespuesta"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "Veedor - Cuentas"
+        ]
+      }
+    },
+    "/api/veedor/usuarios/{id}/reactivacion": {
+      "patch": {
+        "operationId": "reactivar",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsuarioRespuesta"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "Veedor - Cuentas"
+        ]
+      }
+    },
+    "/api/veedor/usuarios/{id}/rechazo": {
+      "patch": {
+        "operationId": "rechazar",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsuarioRespuesta"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "Veedor - Cuentas"
+        ]
+      }
+    },
+    "/api/veedor/usuarios/{id}/suspension": {
+      "patch": {
+        "operationId": "suspender",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsuarioRespuesta"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsuarioRespuesta"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "Veedor - Cuentas"
+        ]
+      }
+    },
+    "/api/veedor/yo": {
+      "get": {
+        "operationId": "yo",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsuarioRespuesta"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "Veedor"
+        ]
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Sistema"
+    },
+    {
+      "name": "Veedor - Moderación"
+    },
+    {
+      "name": "Veedor - Sistema"
+    },
+    {
+      "name": "Cuentas"
+    },
+    {
+      "name": "Open311"
+    },
+    {
+      "name": "IoT"
+    },
+    {
+      "name": "Cuentas"
+    },
+    {
+      "name": "Vecinos"
+    },
+    {
+      "name": "Veedor - Disputas"
+    },
+    {
+      "name": "Veedor - Ingesta"
+    },
+    {
+      "name": "Veedor - Cuentas"
+    },
+    {
+      "name": "Suscripciones"
+    },
+    {
+      "name": "Sectores"
+    },
+    {
+      "name": "Veedor - Ingesta"
+    },
+    {
+      "name": "Cumplimiento"
+    },
+    {
+      "name": "Dispositivos"
+    },
+    {
+      "name": "Estadisticas"
+    },
+    {
+      "name": "Veedor - Ingesta"
+    },
+    {
+      "name": "Fotos"
+    },
+    {
+      "name": "Bitácora"
+    },
+    {
+      "name": "Sectores"
+    },
+    {
+      "name": "Veedor - Cuenta propia"
+    },
+    {
+      "name": "Veedor - Cortes"
+    },
+    {
+      "name": "Reportes"
+    },
+    {
+      "name": "Veedor - Segundo factor"
+    },
+    {
+      "name": "Veedor"
+    }
+  ]
+}

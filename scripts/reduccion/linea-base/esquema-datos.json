@@ -1,0 +1,725 @@
+{
+  "mongo": {
+    "auditoria_cuentas": {
+      "clases": [
+        "com.aguavigia.ctg.infrastructure.persistence.mongo.EventoAuditoriaDocumento"
+      ],
+      "forma": {
+        "_class": "string",
+        "_id": "string",
+        "accion": "string",
+        "autorCorreo": "string",
+        "autorId": "string",
+        "detalle": "string",
+        "ip": "string",
+        "ocurrioEn": "date",
+        "sujetoCorreo": "string",
+        "sujetoId": "string",
+        "venceEn": "date"
+      },
+      "indices": [
+        {
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        },
+        {
+          "key": {
+            "ocurrioEn": -1
+          },
+          "name": "ocurrioEn_-1"
+        },
+        {
+          "expireAfterSeconds": 0,
+          "key": {
+            "venceEn": 1
+          },
+          "name": "venceEn_1"
+        }
+      ],
+      "vacia": false
+    },
+    "bloqueos_administracion": {
+      "clases": [],
+      "forma": {
+        "_id": "string",
+        "expiraEn": "date",
+        "token": "string"
+      },
+      "indices": [
+        {
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        }
+      ],
+      "vacia": false
+    },
+    "config_sistema": {
+      "clases": [],
+      "forma": {
+        "_id": "string",
+        "valor": "string"
+      },
+      "indices": [
+        {
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        }
+      ],
+      "vacia": false
+    },
+    "cortes": {
+      "clases": [
+        "com.aguavigia.ctg.infrastructure.persistence.mongo.CorteAguaDocumento"
+      ],
+      "forma": {
+        "_class": "string",
+        "_id": "string",
+        "causa": "string",
+        "cierres": {
+          "elementos": {
+            "fuente": "string",
+            "hora": "date",
+            "provisional": "boolean",
+            "sectorId": "string"
+          },
+          "vacio": false
+        },
+        "estado": "string",
+        "finPrometido": "date",
+        "finReal": "date",
+        "inicio": "date",
+        "motivoAnulacion": "string",
+        "origen": "string",
+        "sectoresAfectados": {
+          "elementos": "string",
+          "vacio": false
+        }
+      },
+      "indices": [
+        {
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        },
+        {
+          "key": {
+            "estado": 1
+          },
+          "name": "estado_1"
+        },
+        {
+          "key": {
+            "finReal": 1
+          },
+          "name": "finReal_1"
+        },
+        {
+          "key": {
+            "sectoresAfectados": 1
+          },
+          "name": "sectoresAfectados_1"
+        }
+      ],
+      "vacia": false
+    },
+    "dispositivos": {
+      "clases": [
+        "com.aguavigia.ctg.infrastructure.persistence.mongo.DispositivoDocumento"
+      ],
+      "forma": {
+        "_class": "string",
+        "_id": "string",
+        "creadoEn": "date",
+        "ultimoVisto": "date"
+      },
+      "indices": [
+        {
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        },
+        {
+          "expireAfterSeconds": 31536000,
+          "key": {
+            "ultimoVisto": 1
+          },
+          "name": "ultimoVisto_1"
+        }
+      ],
+      "vacia": false
+    },
+    "documentos_fallidos": {
+      "clases": [],
+      "forma": null,
+      "indices": [
+        {
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        },
+        {
+          "key": {
+            "ultimoIntento": -1
+          },
+          "name": "ultimoIntento_-1"
+        }
+      ],
+      "vacia": true
+    },
+    "eventos_bitacora": {
+      "clases": [
+        "com.aguavigia.ctg.infrastructure.persistence.mongo.EventoBitacoraDocumento"
+      ],
+      "forma": {
+        "_class": "string",
+        "_id": "string",
+        "corteId": "string",
+        "descripcion": "string",
+        "estado": "string",
+        "fuente": "string",
+        "imagenUrl": "string",
+        "reportesSustento": {
+          "elementos": "string",
+          "vacio": false
+        },
+        "respaldoUmbral": "int",
+        "respaldoVecinos": "int",
+        "sectorId": "string",
+        "timestamp": "date",
+        "tipo": "string",
+        "urlOriginal": "string"
+      },
+      "indices": [
+        {
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        },
+        {
+          "key": {
+            "sectorId": 1,
+            "timestamp": -1
+          },
+          "name": "sectorId_1_timestamp_-1"
+        },
+        {
+          "key": {
+            "timestamp": -1
+          },
+          "name": "timestamp_-1"
+        },
+        {
+          "key": {
+            "timestamp": -1,
+            "tipo": 1
+          },
+          "name": "tipo_1_timestamp_-1"
+        }
+      ],
+      "vacia": false
+    },
+    "marcas_ingesta": {
+      "clases": [
+        "com.aguavigia.ctg.infrastructure.persistence.mongo.MarcaDeIngestaDocumento"
+      ],
+      "forma": {
+        "_class": "string",
+        "_id": "string",
+        "ultimoPublicadoEn": "date"
+      },
+      "indices": [
+        {
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        }
+      ],
+      "vacia": false
+    },
+    "propuestas_ingesta": {
+      "clases": [
+        "com.aguavigia.ctg.infrastructure.persistence.mongo.PropuestaIngestaDocumento"
+      ],
+      "forma": {
+        "_class": "string",
+        "_id": "string",
+        "citaTextual": "string",
+        "confianza": "double",
+        "detectadaEn": "date",
+        "estadoPropuesto": "string",
+        "estadoRevision": "string",
+        "finPrometido": "date",
+        "fuente": "string",
+        "imagenUrl": "string",
+        "inicioDeclarado": "date",
+        "motivoAnulacion": "string",
+        "motivoDeRevision": "string",
+        "publicadoEn": "date",
+        "sectorId": "string",
+        "tituloOriginal": "string",
+        "urlOriginal": "string"
+      },
+      "indices": [
+        {
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        },
+        {
+          "key": {
+            "detectadaEn": -1,
+            "estadoRevision": 1
+          },
+          "name": "estadoRevision_1_detectadaEn_-1"
+        },
+        {
+          "key": {
+            "estadoRevision": 1,
+            "finPrometido": 1
+          },
+          "name": "estadoRevision_1_finPrometido_1"
+        },
+        {
+          "key": {
+            "estadoPropuesto": 1,
+            "estadoRevision": 1,
+            "sectorId": 1
+          },
+          "name": "sectorId_1_estadoPropuesto_1_estadoRevision_1"
+        },
+        {
+          "key": {
+            "sectorId": 1,
+            "urlOriginal": 1
+          },
+          "name": "sectorId_1_urlOriginal_1"
+        }
+      ],
+      "vacia": false
+    },
+    "reportes": {
+      "clases": [
+        "com.aguavigia.ctg.infrastructure.persistence.mongo.ReporteCiudadanoDocumento"
+      ],
+      "forma": {
+        "_class": "string",
+        "_id": "string",
+        "esSensor": "boolean",
+        "estadoModeracion": "string",
+        "fotoDescartada": "boolean",
+        "fotoSha256": "string",
+        "fotoUrl": "string",
+        "huella": "string",
+        "huellasConfirmacion": {
+          "elementos": "string",
+          "vacio": false
+        },
+        "latitud": "double",
+        "longitud": "double",
+        "redHash": "string",
+        "sectorId": "string",
+        "timestamp": "date",
+        "tipo": "string",
+        "verificacion": "string"
+      },
+      "indices": [
+        {
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        },
+        {
+          "key": {
+            "estadoModeracion": 1,
+            "timestamp": 1
+          },
+          "name": "estadoModeracion_1_timestamp_1"
+        },
+        {
+          "key": {
+            "fotoUrl": 1
+          },
+          "name": "fotoUrl_1",
+          "sparse": true
+        },
+        {
+          "key": {
+            "huella": 1,
+            "sectorId": 1,
+            "timestamp": -1
+          },
+          "name": "sectorId_1_huella_1_timestamp_-1"
+        },
+        {
+          "key": {
+            "sectorId": 1,
+            "timestamp": -1
+          },
+          "name": "sectorId_1_timestamp_-1"
+        },
+        {
+          "expireAfterSeconds": 31536000,
+          "key": {
+            "timestamp": 1
+          },
+          "name": "timestamp_1"
+        }
+      ],
+      "vacia": false
+    },
+    "sectores": {
+      "clases": [],
+      "forma": {
+        "_id": "objectId",
+        "codigoOrigen": "string",
+        "enDisputa": "boolean",
+        "estadoActual": "string",
+        "estadoActualizadoEn": "date",
+        "estadoOrigen": "string",
+        "estadoVerificadoEn": "date",
+        "geometry": {
+          "coordinates": {
+            "elementos": {
+              "elementos": {
+                "elementos": "\"double\"|double|{\"elementos\":\"double\",\"vacio\":false}",
+                "vacio": false
+              },
+              "vacio": false
+            },
+            "vacio": false
+          },
+          "type": "string"
+        },
+        "localidad": "string",
+        "nombre": "string",
+        "poblacion": "int|null",
+        "porConfirmar": "boolean",
+        "reportesEnContra": "int",
+        "slug": "string",
+        "ucg": "int",
+        "ventanaPrometidaFin": "date",
+        "ventanaPrometidaInicio": "date",
+        "zona": "string"
+      },
+      "indices": [
+        {
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        },
+        {
+          "2dsphereIndexVersion": 3,
+          "key": {
+            "geometry": "2dsphere"
+          },
+          "name": "geometry_2dsphere"
+        },
+        {
+          "key": {
+            "slug": 1
+          },
+          "name": "slug_1",
+          "unique": true
+        }
+      ],
+      "vacia": false
+    },
+    "subidas_foto": {
+      "clases": [
+        "com.aguavigia.ctg.infrastructure.persistence.mongo.SubidaDeFotoDocumento"
+      ],
+      "forma": {
+        "_class": "string",
+        "_id": "string",
+        "reporteId": "string",
+        "venceEn": "date"
+      },
+      "indices": [
+        {
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        },
+        {
+          "expireAfterSeconds": 0,
+          "key": {
+            "venceEn": 1
+          },
+          "name": "venceEn_1"
+        }
+      ],
+      "vacia": false
+    },
+    "suscripciones": {
+      "clases": [
+        "com.aguavigia.ctg.infrastructure.persistence.mongo.SuscripcionDocumento"
+      ],
+      "forma": {
+        "_class": "string",
+        "_id": "string",
+        "correo": "string",
+        "creadaEn": "date",
+        "estado": "string",
+        "sectorIds": {
+          "elementos": "string",
+          "vacio": false
+        },
+        "tokenConfirmacion": "string"
+      },
+      "indices": [
+        {
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        },
+        {
+          "key": {
+            "sectorIds": 1
+          },
+          "name": "sectorIds_1"
+        },
+        {
+          "key": {
+            "tokenConfirmacion": 1
+          },
+          "name": "tokenConfirmacion_1",
+          "unique": true
+        }
+      ],
+      "vacia": false
+    },
+    "suscripciones_telegram": {
+      "clases": [],
+      "forma": null,
+      "indices": [
+        {
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        },
+        {
+          "key": {
+            "sectorIds": 1
+          },
+          "name": "sectorIds_1"
+        }
+      ],
+      "vacia": true
+    },
+    "tokens_cuenta": {
+      "clases": [
+        "com.aguavigia.ctg.infrastructure.persistence.mongo.TokenCuentaDocumento"
+      ],
+      "forma": {
+        "_class": "string",
+        "_id": "string",
+        "creadoEn": "date",
+        "expiraEn": "date",
+        "tipo": "string",
+        "usadoEn": "date",
+        "usuarioId": "string"
+      },
+      "indices": [
+        {
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        },
+        {
+          "expireAfterSeconds": 0,
+          "key": {
+            "expiraEn": 1
+          },
+          "name": "expiraEn_1"
+        },
+        {
+          "key": {
+            "usuarioId": 1
+          },
+          "name": "usuarioId_1"
+        }
+      ],
+      "vacia": false
+    },
+    "usuarios": {
+      "clases": [
+        "com.aguavigia.ctg.infrastructure.persistence.mongo.UsuarioDocumento"
+      ],
+      "forma": {
+        "_class": "string",
+        "_id": "string",
+        "actualizadoEn": "date",
+        "barrio": "string",
+        "barrioVerificado": "boolean",
+        "barrioVerificadoEn": "date",
+        "claveHash": "string",
+        "consentimientos": {
+          "elementos": {
+            "fecha": "date",
+            "tipo": "string",
+            "version": "string"
+          },
+          "vacio": false
+        },
+        "correo": "string",
+        "creadoEn": "date",
+        "datosDeDemostracion": "boolean",
+        "estado": "string",
+        "nombre": "string",
+        "origen": "string",
+        "permisosConcedidos": {
+          "elementos": "string",
+          "vacio": false
+        },
+        "permisosRevocados": {
+          "elementos": null,
+          "vacio": true
+        },
+        "rol": "string",
+        "secretoTotp": "string",
+        "segundoFactorConfirmadoEn": "date"
+      },
+      "indices": [
+        {
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        },
+        {
+          "key": {
+            "barrio": 1,
+            "creadoEn": -1
+          },
+          "name": "barrio_1_creadoEn_-1"
+        },
+        {
+          "key": {
+            "correo": 1
+          },
+          "name": "correo_1",
+          "unique": true
+        },
+        {
+          "key": {
+            "estado": 1
+          },
+          "name": "estado_1"
+        },
+        {
+          "key": {
+            "estado": 1,
+            "rol": 1
+          },
+          "name": "rol_1_estado_1"
+        }
+      ],
+      "vacia": false
+    }
+  },
+  "redis": {
+    "canales": [
+      "aguavigia:sse:sectores"
+    ],
+    "patrones": {
+      "consenso:sector:{sectorId}": {
+        "caducidad": "con",
+        "tipo": "zset"
+      },
+      "cupo:{id}": {
+        "caducidad": "con",
+        "tipo": "string"
+      },
+      "cupo:{sectorId}:{id}": {
+        "caducidad": "con",
+        "tipo": "string"
+      },
+      "ingesta:visto:{id}": {
+        "caducidad": "con",
+        "tipo": "string"
+      },
+      "rate-limit:/api/cuentas/**:{ip}": {
+        "caducidad": "con",
+        "tipo": "string"
+      },
+      "rate-limit:/api/dispositivos:{ip}": {
+        "caducidad": "con",
+        "tipo": "string"
+      },
+      "rate-limit:/api/fotos/**:{ip}": {
+        "caducidad": "con",
+        "tipo": "string"
+      },
+      "rate-limit:/api/iot/presion:{ip}": {
+        "caducidad": "con",
+        "tipo": "string"
+      },
+      "rate-limit:/api/reportes/**:{ip}": {
+        "caducidad": "con",
+        "tipo": "string"
+      },
+      "rate-limit:/api/reportes/*/foto:{ip}": {
+        "caducidad": "con",
+        "tipo": "string"
+      },
+      "rate-limit:/api/sectores/*/restablecimiento:{ip}": {
+        "caducidad": "con",
+        "tipo": "string"
+      },
+      "rate-limit:/api/sistema/modo:{ip}": {
+        "caducidad": "con",
+        "tipo": "string"
+      },
+      "rate-limit:/api/suscripciones/**:{ip}": {
+        "caducidad": "con",
+        "tipo": "string"
+      },
+      "rate-limit:/api/vecino/sesion:{ip}": {
+        "caducidad": "con",
+        "tipo": "string"
+      },
+      "rate-limit:/api/veedor/cuenta/**:{ip}": {
+        "caducidad": "con",
+        "tipo": "string"
+      },
+      "rate-limit:/api/veedor/segundo-factor/**:{ip}": {
+        "caducidad": "con",
+        "tipo": "string"
+      },
+      "rate-limit:/api/veedor/sesion:{ip}": {
+        "caducidad": "con",
+        "tipo": "string"
+      },
+      "sesion:revocada:{id}": {
+        "caducidad": "con",
+        "tipo": "string"
+      },
+      "tarea-unica:{nombre}": {
+        "caducidad": "con",
+        "tipo": "string"
+      },
+      "unico:{id}": {
+        "caducidad": "con",
+        "tipo": "string"
+      }
+    }
+  }
+}
