@@ -114,6 +114,23 @@ class PipelineOrquestadorTest {
                 aviso.estadoPropuesto() == EstadoServicio.SIN_SERVICIO));
     }
 
+    /**
+     * Escenario E27: Acuacar avisa que un corte se aplaza o se cancela. Eso no es un corte nuevo: el ciclo lo reconoce, lo anota en el
+     * registro y no propone nada, así que ningún barrio cambia de estado por ese aviso (la anulación del corte anunciado la hace el veedor).
+     */
+    @Test
+    void unAvisoDeAplazamientoNoRegistraNingunaPropuestaNiCorteNuevo() {
+        given(acuacar.obtenerDesde(any())).willReturn(List.of(documento("Corte en Manga por daño en la red")));
+        given(extractor.extraerPorZonas(any())).willReturn(List.of(new EventoExtraido(true, "AVISO_DE_ANULACION",
+                List.of("Manga"), null, null, "aplazamiento", 0.9, List.of(), "cita del boletin")));
+        given(sectores.listarTodos()).willReturn(
+                List.of(new Sector(new SectorId("manga"), "Manga", 1000, EstadoServicio.CON_SERVICIO)));
+
+        orquestador.ejecutarCiclo();
+
+        verify(registrarPropuesta, never()).registrarAviso(any());
+    }
+
     /** Un boletín de varias zonas se cuenta entero para la compuerta de «demasiados barrios». */
     @Test
     void elAvisoDeCadaZonaLlevaElTotalDeSectoresDelBoletinEntero() {

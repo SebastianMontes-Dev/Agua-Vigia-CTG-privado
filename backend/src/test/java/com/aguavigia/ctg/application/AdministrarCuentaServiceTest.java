@@ -103,6 +103,37 @@ class AdministrarCuentaServiceTest {
                 eq(AccionAuditada.CUENTA_APROBADA), any(), any(), anyString(), eq(CONTEXTO));
     }
 
+    /** Escenario E126: cada acción del administrador sobre una cuenta deja su registro de auditoría con él como autor. */
+    @Test
+    void rechazarDebeQuedarRegistradoEnLaAuditoria() {
+        elSujetoEs(cuenta(SUJETO_ID, "ana@ejemplo.org", EstadoCuenta.PENDIENTE_APROBACION, RolVeedor.OBSERVADOR));
+
+        servicio.rechazar(SUJETO_ID, CONTEXTO);
+
+        verify(auditoria).registrarConAutor(
+                eq(AccionAuditada.CUENTA_RECHAZADA), any(), any(), anyString(), eq(CONTEXTO));
+    }
+
+    @Test
+    void suspenderDebeQuedarRegistradoEnLaAuditoria() {
+        elSujetoEs(cuenta(SUJETO_ID, "ana@ejemplo.org", EstadoCuenta.ACTIVA, RolVeedor.VEEDOR));
+
+        servicio.suspender(SUJETO_ID, CONTEXTO);
+
+        verify(auditoria).registrarConAutor(
+                eq(AccionAuditada.CUENTA_SUSPENDIDA), any(), any(), anyString(), eq(CONTEXTO));
+    }
+
+    @Test
+    void cambiarPermisosDebeQuedarRegistradoEnLaAuditoria() {
+        elSujetoEs(cuenta(SUJETO_ID, "ana@ejemplo.org", EstadoCuenta.ACTIVA, RolVeedor.VEEDOR));
+
+        servicio.cambiarPermisos(SUJETO_ID, new PermisosEfectivos(RolVeedor.VEEDOR, Set.of(), Set.of(Permiso.GESTIONAR_CORTES)), CONTEXTO);
+
+        verify(auditoria).registrarConAutor(
+                eq(AccionAuditada.PERMISOS_CAMBIADOS), any(), any(), anyString(), eq(CONTEXTO));
+    }
+
     /** Sin esto, suspender a alguien no lo saca: su token sigue firmado y válido hasta 8 horas más. */
     @Test
     void suspenderDebeRevocarLasSesionesVivasDelAfectado() {
