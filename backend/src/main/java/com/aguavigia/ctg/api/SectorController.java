@@ -6,8 +6,8 @@ import com.aguavigia.ctg.api.dto.SectorRespuesta;
 import com.aguavigia.ctg.api.mapper.SectorApiMapper;
 import com.aguavigia.ctg.compartido.error.RecursoNoEncontradoException;
 import com.aguavigia.ctg.compartido.reloj.Reloj;
+import com.aguavigia.ctg.compartido.sse.SseSectoresBroadcaster;
 import com.aguavigia.ctg.domain.SectorId;
-import com.aguavigia.ctg.domain.port.out.CanalEnVivoPort;
 import com.aguavigia.ctg.domain.port.out.GeometriaSectoresPort;
 import com.aguavigia.ctg.domain.port.out.SectorRepository;
 import io.swagger.v3.oas.annotations.Operation;
@@ -43,10 +43,10 @@ public class SectorController {
     private final GeometriaSectoresPort geometrias;
     private final SectorApiMapper mapper;
     private final Reloj reloj;
-    private final CanalEnVivoPort<SseEmitter> canalEnVivo;
+    private final SseSectoresBroadcaster canalEnVivo;
 
     public SectorController(SectorRepository sectores, GeometriaSectoresPort geometrias, SectorApiMapper mapper,
-                             Reloj reloj, CanalEnVivoPort<SseEmitter> canalEnVivo) {
+                             Reloj reloj, SseSectoresBroadcaster canalEnVivo) {
         this.sectores = sectores;
         this.geometrias = geometrias;
         this.mapper = mapper;

@@ -3,6 +3,7 @@ package com.aguavigia.ctg.api;
 import com.aguavigia.ctg.api.mapper.SectorApiMapperImpl;
 import com.aguavigia.ctg.compartido.error.ManejadorGlobalDeErrores;
 import com.aguavigia.ctg.compartido.reloj.Reloj;
+import com.aguavigia.ctg.compartido.sse.SseSectoresBroadcaster;
 import com.aguavigia.ctg.domain.EstadoServicio;
 import com.aguavigia.ctg.domain.GeometriaSector;
 import com.aguavigia.ctg.domain.MarcasDeEstado;
@@ -11,7 +12,6 @@ import com.aguavigia.ctg.domain.RespaldoVecinal;
 import com.aguavigia.ctg.domain.Sector;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.VentanaTiempo;
-import com.aguavigia.ctg.domain.port.out.CanalEnVivoPort;
 import com.aguavigia.ctg.domain.port.out.GeometriaSectoresPort;
 import com.aguavigia.ctg.domain.port.out.RevocacionSesionPort;
 import com.aguavigia.ctg.domain.port.out.SectorRepository;
@@ -71,7 +71,7 @@ class SectorControllerTest {
     private RedisTemplate<String, String> redisTemplateMock;
 
     @MockitoBean
-    private CanalEnVivoPort<SseEmitter> sseBroadcaster;
+    private SseSectoresBroadcaster sseBroadcaster;
 
     /** El frontend nuevo no tiene el GeoJSON: lo pide aquí, ya con el id que usa el resto de la API. */
     @Test
