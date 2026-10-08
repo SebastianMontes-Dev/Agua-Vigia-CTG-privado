@@ -1,6 +1,6 @@
 package com.aguavigia.ctg.application;
 
-import com.aguavigia.ctg.compartido.reloj.RelojPort;
+import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.compartido.valor.Coordenada;
 import com.aguavigia.ctg.domain.EstadoServicio;
 import com.aguavigia.ctg.domain.HuellaDispositivo;
@@ -49,7 +49,7 @@ class RegistrarReporteServiceUbicacionTest {
         reportes = mock(ReporteCiudadanoRepository.class);
         contadorReportes = mock(ContadorReportesPort.class);
         evaluarConsenso = mock(EvaluarConsensoUseCase.class);
-        RelojPort reloj = () -> AHORA;
+        Reloj reloj = () -> AHORA;
         servicio = new RegistrarReporteService(sectores, reportes, contadorReportes, evaluarConsenso, reloj,
                 mock(com.aguavigia.ctg.domain.port.out.HashDeRedPort.class),
                 new LimitesDeReporte(3, 30, 5, java.time.Duration.ofMinutes(30)), 200.0);

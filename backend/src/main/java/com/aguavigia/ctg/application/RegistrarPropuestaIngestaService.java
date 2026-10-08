@@ -1,6 +1,6 @@
 package com.aguavigia.ctg.application;
 
-import com.aguavigia.ctg.compartido.reloj.RelojPort;
+import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.domain.AvisoDeIngesta;
 import com.aguavigia.ctg.domain.CompuertaDePublicacion;
 import com.aguavigia.ctg.domain.EstadoRevision;
@@ -43,13 +43,13 @@ public class RegistrarPropuestaIngestaService implements RegistrarPropuestaInges
     private final PropuestaIngestaRepository propuestas;
     private final SectorRepository sectores;
     private final RevisarPropuestaIngestaUseCase revisar;
-    private final RelojPort reloj;
+    private final Reloj reloj;
     private final CompuertaDePublicacion compuerta;
 
     public RegistrarPropuestaIngestaService(PropuestaIngestaRepository propuestas,
                                              SectorRepository sectores,
                                              RevisarPropuestaIngestaUseCase revisar,
-                                             RelojPort reloj,
+                                             Reloj reloj,
                                              CompuertaDePublicacion compuerta) {
         this.propuestas = propuestas;
         this.sectores = sectores;

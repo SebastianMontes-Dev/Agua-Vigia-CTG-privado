@@ -1,6 +1,6 @@
 package com.aguavigia.ctg.application;
 
-import com.aguavigia.ctg.compartido.reloj.RelojPort;
+import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.domain.UsuarioId;
 import com.aguavigia.ctg.domain.port.in.CerrarSesionUseCase;
 import com.aguavigia.ctg.domain.port.out.RevocacionSesionPort;
@@ -12,9 +12,9 @@ import com.aguavigia.ctg.domain.port.out.RevocacionSesionPort;
 public class CerrarSesionService implements CerrarSesionUseCase {
 
     private final RevocacionSesionPort revocacion;
-    private final RelojPort reloj;
+    private final Reloj reloj;
 
-    public CerrarSesionService(RevocacionSesionPort revocacion, RelojPort reloj) {
+    public CerrarSesionService(RevocacionSesionPort revocacion, Reloj reloj) {
         this.revocacion = revocacion;
         this.reloj = reloj;
     }

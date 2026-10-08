@@ -1,6 +1,6 @@
 package com.aguavigia.ctg.application;
 
-import com.aguavigia.ctg.compartido.reloj.RelojPort;
+import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.domain.ReporteId;
 import com.aguavigia.ctg.domain.port.in.EmitirTokenDeSubidaUseCase;
 import com.aguavigia.ctg.domain.port.out.SubidaDeFotoRepository;
@@ -12,10 +12,10 @@ public class EmitirTokenDeSubidaService implements EmitirTokenDeSubidaUseCase {
 
     private final SubidaDeFotoRepository subidas;
     private final TokenDeSubidaPort tokens;
-    private final RelojPort reloj;
+    private final Reloj reloj;
     private final Duration vigencia;
 
-    public EmitirTokenDeSubidaService(SubidaDeFotoRepository subidas, TokenDeSubidaPort tokens, RelojPort reloj,
+    public EmitirTokenDeSubidaService(SubidaDeFotoRepository subidas, TokenDeSubidaPort tokens, Reloj reloj,
                                       Duration vigencia) {
         this.subidas = subidas;
         this.tokens = tokens;

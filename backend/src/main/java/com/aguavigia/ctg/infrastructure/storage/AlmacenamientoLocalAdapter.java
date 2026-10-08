@@ -1,6 +1,6 @@
 package com.aguavigia.ctg.infrastructure.storage;
 
-import com.aguavigia.ctg.compartido.reloj.RelojPort;
+import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.domain.FotoGuardada;
 import com.aguavigia.ctg.domain.port.out.AlmacenamientoPort;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,11 +20,11 @@ import java.util.stream.Collectors;
 public class AlmacenamientoLocalAdapter implements AlmacenamientoPort {
 
     private final Path directorioRaiz;
-    private final RelojPort reloj;
+    private final Reloj reloj;
 
     public AlmacenamientoLocalAdapter(
             @Value("${aguavigia.almacenamiento.directorio-fotos:data/fotos}") String directorioFotos,
-            RelojPort reloj) {
+            Reloj reloj) {
         this.directorioRaiz = Paths.get(directorioFotos);
         this.reloj = reloj;
         try {
@@ -80,7 +80,7 @@ public class AlmacenamientoLocalAdapter implements AlmacenamientoPort {
 
     @Override
     public Set<String> listarNombresConAntiguedadMinima(Duration antiguedadMinima) {
-        // RelojPort y no Instant.now(): la ventana de antigüedad mínima es justo lo que evita
+        // Reloj y no Instant.now(): la ventana de antigüedad mínima es justo lo que evita
         // borrar una foto recién escrita cuyo reporte sigue en vuelo, y probar eso sin un reloj
         // inyectado exige dormir el hilo de la prueba.
         Instant limite = reloj.ahora().minus(antiguedadMinima);

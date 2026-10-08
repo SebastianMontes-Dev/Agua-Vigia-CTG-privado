@@ -22,7 +22,7 @@ import com.aguavigia.ctg.application.RegistroDeAuditoria;
 import com.aguavigia.ctg.application.RepoblarContadorDeReportesService;
 import com.aguavigia.ctg.application.RevisarPropuestaIngestaService;
 import com.aguavigia.ctg.application.VerificarBarrioVecinoService;
-import com.aguavigia.ctg.compartido.reloj.RelojPort;
+import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.domain.CompuertaDePublicacion;
 import com.aguavigia.ctg.domain.EstrategiaConsenso;
 import com.aguavigia.ctg.domain.ReglasDeEstado;
@@ -103,7 +103,7 @@ public class CasosDeUsoConfig {
      */
     @Bean
     public RegistroDeAuditoria registroDeAuditoria(
-            AuditoriaRepository auditoria, UsuarioRepository usuarios, RelojPort reloj,
+            AuditoriaRepository auditoria, UsuarioRepository usuarios, Reloj reloj,
             @Value("${aguavigia.retencion.auditoria-vecinos-dias:180}") long diasDeVecinos) {
         return new RegistroDeAuditoria(auditoria, usuarios, reloj, Duration.ofDays(diasDeVecinos));
     }
@@ -111,7 +111,7 @@ public class CasosDeUsoConfig {
     /** El token de subida de la foto vive unos minutos (D10): el tiempo de elegir la foto y mandarla, no más. */
     @Bean
     public EmitirTokenDeSubidaService emitirTokenDeSubidaService(
-            SubidaDeFotoRepository subidas, TokenDeSubidaPort tokens, RelojPort reloj,
+            SubidaDeFotoRepository subidas, TokenDeSubidaPort tokens, Reloj reloj,
             @Value("${aguavigia.reportes.vigencia-subida-minutos:10}") long vigenciaMinutos) {
         return new EmitirTokenDeSubidaService(subidas, tokens, reloj, Duration.ofMinutes(vigenciaMinutos));
     }
@@ -119,7 +119,7 @@ public class CasosDeUsoConfig {
     @Bean
     public RegistrarVecinoService registrarVecinoService(
             UsuarioRepository usuarios, EmisorDeTokensDeCuenta emisorDeTokens,
-            NotificacionCuentaPort notificaciones, RegistroDeAuditoria auditoria, RelojPort reloj,
+            NotificacionCuentaPort notificaciones, RegistroDeAuditoria auditoria, Reloj reloj,
             SectorRepository sectores, TiempoConstantePort tiempoConstante,
             @Value("${aguavigia.privacidad.version}") String versionPrivacidad) {
         return new RegistrarVecinoService(usuarios, emisorDeTokens, notificaciones, auditoria, reloj,
@@ -128,7 +128,7 @@ public class CasosDeUsoConfig {
 
     @Bean
     public ActualizarPerfilVecinoService actualizarPerfilVecinoService(
-            UsuarioRepository usuarios, RegistroDeAuditoria auditoria, RelojPort reloj, SectorRepository sectores,
+            UsuarioRepository usuarios, RegistroDeAuditoria auditoria, Reloj reloj, SectorRepository sectores,
             @Value("${aguavigia.privacidad.version}") String versionPrivacidad) {
         return new ActualizarPerfilVecinoService(usuarios, auditoria, reloj, sectores, versionPrivacidad);
     }
@@ -136,7 +136,7 @@ public class CasosDeUsoConfig {
     @Bean
     public VerificarBarrioVecinoService verificarBarrioVecinoService(
             UsuarioRepository usuarios, SectorRepository sectores, CupoPorCuentaPort cupo,
-            RegistroDeAuditoria auditoria, RelojPort reloj,
+            RegistroDeAuditoria auditoria, Reloj reloj,
             @Value("${aguavigia.vecino.verificacion-barrio.intentos-por-dia}") int intentosPorDia,
             @Value("${aguavigia.ubicacion.precision-maxima-metros:200}") double precisionMaximaMetros) {
         return new VerificarBarrioVecinoService(usuarios, sectores, cupo, auditoria, reloj, intentosPorDia,
@@ -147,7 +147,7 @@ public class CasosDeUsoConfig {
     public CambiarClaveService cambiarClaveService(
             UsuarioRepository usuarios, CifradorClavePort cifrador, RevocacionSesionPort revocacion,
             ControlIntentosPort intentos, NotificacionCuentaPort notificaciones, RegistroDeAuditoria auditoria,
-            RelojPort reloj,
+            Reloj reloj,
             @Value("${aguavigia.cuentas.maximo-intentos:5}") int maximoIntentos,
             @Value("${aguavigia.cuentas.ventana-intentos-minutos:15}") long ventanaIntentosMinutos,
             @Value("${aguavigia.cuentas.bloqueo-minutos:15}") long bloqueoMinutos) {
@@ -157,7 +157,7 @@ public class CasosDeUsoConfig {
 
     @Bean
     public ConfirmarSuscripcionService confirmarSuscripcionService(
-            SuscripcionRepository suscripciones, RelojPort reloj,
+            SuscripcionRepository suscripciones, Reloj reloj,
             @Value("${aguavigia.suscripcion.horas-vigencia-token:48}") long horasVigenciaToken) {
         return new ConfirmarSuscripcionService(suscripciones, reloj, horasVigenciaToken);
     }
@@ -174,21 +174,21 @@ public class CasosDeUsoConfig {
     @Bean
     public ActualizarEstadosPorVentanaService actualizarEstadosPorVentanaService(
             PropuestaIngestaRepository propuestas, CorteAguaRepository cortes, RecalcularSectorUseCase recalcular,
-            RelojPort reloj, ReglasDeEstado reglas) {
+            Reloj reloj, ReglasDeEstado reglas) {
         return new ActualizarEstadosPorVentanaService(propuestas, cortes, recalcular, reloj, reglas.expiraTrasFin());
     }
 
     /** Qué instancia es: `aguavigia.sistema.modo` (REAL por defecto; la instancia de simulación pone SIMULACION). */
     @Bean
     public ConsultarModoDelSistemaService consultarModoDelSistemaService(
-            UsuarioRepository usuarios, RelojPort reloj, @Value("${aguavigia.sistema.modo:REAL}") String modo) {
+            UsuarioRepository usuarios, Reloj reloj, @Value("${aguavigia.sistema.modo:REAL}") String modo) {
         return new ConsultarModoDelSistemaService(usuarios, com.aguavigia.ctg.domain.ModoDelSistema.Modo.deTexto(modo), reloj);
     }
 
     /** Las cuentas sintéticas se insertan de a mil: una a una serían 30 000 viajes a la base. */
     @Bean
     public ImportarVecinosSinteticosService importarVecinosSinteticosService(
-            UsuarioRepository usuarios, SectorRepository sectores, RegistroDeAuditoria auditoria, RelojPort reloj,
+            UsuarioRepository usuarios, SectorRepository sectores, RegistroDeAuditoria auditoria, Reloj reloj,
             @Value("${aguavigia.siembra.tamano-de-lote:1000}") int tamanoDeLote) {
         return new ImportarVecinosSinteticosService(usuarios, sectores, auditoria, reloj, tamanoDeLote);
     }
@@ -211,7 +211,7 @@ public class CasosDeUsoConfig {
     @Bean
     public RegistrarPropuestaIngestaService registrarPropuestaIngestaService(
             PropuestaIngestaRepository propuestas, SectorRepository sectores, RevisarPropuestaIngestaUseCase revisar,
-            RelojPort reloj, CompuertaDePublicacion compuerta) {
+            Reloj reloj, CompuertaDePublicacion compuerta) {
         return new RegistrarPropuestaIngestaService(propuestas, sectores, revisar, reloj, compuerta);
     }
 
@@ -219,7 +219,7 @@ public class CasosDeUsoConfig {
     @Bean
     public RevisarPropuestaIngestaService revisarPropuestaIngestaService(
             PropuestaIngestaRepository propuestas, SectorRepository sectores, RegistrarEventoBitacoraUseCase registrarEvento,
-            CorteAguaRepository cortes, RecalcularSectorUseCase recalcular, RelojPort reloj, TransaccionPort transaccion,
+            CorteAguaRepository cortes, RecalcularSectorUseCase recalcular, Reloj reloj, TransaccionPort transaccion,
             RegistroDeAuditoria auditoria, ReglasDeEstado reglas) {
         return new RevisarPropuestaIngestaService(propuestas, sectores, registrarEvento, cortes, recalcular, reloj,
                 transaccion, auditoria, reglas.expiraTrasFin());
@@ -228,21 +228,21 @@ public class CasosDeUsoConfig {
     @Bean
     public ExpirarCortesVencidosService expirarCortesVencidosService(
             CorteAguaRepository cortes, RegistrarEventoBitacoraUseCase registrarEvento,
-            RecalcularSectorUseCase recalcular, RelojPort reloj, TransaccionPort transaccion, ReglasDeEstado reglas) {
+            RecalcularSectorUseCase recalcular, Reloj reloj, TransaccionPort transaccion, ReglasDeEstado reglas) {
         return new ExpirarCortesVencidosService(cortes, registrarEvento, recalcular, reloj, transaccion,
                 reglas.expiraTrasFin());
     }
 
     @Bean
     public RepoblarContadorDeReportesService repoblarContadorDeReportesService(
-            ReporteCiudadanoRepository reportes, ContadorReportesPort contador, RelojPort reloj,
+            ReporteCiudadanoRepository reportes, ContadorReportesPort contador, Reloj reloj,
             @Value("${aguavigia.consenso.ventana-minutos:30}") long ventanaMinutos) {
         return new RepoblarContadorDeReportesService(reportes, contador, reloj, Duration.ofMinutes(ventanaMinutos));
     }
 
     @Bean
     public ListarReportesPendientesService listarReportesPendientesService(
-            ReporteCiudadanoRepository reportes, RelojPort reloj,
+            ReporteCiudadanoRepository reportes, Reloj reloj,
             @Value("${aguavigia.moderacion.rafaga-ventana-minutos:30}") long ventanaMinutos,
             @Value("${aguavigia.moderacion.rafaga-minima:5}") int minimoDeReportes) {
         return new ListarReportesPendientesService(reportes, reloj, Duration.ofMinutes(ventanaMinutos), minimoDeReportes);
@@ -252,7 +252,7 @@ public class CasosDeUsoConfig {
     public RecalcularSectorService recalcularSectorService(
             SectorRepository sectores, CorteAguaRepository cortes, PropuestaIngestaRepository propuestas,
             ReporteCiudadanoRepository reportes, EstrategiaConsenso estrategia, ResolutorDeEstadoSector resolutor,
-            RegistrarEventoBitacoraUseCase registrarEvento, RelojPort reloj, TransaccionPort transaccion,
+            RegistrarEventoBitacoraUseCase registrarEvento, Reloj reloj, TransaccionPort transaccion,
             @Value("${aguavigia.consenso.ventana-minutos:30}") long ventanaMinutos,
             @Value("${aguavigia.consenso.redes-minimas:2}") int redesMinimas,
             com.aguavigia.ctg.domain.port.out.MetricasDelSistemaPort metricas) {
@@ -276,7 +276,7 @@ public class CasosDeUsoConfig {
     @Bean
     public RegistrarReporteService registrarReporteService(
             SectorRepository sectores, ReporteCiudadanoRepository reportes, ContadorReportesPort contadorReportes,
-            EvaluarConsensoUseCase evaluarConsenso, RelojPort reloj,
+            EvaluarConsensoUseCase evaluarConsenso, Reloj reloj,
             @Value("${aguavigia.reportes.limite-por-dispositivo:3}") int limitePorDispositivo,
             @Value("${aguavigia.reportes.limite-por-sensor:30}") int limitePorSensor,
             @Value("${aguavigia.reportes.ventana-limite-minutos:30}") long ventanaLimiteMinutos,

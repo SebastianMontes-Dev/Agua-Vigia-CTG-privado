@@ -1,6 +1,6 @@
 package com.aguavigia.ctg.application;
 
-import com.aguavigia.ctg.compartido.reloj.RelojPort;
+import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.domain.AvisoDeIngesta;
 import com.aguavigia.ctg.domain.CompuertaDePublicacion;
 import com.aguavigia.ctg.domain.EstadoRevision;
@@ -47,7 +47,7 @@ class RegistrarPropuestaIngestaServiceTest {
         propuestas = mock(PropuestaIngestaRepository.class);
         sectores = mock(SectorRepository.class);
         revisar = mock(RevisarPropuestaIngestaUseCase.class);
-        RelojPort reloj = () -> AHORA;
+        Reloj reloj = () -> AHORA;
         servicio = new RegistrarPropuestaIngestaService(propuestas, sectores, revisar, reloj,
                 CompuertaDePublicacion.porDefecto());
 

@@ -1,7 +1,7 @@
 package com.aguavigia.ctg.application;
 
 import com.aguavigia.ctg.compartido.error.CuentaBloqueadaException;
-import com.aguavigia.ctg.compartido.reloj.RelojPort;
+import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.domain.AccionAuditada;
 import com.aguavigia.ctg.domain.ClaveEnClaro;
 import com.aguavigia.ctg.domain.ContextoDeAccion;
@@ -34,7 +34,7 @@ public class CambiarClaveService implements CambiarClaveUseCase {
     private final ControlIntentosPort intentos;
     private final NotificacionCuentaPort notificaciones;
     private final RegistroDeAuditoria auditoria;
-    private final RelojPort reloj;
+    private final Reloj reloj;
     private final int maximoIntentos;
     private final Duration ventanaIntentos;
     private final Duration bloqueo;
@@ -45,7 +45,7 @@ public class CambiarClaveService implements CambiarClaveUseCase {
                                ControlIntentosPort intentos,
                                NotificacionCuentaPort notificaciones,
                                RegistroDeAuditoria auditoria,
-                               RelojPort reloj,
+                               Reloj reloj,
                                int maximoIntentos,
                                long ventanaIntentosMinutos,
                                long bloqueoMinutos) {

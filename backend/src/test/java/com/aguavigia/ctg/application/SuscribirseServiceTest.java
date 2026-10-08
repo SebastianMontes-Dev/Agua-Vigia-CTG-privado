@@ -1,6 +1,6 @@
 package com.aguavigia.ctg.application;
 
-import com.aguavigia.ctg.compartido.reloj.RelojPort;
+import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.compartido.valor.CorreoElectronico;
 import com.aguavigia.ctg.domain.EstadoServicio;
 import com.aguavigia.ctg.domain.EstadoSuscripcion;
@@ -41,7 +41,7 @@ class SuscribirseServiceTest {
         sectores = mock(SectorRepository.class);
         suscripciones = mock(SuscripcionRepository.class);
         notificaciones = mock(NotificacionPort.class);
-        RelojPort reloj = () -> AHORA;
+        Reloj reloj = () -> AHORA;
         servicio = new SuscribirseService(sectores, suscripciones, notificaciones, reloj);
 
         given(suscripciones.guardar(any(Suscripcion.class)))

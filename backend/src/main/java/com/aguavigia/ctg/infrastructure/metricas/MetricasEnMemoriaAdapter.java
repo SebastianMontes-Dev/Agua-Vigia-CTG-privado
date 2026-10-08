@@ -1,6 +1,6 @@
 package com.aguavigia.ctg.infrastructure.metricas;
 
-import com.aguavigia.ctg.compartido.reloj.RelojPort;
+import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.domain.EstadoServicio;
 import com.aguavigia.ctg.domain.MetricasDelSistema;
 import com.aguavigia.ctg.domain.NivelDeVerificacion;
@@ -41,7 +41,7 @@ public class MetricasEnMemoriaAdapter implements MetricasDelSistemaPort {
     private final LongAdder segundosAcumulados = new LongAdder();
     private final AtomicLong maximoSegundos = new AtomicLong();
 
-    public MetricasEnMemoriaAdapter(RelojPort reloj) {
+    public MetricasEnMemoriaAdapter(Reloj reloj) {
         this.desde = reloj.ahora();
     }
 

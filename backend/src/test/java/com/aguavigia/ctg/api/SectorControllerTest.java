@@ -2,7 +2,7 @@ package com.aguavigia.ctg.api;
 
 import com.aguavigia.ctg.api.mapper.SectorApiMapperImpl;
 import com.aguavigia.ctg.compartido.error.ManejadorGlobalDeErrores;
-import com.aguavigia.ctg.compartido.reloj.RelojPort;
+import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.domain.EstadoServicio;
 import com.aguavigia.ctg.domain.GeometriaSector;
 import com.aguavigia.ctg.domain.MarcasDeEstado;
@@ -56,7 +56,7 @@ class SectorControllerTest {
     private SectorRepository sectores;
 
     @MockitoBean
-    private RelojPort reloj;
+    private Reloj reloj;
 
     @MockitoBean
     private GeometriaSectoresPort geometrias;

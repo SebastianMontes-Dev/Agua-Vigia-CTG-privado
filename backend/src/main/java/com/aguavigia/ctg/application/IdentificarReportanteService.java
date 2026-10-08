@@ -1,7 +1,7 @@
 package com.aguavigia.ctg.application;
 
 import com.aguavigia.ctg.compartido.error.DispositivoInvalidoException;
-import com.aguavigia.ctg.compartido.reloj.RelojPort;
+import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.domain.DispositivoId;
 import com.aguavigia.ctg.domain.EstadoCuenta;
 import com.aguavigia.ctg.domain.HuellaDispositivo;
@@ -28,10 +28,10 @@ public class IdentificarReportanteService implements IdentificarReportanteUseCas
     private final DispositivoRepository dispositivos;
     private final FirmaDeDispositivosPort firma;
     private final UsuarioRepository usuarios;
-    private final RelojPort reloj;
+    private final Reloj reloj;
 
     public IdentificarReportanteService(DispositivoRepository dispositivos, FirmaDeDispositivosPort firma,
-                                        UsuarioRepository usuarios, RelojPort reloj) {
+                                        UsuarioRepository usuarios, Reloj reloj) {
         this.dispositivos = dispositivos;
         this.firma = firma;
         this.usuarios = usuarios;

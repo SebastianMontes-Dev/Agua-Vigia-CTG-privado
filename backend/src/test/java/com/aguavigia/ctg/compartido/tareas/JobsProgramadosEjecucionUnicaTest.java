@@ -1,6 +1,6 @@
 package com.aguavigia.ctg.compartido.tareas;
 
-import com.aguavigia.ctg.compartido.reloj.RelojPort;
+import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.domain.port.in.ActualizarEstadosPorVentanaUseCase;
 import com.aguavigia.ctg.domain.port.in.RegistrarPropuestaIngestaUseCase;
 import com.aguavigia.ctg.domain.port.out.AlmacenamientoPort;
@@ -42,7 +42,7 @@ class JobsProgramadosEjecucionUnicaTest {
                 mock(DeduplicadorReciente.class), mock(HeuristicaExtractor.class), mock(SectorRepository.class),
                 mock(RegistrarPropuestaIngestaUseCase.class), mock(EstadoColectorRegistry.class),
                 mock(MarcaDeIngestaMongoRepository.class), mock(DocumentoFallidoMongoRepository.class),
-                mock(RelojPort.class), ejecucionUnica);
+                mock(Reloj.class), ejecucionUnica);
 
         orquestador.ejecutarCicloEnUnaReplica();
 
@@ -68,7 +68,7 @@ class JobsProgramadosEjecucionUnicaTest {
     @Test
     void laPurgaDeEvidenciaDebeEjecutarseEnUnaSolaReplica() {
         new PurgaEvidenciaAntiguaJob(mock(AlmacenamientoPort.class), mock(ReporteCiudadanoRepository.class),
-                mock(RelojPort.class), new MantenimientoProperties(null, null), ejecucionUnica).purgarEnUnaReplica();
+                mock(Reloj.class), new MantenimientoProperties(null, null), ejecucionUnica).purgarEnUnaReplica();
 
         verify(ejecucionUnica).ejecutar(eq("purga-evidencia"), any(Duration.class), any(Duration.class), any(Runnable.class));
     }

@@ -1,7 +1,7 @@
 package com.aguavigia.ctg.application;
 
 import com.aguavigia.ctg.compartido.error.EntidadNoEncontradaException;
-import com.aguavigia.ctg.compartido.reloj.RelojPort;
+import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.domain.AccionAuditada;
 import com.aguavigia.ctg.domain.ContextoDeAccion;
 import com.aguavigia.ctg.domain.CorteId;
@@ -37,7 +37,7 @@ public class RevisarPropuestaIngestaService implements RevisarPropuestaIngestaUs
     private final RegistrarEventoBitacoraUseCase registrarEvento;
     private final CorteAguaRepository cortes;
     private final RecalcularSectorUseCase recalcular;
-    private final RelojPort reloj;
+    private final Reloj reloj;
     private final TransaccionPort transaccion;
     private final RegistroDeAuditoria auditoria;
     private final Duration expiraTrasFin;
@@ -47,7 +47,7 @@ public class RevisarPropuestaIngestaService implements RevisarPropuestaIngestaUs
                                            RegistrarEventoBitacoraUseCase registrarEvento,
                                            CorteAguaRepository cortes,
                                            RecalcularSectorUseCase recalcular,
-                                           RelojPort reloj,
+                                           Reloj reloj,
                                            TransaccionPort transaccion,
                                            RegistroDeAuditoria auditoria,
                                            Duration expiraTrasFin) {

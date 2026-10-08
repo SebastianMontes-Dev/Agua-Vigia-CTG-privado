@@ -1,6 +1,6 @@
 package com.aguavigia.ctg.infrastructure.persistence.mongo;
 
-import com.aguavigia.ctg.compartido.reloj.RelojPort;
+import com.aguavigia.ctg.compartido.reloj.Reloj;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,7 +38,7 @@ class BloqueoDeAdministradoresMongoAdapterTest {
         static final AtomicReference<Instant> AHORA = new AtomicReference<>(INICIO);
 
         @Bean
-        RelojPort reloj() {
+        Reloj reloj() {
             return AHORA::get;
         }
     }

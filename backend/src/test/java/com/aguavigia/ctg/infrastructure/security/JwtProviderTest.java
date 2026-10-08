@@ -20,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 class JwtProviderTest {
 
     private static final Instant AHORA = Instant.parse("2026-08-09T20:00:00Z");
-    private static final com.aguavigia.ctg.compartido.reloj.RelojPort RELOJ = () -> AHORA;
+    private static final com.aguavigia.ctg.compartido.reloj.Reloj RELOJ = () -> AHORA;
 
     private static final String SECRETO_VALIDO = "01234567890123456789012345678901"; // 33 bytes
 

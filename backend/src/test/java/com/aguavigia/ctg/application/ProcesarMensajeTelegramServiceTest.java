@@ -1,6 +1,6 @@
 package com.aguavigia.ctg.application;
 
-import com.aguavigia.ctg.compartido.reloj.RelojPort;
+import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.domain.ChatTelegramId;
 import com.aguavigia.ctg.domain.EstadoServicio;
 import com.aguavigia.ctg.domain.MensajeTelegram;
@@ -68,7 +68,7 @@ class ProcesarMensajeTelegramServiceTest {
             }
         };
         EnvioTelegramPort envio = (chat, texto) -> respuestas.add(texto);
-        RelojPort reloj = mock(RelojPort.class);
+        Reloj reloj = mock(Reloj.class);
         when(reloj.ahora()).thenReturn(AHORA);
         servicio = new ProcesarMensajeTelegramService(repositorio, sectores, envio, reloj);
     }

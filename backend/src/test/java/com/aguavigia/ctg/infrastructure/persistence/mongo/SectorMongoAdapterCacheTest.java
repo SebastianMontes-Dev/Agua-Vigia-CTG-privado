@@ -1,7 +1,7 @@
 package com.aguavigia.ctg.infrastructure.persistence.mongo;
 
 import com.aguavigia.ctg.compartido.config.CacheConfig;
-import com.aguavigia.ctg.compartido.reloj.RelojPort;
+import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.domain.EstadoServicio;
 import com.aguavigia.ctg.domain.Sector;
 import com.aguavigia.ctg.domain.SectorId;
@@ -54,7 +54,7 @@ class SectorMongoAdapterCacheTest {
 
     static class RelojFijo {
         @Bean
-        RelojPort reloj() {
+        Reloj reloj() {
             return () -> Instant.parse("2026-08-09T15:30:00Z");
         }
     }

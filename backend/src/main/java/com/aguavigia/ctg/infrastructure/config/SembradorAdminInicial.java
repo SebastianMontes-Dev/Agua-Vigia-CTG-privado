@@ -1,7 +1,7 @@
 package com.aguavigia.ctg.infrastructure.config;
 
 import com.aguavigia.ctg.application.RegistroDeAuditoria;
-import com.aguavigia.ctg.compartido.reloj.RelojPort;
+import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.compartido.valor.CorreoElectronico;
 import com.aguavigia.ctg.domain.AccionAuditada;
 import com.aguavigia.ctg.domain.ClaveEnClaro;
@@ -48,7 +48,7 @@ public class SembradorAdminInicial {
 
     private final UsuarioRepository usuarios;
     private final RegistroDeAuditoria auditoria;
-    private final RelojPort reloj;
+    private final Reloj reloj;
     private final String correoConfigurado;
     private final String hashConfigurado;
     private final CifradorClavePort cifrador;
@@ -56,7 +56,7 @@ public class SembradorAdminInicial {
 
     public SembradorAdminInicial(UsuarioRepository usuarios,
                                  RegistroDeAuditoria auditoria,
-                                 RelojPort reloj,
+                                 Reloj reloj,
                                  CifradorClavePort cifrador,
                                  @Value("${aguavigia.cuentas.admin-inicial-correo:}") String correoConfigurado,
                                  @Value("${aguavigia.veedor.password-hash:}") String hashConfigurado,

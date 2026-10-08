@@ -1,7 +1,7 @@
 package com.aguavigia.ctg.application;
 
 import com.aguavigia.ctg.compartido.error.LimiteReportesExcedidoException;
-import com.aguavigia.ctg.compartido.reloj.RelojPort;
+import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.compartido.valor.Coordenada;
 import com.aguavigia.ctg.domain.HuellaDispositivo;
 import com.aguavigia.ctg.domain.NivelDeVerificacion;
@@ -60,7 +60,7 @@ public class RegistrarReporteService implements RegistrarReporteUseCase {
     private final ReporteCiudadanoRepository reportes;
     private final ContadorReportesPort contadorReportes;
     private final EvaluarConsensoUseCase evaluarConsenso;
-    private final RelojPort reloj;
+    private final Reloj reloj;
     private final LimitesDeReporte limites;
     private final HashDeRedPort hashDeRed;
     private final double precisionMaximaMetros;
@@ -70,7 +70,7 @@ public class RegistrarReporteService implements RegistrarReporteUseCase {
                                     ReporteCiudadanoRepository reportes,
                                     ContadorReportesPort contadorReportes,
                                     EvaluarConsensoUseCase evaluarConsenso,
-                                    RelojPort reloj,
+                                    Reloj reloj,
                                     HashDeRedPort hashDeRed,
                                     LimitesDeReporte limites,
                                     double precisionMaximaMetros) {
@@ -82,7 +82,7 @@ public class RegistrarReporteService implements RegistrarReporteUseCase {
                                     ReporteCiudadanoRepository reportes,
                                     ContadorReportesPort contadorReportes,
                                     EvaluarConsensoUseCase evaluarConsenso,
-                                    RelojPort reloj,
+                                    Reloj reloj,
                                     HashDeRedPort hashDeRed,
                                     LimitesDeReporte limites,
                                     double precisionMaximaMetros,

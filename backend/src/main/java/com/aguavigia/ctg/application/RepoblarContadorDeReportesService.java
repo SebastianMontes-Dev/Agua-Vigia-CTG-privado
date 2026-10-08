@@ -1,6 +1,6 @@
 package com.aguavigia.ctg.application;
 
-import com.aguavigia.ctg.compartido.reloj.RelojPort;
+import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.domain.VotoReciente;
 import com.aguavigia.ctg.domain.port.in.RepoblarContadorDeReportesUseCase;
 import com.aguavigia.ctg.domain.port.out.ContadorReportesPort;
@@ -13,11 +13,11 @@ public class RepoblarContadorDeReportesService implements RepoblarContadorDeRepo
 
     private final ReporteCiudadanoRepository reportes;
     private final ContadorReportesPort contador;
-    private final RelojPort reloj;
+    private final Reloj reloj;
     private final Duration ventana;
 
     public RepoblarContadorDeReportesService(ReporteCiudadanoRepository reportes, ContadorReportesPort contador,
-                                             RelojPort reloj, Duration ventana) {
+                                             Reloj reloj, Duration ventana) {
         this.reportes = reportes;
         this.contador = contador;
         this.reloj = reloj;

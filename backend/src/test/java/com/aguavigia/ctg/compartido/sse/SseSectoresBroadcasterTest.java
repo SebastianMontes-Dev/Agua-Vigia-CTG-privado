@@ -1,7 +1,7 @@
 package com.aguavigia.ctg.compartido.sse;
 
 import com.aguavigia.ctg.compartido.error.LimiteDePeticionesExcedidoException;
-import com.aguavigia.ctg.compartido.reloj.RelojPort;
+import com.aguavigia.ctg.compartido.reloj.Reloj;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -54,14 +54,14 @@ class SseSectoresBroadcasterTest {
         }
     }
 
-    private RelojPort reloj;
+    private Reloj reloj;
     private RedisTemplate<String, String> redisTemplate;
     private SseSectoresBroadcaster broadcaster;
     private MockMvc mockMvc;
 
     @BeforeEach
     void montar() {
-        reloj = mock(RelojPort.class);
+        reloj = mock(Reloj.class);
         redisTemplate = mock(RedisTemplate.class);
         broadcaster = new SseSectoresBroadcaster(reloj, redisTemplate, Runnable::run, MAXIMO, CANAL);
         mockMvc = MockMvcBuilders.standaloneSetup(new ControladorDePrueba(broadcaster)).build();

@@ -1,6 +1,6 @@
 package com.aguavigia.ctg.domain.port.out;
 
-import com.aguavigia.ctg.compartido.reloj.RelojPort;
+import com.aguavigia.ctg.compartido.reloj.Reloj;
 import java.time.Duration;
 import java.time.Instant;
 
@@ -8,7 +8,7 @@ import java.time.Instant;
  * El reloj de la instancia de simulación, con lo que el simulador necesita para moverlo (D33). Solo existe donde la simulación está
  * habilitada: en la instancia real no hay ningún reloj que mover.
  */
-public interface RelojControlablePort extends RelojPort {
+public interface RelojControlablePort extends Reloj {
 
     /** Pone el reloj en ese instante, antes o después del actual; sigue andando a la velocidad real desde ahí. */
     void fijarEn(Instant instante);

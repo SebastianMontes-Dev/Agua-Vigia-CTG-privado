@@ -5,7 +5,7 @@ import com.aguavigia.ctg.application.IniciarSesionDeAdminDeSimulacionService;
 import com.aguavigia.ctg.application.InyectarBoletinSimuladoService;
 import com.aguavigia.ctg.application.RegistroDeAuditoria;
 import com.aguavigia.ctg.application.ReiniciarSimulacionService;
-import com.aguavigia.ctg.compartido.reloj.RelojPort;
+import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.domain.port.in.ControlarRelojDeSimulacionUseCase;
 import com.aguavigia.ctg.domain.port.in.IniciarSesionDeAdminDeSimulacionUseCase;
 import com.aguavigia.ctg.domain.port.in.InyectarBoletinSimuladoUseCase;
@@ -47,7 +47,7 @@ public class SimulacionConfig {
 
     @Bean
     public InyectarBoletinSimuladoUseCase inyectarBoletinSimulado(ObjectProvider<BuzonDeBoletinesSimuladosPort> buzon,
-                                                                  CicloDeIngestaPort ciclo, RelojPort reloj) {
+                                                                  CicloDeIngestaPort ciclo, Reloj reloj) {
         return new InyectarBoletinSimuladoService(buzonDeLaIngesta(buzon), ciclo, reloj);
     }
 

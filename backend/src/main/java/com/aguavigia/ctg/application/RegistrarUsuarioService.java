@@ -1,6 +1,6 @@
 package com.aguavigia.ctg.application;
 
-import com.aguavigia.ctg.compartido.reloj.RelojPort;
+import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.compartido.valor.CorreoElectronico;
 import com.aguavigia.ctg.domain.AccionAuditada;
 import com.aguavigia.ctg.domain.ClaveEnClaro;
@@ -33,7 +33,7 @@ public class RegistrarUsuarioService implements RegistrarUsuarioUseCase {
     private final EmisorDeTokensDeCuenta emisorDeTokens;
     private final NotificacionCuentaPort notificaciones;
     private final RegistroDeAuditoria auditoria;
-    private final RelojPort reloj;
+    private final Reloj reloj;
     private final SectorRepository sectores;
     private final TiempoConstantePort tiempoConstante;
 
@@ -42,7 +42,7 @@ public class RegistrarUsuarioService implements RegistrarUsuarioUseCase {
                                    EmisorDeTokensDeCuenta emisorDeTokens,
                                    NotificacionCuentaPort notificaciones,
                                    RegistroDeAuditoria auditoria,
-                                   RelojPort reloj,
+                                   Reloj reloj,
                                    SectorRepository sectores,
                                    TiempoConstantePort tiempoConstante) {
         this.usuarios = usuarios;

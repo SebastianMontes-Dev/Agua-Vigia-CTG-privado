@@ -1,6 +1,6 @@
 package com.aguavigia.ctg.application;
 
-import com.aguavigia.ctg.compartido.reloj.RelojPort;
+import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.compartido.valor.CorreoElectronico;
 import com.aguavigia.ctg.domain.EstadoSuscripcion;
 import com.aguavigia.ctg.domain.Sector;
@@ -25,12 +25,12 @@ public class SuscribirseService implements SuscribirseUseCase {
     private final SectorRepository sectores;
     private final SuscripcionRepository suscripciones;
     private final NotificacionPort notificaciones;
-    private final RelojPort reloj;
+    private final Reloj reloj;
 
     public SuscribirseService(SectorRepository sectores,
                                SuscripcionRepository suscripciones,
                                NotificacionPort notificaciones,
-                               RelojPort reloj) {
+                               Reloj reloj) {
         this.sectores = sectores;
         this.suscripciones = suscripciones;
         this.notificaciones = notificaciones;

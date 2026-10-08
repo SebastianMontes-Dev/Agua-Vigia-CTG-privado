@@ -1,6 +1,6 @@
 package com.aguavigia.ctg.application;
 
-import com.aguavigia.ctg.compartido.reloj.RelojPort;
+import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.domain.Afirmacion.CorteVeedor;
 import com.aguavigia.ctg.domain.Afirmacion.PrensaAprobada;
 import com.aguavigia.ctg.domain.Afirmacion.QuorumVecinos;
@@ -80,7 +80,7 @@ public class RecalcularSectorService implements RecalcularSectorUseCase {
     private final EstrategiaConsenso estrategia;
     private final ResolutorDeEstadoSector resolutor;
     private final RegistrarEventoBitacoraUseCase registrarEvento;
-    private final RelojPort reloj;
+    private final Reloj reloj;
     private final TransaccionPort transaccion;
     private final Duration ventanaConsenso;
     private final int redesMinimas;
@@ -89,7 +89,7 @@ public class RecalcularSectorService implements RecalcularSectorUseCase {
     public RecalcularSectorService(SectorRepository sectores, CorteAguaRepository cortes,
                                    PropuestaIngestaRepository propuestas, ReporteCiudadanoRepository reportes,
                                    EstrategiaConsenso estrategia, ResolutorDeEstadoSector resolutor,
-                                   RegistrarEventoBitacoraUseCase registrarEvento, RelojPort reloj,
+                                   RegistrarEventoBitacoraUseCase registrarEvento, Reloj reloj,
                                    TransaccionPort transaccion, Duration ventanaConsenso,
                                    int redesMinimas) {
         this(sectores, cortes, propuestas, reportes, estrategia, resolutor, registrarEvento, reloj, transaccion, ventanaConsenso,
@@ -99,7 +99,7 @@ public class RecalcularSectorService implements RecalcularSectorUseCase {
     public RecalcularSectorService(SectorRepository sectores, CorteAguaRepository cortes,
                                    PropuestaIngestaRepository propuestas, ReporteCiudadanoRepository reportes,
                                    EstrategiaConsenso estrategia, ResolutorDeEstadoSector resolutor,
-                                   RegistrarEventoBitacoraUseCase registrarEvento, RelojPort reloj,
+                                   RegistrarEventoBitacoraUseCase registrarEvento, Reloj reloj,
                                    TransaccionPort transaccion, Duration ventanaConsenso,
                                    int redesMinimas, MetricasDelSistemaPort metricas) {
         if (redesMinimas < 1) {

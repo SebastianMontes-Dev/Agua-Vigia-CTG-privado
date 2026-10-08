@@ -14,7 +14,7 @@ import java.time.Instant;
  * comprimir las horas de un corte en minutos de presentación. Solo existe con {@code aguavigia.sim.habilitada=true}; en la instancia
  * real quien manda es {@link com.aguavigia.ctg.compartido.reloj.RelojDelSistema}.
  *
- * Los TTL de Redis y de Mongo siguen en tiempo real: lo que se acelera es lo que mira {@code RelojPort}, que es todo el dominio.
+ * Los TTL de Redis y de Mongo siguen en tiempo real: lo que se acelera es lo que mira {@code Reloj}, que es todo el dominio.
  */
 @Component
 @ConditionalOnProperty(prefix = "aguavigia.sim", name = "habilitada", havingValue = "true")

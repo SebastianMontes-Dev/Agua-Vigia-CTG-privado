@@ -1,6 +1,6 @@
 package com.aguavigia.ctg.infrastructure.persistence.mongo;
 
-import com.aguavigia.ctg.compartido.reloj.RelojPort;
+import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.compartido.valor.Coordenada;
 import com.aguavigia.ctg.domain.EstadoServicio;
 import com.aguavigia.ctg.domain.MarcasDeEstado;
@@ -45,11 +45,11 @@ public class SectorMongoAdapter implements SectorRepository {
 
     private final SectorMongoRepository repositorio;
     private final MongoTemplate mongoTemplate;
-    private final RelojPort reloj;
+    private final Reloj reloj;
     private final ApplicationEventPublisher eventPublisher;
     private final CacheManager cacheManager;
 
-    public SectorMongoAdapter(SectorMongoRepository repositorio, MongoTemplate mongoTemplate, RelojPort reloj,
+    public SectorMongoAdapter(SectorMongoRepository repositorio, MongoTemplate mongoTemplate, Reloj reloj,
                               ApplicationEventPublisher eventPublisher, CacheManager cacheManager) {
         this.repositorio = repositorio;
         this.mongoTemplate = mongoTemplate;

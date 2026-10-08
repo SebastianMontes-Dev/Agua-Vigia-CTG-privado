@@ -1,7 +1,7 @@
 package com.aguavigia.ctg.application;
 
 import com.aguavigia.ctg.compartido.error.EntidadNoEncontradaException;
-import com.aguavigia.ctg.compartido.reloj.RelojPort;
+import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.domain.AgregadoDuraciones;
 import com.aguavigia.ctg.domain.CalidadDelCumplimiento;
 import com.aguavigia.ctg.domain.CalidadDelDato;
@@ -31,9 +31,9 @@ import java.util.List;
 public class CalcularCumplimientoService implements CalcularCumplimientoUseCase {
 
     private final CorteAguaRepository cortes;
-    private final RelojPort reloj;
+    private final Reloj reloj;
 
-    public CalcularCumplimientoService(CorteAguaRepository cortes, RelojPort reloj) {
+    public CalcularCumplimientoService(CorteAguaRepository cortes, Reloj reloj) {
         this.cortes = cortes;
         this.reloj = reloj;
     }

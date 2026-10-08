@@ -1,7 +1,7 @@
 package com.aguavigia.ctg.compartido.sse;
 
 import com.aguavigia.ctg.compartido.error.LimiteDePeticionesExcedidoException;
-import com.aguavigia.ctg.compartido.reloj.RelojPort;
+import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.domain.port.out.CanalEnVivoPort;
 import jakarta.annotation.PreDestroy;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -67,7 +67,7 @@ public class SseSectoresBroadcaster implements MessageListener, CanalEnVivoPort<
     private static final long REINTENTO_JITTER_MS = 7_000L;
     private static final long SEGUNDOS_PARA_REINTENTAR_AL_LLENARSE = 30L;
 
-    private final RelojPort reloj;
+    private final Reloj reloj;
     private final RedisTemplate<String, String> redisTemplate;
     private final Executor difusion;
     private final int maxConexiones;
@@ -77,13 +77,13 @@ public class SseSectoresBroadcaster implements MessageListener, CanalEnVivoPort<
     private final AtomicReference<Instant> ultimoCambio = new AtomicReference<>();
 
     @Autowired
-    public SseSectoresBroadcaster(RelojPort reloj, RedisTemplate<String, String> redisTemplate,
+    public SseSectoresBroadcaster(Reloj reloj, RedisTemplate<String, String> redisTemplate,
                                    @Value("${aguavigia.sse.max-conexiones:20000}") int maxConexiones,
                                    @Value("${aguavigia.sistema.modo:REAL}") String modo) {
         this(reloj, redisTemplate, Executors.newVirtualThreadPerTaskExecutor(), maxConexiones, canalPara(modo));
     }
 
-    SseSectoresBroadcaster(RelojPort reloj, RedisTemplate<String, String> redisTemplate, Executor difusion,
+    SseSectoresBroadcaster(Reloj reloj, RedisTemplate<String, String> redisTemplate, Executor difusion,
                            int maxConexiones, String canal) {
         this.canal = canal;
         this.reloj = reloj;

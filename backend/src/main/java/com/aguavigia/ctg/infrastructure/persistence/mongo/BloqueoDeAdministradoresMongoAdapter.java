@@ -1,6 +1,6 @@
 package com.aguavigia.ctg.infrastructure.persistence.mongo;
 
-import com.aguavigia.ctg.compartido.reloj.RelojPort;
+import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.domain.port.out.BloqueoDeAdministradoresPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,9 +41,9 @@ public class BloqueoDeAdministradoresMongoAdapter implements BloqueoDeAdministra
     private static final Duration DURACION_MAXIMA = Duration.ofSeconds(10);
 
     private final MongoTemplate mongoTemplate;
-    private final RelojPort reloj;
+    private final Reloj reloj;
 
-    public BloqueoDeAdministradoresMongoAdapter(MongoTemplate mongoTemplate, RelojPort reloj) {
+    public BloqueoDeAdministradoresMongoAdapter(MongoTemplate mongoTemplate, Reloj reloj) {
         this.mongoTemplate = mongoTemplate;
         this.reloj = reloj;
     }

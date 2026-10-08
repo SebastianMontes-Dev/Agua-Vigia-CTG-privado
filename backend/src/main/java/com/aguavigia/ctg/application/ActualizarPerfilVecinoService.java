@@ -1,7 +1,7 @@
 package com.aguavigia.ctg.application;
 
 import com.aguavigia.ctg.compartido.error.SesionSinCuentaException;
-import com.aguavigia.ctg.compartido.reloj.RelojPort;
+import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.domain.AccionAuditada;
 import com.aguavigia.ctg.domain.CambiosDePerfil;
 import com.aguavigia.ctg.domain.ContextoDeAccion;
@@ -23,12 +23,12 @@ public class ActualizarPerfilVecinoService implements ActualizarPerfilVecinoUseC
 
     private final UsuarioRepository usuarios;
     private final RegistroDeAuditoria auditoria;
-    private final RelojPort reloj;
+    private final Reloj reloj;
     private final SectorRepository sectores;
     private final String versionPrivacidad;
 
     public ActualizarPerfilVecinoService(UsuarioRepository usuarios, RegistroDeAuditoria auditoria,
-                                         RelojPort reloj, SectorRepository sectores,
+                                         Reloj reloj, SectorRepository sectores,
                                          String versionPrivacidad) {
         this.usuarios = usuarios;
         this.auditoria = auditoria;

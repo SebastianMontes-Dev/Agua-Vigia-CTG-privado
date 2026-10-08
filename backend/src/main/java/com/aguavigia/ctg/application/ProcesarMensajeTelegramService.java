@@ -1,6 +1,6 @@
 package com.aguavigia.ctg.application;
 
-import com.aguavigia.ctg.compartido.reloj.RelojPort;
+import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.domain.ChatTelegramId;
 import com.aguavigia.ctg.domain.DescripcionDeEstado;
 import com.aguavigia.ctg.domain.MensajeTelegram;
@@ -42,10 +42,10 @@ public class ProcesarMensajeTelegramService implements ProcesarMensajeTelegramUs
     private final SuscripcionTelegramRepository suscripciones;
     private final SectorRepository sectores;
     private final EnvioTelegramPort envio;
-    private final RelojPort reloj;
+    private final Reloj reloj;
 
     public ProcesarMensajeTelegramService(SuscripcionTelegramRepository suscripciones, SectorRepository sectores,
-                                           EnvioTelegramPort envio, RelojPort reloj) {
+                                           EnvioTelegramPort envio, Reloj reloj) {
         this.suscripciones = suscripciones;
         this.sectores = sectores;
         this.envio = envio;

@@ -1,6 +1,6 @@
 package com.aguavigia.ctg.application;
 
-import com.aguavigia.ctg.compartido.reloj.RelojPort;
+import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.compartido.valor.CorreoElectronico;
 import com.aguavigia.ctg.domain.AccionAuditada;
 import com.aguavigia.ctg.domain.ContextoDeAccion;
@@ -27,14 +27,14 @@ public class InvitarUsuarioService implements InvitarUsuarioUseCase {
     private final EmisorDeTokensDeCuenta emisorDeTokens;
     private final NotificacionCuentaPort notificaciones;
     private final RegistroDeAuditoria auditoria;
-    private final RelojPort reloj;
+    private final Reloj reloj;
     private final SectorRepository sectores;
 
     public InvitarUsuarioService(UsuarioRepository usuarios,
                                  EmisorDeTokensDeCuenta emisorDeTokens,
                                  NotificacionCuentaPort notificaciones,
                                  RegistroDeAuditoria auditoria,
-                                 RelojPort reloj,
+                                 Reloj reloj,
                                  SectorRepository sectores) {
         this.usuarios = usuarios;
         this.emisorDeTokens = emisorDeTokens;

@@ -1,6 +1,6 @@
 package com.aguavigia.ctg.infrastructure.persistence.mongo;
 
-import com.aguavigia.ctg.compartido.reloj.RelojPort;
+import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.compartido.valor.Coordenada;
 import com.aguavigia.ctg.domain.EstadoModeracion;
 import com.aguavigia.ctg.domain.EvidenciaVencida;
@@ -41,7 +41,7 @@ class ReporteCiudadanoMongoAdapterTest {
 
     static class RelojFijo {
         @Bean
-        RelojPort reloj() {
+        Reloj reloj() {
             return () -> AHORA;
         }
     }

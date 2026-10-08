@@ -1,6 +1,6 @@
 package com.aguavigia.ctg.application;
 
-import com.aguavigia.ctg.compartido.reloj.RelojPort;
+import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.compartido.valor.CorreoElectronico;
 import com.aguavigia.ctg.domain.EstadoSuscripcion;
 import com.aguavigia.ctg.domain.SectorId;
@@ -26,7 +26,7 @@ class ConfirmarSuscripcionServiceTest {
     private static final long HORAS_VIGENCIA = 48;
 
     private SuscripcionRepository suscripciones;
-    private RelojPort reloj;
+    private Reloj reloj;
     private ConfirmarSuscripcionService servicio;
 
     @BeforeEach
@@ -66,7 +66,7 @@ class ConfirmarSuscripcionServiceTest {
     void debeRechazarUnTokenVencido() {
         // BUG-041: confirmar-suscripcion.html le promete al vecino que el enlace vence en
         // HORAS_VIGENCIA horas — este es el caso que faltaba probar esa promesa.
-        RelojPort relojUnSegundoDespuesDelVencimiento = () -> CREADA.plusSeconds(HORAS_VIGENCIA * 3600 + 1);
+        Reloj relojUnSegundoDespuesDelVencimiento = () -> CREADA.plusSeconds(HORAS_VIGENCIA * 3600 + 1);
         servicio = new ConfirmarSuscripcionService(suscripciones, relojUnSegundoDespuesDelVencimiento, HORAS_VIGENCIA);
         given(suscripciones.buscarPorToken("token-1")).willReturn(Optional.of(pendienteCreadaEn(CREADA)));
 
@@ -76,7 +76,7 @@ class ConfirmarSuscripcionServiceTest {
 
     @Test
     void debeAceptarUnTokenJustoAntesDeVencer() {
-        RelojPort relojUnSegundoAntesDelVencimiento = () -> CREADA.plusSeconds(HORAS_VIGENCIA * 3600 - 1);
+        Reloj relojUnSegundoAntesDelVencimiento = () -> CREADA.plusSeconds(HORAS_VIGENCIA * 3600 - 1);
         servicio = new ConfirmarSuscripcionService(suscripciones, relojUnSegundoAntesDelVencimiento, HORAS_VIGENCIA);
         given(suscripciones.buscarPorToken("token-1")).willReturn(Optional.of(pendienteCreadaEn(CREADA)));
 

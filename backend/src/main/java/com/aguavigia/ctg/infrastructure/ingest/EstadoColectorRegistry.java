@@ -1,6 +1,6 @@
 package com.aguavigia.ctg.infrastructure.ingest;
 
-import com.aguavigia.ctg.compartido.reloj.RelojPort;
+import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.domain.SaludDeColector;
 import com.aguavigia.ctg.domain.port.out.MetricasDelSistemaPort;
 import com.aguavigia.ctg.domain.port.out.SaludDeColectoresPort;
@@ -30,15 +30,15 @@ public class EstadoColectorRegistry implements SaludDeColectoresPort {
     static final int FALLOS_PARA_REPORTARSE_CAIDO = 3;
 
     private final Map<String, EstadoColector> porNombre = new ConcurrentHashMap<>();
-    private final RelojPort reloj;
+    private final Reloj reloj;
     private final MetricasDelSistemaPort metricas;
 
-    public EstadoColectorRegistry(RelojPort reloj) {
+    public EstadoColectorRegistry(Reloj reloj) {
         this(reloj, MetricasDelSistemaPort.NINGUNA);
     }
 
     @Autowired
-    public EstadoColectorRegistry(RelojPort reloj, MetricasDelSistemaPort metricas) {
+    public EstadoColectorRegistry(Reloj reloj, MetricasDelSistemaPort metricas) {
         this.reloj = reloj;
         this.metricas = metricas;
     }

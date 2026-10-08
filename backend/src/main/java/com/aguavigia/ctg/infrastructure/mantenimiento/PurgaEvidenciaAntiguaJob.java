@@ -1,6 +1,6 @@
 package com.aguavigia.ctg.infrastructure.mantenimiento;
 
-import com.aguavigia.ctg.compartido.reloj.RelojPort;
+import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.domain.EvidenciaVencida;
 import com.aguavigia.ctg.domain.port.out.AlmacenamientoPort;
 import com.aguavigia.ctg.domain.port.out.ReporteCiudadanoRepository;
@@ -31,13 +31,13 @@ public class PurgaEvidenciaAntiguaJob {
 
     private final AlmacenamientoPort almacenamiento;
     private final ReporteCiudadanoRepository reportes;
-    private final RelojPort reloj;
+    private final Reloj reloj;
     private final MantenimientoProperties propiedades;
     private final EjecucionUnica ejecucionUnica;
 
     public PurgaEvidenciaAntiguaJob(AlmacenamientoPort almacenamiento,
                                      ReporteCiudadanoRepository reportes,
-                                     RelojPort reloj,
+                                     Reloj reloj,
                                      MantenimientoProperties propiedades,
                                      EjecucionUnica ejecucionUnica) {
         this.almacenamiento = almacenamiento;

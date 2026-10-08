@@ -1,6 +1,6 @@
 package com.aguavigia.ctg.infrastructure.ingest;
 
-import com.aguavigia.ctg.compartido.reloj.RelojPort;
+import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.domain.AvisoDeIngesta;
 import com.aguavigia.ctg.domain.EstadoServicio;
 import com.aguavigia.ctg.domain.Sector;
@@ -73,7 +73,7 @@ public class PipelineOrquestador {
     private final EstadoColectorRegistry estadoColectores;
     private final MarcaDeIngestaMongoRepository marcas;
     private final DocumentoFallidoMongoRepository fallidos;
-    private final RelojPort reloj;
+    private final Reloj reloj;
     private final EjecucionUnica ejecucionUnica;
 
     public PipelineOrquestador(AcuacarApiCollector acuacarApiCollector,
@@ -86,7 +86,7 @@ public class PipelineOrquestador {
                                EstadoColectorRegistry estadoColectores,
                                MarcaDeIngestaMongoRepository marcas,
                                DocumentoFallidoMongoRepository fallidos,
-                               RelojPort reloj,
+                               Reloj reloj,
                                EjecucionUnica ejecucionUnica) {
         this(acuacarApiCollector, rssCollector, colectorLocal, deduplicador, extractor, sectorRepository, registrarPropuesta,
                 estadoColectores, marcas, fallidos, reloj, ejecucionUnica, Optional.empty());
@@ -103,7 +103,7 @@ public class PipelineOrquestador {
                                EstadoColectorRegistry estadoColectores,
                                MarcaDeIngestaMongoRepository marcas,
                                DocumentoFallidoMongoRepository fallidos,
-                               RelojPort reloj,
+                               Reloj reloj,
                                EjecucionUnica ejecucionUnica,
                                Optional<ColectorSimulado> colectorSimulado) {
         this.colectorSimulado = colectorSimulado;

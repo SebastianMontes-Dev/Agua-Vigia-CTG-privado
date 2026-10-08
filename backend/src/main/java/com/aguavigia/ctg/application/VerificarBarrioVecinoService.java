@@ -4,7 +4,7 @@ import com.aguavigia.ctg.compartido.error.LimiteDePeticionesExcedidoException;
 import com.aguavigia.ctg.compartido.error.SesionSinCuentaException;
 import com.aguavigia.ctg.compartido.error.UbicacionFueraDelBarrioException;
 import com.aguavigia.ctg.compartido.error.UbicacionImprecisaException;
-import com.aguavigia.ctg.compartido.reloj.RelojPort;
+import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.compartido.valor.Coordenada;
 import com.aguavigia.ctg.domain.AccionAuditada;
 import com.aguavigia.ctg.domain.ContextoDeAccion;
@@ -35,12 +35,12 @@ public class VerificarBarrioVecinoService implements VerificarBarrioVecinoUseCas
     private final SectorRepository sectores;
     private final CupoPorCuentaPort cupo;
     private final RegistroDeAuditoria auditoria;
-    private final RelojPort reloj;
+    private final Reloj reloj;
     private final int maximoIntentosPorDia;
     private final double precisionMaximaMetros;
 
     public VerificarBarrioVecinoService(UsuarioRepository usuarios, SectorRepository sectores,
-                                        CupoPorCuentaPort cupo, RegistroDeAuditoria auditoria, RelojPort reloj,
+                                        CupoPorCuentaPort cupo, RegistroDeAuditoria auditoria, Reloj reloj,
                                         int maximoIntentosPorDia, double precisionMaximaMetros) {
         this.usuarios = usuarios;
         this.sectores = sectores;

@@ -1,7 +1,7 @@
 package com.aguavigia.ctg.application;
 
 import com.aguavigia.ctg.compartido.error.EnlaceDeRestablecimientoInvalidoException;
-import com.aguavigia.ctg.compartido.reloj.RelojPort;
+import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.domain.EnlaceDeRestablecimiento;
 import com.aguavigia.ctg.domain.EstadoSuscripcion;
 import com.aguavigia.ctg.domain.HuellaDispositivo;
@@ -25,10 +25,10 @@ public class ConfirmarRestablecimientoPorEnlaceService implements ConfirmarResta
     private final FirmaDeEnlacesPort firma;
     private final SuscripcionRepository suscripciones;
     private final RegistrarReporteUseCase registrarReporte;
-    private final RelojPort reloj;
+    private final Reloj reloj;
 
     public ConfirmarRestablecimientoPorEnlaceService(FirmaDeEnlacesPort firma, SuscripcionRepository suscripciones,
-                                                     RegistrarReporteUseCase registrarReporte, RelojPort reloj) {
+                                                     RegistrarReporteUseCase registrarReporte, Reloj reloj) {
         this.firma = firma;
         this.suscripciones = suscripciones;
         this.registrarReporte = registrarReporte;

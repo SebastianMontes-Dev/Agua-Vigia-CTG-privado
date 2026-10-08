@@ -1,7 +1,7 @@
 package com.aguavigia.ctg.application;
 
 import com.aguavigia.ctg.compartido.error.CredencialInvalidaException;
-import com.aguavigia.ctg.compartido.reloj.RelojPort;
+import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.domain.AccionAuditada;
 import com.aguavigia.ctg.domain.AlcanceSesion;
 import com.aguavigia.ctg.domain.ContextoDeAccion;
@@ -32,7 +32,7 @@ public class ConfigurarSegundoFactorService implements ConfigurarSegundoFactorUs
     private final EmisorDeSesionPort emisorDeSesion;
     private final RevocacionSesionPort revocacion;
     private final RegistroDeAuditoria auditoria;
-    private final RelojPort reloj;
+    private final Reloj reloj;
 
     public ConfigurarSegundoFactorService(UsuarioRepository usuarios,
                                           GeneradorSecretosPort generador,
@@ -40,7 +40,7 @@ public class ConfigurarSegundoFactorService implements ConfigurarSegundoFactorUs
                                           EmisorDeSesionPort emisorDeSesion,
                                           RevocacionSesionPort revocacion,
                                           RegistroDeAuditoria auditoria,
-                                          RelojPort reloj) {
+                                          Reloj reloj) {
         this.usuarios = usuarios;
         this.generador = generador;
         this.segundoFactor = segundoFactor;
