@@ -10,6 +10,7 @@ import com.aguavigia.ctg.domain.TipoEvento;
 import com.aguavigia.ctg.domain.port.out.SectorRepository;
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaClasses;
+import com.tngtech.archunit.core.domain.JavaConstructorCall;
 import com.tngtech.archunit.core.domain.JavaMethod;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
@@ -19,6 +20,7 @@ import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.annotation.AnnotatedElementUtils;
+import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -27,6 +29,7 @@ import java.lang.reflect.Method;
 import java.time.Instant;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.methods;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
@@ -45,6 +48,24 @@ class ReglaDeOroArchitectureTest {
     private static final JavaClasses CLASES_PRODUCCION = new ClassFileImporter()
             .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
             .importPackages("com.aguavigia.ctg");
+
+    /**
+     * Funcionalidades de la reducción por paquetes (docs/reduccion, ADR-098), sin contar {@code compartido}. Hoy están
+     * vacías; se llenan fase a fase, de R1 a R9.
+     */
+    private static final List<String> FUNCIONALIDADES_NUEVAS = List.of(
+            "com.aguavigia.ctg.sectores..", "com.aguavigia.ctg.cortes..", "com.aguavigia.ctg.reportes..",
+            "com.aguavigia.ctg.bitacora..", "com.aguavigia.ctg.cumplimiento..", "com.aguavigia.ctg.estadisticas..",
+            "com.aguavigia.ctg.ingesta..", "com.aguavigia.ctg.suscripciones..", "com.aguavigia.ctg.cuentas..",
+            "com.aguavigia.ctg.sistema..");
+
+    /** Las funcionalidades más {@code compartido}: lo que el código viejo ya puede usar de lo que se movió. */
+    private static final List<String> PAQUETES_NUEVOS = Stream.concat(
+            Stream.of("com.aguavigia.ctg.compartido.."), FUNCIONALIDADES_NUEVAS.stream()).toList();
+
+    private static String[] permitidos(String... propios) {
+        return Stream.concat(Stream.of(propios), PAQUETES_NUEVOS.stream()).toArray(String[]::new);
+    }
 
     @Test
     void dominioNoDebeImportarSpring() {
@@ -75,7 +96,8 @@ class ReglaDeOroArchitectureTest {
         ArchRule regla = noClasses()
                 .that().resideInAPackage("..domain..")
                 .should().dependOnClassesThat()
-                .resideOutsideOfPackages("com.aguavigia.ctg.domain..", "java..", "javax..");
+                // transición de la reducción (docs/reduccion): se retira en R9
+                .resideOutsideOfPackages(permitidos("com.aguavigia.ctg.domain..", "java..", "javax.."));
 
         regla.check(CLASES_PRODUCCION);
     }
@@ -115,8 +137,9 @@ class ReglaDeOroArchitectureTest {
         ArchRule regla = noClasses()
                 .that().resideInAPackage("..application..")
                 .should().dependOnClassesThat()
-                .resideOutsideOfPackages("com.aguavigia.ctg.domain..", "com.aguavigia.ctg.application..",
-                        "java..", "javax..", "org.slf4j..");
+                // transición de la reducción (docs/reduccion): se retira en R9
+                .resideOutsideOfPackages(permitidos("com.aguavigia.ctg.domain..", "com.aguavigia.ctg.application..",
+                        "java..", "javax..", "org.slf4j.."));
 
         regla.check(CLASES_PRODUCCION);
     }
@@ -255,6 +278,67 @@ class ReglaDeOroArchitectureTest {
                 .that().areDeclaredInClassesThat().areAnnotatedWith(RestController.class)
                 .and(atiendeRutaDelVecino)
                 .should(llevaPreAuthorize);
+
+        regla.check(CLASES_PRODUCCION);
+    }
+
+    // ---------------------------------------------------------------------------------------------------------
+    // Reglas finales de la reducción (docs/reduccion/invariantes.md §5). Se añaden en R0 con allowEmptyShould porque
+    // los paquetes nuevos están vacíos; así cada fase se valida contra ellas desde el primer día.
+    // ---------------------------------------------------------------------------------------------------------
+
+    /** Las reglas de negocio de cada funcionalidad (`<funcionalidad>/reglas/`) son Java puro. */
+    @Test
+    void reglasNoImportanFramework() {
+        ArchRule regla = noClasses()
+                .that().resideInAPackage("..reglas..")
+                .should().dependOnClassesThat().resideInAnyPackage("org.springframework..", "com.mongodb..")
+                .allowEmptyShould(true);
+
+        regla.check(CLASES_PRODUCCION);
+    }
+
+    /** Un controlador habla con servicios; la persistencia queda detrás de ellos. */
+    @Test
+    void controladoresNoTocanAlmacenes() {
+        ArchRule regla = noClasses()
+                .that().areAnnotatedWith(RestController.class)
+                .should().dependOnClassesThat().haveSimpleNameEndingWith("Almacen")
+                .orShould().dependOnClassesThat().areAssignableTo(MongoRepository.class)
+                .allowEmptyShould(true);
+
+        regla.check(CLASES_PRODUCCION);
+    }
+
+    /** {@code compartido} es la base de todas; si dependiera de una funcionalidad, el sentido de las flechas se rompe. */
+    @Test
+    void compartidoNoDependeDeFuncionalidades() {
+        ArchRule regla = noClasses()
+                .that().resideInAPackage("com.aguavigia.ctg.compartido..")
+                .should().dependOnClassesThat().resideInAnyPackage(FUNCIONALIDADES_NUEVAS.toArray(String[]::new))
+                .allowEmptyShould(true);
+
+        regla.check(CLASES_PRODUCCION);
+    }
+
+    /**
+     * Solo {@code bitacora} construye {@code EventoBitacora}. Apunta al constructor de la clase ya movida a
+     * {@code bitacora}; mientras siga en {@code domain} la regla no encuentra nada que vetar (la vigente es
+     * {@link #eventoBitacoraSoloDebeCrearseDesdeLaFactoryODesdeElAdaptadorMongo}).
+     */
+    @Test
+    void soloBitacoraCreaEventos() {
+        DescribedPredicate<JavaConstructorCall> aEventoDeBitacora =
+                new DescribedPredicate<>("constructores de com.aguavigia.ctg.bitacora.EventoBitacora") {
+                    @Override
+                    public boolean test(JavaConstructorCall llamada) {
+                        return llamada.getTargetOwner().getFullName().equals("com.aguavigia.ctg.bitacora.EventoBitacora");
+                    }
+                };
+        ArchRule regla = noClasses()
+                .that().resideOutsideOfPackage("com.aguavigia.ctg.bitacora..")
+                .should().callConstructorWhere(aEventoDeBitacora)
+                .allowEmptyShould(true);
 
         regla.check(CLASES_PRODUCCION);
     }
