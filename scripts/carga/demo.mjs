@@ -367,6 +367,9 @@ async function main() {
             '-e', `SUSCRIPCIONES=${values.suscripciones}`, '-e', `VEEDORES=${veedores.join(',')}`,
             '-e', `REGISTROS=${REGISTROS}`, '-e', `TASA_REGISTROS=${TASA_REGISTROS}`,
             '-e', `CORRIDA=${sello}`,
+            // Sin valor, `docker run -e VAR` hereda la variable del entorno de este proceso: la clave no queda en la línea de comandos.
+            // La usan los registros (clave de las cuentas nuevas) y los inicios de sesión de veedores del generador.
+            ...(process.env.CLAVE_VEEDORES ? ['-e', 'CLAVE_VEEDORES'] : []),
             '-v', `${DIR_CARGA}:/carga:ro`, '-v', `${DIR_RESULTADOS}:/resultados`,
             'grafana/k6', 'run', '--summary-export=/resultados/resumen.json', '/carga/flujo-ciudadano.js'];
         // `docker run` recibe 'run' dos veces (el subcomando y el de k6): la primera es la de docker.
