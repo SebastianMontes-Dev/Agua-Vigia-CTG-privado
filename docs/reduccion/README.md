@@ -255,6 +255,7 @@ Se actualiza al cerrar cada fase, con la salida de `scripts/reduccion/medir.sh`.
 |---|---|---|---|---|---|---|
 | Línea base | 2026-10-06 | 523 | 28 018 | 247 | 34 249 | — |
 | **R0** | 2026-10-08 | 523 | 28 018 | 249 | 34 583 | **TODO EN VERDE** (ver abajo) |
+| **R1** | 2026-10-08 | 531 | 28 120 | 252 | 34 750 | **TODO EN VERDE**: `verify` 2 099 tests, puerta completa, guion 54/54 ([R1](R1-compartido-y-cableado.md#resultado-de-r1)) |
 
 ### Línea base de R0 (2026-10-07)
 

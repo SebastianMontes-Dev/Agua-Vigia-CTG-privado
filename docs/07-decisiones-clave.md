@@ -588,6 +588,8 @@ El punto 8 de la lista del dueño llegó vacío: no hay acción pendiente. «Sen
 3. **`_class` de Mongo.** Spring Data guarda en cada documento el nombre completo de su clase Java. Al mover los `@Document` a paquetes por funcionalidad ese
    nombre cambiaría y la base ya no sería «igualita» (requisito 6). Se conservan los nombres de hoy con un `ConfigurableTypeInformationMapper` en
    `compartido/config`, que se instala **en R1/R2, antes de mover el primer `@Document`**.
+   *(Implementado en R1 con una anotación `@ClaseGuardadaComo` sobre cada `@Document` movido y un mapeador que la lee, en vez de un mapa: un mapa con las clases de todas
+   las funcionalidades obligaría a `compartido` a importarlas. Ver [invariantes](reduccion/invariantes.md#el-campo-_class-de-mongo).)*
    `ClaseGuardadaEnLosDocumentosTest` demuestra las dos mitades: un `_class` de una clase que ya no existe se lee igual como el tipo declarado, y el mapeador
    configurado escribe el nombre antiguo.
 4. **Criterio de capacidad (requisito 3).** La carga mixta de [R0 §8](reduccion/R0-red-de-seguridad.md#8-línea-base-de-capacidad) mide a la vez el backend y el

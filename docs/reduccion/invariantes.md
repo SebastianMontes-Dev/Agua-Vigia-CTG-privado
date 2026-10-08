@@ -24,7 +24,7 @@ El modelo nuevo (`@Document`) debe mapear a la misma colección, con los mismos 
 | `tokens_cuenta` | `TokenCuentaDocumento` | `cuentas/` |
 | `auditoria_cuentas` | `EventoAuditoriaDocumento` | `cuentas/` |
 | `bloqueos_administracion` | `BloqueoDocumento` | `cuentas/` |
-| `config_sistema` | `ConfigSistemaDocumento` | `compartido/` |
+| `config_sistema` | `ConfigSistemaDocumento` | `compartido/secretos/ConfigSistema` (movido en R1) |
 
 `IndicesMongo` crea los índices al arrancar, entre ellos el `2dsphere`. Se mueve a `compartido/config/` con la misma lista.
 Comprobación antes y después de cada fase que toque persistencia:
@@ -46,7 +46,7 @@ Se copian **literalmente**: el mismo filtro, la misma operación y el mismo orde
 - `trasConfirmar(...)` publica `SectorActualizadoEvent` **después del commit**
 
 **Mongo, upsert:**
-- `ConfigSistemaMongoAdapter.leerOCrear` (`$setOnInsert`)
+- `SecretosDelSistema.leerOCrear` (`$setOnInsert`; antes `ConfigSistemaMongoAdapter`, unido en R1)
 - `BloqueoDeAdministradoresMongoAdapter.ejecutarExclusivo` (adquiere con `findAndModify` + upsert, libera con `findAndModify`)
 - `CorteAguaMongoAdapter.anexarSectorAlCorte`
 
@@ -205,8 +205,10 @@ Spring Data guarda en cada documento `_class` con el **nombre completo de la cla
 `config_sistema` ni `bloqueos_administracion`, y `documentos_fallidos` y `suscripciones_telegram` estaban vacías (se desconoce si lo llevan).
 
 **Cuando una fase mueva un `@Document` a otro paquete, el valor de `_class` de los documentos nuevos cambiaría**, aunque los campos sigan igual, y
-el requisito 6 pide la base «igualita». Dos consecuencias que cada fase tiene que resolver y anotar:
-- los documentos viejos deben seguir leyéndose. **No está verificado** qué hace Spring Data si `_class` nombra una clase que ya no existe; se prueba restaurando el respaldo de R0 sobre el código nuevo antes de mover el primer `@Document`;
-- para que los nuevos escriban el **mismo** valor, hay que fijarlo (un `TypeInformationMapper` que devuelva los nombres de hoy). `esquema-datos.mjs` compara los
-  valores distintos de `_class` por colección y marca cualquier cambio. `scripts/restablecer-admin.mjs` escribe la clase de auditoría a mano.
-
+el requisito 6 pide la base «igualita». Resuelto en R1 ([ADR-099](../07-decisiones-clave.md#adr-099--cierre-de-r0-requisitos-del-dueño-decisiones-de-la-red-de-seguridad-y-criterio-de-capacidad)):
+- **Al escribir:** cada `@Document` que se mueva lleva `@ClaseGuardadaComo("<nombre completo de antes>")` (`compartido/config/ClaseGuardadaComo`). `MapeadorDeClaseGuardada` va
+  delante del mapeador por defecto y lo instala `MongoClaseGuardadaConfig` en el conversor de Spring Boot. Una clase sin la anotación sigue escribiendo su nombre completo.
+  El primero es `ConfigSistema`; `MongoClaseGuardadaConfigTest` lo comprueba contra un Mongo real y `MapeadorDeClaseGuardadaTest` el resto. **Regla para R2–R8:** copiar el
+  nombre del `@Document` viejo a la anotación en el mismo commit que lo mueve.
+- **Al leer:** un `_class` que nombra una clase que ya no existe se lee como el tipo declarado (`ClaseGuardadaEnLosDocumentosTest`), así que los documentos viejos siguen leyéndose.
+- `esquema-datos.mjs` compara los valores distintos de `_class` por colección y marca cualquier cambio. `scripts/restablecer-admin.mjs` escribe la clase de auditoría a mano.
