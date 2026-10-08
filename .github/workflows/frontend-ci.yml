@@ -69,7 +69,7 @@ jobs:
 
       - name: Publicar el reporte de Playwright
         if: failure()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v6
         with:
           name: playwright-report
           path: frontend/test-results/
@@ -119,7 +119,7 @@ jobs:
         working-directory: frontend
       - name: Conservar trazas
         if: failure()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v6
         with:
           name: nucleo-ciudadano-backend-real
           path: frontend/test-results/
