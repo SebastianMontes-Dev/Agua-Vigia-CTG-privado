@@ -159,7 +159,15 @@ fase lo empeore.
    `--veedores 0` porque el ingreso de veedores necesita la clave de las cuentas de demostración, que ya no está en el repositorio.
    `--sobre-datos-reales` porque la base ya tiene los datos que dejan los flujos (el script se niega si hay reportes o cortes); `--restaurar` los devuelve.
    Los umbrales son los que ya trae `scripts/carga/flujo-ciudadano.js`: reporte p95 < 1 s, lectura p95 < 1 s, registro p95 < 2 s, fallos < 1 %.
-   **Resultado de R0:** cumple todos; ver [Avance](README.md#línea-base-de-r0-2026-10-07).
+   **Resultado de R0:** de 5 corridas, la 1.ª cumplió todos los umbrales; las demás fallaron por latencia de reportes o por colapso (ver [Avance](README.md#línea-base-de-r0-2026-10-07) y [ADR-099](../07-decisiones-clave.md#adr-099--cierre-de-r0-requisitos-del-dueño-decisiones-de-la-red-de-seguridad-y-criterio-de-capacidad)).
+   Antes de lanzarla: exportar `CLAVE_VEEDORES` (sin ella los registros fallan en 1 ms con 400 y la corrida no cuenta) y medir con un solo stack de Docker en marcha.
+
+   **Criterio de la puerta (decidido en ADR-099).** El PC es compartido y la corrida varía mucho, así que se pide:
+   - Pasa si, en **hasta 3 corridas consecutivas**, **al menos una** cumple todos los umbrales de `flujo-ciudadano.js` (reporte p95 < 1 s, lectura p95 < 1 s, registro p95 < 2 s, fallos < 1 %, menos de 50 iteraciones descartadas). La serie se detiene en la primera que cumple.
+   - Si las 3 fallan: se corre la misma carga contra la etiqueta `pre-reduccion` ese mismo día. La fase pasa si no queda peor que ese contraste; si queda peor, no se cierra.
+   - Una corrida que colapsa (más de la mitad de las peticiones falla) cuenta como fallida y se investiga aunque la siguiente pase.
+   - Se anotan todas las corridas. Una con el entorno mal puesto no cuenta, pero se anota.
+   - Obligatorio al cerrar **R2, R4, R8 y R9**. **R8** además mide `POST /api/veedor/sesion` bajo carga con una clave de prueba generada (R0 no pudo: la clave de las cuentas demo ya no está en el repositorio).
 2. **Cobertura de endpoints.** Hoy `flujo-ciudadano.js`, `lectura-publica.js` y `escritura-reportes.js` no tocan los 89 endpoints. R0 lista cuáles
    quedan sin carga (con el mismo registro de cobertura del [punto 4](#4-ampliar-scriptsverificar-flujosmjs-a-los-89-endpoints)) y **añade a `scripts/carga/` los escenarios k6 que falten**, hasta que todos tengan carga, salvo `/api/sim/**` y los que
    envían correo real (que usan `--sin-correo`).
@@ -233,15 +241,18 @@ Y la capacidad ([§8](#8-línea-base-de-capacidad)) y una pasada pequeña de `ag
 
 ## Terminado cuando
 
-- Los tres scripts de comparación existen, tienen pruebas y la comparación de la línea base contra sí misma da 0.
-- `esquema-datos.mjs` existe y su línea base contra sí misma da 0, en Mongo y en Redis.
-- `verificar-flujos.mjs` recorre todo menos `/api/sim/**`, y todo pasa.
-- La matriz de [escenarios de negocio](escenarios-de-negocio.md) no tiene ninguna fila **SIN TEST** y el dueño la aprobó.
-- Está anotado cómo aparecen las 30 000 cuentas al arrancar, y `verificar` pasa.
-- La línea base de capacidad está medida y los umbrales aprobados.
-- `./mvnw verify` está en verde con las reglas de transición.
-- El guion de simulación pasa sobre `backend-sim`, y los scripts de apoyo funcionan.
-- `git diff pre-reduccion -- backend/src/main` está vacío. (Se añaden tests en `backend/src/test`; el código de producción no se toca.)
+- [x] Los tres scripts de comparación existen, tienen pruebas y la comparación de la línea base contra sí misma da 0.
+- [x] `esquema-datos.mjs` existe y su línea base contra sí misma da 0, en Mongo y en Redis.
+- [x] `verificar-flujos.mjs` recorre todo menos `/api/sim/**`, y todo pasa.
+- [x] La matriz de [escenarios de negocio](escenarios-de-negocio.md) no tiene ninguna fila **SIN TEST** y el dueño la aprobó (decisiones del 2026-10-08).
+- [x] Está anotado cómo aparecen las 30 000 cuentas al arrancar, y `verificar` pasa.
+- [x] La línea base de capacidad está medida y el criterio de la puerta está fijado (ADR-099).
+- [x] `./mvnw verify` está en verde con las reglas de transición.
+- [x] El guion de simulación pasa sobre `backend-sim`, y los scripts de apoyo funcionan.
+- [x] `git diff pre-reduccion -- backend/src/main` está vacío. (Se añaden tests en `backend/src/test`; el código de producción no se toca.)
+
+
+**R0 cerrada el 2026-10-08** (etiqueta `reduccion-R0`).
 
 ## Prompt para Claude Code
 

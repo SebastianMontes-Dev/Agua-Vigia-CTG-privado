@@ -254,7 +254,7 @@ Se actualiza al cerrar cada fase, con la salida de `scripts/reduccion/medir.sh`.
 | Fase | Fecha | `.java` main | Líneas main | `.java` test | Líneas test | Puerta |
 |---|---|---|---|---|---|---|
 | Línea base | 2026-10-06 | 523 | 28 018 | 247 | 34 249 | — |
-| R0 (en curso) | 2026-10-07 | 523 | 28 018 | 247 | 34 384 | ver abajo |
+| **R0** | 2026-10-08 | 523 | 28 018 | 249 | 34 583 | **TODO EN VERDE** (ver abajo) |
 
 ### Línea base de R0 (2026-10-07)
 
@@ -263,19 +263,38 @@ por las reglas de ArchUnit y los dos tests nuevos de R0. Equipo: un solo PC de 1
 
 | Medición | Resultado |
 |---|---|
-| `./mvnw verify` | BUILD SUCCESS: 2 086 tests, 0 fallos, 1 omitido (incluye los 2 tests que escribió R0) |
+| `./mvnw verify` (cierre, 2026-10-08) | BUILD SUCCESS: **2 094 tests**, 0 fallos, 1 omitido (incluye los tests que escribió R0: 413, `synchronized` de la ingesta, aplazamiento, auditoría de cuentas, tareas programadas y `_class`) |
+| Pruebas de los scripts (`node --test scripts/pruebas/*.test.mjs`) | 180 de 180 |
 | Contrato (`comparar-contrato.mjs`) | 84 operaciones (sin `/api/sim/**`); el `backend/openapi.yaml` coincide con lo que sirve el backend |
 | Forma de las respuestas (`instantanea.mjs`) | 31 respuestas, base recién levantada y con datos; comparar contra sí misma: 0 diferencias |
 | Esquema de las bases (`esquema-datos.mjs`) | 16 colecciones con sus índices, 14 patrones de clave en Redis, 1 canal; comparar contra sí misma: 0 diferencias |
 | Flujos (`verificar-flujos.mjs`) | 33 pasos correctos, 0 con fallo; **84 de 84 operaciones recorridas** |
-| **Reproducibilidad** (`scripts/reduccion/puerta.sh comparar`, tres veces desde `down -v`) | `TODO EN VERDE`: contrato, forma con y sin datos, flujos y esquema de Mongo y Redis idénticos a la línea base. Las dos primeras pasadas encontraron ruido legítimo (candado `tarea-unica:*` y entrada de caché `sectores::*`), que ahora son avisos |
+| **Reproducibilidad** (`scripts/reduccion/puerta.sh comparar`, cuatro veces desde `down -v`; la última el 2026-10-08, con copia previa de Mongo) | `TODO EN VERDE`: contrato, forma con y sin datos, flujos y esquema de Mongo y Redis idénticos a la línea base. Las dos primeras pasadas encontraron ruido legítimo (candado `tarea-unica:*` y entrada de caché `sectores::*`), que ahora son avisos |
 | Arranque (requisito 2) | 211 barrios y 30 001 cuentas (30 000 sintéticas + el ADMIN) en ~20 s tras `docker compose up -d --build`; `sembrador verificar`: OK |
 | Guion de simulación ×300 (`backend-sim`) | 54/54 aserciones, 185 s reales |
 | `agregar-usuarios` | modo `directo` (50) y modo `api` (20) funcionan; `--borrar-lote` borra los dos |
-| Escenarios de negocio | 72 escenarios: 54 cubiertos, 17 por confirmar, 1 sin test (concurrencia de cierre de cortes, decisión del dueño). R0 escribió 2 tests que faltaban (413 y `synchronized` de la ingesta) |
+| Escenarios de negocio | **72 escenarios, todos cubiertos** (0 por confirmar, 0 sin test). R0 escribió los tests de E27, E43, E67, E126 y E145; E31 queda cubierto en secuencial y su concurrencia es mejora posterior a R9 (ADR-099) |
+| Guion de simulación ×300, cierre | 54/54 aserciones, 181 s reales |
+| `agregar-usuarios` contra `aguavigia_sim` | modo `directo` (50) y `api` (20) y `--borrar-lote` funcionan; la real no se toca. Comando en [`scripts/simulacion/README.md`](../../scripts/simulacion/README.md#agregar-usuarios-a-la-simulación) |
+| `src/main` | `git diff pre-reduccion -- backend/src/main` vacío |
 
-**Capacidad** (requisito 3), `scripts/carga/demo.mjs --usuarios 5000 --ventana 60 --conectados 10000 --registros 10000 --tasa-registros 50 --suscripciones 5 --veedores 0 --sin-correo --restaurar`.
-Duró 202 s y **cumplió todos los umbrales de k6** (reporte p95 < 1 s, lectura p95 < 1 s, registro p95 < 2 s, fallos < 1 %):
+**Capacidad** (requisito 3), `scripts/carga/demo.mjs --usuarios 5000 --ventana 60 --conectados 10000 --registros 10000 --tasa-registros 50 --suscripciones 5 --veedores 0 --sin-correo --restaurar --sobre-datos-reales` (con `CLAVE_VEEDORES` exportada).
+Se hicieron **cinco corridas con el mismo código**; la tabla las muestra todas (criterio y análisis en [ADR-099](../07-decisiones-clave.md#adr-099--cierre-de-r0-requisitos-del-dueño-decisiones-de-la-red-de-seguridad-y-criterio-de-capacidad)):
+
+| # | Reportes p95 | Registros | Lectura p95 | Resultado |
+|---|---|---|---|---|
+| 1 | 392 ms | 10 000 de 10 000, p95 418 ms | < 1 s | **Cumple todos los umbrales**; 10 000 SSE abiertas |
+| 2 | **1 736 ms** | p95 750 ms | < 1 s | Falla el umbral de reportes |
+| 3 | — | 0 de 10 000 | — | **Colapso**: el backend no contestó a ninguna petición en 60 s |
+| 4 | 103 ms | 0 de 10 000 | — | No cuenta: faltaba `CLAVE_VEEDORES`, los 10 000 registros fallaron con 400 |
+| 5 | **2 018 ms** | 9 994 de 10 000, p95 541 ms | 301 ms | Fallan reportes y 183 iteraciones descartadas |
+
+**Criterio de la puerta (requisito 3, fijado en ADR-099).** Pasa si, en **hasta 3 corridas consecutivas**, **al menos una** cumple todos los umbrales de
+`scripts/carga/flujo-ciudadano.js` (reporte p95 < 1 s, lectura p95 < 1 s, registro p95 < 2 s, fallos < 1 %, menos de 50 iteraciones descartadas). Si las 3
+fallan, se contrasta con la etiqueta `pre-reduccion` el mismo día y la fase pasa si no queda peor. Un colapso cuenta como fallo y se investiga. Obligatorio al
+cerrar R2, R4, R8 y R9.
+
+**Referencia de la corrida 1** (la única completa), 202 s:
 
 | Qué | Resultado |
 |---|---|
@@ -290,4 +309,5 @@ Duró 202 s y **cumplió todos los umbrales de k6** (reporte p95 < 1 s, lectura 
 - No mide el ingreso de veedores bajo carga (`--veedores 0`): el generador pide `CLAVE_VEEDORES`, la clave de las cuentas de demostración, que ya no está en el repositorio.
 - `demo.mjs` no reenviaba `CLAVE_VEEDORES` a k6, así que los registros fallaban con 400 (la clave iba vacía). R0 lo corrigió (`scripts/carga/demo.mjs`): ahora la hereda del entorno si está definida. Es el único cambio de R0 en la herramienta de carga.
 - El generador y el backend comparten el PC: las cifras dicen el orden de magnitud que aguanta esta máquina, no la de un servidor.
-- Es **una** corrida. Los umbrales de las fases siguientes se fijan con el dueño; esta tabla es la referencia.
+- Solo 1 de 5 corridas cumplió todo; la variabilidad es del PC compartido y de la cola de reportes, y el colapso de la corrida 3 no tiene causa identificada. Por eso el criterio es de «hasta 3 corridas» con contraste contra `pre-reduccion` (ADR-099), no un umbral fijo.
+- R8 debe medir `POST /api/veedor/sesion` bajo carga con una clave de prueba generada.

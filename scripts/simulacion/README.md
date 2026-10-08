@@ -60,6 +60,21 @@ hasta reiniciar el contenedor. Borra los documentos de todas las colecciones de 
 borra de Mailhog **solo** los correos de la simulación (el Mailhog es el mismo que usa la instancia real), devuelve el reloj al real, vacía el
 buzón de boletines y vuelve a sembrar los sectores.
 
+### Agregar usuarios a la simulación
+
+`agregar-usuarios` apunta a la base real por defecto. Para la simulación se le cambian la base y el backend (probado en R0, requisito 5):
+
+```bash
+docker compose --profile simulacion up -d backend-sim
+docker compose --profile simulacion run --rm simulador reiniciar     # si la base de simulación está vacía: siembra los barrios
+E="-e MONGODB_DB=aguavigia_sim -e API_URL=http://backend-sim:8080"
+docker compose run --rm $E sembrador agregar-usuarios --cantidad 50 --lote prueba-sim            # modo directo (en Mongo)
+docker compose run --rm $E sembrador agregar-usuarios --cantidad 20 --modo api --lote prueba-api # por POST /api/cuentas/registro
+docker compose run --rm $E sembrador agregar-usuarios --borrar-lote prueba-sim                   # y lo mismo con prueba-api
+```
+
+Sin `simulador reiniciar` previo, el script responde «No hay sectores». La base real no se toca (`aguavigia` sigue con sus 30 000 cuentas).
+
 ## Qué hace el guion
 
 Los minutos cuentan desde las 08:00 del día siguiente (hora de Cartagena).
