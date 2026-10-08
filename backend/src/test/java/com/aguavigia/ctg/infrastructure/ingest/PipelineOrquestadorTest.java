@@ -16,6 +16,12 @@ import org.mockito.ArgumentCaptor;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
@@ -106,6 +112,23 @@ class PipelineOrquestadorTest {
 
         verify(registrarPropuesta).registrarAviso(argThat(aviso ->
                 aviso.estadoPropuesto() == EstadoServicio.SIN_SERVICIO));
+    }
+
+    /**
+     * Escenario E27: Acuacar avisa que un corte se aplaza o se cancela. Eso no es un corte nuevo: el ciclo lo reconoce, lo anota en el
+     * registro y no propone nada, así que ningún barrio cambia de estado por ese aviso (la anulación del corte anunciado la hace el veedor).
+     */
+    @Test
+    void unAvisoDeAplazamientoNoRegistraNingunaPropuestaNiCorteNuevo() {
+        given(acuacar.obtenerDesde(any())).willReturn(List.of(documento("Corte en Manga por daño en la red")));
+        given(extractor.extraerPorZonas(any())).willReturn(List.of(new EventoExtraido(true, "AVISO_DE_ANULACION",
+                List.of("Manga"), null, null, "aplazamiento", 0.9, List.of(), "cita del boletin")));
+        given(sectores.listarTodos()).willReturn(
+                List.of(new Sector(new SectorId("manga"), "Manga", 1000, EstadoServicio.CON_SERVICIO)));
+
+        orquestador.ejecutarCiclo();
+
+        verify(registrarPropuesta, never()).registrarAviso(any());
     }
 
     /** Un boletín de varias zonas se cuenta entero para la compuerta de «demasiados barrios». */
@@ -481,5 +504,41 @@ class PipelineOrquestadorTest {
 
         verify(registrarPropuesta, never()).registrarAviso(any());
         verify(deduplicador, never()).marcarComoVisto(anyString());
+    }
+
+    /**
+     * Entre réplicas manda EjecucionUnica; dentro de la misma JVM, `ejecutarCiclo` es synchronized porque en la simulación también lo
+     * dispara cada boletín inyectado, y dos ciclos a la vez procesarían un mismo documento dos veces antes de que el deduplicador lo vea.
+     */
+    @Test
+    void dosCiclosAlMismoTiempoEnLaMismaJvmNoSeSolapan() throws Exception {
+        AtomicInteger dentro = new AtomicInteger();
+        AtomicInteger maximoAlMismoTiempo = new AtomicInteger();
+        CountDownLatch primeroDentro = new CountDownLatch(1);
+        CountDownLatch soltar = new CountDownLatch(1);
+        given(acuacar.obtenerDesde(any())).willAnswer(invocacion -> {
+            maximoAlMismoTiempo.accumulateAndGet(dentro.incrementAndGet(), Math::max);
+            primeroDentro.countDown();
+            soltar.await(5, TimeUnit.SECONDS);
+            dentro.decrementAndGet();
+            return List.of();
+        });
+
+        ExecutorService hilos = Executors.newFixedThreadPool(2);
+        try {
+            Future<?> primero = hilos.submit(orquestador::ejecutarCiclo);
+            assertThat(primeroDentro.await(5, TimeUnit.SECONDS)).isTrue();
+            Future<?> segundo = hilos.submit(orquestador::ejecutarCiclo);
+            Thread.sleep(300); // tiempo de sobra para que el segundo ciclo llegue a la puerta
+            soltar.countDown();
+            primero.get(10, TimeUnit.SECONDS);
+            segundo.get(10, TimeUnit.SECONDS);
+        } finally {
+            hilos.shutdownNow();
+        }
+
+        assertThat(maximoAlMismoTiempo.get())
+                .as("si el segundo ciclo entró mientras el primero seguía dentro, ejecutarCiclo dejó de ser synchronized")
+                .isEqualTo(1);
     }
 }

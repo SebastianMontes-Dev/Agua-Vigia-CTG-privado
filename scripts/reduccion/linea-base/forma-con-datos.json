@@ -1,0 +1,632 @@
+{
+  "GET /api/bitacora": {
+    "cabeceras": {
+      "link": "presente",
+      "retry-after": "ausente",
+      "x-total-count": "presente"
+    },
+    "contentType": "application/json",
+    "cuerpo": {
+      "elementos": {
+        "cantidadReportesSustento": "number",
+        "corteId": "null|string",
+        "descripcion": "string",
+        "estado": "null|string",
+        "fuente": "null|string",
+        "id": "string",
+        "imagenUrl": "null|string",
+        "respaldo": "\"null\"|null|{\"umbral\":\"number\",\"vecinos\":\"number\"}",
+        "sectorId": "string",
+        "timestamp": "string",
+        "tipo": "string",
+        "urlOriginal": "null|string"
+      },
+      "vacio": false
+    },
+    "estado": 200
+  },
+  "GET /api/bitacora/{id}/sustento": {
+    "cabeceras": {
+      "link": "ausente",
+      "retry-after": "ausente",
+      "x-total-count": "presente"
+    },
+    "contentType": "application/json",
+    "cuerpo": {
+      "elementos": null,
+      "vacio": true
+    },
+    "estado": 200
+  },
+  "GET /api/cumplimiento": {
+    "cabeceras": {
+      "link": "ausente",
+      "retry-after": "ausente",
+      "x-total-count": "ausente"
+    },
+    "contentType": "application/json",
+    "cuerpo": {
+      "cortesAnulados": "number",
+      "cortesSinCierreConfirmado": "number",
+      "desviacionSegundos": "number",
+      "duracionPrometidaSegundos": "number",
+      "duracionRealSegundos": "number",
+      "porcentajeCumplimiento": "number",
+      "porcentajeProvisional": "number",
+      "sectorId": "null"
+    },
+    "estado": 200
+  },
+  "GET /api/cumplimiento/calidad": {
+    "cabeceras": {
+      "link": "ausente",
+      "retry-after": "ausente",
+      "x-total-count": "ausente"
+    },
+    "contentType": "application/json",
+    "cuerpo": {
+      "cierresMedidos": "number",
+      "cierresProvisionales": "number",
+      "cortesAnulados": "number",
+      "cortesSinCierreConfirmado": "number",
+      "porcentajeProvisional": "number"
+    },
+    "estado": 200
+  },
+  "GET /api/cumplimiento/sectores/{id}": {
+    "cabeceras": {
+      "link": "ausente",
+      "retry-after": "ausente",
+      "x-total-count": "ausente"
+    },
+    "contentType": "application/problem+json",
+    "cuerpo": {
+      "detail": "string",
+      "instance": "string",
+      "status": "number",
+      "title": "string",
+      "type": "string"
+    },
+    "estado": 400,
+    "tipo": "peticion-invalida"
+  },
+  "GET /api/cumplimiento/serie": {
+    "cabeceras": {
+      "link": "ausente",
+      "retry-after": "ausente",
+      "x-total-count": "ausente"
+    },
+    "contentType": "application/json",
+    "cuerpo": {
+      "elementos": {
+        "cantidadCortes": "number",
+        "desviacionSegundos": "number",
+        "duracionPrometidaSegundos": "number",
+        "duracionRealSegundos": "number",
+        "periodo": "string",
+        "porcentajeCumplimiento": "number"
+      },
+      "vacio": false
+    },
+    "estado": 200
+  },
+  "GET /api/cumplimiento/serie.csv": {
+    "cabeceras": {
+      "link": "ausente",
+      "retry-after": "ausente",
+      "x-total-count": "ausente"
+    },
+    "contentType": "text/csv",
+    "cuerpo": {
+      "titulos": "periodo;duracion_prometida_horas;duracion_real_horas;desviacion_horas;porcentaje_cumplimiento;cantidad_cortes"
+    },
+    "estado": 200
+  },
+  "GET /api/estadisticas": {
+    "cabeceras": {
+      "link": "ausente",
+      "retry-after": "ausente",
+      "x-total-count": "ausente"
+    },
+    "contentType": "application/json",
+    "cuerpo": {
+      "cortesPorDiaDeSemana": {
+        "Domingo": "number",
+        "Jueves": "number",
+        "Lunes": "number",
+        "Martes": "number",
+        "Miércoles": "number",
+        "Sábado": "number",
+        "Viernes": "number"
+      },
+      "duracionPromedioHoras": "number",
+      "sectoresMasAfectados": {
+        "elementos": {
+          "cantidadCortes": "number",
+          "nombre": "string",
+          "sectorId": "string"
+        },
+        "vacio": false
+      }
+    },
+    "estado": 200
+  },
+  "GET /api/estadisticas/exportar.csv": {
+    "cabeceras": {
+      "link": "ausente",
+      "retry-after": "ausente",
+      "x-total-count": "ausente"
+    },
+    "contentType": "text/csv",
+    "cuerpo": {
+      "titulos": "sector_id;nombre;cantidad_cortes;duracion_promedio_horas_ciudad"
+    },
+    "estado": 200
+  },
+  "GET /api/sectores": {
+    "cabeceras": {
+      "link": "ausente",
+      "retry-after": "ausente",
+      "x-total-count": "ausente"
+    },
+    "contentType": "application/json",
+    "cuerpo": {
+      "generadoEn": "string",
+      "sectores": {
+        "elementos": {
+          "actualizadoEn": "null|string",
+          "enDisputa": "boolean",
+          "estado": "null|string",
+          "id": "string",
+          "nombre": "string",
+          "origen": "null|string",
+          "poblacion": "null|number",
+          "reportesEnContra": "number",
+          "respaldo": "null",
+          "restablecimientoPorConfirmar": "boolean",
+          "ventanaPrometida": "\"\\\"\\\\\\\"null\\\\\\\"|null|{\"fin\":\"string\",\"inicio\":\"string\"}|{\\\"fin\\\":\\\"string\\\",\\\"inicio\\\":\\\"string\\\"}|{\\\\\\\"fin\\\\\\\":\\\\\\\"string\\\\\\\",\\\\\\\"inicio\\\\\\\":\\\\\\\"string\\\\\\\"}\\\"\"",
+          "verificadoEn": "null|string"
+        },
+        "vacio": false
+      }
+    },
+    "estado": 200
+  },
+  "GET /api/sectores/geometria": {
+    "cabeceras": {
+      "link": "ausente",
+      "retry-after": "ausente",
+      "x-total-count": "ausente"
+    },
+    "contentType": "application/geo+json",
+    "cuerpo": {
+      "features": {
+        "elementos": {
+          "geometry": {
+            "coordinates": {
+              "elementos": {
+                "elementos": {
+                  "elementos": "\"number\"|{\"elementos\":\"number\",\"vacio\":false}",
+                  "vacio": false
+                },
+                "vacio": false
+              },
+              "vacio": false
+            },
+            "type": "string"
+          },
+          "id": "string",
+          "properties": {
+            "nombre": "string"
+          },
+          "type": "string"
+        },
+        "vacio": false
+      },
+      "type": "string"
+    },
+    "estado": 200
+  },
+  "GET /api/sectores/{id}": {
+    "cabeceras": {
+      "link": "ausente",
+      "retry-after": "ausente",
+      "x-total-count": "ausente"
+    },
+    "contentType": "application/json",
+    "cuerpo": {
+      "actualizadoEn": "null",
+      "enDisputa": "boolean",
+      "estado": "null",
+      "id": "string",
+      "nombre": "string",
+      "origen": "null",
+      "poblacion": "number",
+      "reportesEnContra": "number",
+      "respaldo": "null",
+      "restablecimientoPorConfirmar": "boolean",
+      "ventanaPrometida": "null",
+      "verificadoEn": "null"
+    },
+    "estado": 200
+  },
+  "GET /api/sectores/{id}/cortes": {
+    "cabeceras": {
+      "link": "ausente",
+      "retry-after": "ausente",
+      "x-total-count": "presente"
+    },
+    "contentType": "application/json",
+    "cuerpo": {
+      "elementos": null,
+      "vacio": true
+    },
+    "estado": 200
+  },
+  "GET /api/sistema/modo": {
+    "cabeceras": {
+      "link": "ausente",
+      "retry-after": "ausente",
+      "x-total-count": "ausente"
+    },
+    "contentType": "application/json",
+    "cuerpo": {
+      "cuentasSinteticas": "number",
+      "modo": "string"
+    },
+    "estado": 200
+  },
+  "GET /api/v2/requests.json": {
+    "cabeceras": {
+      "link": "ausente",
+      "retry-after": "ausente",
+      "x-total-count": "ausente"
+    },
+    "contentType": "application/json",
+    "cuerpo": {
+      "elementos": {
+        "address": "string",
+        "description": "string",
+        "requested_datetime": "string",
+        "service_code": "string",
+        "service_name": "string",
+        "service_request_id": "string",
+        "status": "string",
+        "updated_datetime": "string"
+      },
+      "vacio": false
+    },
+    "estado": 200
+  },
+  "GET /api/veedor/auditoria": {
+    "cabeceras": {
+      "link": "presente",
+      "retry-after": "ausente",
+      "x-total-count": "presente"
+    },
+    "contentType": "application/json",
+    "cuerpo": {
+      "elementos": {
+        "accion": "string",
+        "autorCorreo": "null|string",
+        "detalle": "string",
+        "id": "string",
+        "ip": "string",
+        "ocurrioEn": "string",
+        "sujetoCorreo": "null|string"
+      },
+      "vacio": false
+    },
+    "estado": 200
+  },
+  "GET /api/veedor/cortes": {
+    "cabeceras": {
+      "link": "ausente",
+      "retry-after": "ausente",
+      "x-total-count": "ausente"
+    },
+    "contentType": "application/json",
+    "cuerpo": {
+      "elementos": null,
+      "vacio": true
+    },
+    "estado": 200
+  },
+  "GET /api/veedor/cortes/vencidos": {
+    "cabeceras": {
+      "link": "ausente",
+      "retry-after": "ausente",
+      "x-total-count": "ausente"
+    },
+    "contentType": "application/json",
+    "cuerpo": {
+      "elementos": null,
+      "vacio": true
+    },
+    "estado": 200
+  },
+  "GET /api/veedor/disputas": {
+    "cabeceras": {
+      "link": "ausente",
+      "retry-after": "ausente",
+      "x-total-count": "ausente"
+    },
+    "contentType": "application/json",
+    "cuerpo": {
+      "elementos": null,
+      "vacio": true
+    },
+    "estado": 200
+  },
+  "GET /api/veedor/ingesta/fallidos": {
+    "cabeceras": {
+      "link": "ausente",
+      "retry-after": "ausente",
+      "x-total-count": "ausente"
+    },
+    "contentType": "application/json",
+    "cuerpo": {
+      "elementos": null,
+      "vacio": true
+    },
+    "estado": 200
+  },
+  "GET /api/veedor/ingesta/propuestas": {
+    "cabeceras": {
+      "link": "presente",
+      "retry-after": "ausente",
+      "x-total-count": "presente"
+    },
+    "contentType": "application/json",
+    "cuerpo": {
+      "elementos": {
+        "citaTextual": "string",
+        "confianza": "number",
+        "detectadaEn": "string",
+        "estadoPropuesto": "string",
+        "estadoRevision": "string",
+        "finPrometido": "string",
+        "fuente": "string",
+        "id": "string",
+        "inicioDeclarado": "string",
+        "motivoDeRevision": "string",
+        "sectorId": "string",
+        "urlOriginal": "string"
+      },
+      "vacio": false
+    },
+    "estado": 200
+  },
+  "GET /api/veedor/ingesta/salud": {
+    "cabeceras": {
+      "link": "ausente",
+      "retry-after": "ausente",
+      "x-total-count": "ausente"
+    },
+    "contentType": "application/json",
+    "cuerpo": {
+      "elementos": {
+        "fallosConsecutivos": "number",
+        "itemsProcesados": "number",
+        "motivoDelUltimoFallo": "null",
+        "nombre": "string",
+        "tasaDeError": "number",
+        "ultimaEjecucionExitosa": "string",
+        "ultimoFallo": "null"
+      },
+      "vacio": false
+    },
+    "estado": 200
+  },
+  "GET /api/veedor/reportes/pendientes": {
+    "cabeceras": {
+      "link": "ausente",
+      "retry-after": "ausente",
+      "x-total-count": "presente"
+    },
+    "contentType": "application/json",
+    "cuerpo": {
+      "elementos": {
+        "coordenada": "{\"latitud\":\"number\",\"longitud\":\"number\"}|\"null\"",
+        "estadoModeracion": "string",
+        "fotoEstado": "string",
+        "fotoUrl": "null",
+        "id": "string",
+        "sectorId": "string",
+        "senalRed": "boolean",
+        "timestamp": "string",
+        "tipo": "string",
+        "verificacion": "string"
+      },
+      "vacio": false
+    },
+    "estado": 200
+  },
+  "GET /api/veedor/sistema/metricas": {
+    "cabeceras": {
+      "link": "ausente",
+      "retry-after": "ausente",
+      "x-total-count": "ausente"
+    },
+    "contentType": "application/json",
+    "cuerpo": {
+      "cambiosDeEstado": {
+        "SIN_DATOS/SIN_ORIGEN": "number",
+        "SIN_SERVICIO/VECINOS": "number",
+        "SIN_SERVICIO/VEEDOR": "number"
+      },
+      "desde": "string",
+      "disputasAbiertas": "number",
+      "fallosDeColectores": {},
+      "quorumsRechazadosPorComposicion": {},
+      "reportesPorNivelDeVerificacion": {
+        "NINGUNA": "number",
+        "UBICACION_VERIFICADA": "number"
+      },
+      "tiempoHastaElCambioDeEstado": {
+        "cambios": "number",
+        "maximoSegundos": "number",
+        "promedioSegundos": "number"
+      }
+    },
+    "estado": 200
+  },
+  "GET /api/veedor/usuarios": {
+    "cabeceras": {
+      "link": "presente",
+      "retry-after": "ausente",
+      "x-total-count": "presente"
+    },
+    "contentType": "application/json",
+    "cuerpo": {
+      "elementos": {
+        "actualizadoEn": "string",
+        "barrioId": "null|string",
+        "correo": "string",
+        "creadoEn": "string",
+        "estado": "string",
+        "id": "string",
+        "nombre": "string",
+        "permisosConcedidos": {
+          "elementos": "string",
+          "vacio": false
+        },
+        "permisosEfectivos": {
+          "elementos": "string",
+          "vacio": false
+        },
+        "permisosRevocados": {
+          "elementos": null,
+          "vacio": true
+        },
+        "rol": "string",
+        "segundoFactorActivo": "boolean",
+        "sintetica": "boolean"
+      },
+      "vacio": false
+    },
+    "estado": 200
+  },
+  "GET /api/veedor/yo": {
+    "cabeceras": {
+      "link": "ausente",
+      "retry-after": "ausente",
+      "x-total-count": "ausente"
+    },
+    "contentType": "application/json",
+    "cuerpo": {
+      "actualizadoEn": "string",
+      "barrioId": "null",
+      "correo": "string",
+      "creadoEn": "string",
+      "estado": "string",
+      "id": "string",
+      "nombre": "string",
+      "permisosConcedidos": {
+        "elementos": null,
+        "vacio": true
+      },
+      "permisosEfectivos": {
+        "elementos": "string",
+        "vacio": false
+      },
+      "permisosRevocados": {
+        "elementos": null,
+        "vacio": true
+      },
+      "rol": "string",
+      "segundoFactorActivo": "boolean",
+      "sintetica": "boolean"
+    },
+    "estado": 200
+  },
+  "error 400 filtro mal formado": {
+    "cabeceras": {
+      "link": "ausente",
+      "retry-after": "ausente",
+      "x-total-count": "ausente"
+    },
+    "contentType": "application/problem+json",
+    "cuerpo": {
+      "detail": "string",
+      "instance": "string",
+      "status": "number",
+      "title": "string",
+      "type": "string"
+    },
+    "estado": 400,
+    "tipo": "peticion-invalida"
+  },
+  "error 401 panel sin sesión": {
+    "cabeceras": {
+      "link": "ausente",
+      "retry-after": "ausente",
+      "x-total-count": "ausente"
+    },
+    "contentType": "application/problem+json",
+    "cuerpo": {
+      "detail": "string",
+      "instance": "string",
+      "status": "number",
+      "title": "string",
+      "type": "string"
+    },
+    "estado": 401,
+    "tipo": "no-autenticado"
+  },
+  "error 404 sector inexistente": {
+    "cabeceras": {
+      "link": "ausente",
+      "retry-after": "ausente",
+      "x-total-count": "ausente"
+    },
+    "contentType": "application/problem+json",
+    "cuerpo": {
+      "detail": "string",
+      "instance": "string",
+      "status": "number",
+      "title": "string",
+      "type": "string"
+    },
+    "estado": 404,
+    "tipo": "recurso-no-encontrado"
+  },
+  "error 405 método no permitido": {
+    "cabeceras": {
+      "link": "ausente",
+      "retry-after": "ausente",
+      "x-total-count": "ausente"
+    },
+    "contentType": "application/problem+json",
+    "cuerpo": {
+      "detail": "string",
+      "instance": "string",
+      "metodosPermitidos": {
+        "elementos": "string",
+        "vacio": false
+      },
+      "status": "number",
+      "title": "string",
+      "type": "string"
+    },
+    "estado": 405,
+    "tipo": "metodo-no-permitido"
+  },
+  "error 415 foto WebP": {
+    "cabeceras": {
+      "link": "ausente",
+      "retry-after": "ausente",
+      "x-total-count": "ausente"
+    },
+    "contentType": "application/problem+json",
+    "cuerpo": {
+      "detail": "string",
+      "instance": "string",
+      "status": "number",
+      "title": "string",
+      "type": "string"
+    },
+    "estado": 415,
+    "tipo": "formato-no-permitido"
+  }
+}

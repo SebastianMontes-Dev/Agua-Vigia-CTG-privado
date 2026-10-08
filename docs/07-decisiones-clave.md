@@ -562,3 +562,70 @@ viejos), y las operaciones atómicas se copian literal (`docs/reduccion/invarian
   - el cambio es grande y se reparte en 10 fases
 - **Se revierte** con la etiqueta `pre-reduccion` (o `reduccion-R<n>` para volver a una fase), porque el contrato no cambió.
 
+
+### ADR-099 — Cierre de R0: requisitos del dueño, decisiones de la red de seguridad y criterio de capacidad
+
+**Estado: aceptada (2026-10-08).** Sebastian delegó en Claude las decisiones pendientes de R0 y pidió que se tomaran con criterio profesional. Complementa
+a ADR-098; el plan vive en [`docs/reduccion/`](reduccion/README.md).
+
+**Los 7 requisitos del dueño** (2026-10-07; el texto completo y su herramienta de control están en el [README de la reducción](reduccion/README.md#requisitos-del-dueño-añadidos-el-2026-10-07)):
+1. Toda la lógica de negocio se queda, con todos sus escenarios, sin un solo hueco.
+2. El proyecto arranca con las 30 000 cuentas de vecinos cargadas.
+3. Los endpoints aguantan a todos los usuarios acordados a la vez (10 000 registros, 5 000 reportes, suscripciones y lectura).
+4. Dos instancias en localhost: la real (`:8081`) y la de simulación (`:8082`).
+5. Los scripts que inyectan usuarios y simulan personas siguen funcionando contra la simulación.
+6. MongoDB y Redis quedan intactos: misma estructura.
+7. El backend va primero; el frontend se adapta.
+
+El punto 8 de la lista del dueño llegó vacío: no hay acción pendiente. «Sentores» del punto 4 se entiende como **sectores** (barrios).
+
+**Decisiones.**
+1. **E31** (cerrar dos veces a la vez el mismo corte no es atómico): se deja como está durante la reducción. Endurecerlo con un filtro de estado esperado
+   cambiaría comportamiento; queda como mejora posterior a R9.
+2. **Reglas de negocio**: las de [`escenarios-de-negocio.md`](reduccion/escenarios-de-negocio.md) se conservan tal cual, incluidas las que eran más finas que el
+   primer borrador (reapertura de un corte solo dentro de las 3 h, un reporte fuera del barrio no se rechaza, expiración a 24 h y 72 h, compuerta de publicación
+   de la ingesta). Los 72 escenarios tienen test que pasa; R0 escribió los de E27, E43, E67, E126 y E145.
+3. **`_class` de Mongo.** Spring Data guarda en cada documento el nombre completo de su clase Java. Al mover los `@Document` a paquetes por funcionalidad ese
+   nombre cambiaría y la base ya no sería «igualita» (requisito 6). Se conservan los nombres de hoy con un `ConfigurableTypeInformationMapper` en
+   `compartido/config`, que se instala **en R1/R2, antes de mover el primer `@Document`**.
+   `ClaseGuardadaEnLosDocumentosTest` demuestra las dos mitades: un `_class` de una clase que ya no existe se lee igual como el tipo declarado, y el mapeador
+   configurado escribe el nombre antiguo.
+4. **Criterio de capacidad (requisito 3).** La carga mixta de [R0 §8](reduccion/R0-red-de-seguridad.md#8-línea-base-de-capacidad) mide a la vez el backend y el
+   generador en un PC compartido, y varía mucho de una corrida a otra (tabla abajo). Por eso la puerta no pide «todas las corridas verdes», sino:
+   - **Pasa** si, en **hasta 3 corridas consecutivas**, **al menos una** cumple todos los umbrales de `scripts/carga/flujo-ciudadano.js`: reporte p95 < 1 s,
+     lectura p95 < 1 s, registro p95 < 2 s, fallos < 1 % y menos de 50 iteraciones descartadas. La serie se detiene en la primera que cumple.
+   - Si las 3 fallan, la fase **no se cierra**. Antes de investigar el código se corre la misma carga contra la etiqueta `pre-reduccion` en la misma sesión: la
+     fase pasa si no queda peor que ese contraste (el cuello de botella puede ser el PC y no el código).
+   - Una corrida en que el backend **colapsa** (más de la mitad de las peticiones falla) cuenta como fallida y se investiga la causa aunque la siguiente pase.
+   - Se anotan **todas** las corridas, no solo la buena. Una corrida con el entorno mal puesto (por ejemplo sin `CLAVE_VEEDORES`) no se cuenta, pero se anota.
+   - Es obligatorio al cerrar **R2, R4, R8 y R9**.
+5. **Veedores bajo carga**: R0 no mide `POST /api/veedor/sesion` bajo carga porque el generador necesita la clave de las cuentas demo, que ya no está en el
+   repositorio. **R8 debe medirlo** con una clave de prueba generada.
+6. **Simulación con 0 cuentas** (`VECINOS_SINTETICOS=0`); la real con 30 000. Se mantiene. `agregar-usuarios` funciona contra la simulación (comando exacto en
+   [`scripts/simulacion/README.md`](../scripts/simulacion/README.md#agregar-usuarios-a-la-simulación)); requiere que la base de simulación tenga sus barrios (`simulador reiniciar`).
+7. **`puerta.sh` con `down -v`** queda autorizada en cada cierre de fase; hace copia de Mongo antes de borrar.
+8. **Subagentes**: si se usan, con `model: sonnet`.
+9. **Aviso a Yordy**: la nota ya está en [`docs/frontend/README.md`](frontend/README.md) (el backend manda; el contrato queda congelado hasta R9;
+   `INGESTA_MODO=local` para e2e repetibles). Sebastian se la comenta.
+10. **Una fase por sesión.** R1 empieza en una sesión nueva.
+
+**Corridas de capacidad de R0** (`scripts/carga/demo.mjs --usuarios 5000 --ventana 60 --conectados 10000 --registros 10000 --tasa-registros 50 --suscripciones 5 --veedores 0 --sin-correo --restaurar --sobre-datos-reales`, mismo código en las cinco):
+
+| # | Reportes p95 | Registros | Lectura p95 | Resultado |
+|---|---|---|---|---|
+| 1 | 392 ms | 10 000 de 10 000, p95 418 ms | < 1 s | **Cumple todos los umbrales**, 10 000 SSE abiertas |
+| 2 | **1 736 ms** | p95 750 ms | < 1 s | Falla el umbral de reportes |
+| 3 | — | 0 de 10 000 | — | **Colapso**: el backend no contestó a ninguna petición en 60 s (0,27 % de comprobaciones correctas) |
+| 4 | 103 ms | 0 de 10 000 | — | No cuenta para registros: faltaba `CLAVE_VEEDORES` y todos fallaron con 400 en ~1 ms. Los reportes fueron los mejores (5 000 de 5 000) |
+| 5 | **2 018 ms** | 9 994 de 10 000, p95 541 ms | 301 ms | Fallan reportes y 183 iteraciones descartadas |
+
+Lectura honesta: **solo 1 de 5 corridas cumplió todo**, así que una serie que hubiera empezado en la corrida 2 habría agotado sus 3 intentos. Las demás fallas son
+de latencia de la cola (p95 de reportes) o de colapso, no de funcionalidad: con la corrida 4 los reportes fueron más rápidos que nunca. No se identificó la causa del
+colapso de la corrida 3 (el backend había arrancado 21 s antes que k6, con el perfil de carga y 10 000 conexiones SSE entrando a la vez). Por eso el criterio exige
+comparar con `pre-reduccion` el mismo día, y por eso el colapso se investiga si se repite. En las corridas 3 a 5 había además otros dos stacks de Docker
+(`simtest` y `verif`, ociosos) en marcha; medir con solo el del proyecto es una precaución, no una causa demostrada.
+
+- **Gana:** una puerta de capacidad que se puede cumplir y que no engaña (cuenta todas las corridas y se contrasta con la línea previa), el `_class` resuelto antes
+  de que cueste, y un registro de decisiones que no depende de la memoria de nadie.
+- **Pierde:** la puerta de capacidad no es determinista; la mide un PC compartido. Si la reducción empeorara el rendimiento por poco, el contraste con `pre-reduccion` es lo que lo delataría.
+- **Se revierte** editando este ADR y el criterio de [R0 §8](reduccion/R0-red-de-seguridad.md#8-línea-base-de-capacidad); ninguna de estas decisiones toca código de producción.

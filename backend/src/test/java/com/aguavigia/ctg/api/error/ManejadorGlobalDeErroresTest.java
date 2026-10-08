@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -39,6 +40,14 @@ class ManejadorGlobalDeErroresTest {
         assertThat(eventos.list)
                 .as("un cliente que cierra el canal en vivo es lo normal, no un fallo del servidor")
                 .noneMatch(evento -> evento.getLevel().isGreaterOrEqual(Level.WARN));
+    }
+
+    @Test
+    void unaFotoMasGrandeQueElMaximoRespondeAlVeedor413ConSuTipoPropio() {
+        ProblemDetail problema = manejador.archivoDemasiadoGrande(new MaxUploadSizeExceededException(10L * 1024 * 1024));
+
+        assertThat(problema.getStatus()).isEqualTo(HttpStatus.PAYLOAD_TOO_LARGE.value());
+        assertThat(problema.getType()).hasToString("https://aguavigia.example/errores/archivo-demasiado-grande");
     }
 
     @Test

@@ -29,6 +29,21 @@ mal, pero el conjunto es difícil de recorrer y de explicar ante el jurado.
 
 **Cambia solo la forma interna**: se pasa de capas técnicas a paquetes por funcionalidad.
 
+## Requisitos del dueño (añadidos el 2026-10-07)
+
+Mandan sobre cualquier otra decisión de este plan. Cada uno trae la herramienta que lo comprueba, y esa herramienta es parte
+de la [puerta](#la-puerta-lo-que-se-comprueba-al-cerrar-cada-fase): si falla, la fase no se cierra.
+
+| # | Requisito | Cómo se garantiza |
+|---|---|---|
+| 1 | **Toda la lógica de negocio se queda, con todos sus escenarios, sin un solo hueco.** Por ejemplo: se va el agua y un vecino reporta que no fue así; el agua vuelve antes de lo prometido; los reportes llegan todos desde una sola red | [`escenarios-de-negocio.md`](escenarios-de-negocio.md) lista cada escenario y el test que lo cubre. R0 construye esa matriz y **escribe los tests que falten antes de mover nada**. Las reglas se mueven a `reglas/` sin reescribirse. Una fase no se cierra si un escenario de su área queda sin test |
+| 2 | **El proyecto arranca con la base ya cargada con las 30 000 cuentas de vecinos al azar** | Puerta: tras `docker compose down -v` y `up`, `docker compose run --rm sembrador verificar` (o `node scripts/verificar-datos.mjs`) tiene que dar 211 barrios y 30 000 cuentas sintéticas en la instancia real. R0 mide cuánto tarda en estar lista y deja anotado el comando exacto. Ver [invariantes §6](invariantes.md#6-datos-de-arranque-y-entornos) |
+| 3 | **Los endpoints aguantan a todos los usuarios acordados, a la vez**: por lo menos 10 000 personas registrándose, otras 5 000 creando reportes, otras suscribiéndose, y así con todos los endpoints | R0 mide la línea base con carga mixta (`scripts/carga/demo.mjs`) y con un recorrido por endpoint. R2, R4 y R8 (las de riesgo alto) y R9 repiten esa carga y **no pueden quedar peor** que la línea base. Los umbrales exactos se fijan en R0 con el visto bueno del dueño. Ver [R0 §8](R0-red-de-seguridad.md#8-línea-base-de-capacidad) |
+| 4 | **Dos instancias en localhost**: la de tiempo real muestra el estado real de todos los sectores (si ese día hay agua en todas partes, así se ve) y la de simulación muestra barrios sin agua y reportes activos | Se conservan tal cual: real en `:8081` (base `aguavigia`, Redis db 0, reloj del sistema, boletines reales) y simulación en `:8082` (base `aguavigia_sim`, Redis db 1, `RelojSimulado`, `/api/sim/**`). El guion de simulación es obligatorio **desde R0**, y la puerta comprueba que la real responde 404 en `/api/sim/**`. Ver [invariantes §6](invariantes.md#6-datos-de-arranque-y-entornos) |
+| 5 | **Los scripts que inyectan usuarios y simulan personas entrando, saliendo y haciendo peticiones siguen funcionando**, enlazados con la instancia de simulación | `agregar-usuarios.mjs` (modos `directo` y `api`, por lotes), `scripts/carga/demo.mjs` y `scripts/simulacion/simulador.mjs` no se tocan. La puerta corre una versión pequeña de cada uno al cerrar la fase. El modo `directo` escribe los documentos de `usuarios` con su forma exacta, así que **depende del requisito 6** |
+| 6 | **MongoDB y Redis, absolutamente intactos**: la misma estructura, igualita | `scripts/reduccion/esquema-datos.mjs` ([R0 §6](R0-red-de-seguridad.md#6-scriptsreduccionesquema-datosmjs)) compara colecciones, nombres y tipos de campo, índices con sus opciones (`2dsphere`, únicos, TTL, parciales) y las claves de Redis (patrón, tipo, con o sin caducidad). Cualquier diferencia impide cerrar la fase |
+| 7 | **El backend va primero, totalmente.** El frontend se adapta al backend | Si algo del plan del frontend ([`docs/frontend/`](../frontend/README.md)) choca con esta reducción o con estos requisitos, gana el backend. El contrato se mantiene por defecto; si el backend necesitara cambiarlo, lo decide Sebastian y avisa en [`cambios-para-frontend.md`](../api/cambios-para-frontend.md). Mientras haya trabajo de backend pendiente, no se espera por el frontend |
+
 ## Antes y después
 
 | | Hoy (`main`, 2026-10-06) | Meta orientativa al cerrar R9 |
@@ -164,7 +179,7 @@ Cada fase deja el sistema **funcionando y con la puerta en verde**. Si una fase 
 
 | Fase | Guía | Qué hace | Riesgo |
 |---|---|---|---|
-| R0 | [Red de seguridad](R0-red-de-seguridad.md) | Línea base, comparador de contrato y de forma, flujos ampliados, reglas ArchUnit de transición. **Sin tocar producción** | Bajo |
+| R0 | [Red de seguridad](R0-red-de-seguridad.md) | Línea base, comparador de contrato, de forma y de bases (Mongo y Redis), flujos ampliados, [matriz de escenarios](escenarios-de-negocio.md) con los tests que falten, línea base de capacidad, reglas ArchUnit de transición. **Sin tocar producción** | Bajo |
 | R1 | [Compartido y cableado](R1-compartido-y-cableado.md) | `compartido/`: errores, config, reloj, HTTP, SSE, rate limit, secretos. `CasosDeUsoConfig` empieza a vaciarse (se borra en R9) | Medio |
 | R2 | [Sectores y bitácora](R2-sectores-y-bitacora.md) | Sector, estado, consenso, recálculo, evento de sector y la bitácora completa | **Alto** |
 | R3 | [Cortes](R3-cortes.md) | Cortes oficiales, cierre por barrio, expiración, historial | Medio |
@@ -187,9 +202,18 @@ Una fase no se fusiona a `main` si falla cualquiera de estos pasos. Los comandos
 2. **Contrato idéntico:** `node scripts/reduccion/comparar-contrato.mjs` → 0 diferencias contra la línea base de R0. Compara el `/v3/api-docs` normalizado: rutas, métodos, `operationId`, `tags`, parámetros, esquemas y nombres de campo.
 3. **Forma idéntica:** `node scripts/reduccion/instantanea.mjs comparar` → 0 diferencias. Cubre la forma de las respuestas de todos los GET con la siembra de `docker compose up`: claves, tipos y presencia, no valores.
 4. **Flujos:** `node scripts/verificar-flujos.mjs` → todos pasan. R0 lo amplía a los 89 endpoints.
-5. **Guion de simulación:** con `backend-sim` levantado (`docker compose --profile simulacion up -d --build backend-sim`), `docker compose --profile simulacion run --rm simulador iniciar --velocidad 300` → todas las aserciones pasan. Obligatorio desde R2.
+5. **Guion de simulación:** con `backend-sim` levantado (`docker compose --profile simulacion up -d --build backend-sim`), `docker compose --profile simulacion run --rm simulador iniciar --velocidad 300` → todas las aserciones pasan. Obligatorio **desde R0** (requisito 4).
 6. **ArchUnit**, con las reglas de transición de R0 y, desde R9, las finales.
 7. `scripts/reduccion/medir.sh` → se anota la fila de la fase en la tabla de [Avance](#avance).
+8. **Base intacta (requisitos 2 y 6):**
+   - `node scripts/reduccion/esquema-datos.mjs comparar` → 0 diferencias en Mongo y en Redis.
+   - Tras `docker compose down -v` y `up`, `docker compose run --rm sembrador verificar` → 211 barrios y 30 000 cuentas sintéticas.
+9. **Escenarios de negocio (requisito 1):** todos los escenarios de [`escenarios-de-negocio.md`](escenarios-de-negocio.md) que tocan el área de la fase siguen cubiertos por un test que pasa. La fase no añade ni quita ninguno sin dejarlo anotado en esa matriz.
+10. **Scripts de apoyo (requisito 5):** una versión pequeña de cada uno sobre la instancia correspondiente:
+    - `docker compose run --rm sembrador agregar-usuarios --cantidad 50` y luego `--borrar-lote <lote>`
+    - `docker compose run --rm sembrador agregar-usuarios --cantidad 20 --modo api`
+    - `node scripts/carga/demo.mjs` en miniatura (pocos cientos de usuarios, con `--restaurar`)
+11. **Capacidad (requisito 3):** la carga mixta de [R0 §8](R0-red-de-seguridad.md#8-línea-base-de-capacidad) no queda peor que la línea base. Obligatorio al cerrar R2, R4, R8 y R9; en las demás fases basta el recorrido pequeño del paso 10.
 
 ## Cómo se trabaja
 
@@ -215,7 +239,10 @@ Una fase no se fusiona a `main` si falla cualquiera de estos pasos. Los comandos
 | **El evento `SectorActualizadoEvent` se publica antes del commit** | SSE o correos con un estado que luego se revierte | Se conserva `trasConfirmar(...)` (sincronización de transacción). Test dedicado en R2 |
 | **Los tests con puertos falsos dejan de compilar** al desaparecer las interfaces (46 tests de `application/`) | La fase se alarga | Se cambian por mocks de Mockito del almacén concreto, o por Testcontainers si el test valida una consulta. Es el grueso del trabajo de R2–R8, ya contado en las guías |
 | **ArchUnit falla durante la transición**: código viejo que importa clases ya movidas | La build se rompe | R0 añade los paquetes nuevos a las listas permitidas de las reglas viejas. R9 borra las reglas viejas y deja las nuevas |
-| **Choque con el frontend de Yordy** | Conflicto al fusionar | Ninguno previsto: su trabajo va en `frontend/` ([`docs/frontend/`](../frontend/README.md)) y el contrato no cambia. `feat/f4-avisos` se archivó (ya estaba en `main` por el PR #98). Si el CI del frontend o los scripts compartidos (`scripts/preparar-env-ci.mjs`) cambian, se avisan mutuamente |
+| **Choque con el frontend de Yordy** | Conflicto al fusionar | Ninguno previsto: su trabajo va en `frontend/` ([`docs/frontend/`](../frontend/README.md)) y el contrato no cambia. `feat/f4-avisos` se archivó (ya estaba en `main` por el PR #98). Si el CI del frontend o los scripts compartidos (`scripts/preparar-env-ci.mjs`) cambian, se avisan mutuamente. **Si hay conflicto de fondo, gana el backend** (requisito 7) |
+| **Una regla de negocio se pierde o cambia sin que nadie lo note** | Un escenario que antes funcionaba (una disputa, una reapertura, un aplazamiento) deja de dar el mismo resultado | Requisito 1: matriz de escenarios con su test, tests nuevos antes de mover cada área, reglas movidas sin reescribir y puerta paso 9 |
+| **La base cambia de forma sin que el contrato lo muestre** | `agregar-usuarios --modo directo`, el simulador o `verificar-datos.mjs` fallan, o un documento viejo ya no se lee | Requisito 6: `esquema-datos.mjs` compara colecciones, campos, índices y claves de Redis; puerta paso 8 |
+| **La reducción empeora el rendimiento bajo carga** | El backend cumplía con 10 000 registros a la vez y ahora no | Requisito 3: línea base de capacidad en R0 y repetición al cerrar R2, R4, R8 y R9 (puerta paso 11) |
 | **Ante el jurado se pierde el argumento de Arquitectura Limpia** | Pregunta: «¿por qué no usan puertos?» | ADR-098 dice el porqué. La regla de oro sigue existiendo (`reglas/` puro, ArchUnit) y la nueva guía `docs/02-arquitectura.md`, que se escribe en R9, la explica |
 | **Skills, agentes y `CLAUDE.md` describen la estructura vieja** | El agente propone puertos otra vez | Durante la transición `CLAUDE.md` dice que manda este plan. R9 actualiza `verificar-arquitectura`, `revisor-dominio` y `CLAUDE.md` |
 | **Sin Docker no corren las pruebas de integración ni la puerta** | Falso verde | La puerta exige Docker. El CI (`backend-ci.yml`, `simulacion-ci.yml`) la repite al subir |
@@ -227,3 +254,60 @@ Se actualiza al cerrar cada fase, con la salida de `scripts/reduccion/medir.sh`.
 | Fase | Fecha | `.java` main | Líneas main | `.java` test | Líneas test | Puerta |
 |---|---|---|---|---|---|---|
 | Línea base | 2026-10-06 | 523 | 28 018 | 247 | 34 249 | — |
+| **R0** | 2026-10-08 | 523 | 28 018 | 249 | 34 583 | **TODO EN VERDE** (ver abajo) |
+
+### Línea base de R0 (2026-10-07)
+
+Medida con `INGESTA_MODO=local` (boletines guardados, sin Internet; con `auto` ninguna línea base sería reproducible) y con `backend/src/main` sin tocar (523 archivos y 28 018 líneas, igual que `pre-reduccion`). Las líneas de test suben
+por las reglas de ArchUnit y los dos tests nuevos de R0. Equipo: un solo PC de 12 hilos que ejecuta a la vez el generador de carga y el backend.
+
+| Medición | Resultado |
+|---|---|
+| `./mvnw verify` (cierre, 2026-10-08) | BUILD SUCCESS: **2 094 tests**, 0 fallos, 1 omitido (incluye los tests que escribió R0: 413, `synchronized` de la ingesta, aplazamiento, auditoría de cuentas, tareas programadas y `_class`) |
+| Pruebas de los scripts (`node --test scripts/pruebas/*.test.mjs`) | 180 de 180 |
+| Contrato (`comparar-contrato.mjs`) | 84 operaciones (sin `/api/sim/**`); el `backend/openapi.yaml` coincide con lo que sirve el backend |
+| Forma de las respuestas (`instantanea.mjs`) | 31 respuestas, base recién levantada y con datos; comparar contra sí misma: 0 diferencias |
+| Esquema de las bases (`esquema-datos.mjs`) | 16 colecciones con sus índices, 14 patrones de clave en Redis, 1 canal; comparar contra sí misma: 0 diferencias |
+| Flujos (`verificar-flujos.mjs`) | 33 pasos correctos, 0 con fallo; **84 de 84 operaciones recorridas** |
+| **Reproducibilidad** (`scripts/reduccion/puerta.sh comparar`, cuatro veces desde `down -v`; la última el 2026-10-08, con copia previa de Mongo) | `TODO EN VERDE`: contrato, forma con y sin datos, flujos y esquema de Mongo y Redis idénticos a la línea base. Las dos primeras pasadas encontraron ruido legítimo (candado `tarea-unica:*` y entrada de caché `sectores::*`), que ahora son avisos |
+| Arranque (requisito 2) | 211 barrios y 30 001 cuentas (30 000 sintéticas + el ADMIN) en ~20 s tras `docker compose up -d --build`; `sembrador verificar`: OK |
+| Guion de simulación ×300 (`backend-sim`) | 54/54 aserciones, 185 s reales |
+| `agregar-usuarios` | modo `directo` (50) y modo `api` (20) funcionan; `--borrar-lote` borra los dos |
+| Escenarios de negocio | **72 escenarios, todos cubiertos** (0 por confirmar, 0 sin test). R0 escribió los tests de E27, E43, E67, E126 y E145; E31 queda cubierto en secuencial y su concurrencia es mejora posterior a R9 (ADR-099) |
+| Guion de simulación ×300, cierre | 54/54 aserciones, 181 s reales |
+| `agregar-usuarios` contra `aguavigia_sim` | modo `directo` (50) y `api` (20) y `--borrar-lote` funcionan; la real no se toca. Comando en [`scripts/simulacion/README.md`](../../scripts/simulacion/README.md#agregar-usuarios-a-la-simulación) |
+| `src/main` | `git diff pre-reduccion -- backend/src/main` vacío |
+
+**Capacidad** (requisito 3), `scripts/carga/demo.mjs --usuarios 5000 --ventana 60 --conectados 10000 --registros 10000 --tasa-registros 50 --suscripciones 5 --veedores 0 --sin-correo --restaurar --sobre-datos-reales` (con `CLAVE_VEEDORES` exportada).
+Se hicieron **cinco corridas con el mismo código**; la tabla las muestra todas (criterio y análisis en [ADR-099](../07-decisiones-clave.md#adr-099--cierre-de-r0-requisitos-del-dueño-decisiones-de-la-red-de-seguridad-y-criterio-de-capacidad)):
+
+| # | Reportes p95 | Registros | Lectura p95 | Resultado |
+|---|---|---|---|---|
+| 1 | 392 ms | 10 000 de 10 000, p95 418 ms | < 1 s | **Cumple todos los umbrales**; 10 000 SSE abiertas |
+| 2 | **1 736 ms** | p95 750 ms | < 1 s | Falla el umbral de reportes |
+| 3 | — | 0 de 10 000 | — | **Colapso**: el backend no contestó a ninguna petición en 60 s |
+| 4 | 103 ms | 0 de 10 000 | — | No cuenta: faltaba `CLAVE_VEEDORES`, los 10 000 registros fallaron con 400 |
+| 5 | **2 018 ms** | 9 994 de 10 000, p95 541 ms | 301 ms | Fallan reportes y 183 iteraciones descartadas |
+
+**Criterio de la puerta (requisito 3, fijado en ADR-099).** Pasa si, en **hasta 3 corridas consecutivas**, **al menos una** cumple todos los umbrales de
+`scripts/carga/flujo-ciudadano.js` (reporte p95 < 1 s, lectura p95 < 1 s, registro p95 < 2 s, fallos < 1 %, menos de 50 iteraciones descartadas). Si las 3
+fallan, se contrasta con la etiqueta `pre-reduccion` el mismo día y la fase pasa si no queda peor. Un colapso cuenta como fallo y se investiga. Obligatorio al
+cerrar R2, R4, R8 y R9.
+
+**Referencia de la corrida 1** (la única completa), 202 s:
+
+| Qué | Resultado |
+|---|---|
+| Reportes (`POST /api/reportes`) | 4 999 aceptados de 5 000, 0 errores; mediana 28 ms · p95 **392 ms** · p99 923 ms · máx 1,7 s |
+| Registros (`POST /api/cuentas/registro`) | **10 000 de 10 000** aceptados (202), 0 errores; mediana 402 ms · p95 **418 ms** (cada alta dura ≥ 100 ms a propósito, RNF024) |
+| Mapa en vivo (SSE) | 10 000 conexiones abiertas y mantenidas; primer evento p50 454 ms · p95 676 ms; 310 000 avisos de cambio entregados |
+| Suscripciones y lecturas, a la vez | 301 suscripciones; 30 838 peticiones en total (154/s) con 0,00 % de error |
+| Recursos (pico) | backend 957 % de CPU (de 1 200 %) y 2,6 GiB; Mongo 186 % y 565 MiB; Redis 11 % y 8 MiB |
+| Efecto en los datos | 43 barrios cambiaron de estado; `--restaurar` devolvió Mongo y Redis a como estaban |
+
+**Limitaciones de esta medición:**
+- No mide el ingreso de veedores bajo carga (`--veedores 0`): el generador pide `CLAVE_VEEDORES`, la clave de las cuentas de demostración, que ya no está en el repositorio.
+- `demo.mjs` no reenviaba `CLAVE_VEEDORES` a k6, así que los registros fallaban con 400 (la clave iba vacía). R0 lo corrigió (`scripts/carga/demo.mjs`): ahora la hereda del entorno si está definida. Es el único cambio de R0 en la herramienta de carga.
+- El generador y el backend comparten el PC: las cifras dicen el orden de magnitud que aguanta esta máquina, no la de un servidor.
+- Solo 1 de 5 corridas cumplió todo; la variabilidad es del PC compartido y de la cola de reportes, y el colapso de la corrida 3 no tiene causa identificada. Por eso el criterio es de «hasta 3 corridas» con contraste contra `pre-reduccion` (ADR-099), no un umbral fijo.
+- R8 debe medir `POST /api/veedor/sesion` bajo carga con una clave de prueba generada.

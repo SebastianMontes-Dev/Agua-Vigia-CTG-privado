@@ -33,6 +33,13 @@ No hay panel, cuentas ni vecino. El ingreso al panel con segundo factor ya está
 - **El contrato.** El backend está en reducción (R0–R9) y su contrato HTTP está **congelado**. Si una prueba contra el backend real falla justo después de una fusión de la reducción, es un defecto del backend: se avisa a Sebastian y no se adapta el frontend.
 - **La identidad visual** ([`identidad.md`](../diseno/identidad.md), ADR-070/071), los cuatro estados ([`DESIGN.md`](../../DESIGN.md)) y la regla de los cinco segundos (ADR-079): el veredicto arriba, cifras que se lean solas, dos columnas en escritorio y el detalle detrás de una acción.
 - **El stack:** React 19, Vite, TanStack Router y Query, `openapi-fetch`, react-aria, MapLibre y PMTiles, CSS propio. No se añaden librerías de interfaz.
+- **Quién manda si hay choque (nota del backend, 2026-10-08).** El backend tiene prioridad sobre el frontend: es el requisito 7 de la
+  [reducción](../reduccion/README.md#requisitos-del-dueño-añadidos-el-2026-10-07). Si algo de este plan choca con ella, se adapta el
+  frontend. El contrato sigue congelado hasta R9; si el backend necesitara cambiarlo, lo decide Sebastian y lo avisa en
+  [`cambios-para-frontend.md`](../api/cambios-para-frontend.md) antes de fusionar.
+- **Las dos instancias.** El backend real (`http://localhost:8081`) arranca con las 30 000 cuentas de vecinos; la simulación
+  (`http://localhost:8082`, `AGUAVIGIA_BACKEND=http://localhost:8082`) arranca sin cuentas. Para que las pruebas `e2e/real` sean repetibles,
+  el backend debe correr con `INGESTA_MODO=local`: con `auto` la ingesta trae boletines de Internet cada vez y la base nunca es la misma.
 
 ## Reglas de cada fase
 
