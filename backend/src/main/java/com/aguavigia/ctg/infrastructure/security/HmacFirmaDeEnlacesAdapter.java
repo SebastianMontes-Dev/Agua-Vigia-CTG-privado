@@ -1,10 +1,10 @@
 package com.aguavigia.ctg.infrastructure.security;
 
+import com.aguavigia.ctg.compartido.secretos.SecretosDelSistema;
 import com.aguavigia.ctg.domain.EnlaceDeRestablecimiento;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.SuscripcionId;
 import com.aguavigia.ctg.domain.port.out.FirmaDeEnlacesPort;
-import com.aguavigia.ctg.domain.port.out.SecretosDelSistemaPort;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.Mac;
@@ -30,9 +30,9 @@ public class HmacFirmaDeEnlacesAdapter implements FirmaDeEnlacesPort {
     private static final String ALGORITMO = "HmacSHA256";
     private static final Base64.Encoder CODIFICADOR = Base64.getUrlEncoder().withoutPadding();
 
-    private final SecretosDelSistemaPort secretos;
+    private final SecretosDelSistema secretos;
 
-    public HmacFirmaDeEnlacesAdapter(SecretosDelSistemaPort secretos) {
+    public HmacFirmaDeEnlacesAdapter(SecretosDelSistema secretos) {
         this.secretos = secretos;
     }
 

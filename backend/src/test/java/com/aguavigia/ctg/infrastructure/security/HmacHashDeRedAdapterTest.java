@@ -13,7 +13,7 @@ class HmacHashDeRedAdapterTest {
     private static final String SECRETO = "secreto-de-red-de-prueba-0123456789-abcdefghij";
     private static final LocalDate HOY = LocalDate.of(2026, 10, 1);
 
-    private final HmacHashDeRedAdapter hash = new HmacHashDeRedAdapter(nombre -> SECRETO);
+    private final HmacHashDeRedAdapter hash = new HmacHashDeRedAdapter(SecretosDePrueba.con(nombre -> SECRETO));
 
     @Test
     void lamismaIpElMismoDiaDebeDarElMismoHash() {
@@ -48,7 +48,7 @@ class HmacHashDeRedAdapterTest {
 
     @Test
     void otroSecretoDebeDarOtroHash() {
-        HmacHashDeRedAdapter ajeno = new HmacHashDeRedAdapter(nombre -> "otro-secreto-de-red-completamente-distinto-12345");
+        HmacHashDeRedAdapter ajeno = new HmacHashDeRedAdapter(SecretosDePrueba.con(nombre -> "otro-secreto-de-red-completamente-distinto-12345"));
 
         assertThat(ajeno.hashear("190.20.30.40", HOY)).isNotEqualTo(hash.hashear("190.20.30.40", HOY));
     }
@@ -57,10 +57,10 @@ class HmacHashDeRedAdapterTest {
     @Test
     void debePedirUnSecretoPropioDeRed() {
         List<String> pedidos = new ArrayList<>();
-        new HmacHashDeRedAdapter(nombre -> {
+        new HmacHashDeRedAdapter(SecretosDePrueba.con(nombre -> {
             pedidos.add(nombre);
             return SECRETO;
-        }).hashear("190.20.30.40", HOY);
+        })).hashear("190.20.30.40", HOY);
 
         assertThat(pedidos).isNotEmpty().allMatch("red"::equals);
     }

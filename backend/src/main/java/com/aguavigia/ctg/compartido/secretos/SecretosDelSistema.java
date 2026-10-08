@@ -1,6 +1,5 @@
-package com.aguavigia.ctg.infrastructure.persistence.mongo;
+package com.aguavigia.ctg.compartido.secretos;
 
-import com.aguavigia.ctg.domain.port.out.SecretosDelSistemaPort;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.mongodb.core.FindAndModifyOptions;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -24,18 +23,17 @@ import java.util.concurrent.ConcurrentHashMap;
  * firmar sesiones del panel: la base ya es el activo que hay que proteger.
  */
 @Component
-public class ConfigSistemaMongoAdapter implements SecretosDelSistemaPort {
+public class SecretosDelSistema {
 
     private static final SecureRandom ALEATORIO = new SecureRandom();
 
     private final MongoTemplate mongoTemplate;
     private final Map<String, String> enMemoria = new ConcurrentHashMap<>();
 
-    public ConfigSistemaMongoAdapter(MongoTemplate mongoTemplate) {
+    public SecretosDelSistema(MongoTemplate mongoTemplate) {
         this.mongoTemplate = mongoTemplate;
     }
 
-    @Override
     public String obtenerOCrear(String nombre) {
         return enMemoria.computeIfAbsent(nombre, this::leerOCrear);
     }
@@ -46,9 +44,9 @@ public class ConfigSistemaMongoAdapter implements SecretosDelSistemaPort {
         try {
             return mongoTemplate.findAndModify(porNombre, alInsertar,
                     FindAndModifyOptions.options().upsert(true).returnNew(true),
-                    ConfigSistemaDocumento.class).getValor();
+                    ConfigSistema.class).getValor();
         } catch (DuplicateKeyException otraInstanciaLoCreoAntes) {
-            return mongoTemplate.findOne(porNombre, ConfigSistemaDocumento.class).getValor();
+            return mongoTemplate.findOne(porNombre, ConfigSistema.class).getValor();
         }
     }
 

@@ -1,4 +1,4 @@
-package com.aguavigia.ctg.infrastructure.persistence.mongo;
+package com.aguavigia.ctg.compartido.secretos;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,8 +22,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 /** Prueba de integración contra un MongoDB real (Testcontainers). Requiere Docker. */
 @Testcontainers
 @DataMongoTest
-@Import(ConfigSistemaMongoAdapter.class)
-class ConfigSistemaMongoAdapterTest {
+@Import(SecretosDelSistema.class)
+class SecretosDelSistemaTest {
 
     @Container
     @ServiceConnection
@@ -32,13 +32,13 @@ class ConfigSistemaMongoAdapterTest {
     @Autowired
     private MongoTemplate mongoTemplate;
 
-    private ConfigSistemaMongoAdapter adaptador;
+    private SecretosDelSistema adaptador;
 
     /** Una instancia por prueba: el adaptador guarda en memoria lo ya leído, y aquí se vacía la colección entre pruebas. */
     @BeforeEach
     void limpiar() {
         mongoTemplate.getDb().getCollection("config_sistema").drop();
-        adaptador = new ConfigSistemaMongoAdapter(mongoTemplate);
+        adaptador = new SecretosDelSistema(mongoTemplate);
     }
 
     @Test
@@ -59,7 +59,7 @@ class ConfigSistemaMongoAdapterTest {
     void unaInstanciaNuevaDebeLeerElSecretoYaGuardado() {
         String original = adaptador.obtenerOCrear("dispositivos");
 
-        String leidoPorOtraInstancia = new ConfigSistemaMongoAdapter(mongoTemplate).obtenerOCrear("dispositivos");
+        String leidoPorOtraInstancia = new SecretosDelSistema(mongoTemplate).obtenerOCrear("dispositivos");
 
         assertThat(leidoPorOtraInstancia).isEqualTo(original);
     }
@@ -75,7 +75,7 @@ class ConfigSistemaMongoAdapterTest {
         ExecutorService hilos = Executors.newFixedThreadPool(8);
         try {
             List<Callable<String>> tareas = java.util.stream.IntStream.range(0, 8)
-                    .<Callable<String>>mapToObj(i -> () -> new ConfigSistemaMongoAdapter(mongoTemplate)
+                    .<Callable<String>>mapToObj(i -> () -> new SecretosDelSistema(mongoTemplate)
                             .obtenerOCrear("dispositivos"))
                     .toList();
 

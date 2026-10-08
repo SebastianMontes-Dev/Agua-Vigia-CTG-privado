@@ -15,7 +15,7 @@ class HmacFirmaDeEnlacesAdapterTest {
     private static final EnlaceDeRestablecimiento ENLACE = new EnlaceDeRestablecimiento(
             new SectorId("manga"), new SuscripcionId("s-1"), Instant.parse("2026-08-21T15:00:00Z"));
 
-    private final HmacFirmaDeEnlacesAdapter firma = new HmacFirmaDeEnlacesAdapter(nombre -> SECRETO);
+    private final HmacFirmaDeEnlacesAdapter firma = new HmacFirmaDeEnlacesAdapter(SecretosDePrueba.con(nombre -> SECRETO));
 
     @Test
     void unEnlaceEmitidoDebeVerificarseYDevolverLoMismo() {
@@ -51,7 +51,7 @@ class HmacFirmaDeEnlacesAdapterTest {
 
     @Test
     void unTokenFirmadoConOtroSecretoNoDebeVerificarse() {
-        String ajeno = new HmacFirmaDeEnlacesAdapter(nombre -> "otro-secreto-completamente-distinto-9876543210")
+        String ajeno = new HmacFirmaDeEnlacesAdapter(SecretosDePrueba.con(nombre -> "otro-secreto-completamente-distinto-9876543210"))
                 .emitir(ENLACE);
 
         assertThat(firma.verificar(ajeno)).isEmpty();
@@ -68,10 +68,10 @@ class HmacFirmaDeEnlacesAdapterTest {
     @Test
     void debeUsarUnSecretoPropioDeEstosEnlaces() {
         java.util.List<String> pedidos = new java.util.ArrayList<>();
-        new HmacFirmaDeEnlacesAdapter(nombre -> {
+        new HmacFirmaDeEnlacesAdapter(SecretosDePrueba.con(nombre -> {
             pedidos.add(nombre);
             return SECRETO;
-        }).emitir(ENLACE);
+        })).emitir(ENLACE);
 
         assertThat(pedidos).containsOnly(HmacFirmaDeEnlacesAdapter.SECRETO);
         assertThat(HmacFirmaDeEnlacesAdapter.SECRETO).isNotEqualTo(HmacFirmaDeDispositivosAdapter.SECRETO);

@@ -1,4 +1,4 @@
-package com.aguavigia.ctg.infrastructure.persistence.mongo;
+package com.aguavigia.ctg.compartido.secretos;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -8,7 +8,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @Getter
 @Setter
 @Document(collection = "config_sistema")
-public class ConfigSistemaDocumento {
+public class ConfigSistema {
 
     /** El nombre del dato: «dispositivos» para el secreto de los tokens de dispositivo. */
     @Id
