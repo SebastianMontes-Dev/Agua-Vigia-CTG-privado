@@ -315,8 +315,7 @@ class ReglaDeOroArchitectureTest {
     void compartidoNoDependeDeFuncionalidades() {
         ArchRule regla = noClasses()
                 .that().resideInAPackage("com.aguavigia.ctg.compartido..")
-                .should().dependOnClassesThat().resideInAnyPackage(FUNCIONALIDADES_NUEVAS.toArray(String[]::new))
-                .allowEmptyShould(true);
+                .should().dependOnClassesThat().resideInAnyPackage(FUNCIONALIDADES_NUEVAS.toArray(String[]::new));
 
         regla.check(CLASES_PRODUCCION);
     }
