@@ -37,7 +37,15 @@ corre() { # corre "nombre" comando...
   if "$@"; then echo "  ✔ $nombre"; else echo "  ✘ $nombre"; fallos+=("$nombre"); fi
 }
 
-paso "Base limpia (down -v + up) y espera de las 30 000 cuentas"
+paso "Copia de seguridad de Mongo (si hay una base en marcha) y base limpia (down -v + up)"
+if [ "$(docker inspect -f '{{.State.Running}}' aguavigia-mongo 2> /dev/null)" = "true" ]; then
+  # Antes de borrar: si hay algo que no se pueda regenerar, queda en respaldos-mongo/ (ignorado por git).
+  ./scripts/backup-mongo.sh > /dev/null 2>&1 || {
+    echo "No se pudo hacer la copia de Mongo; no borro nada. Para saltarla a propósito: PUERTA_SIN_RESPALDO=si." >&2
+    [ "${PUERTA_SIN_RESPALDO:-}" = "si" ] || exit 1
+  }
+  echo "  copia hecha en respaldos-mongo/"
+fi
 docker compose --profile simulacion down -v > /dev/null 2>&1 || { echo "down -v falló" >&2; exit 1; }
 rm -f "$TOTP_ARCHIVO"
 docker compose up -d --build > /dev/null 2>&1 || { echo "up falló" >&2; exit 1; }
