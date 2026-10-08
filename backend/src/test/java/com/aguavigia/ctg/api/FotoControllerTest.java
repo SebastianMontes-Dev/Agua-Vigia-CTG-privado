@@ -1,6 +1,6 @@
 package com.aguavigia.ctg.api;
 
-import com.aguavigia.ctg.api.error.ManejadorGlobalDeErrores;
+import com.aguavigia.ctg.compartido.error.ManejadorGlobalDeErrores;
 import com.aguavigia.ctg.domain.FotoLeida;
 import com.aguavigia.ctg.domain.Permiso;
 import com.aguavigia.ctg.domain.port.in.ObtenerFotoUseCase;

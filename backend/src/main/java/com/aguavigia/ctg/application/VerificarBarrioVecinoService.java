@@ -1,18 +1,18 @@
 package com.aguavigia.ctg.application;
 
+import com.aguavigia.ctg.compartido.error.LimiteDePeticionesExcedidoException;
+import com.aguavigia.ctg.compartido.error.SesionSinCuentaException;
+import com.aguavigia.ctg.compartido.error.UbicacionFueraDelBarrioException;
+import com.aguavigia.ctg.compartido.error.UbicacionImprecisaException;
+import com.aguavigia.ctg.compartido.reloj.RelojPort;
+import com.aguavigia.ctg.compartido.valor.Coordenada;
 import com.aguavigia.ctg.domain.AccionAuditada;
 import com.aguavigia.ctg.domain.ContextoDeAccion;
-import com.aguavigia.ctg.domain.Coordenada;
-import com.aguavigia.ctg.domain.LimiteDePeticionesExcedidoException;
 import com.aguavigia.ctg.domain.ResultadoDeCupo;
-import com.aguavigia.ctg.domain.SesionSinCuentaException;
-import com.aguavigia.ctg.domain.UbicacionFueraDelBarrioException;
-import com.aguavigia.ctg.domain.UbicacionImprecisaException;
 import com.aguavigia.ctg.domain.Usuario;
 import com.aguavigia.ctg.domain.UsuarioId;
 import com.aguavigia.ctg.domain.port.in.VerificarBarrioVecinoUseCase;
 import com.aguavigia.ctg.domain.port.out.CupoPorCuentaPort;
-import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.SectorRepository;
 import com.aguavigia.ctg.domain.port.out.UsuarioRepository;
 

@@ -1,14 +1,14 @@
 package com.aguavigia.ctg.api;
 
-import com.aguavigia.ctg.domain.port.out.CanalEnVivoPort;
 import com.aguavigia.ctg.api.dto.GeometriaSectoresRespuesta;
 import com.aguavigia.ctg.api.dto.RespuestaSectores;
 import com.aguavigia.ctg.api.dto.SectorRespuesta;
-import com.aguavigia.ctg.api.error.RecursoNoEncontradoException;
 import com.aguavigia.ctg.api.mapper.SectorApiMapper;
+import com.aguavigia.ctg.compartido.error.RecursoNoEncontradoException;
+import com.aguavigia.ctg.compartido.reloj.RelojPort;
 import com.aguavigia.ctg.domain.SectorId;
+import com.aguavigia.ctg.domain.port.out.CanalEnVivoPort;
 import com.aguavigia.ctg.domain.port.out.GeometriaSectoresPort;
-import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.SectorRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;

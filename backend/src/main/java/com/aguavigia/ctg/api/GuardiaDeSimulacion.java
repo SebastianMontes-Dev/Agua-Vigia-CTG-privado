@@ -1,7 +1,7 @@
 package com.aguavigia.ctg.api;
 
-import com.aguavigia.ctg.api.error.ServicioNoDisponibleException;
-import com.aguavigia.ctg.domain.CredencialInvalidaException;
+import com.aguavigia.ctg.compartido.error.CredencialInvalidaException;
+import com.aguavigia.ctg.compartido.error.ServicioNoDisponibleException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;

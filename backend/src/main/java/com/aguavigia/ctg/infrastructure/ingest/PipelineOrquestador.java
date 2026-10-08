@@ -1,11 +1,11 @@
 package com.aguavigia.ctg.infrastructure.ingest;
 
+import com.aguavigia.ctg.compartido.reloj.RelojPort;
 import com.aguavigia.ctg.domain.AvisoDeIngesta;
 import com.aguavigia.ctg.domain.EstadoServicio;
 import com.aguavigia.ctg.domain.Sector;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.port.in.RegistrarPropuestaIngestaUseCase;
-import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.SectorRepository;
 import com.aguavigia.ctg.infrastructure.persistence.mongo.DocumentoFallidoDocumento;
 import com.aguavigia.ctg.infrastructure.persistence.mongo.DocumentoFallidoMongoRepository;
@@ -13,7 +13,7 @@ import com.aguavigia.ctg.infrastructure.persistence.mongo.MarcaDeIngestaDocument
 import com.aguavigia.ctg.infrastructure.persistence.mongo.MarcaDeIngestaMongoRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.aguavigia.ctg.infrastructure.scheduling.EjecucionUnica;
+import com.aguavigia.ctg.compartido.tareas.EjecucionUnica;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;

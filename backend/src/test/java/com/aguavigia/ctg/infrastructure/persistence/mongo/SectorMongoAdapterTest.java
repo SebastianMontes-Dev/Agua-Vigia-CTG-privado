@@ -1,15 +1,15 @@
 package com.aguavigia.ctg.infrastructure.persistence.mongo;
 
-import com.aguavigia.ctg.domain.Coordenada;
+import com.aguavigia.ctg.compartido.reloj.RelojPort;
+import com.aguavigia.ctg.compartido.valor.Coordenada;
 import com.aguavigia.ctg.domain.EstadoServicio;
 import com.aguavigia.ctg.domain.MarcasDeEstado;
 import com.aguavigia.ctg.domain.OrigenEstado;
 import com.aguavigia.ctg.domain.RespaldoVecinal;
-import com.aguavigia.ctg.domain.VentanaTiempo;
-import com.aguavigia.ctg.infrastructure.eventos.SectorActualizadoEvent;
 import com.aguavigia.ctg.domain.Sector;
 import com.aguavigia.ctg.domain.SectorId;
-import com.aguavigia.ctg.domain.port.out.RelojPort;
+import com.aguavigia.ctg.domain.VentanaTiempo;
+import com.aguavigia.ctg.infrastructure.eventos.SectorActualizadoEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

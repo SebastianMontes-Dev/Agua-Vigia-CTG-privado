@@ -1,5 +1,6 @@
 package com.aguavigia.ctg.application;
 
+import com.aguavigia.ctg.compartido.reloj.RelojPort;
 import com.aguavigia.ctg.domain.AccionAuditada;
 import com.aguavigia.ctg.domain.ClaveEnClaro;
 import com.aguavigia.ctg.domain.ContextoDeAccion;
@@ -7,7 +8,6 @@ import com.aguavigia.ctg.domain.TipoTokenCuenta;
 import com.aguavigia.ctg.domain.Usuario;
 import com.aguavigia.ctg.domain.port.in.AceptarInvitacionUseCase;
 import com.aguavigia.ctg.domain.port.out.CifradorClavePort;
-import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.UsuarioRepository;
 
 /**

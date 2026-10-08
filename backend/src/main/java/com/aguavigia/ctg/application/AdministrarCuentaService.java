@@ -1,6 +1,7 @@
 package com.aguavigia.ctg.application;
 
-import com.aguavigia.ctg.domain.EntidadNoEncontradaException;
+import com.aguavigia.ctg.compartido.error.EntidadNoEncontradaException;
+import com.aguavigia.ctg.compartido.reloj.RelojPort;
 import com.aguavigia.ctg.domain.AccionAuditada;
 import com.aguavigia.ctg.domain.ContextoDeAccion;
 import com.aguavigia.ctg.domain.PermisosEfectivos;
@@ -10,7 +11,6 @@ import com.aguavigia.ctg.domain.UsuarioId;
 import com.aguavigia.ctg.domain.port.in.AdministrarCuentaUseCase;
 import com.aguavigia.ctg.domain.port.out.BloqueoDeAdministradoresPort;
 import com.aguavigia.ctg.domain.port.out.NotificacionCuentaPort;
-import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.RevocacionSesionPort;
 import com.aguavigia.ctg.domain.port.out.UsuarioRepository;
 

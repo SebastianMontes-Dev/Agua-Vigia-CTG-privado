@@ -2,7 +2,7 @@ package com.aguavigia.ctg.api;
 
 import com.aguavigia.ctg.api.dto.IotCoordenada;
 import com.aguavigia.ctg.api.dto.IotPresionRequest;
-import com.aguavigia.ctg.api.error.ManejadorGlobalDeErrores;
+import com.aguavigia.ctg.compartido.error.ManejadorGlobalDeErrores;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.port.in.RegistrarLecturaDePresionUseCase;
 import com.aguavigia.ctg.domain.port.out.RevocacionSesionPort;

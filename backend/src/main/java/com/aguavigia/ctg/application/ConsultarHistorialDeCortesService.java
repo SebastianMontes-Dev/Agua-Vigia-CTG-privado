@@ -1,8 +1,8 @@
 package com.aguavigia.ctg.application;
 
+import com.aguavigia.ctg.compartido.error.EntidadNoEncontradaException;
+import com.aguavigia.ctg.compartido.http.Pagina;
 import com.aguavigia.ctg.domain.CorteAgua;
-import com.aguavigia.ctg.domain.EntidadNoEncontradaException;
-import com.aguavigia.ctg.domain.Pagina;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.port.in.ConsultarHistorialDeCortesUseCase;
 import com.aguavigia.ctg.domain.port.out.CorteAguaRepository;

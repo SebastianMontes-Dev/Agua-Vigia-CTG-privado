@@ -20,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class AlmacenamientoLocalAdapterTest {
 
-    private static final com.aguavigia.ctg.domain.port.out.RelojPort RELOJ =
+    private static final com.aguavigia.ctg.compartido.reloj.RelojPort RELOJ =
             java.time.Instant::now;
 
     @TempDir

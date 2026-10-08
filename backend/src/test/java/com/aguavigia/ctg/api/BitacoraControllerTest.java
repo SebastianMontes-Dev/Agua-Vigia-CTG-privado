@@ -1,17 +1,17 @@
 package com.aguavigia.ctg.api;
 
 import com.aguavigia.ctg.api.mapper.EventoBitacoraApiMapperImpl;
+import com.aguavigia.ctg.compartido.http.Pagina;
 import com.aguavigia.ctg.domain.CorteId;
 import com.aguavigia.ctg.domain.EventoBitacora;
 import com.aguavigia.ctg.domain.EventoId;
 import com.aguavigia.ctg.domain.FiltroBitacora;
-import com.aguavigia.ctg.domain.Pagina;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.TipoEvento;
 import com.aguavigia.ctg.domain.port.out.EventoBitacoraRepository;
+import com.aguavigia.ctg.domain.port.out.RevocacionSesionPort;
 import com.aguavigia.ctg.infrastructure.config.SecurityConfig;
 import com.aguavigia.ctg.infrastructure.security.JwtProvider;
-import com.aguavigia.ctg.domain.port.out.RevocacionSesionPort;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;

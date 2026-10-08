@@ -2,6 +2,7 @@ package com.aguavigia.ctg.api;
 
 import com.aguavigia.ctg.api.dto.EstadisticasRespuesta;
 import com.aguavigia.ctg.api.mapper.EstadisticasApiMapper;
+import com.aguavigia.ctg.compartido.http.EscritorCsv;
 import com.aguavigia.ctg.domain.port.in.CalcularEstadisticasUseCase;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;

@@ -1,9 +1,9 @@
 package com.aguavigia.ctg.domain.port.out;
 
+import com.aguavigia.ctg.compartido.http.Pagina;
 import com.aguavigia.ctg.domain.EventoBitacora;
 import com.aguavigia.ctg.domain.EventoId;
 import com.aguavigia.ctg.domain.FiltroBitacora;
-import com.aguavigia.ctg.domain.Pagina;
 
 /**
  * RF026-RF028 — solo anexar y leer. La ausencia de `editar` y `eliminar` es lo que hace cumplir la

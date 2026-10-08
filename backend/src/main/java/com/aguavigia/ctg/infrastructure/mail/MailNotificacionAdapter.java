@@ -1,12 +1,13 @@
 package com.aguavigia.ctg.infrastructure.mail;
 
+import com.aguavigia.ctg.compartido.correo.PlantillaCorreo;
+import com.aguavigia.ctg.compartido.reloj.RelojPort;
 import com.aguavigia.ctg.domain.EnlaceDeRestablecimiento;
 import com.aguavigia.ctg.domain.EstadoServicio;
 import com.aguavigia.ctg.domain.Sector;
 import com.aguavigia.ctg.domain.Suscripcion;
 import com.aguavigia.ctg.domain.port.out.FirmaDeEnlacesPort;
 import com.aguavigia.ctg.domain.port.out.NotificacionPort;
-import com.aguavigia.ctg.domain.port.out.RelojPort;
 import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

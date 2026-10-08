@@ -1,12 +1,12 @@
 package com.aguavigia.ctg.infrastructure.mantenimiento;
 
+import com.aguavigia.ctg.compartido.reloj.RelojPort;
 import com.aguavigia.ctg.domain.EvidenciaVencida;
 import com.aguavigia.ctg.domain.port.out.AlmacenamientoPort;
-import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.ReporteCiudadanoRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.aguavigia.ctg.infrastructure.scheduling.EjecucionUnica;
+import com.aguavigia.ctg.compartido.tareas.EjecucionUnica;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 

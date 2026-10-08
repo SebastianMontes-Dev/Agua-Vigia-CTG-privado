@@ -1,5 +1,6 @@
 package com.aguavigia.ctg.infrastructure.metricas;
 
+import com.aguavigia.ctg.compartido.reloj.RelojPort;
 import com.aguavigia.ctg.domain.EstadoServicio;
 import com.aguavigia.ctg.domain.MetricasDelSistema;
 import com.aguavigia.ctg.domain.NivelDeVerificacion;
@@ -7,7 +8,6 @@ import com.aguavigia.ctg.domain.OrigenEstado;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.TipoReporte;
 import com.aguavigia.ctg.domain.port.out.MetricasDelSistemaPort;
-import com.aguavigia.ctg.domain.port.out.RelojPort;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;

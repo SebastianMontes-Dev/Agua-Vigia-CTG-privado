@@ -1,11 +1,11 @@
 package com.aguavigia.ctg.application;
 
+import com.aguavigia.ctg.compartido.reloj.RelojPort;
 import com.aguavigia.ctg.domain.Dispositivo;
 import com.aguavigia.ctg.domain.DispositivoId;
 import com.aguavigia.ctg.domain.port.in.EmitirTokenDeDispositivoUseCase;
 import com.aguavigia.ctg.domain.port.out.DispositivoRepository;
 import com.aguavigia.ctg.domain.port.out.FirmaDeDispositivosPort;
-import com.aguavigia.ctg.domain.port.out.RelojPort;
 
 import java.time.Instant;
 import java.util.UUID;

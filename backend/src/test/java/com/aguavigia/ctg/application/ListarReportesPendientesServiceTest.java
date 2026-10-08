@@ -1,7 +1,7 @@
 package com.aguavigia.ctg.application;
 
+import com.aguavigia.ctg.compartido.http.Pagina;
 import com.aguavigia.ctg.domain.HuellaDispositivo;
-import com.aguavigia.ctg.domain.Pagina;
 import com.aguavigia.ctg.domain.RedEnRafaga;
 import com.aguavigia.ctg.domain.ReporteCiudadano;
 import com.aguavigia.ctg.domain.ReporteId;

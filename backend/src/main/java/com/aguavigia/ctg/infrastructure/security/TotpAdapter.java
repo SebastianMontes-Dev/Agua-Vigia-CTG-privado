@@ -1,8 +1,8 @@
 package com.aguavigia.ctg.infrastructure.security;
 
-import com.aguavigia.ctg.domain.CorreoElectronico;
+import com.aguavigia.ctg.compartido.reloj.RelojPort;
+import com.aguavigia.ctg.compartido.valor.CorreoElectronico;
 import com.aguavigia.ctg.domain.SecretoTotp;
-import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.SegundoFactorPort;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;

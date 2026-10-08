@@ -1,7 +1,8 @@
 package com.aguavigia.ctg.application;
 
+import com.aguavigia.ctg.compartido.error.DispositivoInvalidoException;
+import com.aguavigia.ctg.compartido.reloj.RelojPort;
 import com.aguavigia.ctg.domain.DispositivoId;
-import com.aguavigia.ctg.domain.DispositivoInvalidoException;
 import com.aguavigia.ctg.domain.EstadoCuenta;
 import com.aguavigia.ctg.domain.HuellaDispositivo;
 import com.aguavigia.ctg.domain.Reportante;
@@ -10,7 +11,6 @@ import com.aguavigia.ctg.domain.UsuarioId;
 import com.aguavigia.ctg.domain.port.in.IdentificarReportanteUseCase;
 import com.aguavigia.ctg.domain.port.out.DispositivoRepository;
 import com.aguavigia.ctg.domain.port.out.FirmaDeDispositivosPort;
-import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.UsuarioRepository;
 
 import java.util.Optional;

@@ -1,16 +1,16 @@
 package com.aguavigia.ctg.application;
 
+import com.aguavigia.ctg.compartido.error.CredencialInvalidaException;
+import com.aguavigia.ctg.compartido.reloj.RelojPort;
 import com.aguavigia.ctg.domain.AccionAuditada;
 import com.aguavigia.ctg.domain.AlcanceSesion;
 import com.aguavigia.ctg.domain.ContextoDeAccion;
-import com.aguavigia.ctg.domain.CredencialInvalidaException;
 import com.aguavigia.ctg.domain.SecretoTotp;
 import com.aguavigia.ctg.domain.Usuario;
 import com.aguavigia.ctg.domain.UsuarioId;
 import com.aguavigia.ctg.domain.port.in.ConfigurarSegundoFactorUseCase;
 import com.aguavigia.ctg.domain.port.out.EmisorDeSesionPort;
 import com.aguavigia.ctg.domain.port.out.GeneradorSecretosPort;
-import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.RevocacionSesionPort;
 import com.aguavigia.ctg.domain.port.out.SegundoFactorPort;
 import com.aguavigia.ctg.domain.port.out.UsuarioRepository;

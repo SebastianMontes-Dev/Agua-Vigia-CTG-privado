@@ -1,8 +1,8 @@
 package com.aguavigia.ctg.infrastructure.sim;
 
+import com.aguavigia.ctg.compartido.reloj.RelojDelSistema;
+import com.aguavigia.ctg.compartido.reloj.RelojPort;
 import com.aguavigia.ctg.domain.port.out.RelojControlablePort;
-import com.aguavigia.ctg.domain.port.out.RelojPort;
-import com.aguavigia.ctg.infrastructure.RelojDelSistema;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;

@@ -1,8 +1,8 @@
 package com.aguavigia.ctg.application;
 
+import com.aguavigia.ctg.compartido.reloj.RelojPort;
 import com.aguavigia.ctg.domain.Suscripcion;
 import com.aguavigia.ctg.domain.port.in.ConfirmarSuscripcionUseCase;
-import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.SuscripcionRepository;
 
 import java.time.Duration;

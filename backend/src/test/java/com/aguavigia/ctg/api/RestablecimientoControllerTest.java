@@ -1,15 +1,15 @@
 package com.aguavigia.ctg.api;
 
-import com.aguavigia.ctg.api.error.ManejadorGlobalDeErrores;
 import com.aguavigia.ctg.api.mapper.ReporteApiMapperImpl;
-import com.aguavigia.ctg.domain.EnlaceDeRestablecimientoInvalidoException;
+import com.aguavigia.ctg.compartido.error.EnlaceDeRestablecimientoInvalidoException;
+import com.aguavigia.ctg.compartido.error.LimiteReportesExcedidoException;
+import com.aguavigia.ctg.compartido.error.ManejadorGlobalDeErrores;
 import com.aguavigia.ctg.domain.HuellaDispositivo;
 import com.aguavigia.ctg.domain.ReporteCiudadano;
 import com.aguavigia.ctg.domain.ReporteId;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.SuscripcionId;
 import com.aguavigia.ctg.domain.TipoReporte;
-import com.aguavigia.ctg.domain.LimiteReportesExcedidoException;
 import com.aguavigia.ctg.domain.port.in.ConfirmarRestablecimientoPorEnlaceUseCase;
 import com.aguavigia.ctg.domain.port.out.RevocacionSesionPort;
 import com.aguavigia.ctg.infrastructure.config.SecurityConfig;

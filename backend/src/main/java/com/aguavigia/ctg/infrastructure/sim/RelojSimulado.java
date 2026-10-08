@@ -12,7 +12,7 @@ import java.time.Instant;
 /**
  * El reloj de la instancia de simulación (D33): el real más un desfase que el simulador mueve ({@code POST /api/sim/reloj}), para
  * comprimir las horas de un corte en minutos de presentación. Solo existe con {@code aguavigia.sim.habilitada=true}; en la instancia
- * real quien manda es {@link com.aguavigia.ctg.infrastructure.RelojDelSistema}.
+ * real quien manda es {@link com.aguavigia.ctg.compartido.reloj.RelojDelSistema}.
  *
  * Los TTL de Redis y de Mongo siguen en tiempo real: lo que se acelera es lo que mira {@code RelojPort}, que es todo el dominio.
  */

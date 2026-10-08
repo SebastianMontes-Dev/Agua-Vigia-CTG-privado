@@ -1,10 +1,11 @@
 package com.aguavigia.ctg.application;
 
+import com.aguavigia.ctg.compartido.reloj.RelojPort;
+import com.aguavigia.ctg.compartido.valor.CorreoElectronico;
 import com.aguavigia.ctg.domain.AccionAuditada;
 import com.aguavigia.ctg.domain.Consentimiento;
 import com.aguavigia.ctg.domain.ConsentimientosAceptados;
 import com.aguavigia.ctg.domain.ContextoDeAccion;
-import com.aguavigia.ctg.domain.CorreoElectronico;
 import com.aguavigia.ctg.domain.CorreoYaRegistradoException;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.TipoConsentimiento;
@@ -13,7 +14,6 @@ import com.aguavigia.ctg.domain.Usuario;
 import com.aguavigia.ctg.domain.UsuarioId;
 import com.aguavigia.ctg.domain.port.in.RegistrarVecinoUseCase;
 import com.aguavigia.ctg.domain.port.out.NotificacionCuentaPort;
-import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.SectorRepository;
 import com.aguavigia.ctg.domain.port.out.TiempoConstantePort;
 import com.aguavigia.ctg.domain.port.out.UsuarioRepository;

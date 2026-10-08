@@ -1,9 +1,10 @@
 package com.aguavigia.ctg.application;
 
-import com.aguavigia.ctg.domain.CorteId;
+import com.aguavigia.ctg.compartido.error.EntidadNoEncontradaException;
+import com.aguavigia.ctg.compartido.reloj.RelojPort;
 import com.aguavigia.ctg.domain.AccionAuditada;
 import com.aguavigia.ctg.domain.ContextoDeAccion;
-import com.aguavigia.ctg.domain.EntidadNoEncontradaException;
+import com.aguavigia.ctg.domain.CorteId;
 import com.aguavigia.ctg.domain.EstadoCorte;
 import com.aguavigia.ctg.domain.EstadoRevision;
 import com.aguavigia.ctg.domain.EventoBitacoraFactory;
@@ -15,7 +16,6 @@ import com.aguavigia.ctg.domain.port.in.RegistrarEventoBitacoraUseCase;
 import com.aguavigia.ctg.domain.port.in.RevisarPropuestaIngestaUseCase;
 import com.aguavigia.ctg.domain.port.out.CorteAguaRepository;
 import com.aguavigia.ctg.domain.port.out.PropuestaIngestaRepository;
-import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.SectorRepository;
 import com.aguavigia.ctg.domain.port.out.TransaccionPort;
 

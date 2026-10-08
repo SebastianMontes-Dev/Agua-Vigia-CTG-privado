@@ -1,8 +1,8 @@
 package com.aguavigia.ctg.infrastructure.storage;
 
+import com.aguavigia.ctg.compartido.reloj.RelojPort;
 import com.aguavigia.ctg.domain.FotoGuardada;
 import com.aguavigia.ctg.domain.port.out.AlmacenamientoPort;
-import com.aguavigia.ctg.domain.port.out.RelojPort;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 

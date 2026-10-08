@@ -1,5 +1,6 @@
 package com.aguavigia.ctg.domain.port.out;
 
+import com.aguavigia.ctg.compartido.reloj.RelojPort;
 import java.time.Duration;
 import java.time.Instant;
 

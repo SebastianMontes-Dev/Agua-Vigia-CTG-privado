@@ -1,9 +1,9 @@
 package com.aguavigia.ctg.infrastructure.persistence.mongo;
 
+import com.aguavigia.ctg.compartido.http.Pagina;
 import com.aguavigia.ctg.domain.AccionAuditada;
 import com.aguavigia.ctg.domain.AuditoriaId;
 import com.aguavigia.ctg.domain.EventoAuditoria;
-import com.aguavigia.ctg.domain.Pagina;
 import com.aguavigia.ctg.domain.UsuarioId;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

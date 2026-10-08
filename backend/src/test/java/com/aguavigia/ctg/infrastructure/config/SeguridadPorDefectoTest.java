@@ -1,5 +1,6 @@
 package com.aguavigia.ctg.infrastructure.config;
 
+import com.aguavigia.ctg.compartido.config.ControladorDePruebaRateLimit;
 import com.aguavigia.ctg.domain.port.out.RevocacionSesionPort;
 import com.aguavigia.ctg.infrastructure.security.JwtProvider;
 import org.junit.jupiter.api.Test;

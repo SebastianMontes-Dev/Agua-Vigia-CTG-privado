@@ -1,10 +1,10 @@
 package com.aguavigia.ctg.infrastructure.persistence.redis;
 
+import com.aguavigia.ctg.compartido.reloj.RelojPort;
 import com.aguavigia.ctg.domain.HuellaDispositivo;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.VotoReciente;
 import com.aguavigia.ctg.domain.port.out.ContadorReportesPort;
-import com.aguavigia.ctg.domain.port.out.RelojPort;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;

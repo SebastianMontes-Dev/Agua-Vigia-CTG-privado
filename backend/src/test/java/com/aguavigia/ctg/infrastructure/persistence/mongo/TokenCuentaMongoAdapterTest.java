@@ -15,7 +15,7 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
-import com.aguavigia.ctg.domain.port.out.RelojPort;
+import com.aguavigia.ctg.compartido.reloj.RelojPort;
 
 import java.time.Instant;
 

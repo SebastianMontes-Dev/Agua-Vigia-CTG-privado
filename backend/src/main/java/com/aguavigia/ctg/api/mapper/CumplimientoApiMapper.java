@@ -2,8 +2,8 @@ package com.aguavigia.ctg.api.mapper;
 
 import com.aguavigia.ctg.api.dto.CalidadDelCumplimientoRespuesta;
 import com.aguavigia.ctg.api.dto.IndiceCumplimientoRespuesta;
-import com.aguavigia.ctg.domain.CalidadDelCumplimiento;
 import com.aguavigia.ctg.api.dto.PuntoSerieRespuesta;
+import com.aguavigia.ctg.domain.CalidadDelCumplimiento;
 import com.aguavigia.ctg.domain.IndiceCumplimiento;
 import com.aguavigia.ctg.domain.PuntoSerieCumplimiento;
 import org.mapstruct.Mapper;

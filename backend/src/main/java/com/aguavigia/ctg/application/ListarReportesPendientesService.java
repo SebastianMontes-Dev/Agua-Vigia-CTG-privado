@@ -1,12 +1,12 @@
 package com.aguavigia.ctg.application;
 
-import com.aguavigia.ctg.domain.Pagina;
+import com.aguavigia.ctg.compartido.http.Pagina;
+import com.aguavigia.ctg.compartido.reloj.RelojPort;
 import com.aguavigia.ctg.domain.RedEnRafaga;
 import com.aguavigia.ctg.domain.ReporteCiudadano;
 import com.aguavigia.ctg.domain.ReportesPendientes;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.port.in.ListarReportesPendientesUseCase;
-import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.ReporteCiudadanoRepository;
 
 import java.time.Duration;

@@ -1,6 +1,6 @@
 package com.aguavigia.ctg.infrastructure.security;
 
-import com.aguavigia.ctg.domain.RedDeOrigen;
+import com.aguavigia.ctg.compartido.ratelimit.RedDeOrigen;
 import com.aguavigia.ctg.domain.port.out.HashDeRedPort;
 import com.aguavigia.ctg.domain.port.out.SecretosDelSistemaPort;
 import org.springframework.stereotype.Component;

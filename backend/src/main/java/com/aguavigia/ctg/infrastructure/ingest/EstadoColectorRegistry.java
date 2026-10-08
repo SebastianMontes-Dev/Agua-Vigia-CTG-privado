@@ -1,8 +1,8 @@
 package com.aguavigia.ctg.infrastructure.ingest;
 
+import com.aguavigia.ctg.compartido.reloj.RelojPort;
 import com.aguavigia.ctg.domain.SaludDeColector;
 import com.aguavigia.ctg.domain.port.out.MetricasDelSistemaPort;
-import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.SaludDeColectoresPort;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;

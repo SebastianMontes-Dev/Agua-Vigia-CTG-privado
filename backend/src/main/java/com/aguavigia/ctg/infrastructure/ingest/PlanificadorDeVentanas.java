@@ -3,7 +3,7 @@ package com.aguavigia.ctg.infrastructure.ingest;
 import com.aguavigia.ctg.domain.port.in.ActualizarEstadosPorVentanaUseCase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.aguavigia.ctg.infrastructure.scheduling.EjecucionUnica;
+import com.aguavigia.ctg.compartido.tareas.EjecucionUnica;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;

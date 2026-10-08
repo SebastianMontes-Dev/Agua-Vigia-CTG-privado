@@ -1,10 +1,10 @@
 package com.aguavigia.ctg.application;
 
+import com.aguavigia.ctg.compartido.reloj.RelojPort;
 import com.aguavigia.ctg.domain.CorteAgua;
 import com.aguavigia.ctg.domain.CorteId;
 import com.aguavigia.ctg.domain.port.in.ListarCortesVencidosUseCase;
 import com.aguavigia.ctg.domain.port.out.CorteAguaRepository;
-import com.aguavigia.ctg.domain.port.out.RelojPort;
 
 import java.time.Instant;
 import java.util.Comparator;

@@ -1,8 +1,8 @@
 package com.aguavigia.ctg.application;
 
+import com.aguavigia.ctg.compartido.reloj.RelojPort;
 import com.aguavigia.ctg.domain.ReporteId;
 import com.aguavigia.ctg.domain.port.in.EmitirTokenDeSubidaUseCase;
-import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.SubidaDeFotoRepository;
 import com.aguavigia.ctg.domain.port.out.TokenDeSubidaPort;
 

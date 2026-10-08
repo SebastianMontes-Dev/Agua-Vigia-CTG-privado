@@ -2,12 +2,12 @@ package com.aguavigia.ctg.api;
 
 import com.aguavigia.ctg.api.mapper.EstadisticasApiMapperImpl;
 import com.aguavigia.ctg.domain.SectorId;
-import com.aguavigia.ctg.domain.port.in.CalcularEstadisticasUseCase;
 import com.aguavigia.ctg.domain.port.in.CalcularEstadisticasUseCase.EstadisticaSector;
 import com.aguavigia.ctg.domain.port.in.CalcularEstadisticasUseCase.EstadisticasGlobales;
+import com.aguavigia.ctg.domain.port.in.CalcularEstadisticasUseCase;
+import com.aguavigia.ctg.domain.port.out.RevocacionSesionPort;
 import com.aguavigia.ctg.infrastructure.config.SecurityConfig;
 import com.aguavigia.ctg.infrastructure.security.JwtProvider;
-import com.aguavigia.ctg.domain.port.out.RevocacionSesionPort;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;

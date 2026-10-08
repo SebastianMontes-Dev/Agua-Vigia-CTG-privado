@@ -1,9 +1,9 @@
 package com.aguavigia.ctg.application;
 
-import com.aguavigia.ctg.domain.ModoDelSistema;
+import com.aguavigia.ctg.compartido.reloj.RelojPort;
 import com.aguavigia.ctg.domain.ModoDelSistema.Modo;
+import com.aguavigia.ctg.domain.ModoDelSistema;
 import com.aguavigia.ctg.domain.port.in.ConsultarModoDelSistemaUseCase;
-import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.UsuarioRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

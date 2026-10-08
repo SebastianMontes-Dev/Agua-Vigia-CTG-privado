@@ -1,18 +1,18 @@
 package com.aguavigia.ctg.application;
 
+import com.aguavigia.ctg.compartido.error.EnlaceDeRestablecimientoInvalidoException;
+import com.aguavigia.ctg.compartido.reloj.RelojPort;
 import com.aguavigia.ctg.domain.EnlaceDeRestablecimiento;
-import com.aguavigia.ctg.domain.EnlaceDeRestablecimientoInvalidoException;
 import com.aguavigia.ctg.domain.EstadoSuscripcion;
 import com.aguavigia.ctg.domain.HuellaDispositivo;
-import com.aguavigia.ctg.domain.ReporteCiudadano;
 import com.aguavigia.ctg.domain.Reportante;
+import com.aguavigia.ctg.domain.ReporteCiudadano;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.Suscripcion;
 import com.aguavigia.ctg.domain.TipoReporte;
 import com.aguavigia.ctg.domain.port.in.ConfirmarRestablecimientoPorEnlaceUseCase;
 import com.aguavigia.ctg.domain.port.in.RegistrarReporteUseCase;
 import com.aguavigia.ctg.domain.port.out.FirmaDeEnlacesPort;
-import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.SuscripcionRepository;
 
 /**

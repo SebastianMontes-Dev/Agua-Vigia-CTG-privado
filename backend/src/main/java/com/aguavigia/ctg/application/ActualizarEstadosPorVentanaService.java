@@ -1,11 +1,11 @@
 package com.aguavigia.ctg.application;
 
+import com.aguavigia.ctg.compartido.reloj.RelojPort;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.port.in.ActualizarEstadosPorVentanaUseCase;
 import com.aguavigia.ctg.domain.port.in.RecalcularSectorUseCase;
 import com.aguavigia.ctg.domain.port.out.CorteAguaRepository;
 import com.aguavigia.ctg.domain.port.out.PropuestaIngestaRepository;
-import com.aguavigia.ctg.domain.port.out.RelojPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

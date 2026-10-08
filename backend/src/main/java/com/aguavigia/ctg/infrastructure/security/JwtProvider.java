@@ -1,11 +1,11 @@
 package com.aguavigia.ctg.infrastructure.security;
 
-import com.aguavigia.ctg.domain.SesionAutenticada;
+import com.aguavigia.ctg.compartido.reloj.RelojPort;
 import com.aguavigia.ctg.domain.AlcanceSesion;
 import com.aguavigia.ctg.domain.Permiso;
+import com.aguavigia.ctg.domain.SesionAutenticada;
 import com.aguavigia.ctg.domain.Usuario;
 import com.aguavigia.ctg.domain.port.out.EmisorDeSesionPort;
-import com.aguavigia.ctg.domain.port.out.RelojPort;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
