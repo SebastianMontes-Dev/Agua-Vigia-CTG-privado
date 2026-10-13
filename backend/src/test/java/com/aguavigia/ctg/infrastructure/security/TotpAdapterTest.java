@@ -1,8 +1,8 @@
 package com.aguavigia.ctg.infrastructure.security;
 
-import com.aguavigia.ctg.domain.CorreoElectronico;
+import com.aguavigia.ctg.compartido.reloj.Reloj;
+import com.aguavigia.ctg.compartido.valor.CorreoElectronico;
 import com.aguavigia.ctg.domain.SecretoTotp;
-import com.aguavigia.ctg.domain.port.out.RelojPort;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
@@ -24,7 +24,7 @@ class TotpAdapterTest {
             new SecretoTotp("GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ");
 
     private static TotpAdapter enElSegundo(long epochSegundos) {
-        RelojPort reloj = () -> Instant.ofEpochSecond(epochSegundos);
+        Reloj reloj = () -> Instant.ofEpochSecond(epochSegundos);
         return new TotpAdapter(reloj, "AguaVigia CTG");
     }
 

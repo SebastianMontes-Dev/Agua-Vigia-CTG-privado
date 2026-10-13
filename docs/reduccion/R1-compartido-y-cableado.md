@@ -49,9 +49,29 @@ desaparece en R9.
 
 ## Terminado cuando
 
-- La puerta está en verde, con 0 diferencias de contrato y de forma. El manejador de errores es el lugar donde una errata se vería, y la muestra de errores de `instantanea.mjs` lo cubre.
-- `compartidoNoDependeDeFuncionalidades` pasa **sin** `allowEmptyShould`.
-- Ya no existen `infrastructure/config`, `cache`, `logging`, `ratelimit`, `sse`, `scheduling` ni `api/error`. Solo queda `SecurityConfig`, que se mueve en R8.
+- [x] La puerta está en verde, con 0 diferencias de contrato y de forma. El manejador de errores es el lugar donde una errata se vería, y la muestra de errores de `instantanea.mjs` lo cubre.
+- [x] `compartidoNoDependeDeFuncionalidades` pasa **sin** `allowEmptyShould`.
+- [x] Ya no existen `infrastructure/cache`, `logging`, `ratelimit`, `sse`, `scheduling` ni `api/error`. En `infrastructure/config` quedan solo las configuraciones de cada funcionalidad, que se mueven con ella: `CasosDeUsoConfig` (R9), `ConsensoConfig` y `EstadoConfig` (R2), `IngestaConfig` (R5), `MantenimientoConfig` y `SimulacionConfig` (R9), `SecurityConfig`, `SembradorAdminInicial` y `ImportadorDeVecinosSinteticos` (R8).
+
+## Resultado de R1
+
+Cerrada el 2026-10-08. Commits en `refactor/reduccion-backend`, uno por unidad de trabajo:
+1. Mover a `compartido/` las 78 clases y tests del alcance (solo `package` e `import`; ningún test cambió de cuerpo).
+2. Renombrar `RelojPort` a `Reloj`.
+3. Eliminar `CanalEnVivoPort`: `SectorController` y su test usan `SseSectoresBroadcaster` directamente.
+4. Unir los secretos del sistema: `compartido/secretos/SecretosDelSistema` (clase concreta, el upsert `$setOnInsert` sin cambios) y `ConfigSistema` (`@Document("config_sistema")`).
+5. Fijar el campo `_class` (ver abajo).
+
+**Decisiones y desviaciones de la guía:**
+- Cuatro clases eran de acceso de paquete (`CabecerasDePaginacion`, `PaginaDeCortesia`, `EscritorCsv`, `PlantillaCorreo`) y ahora las usan otros paquetes: pasaron a `public` junto con sus métodos. Es el único cambio que no es `package`/`import`.
+- Además de los tests que listaba el paso 3 se movieron con su clase los de las configuraciones movidas (`RateLimitConfigAvisoTest`, `ReglasDeRateLimitDeProduccionTest`, `CorsPorPerfilTest`, sus ayudantes), `JobsProgramadosEjecucionUnicaTest` y `TareasProgramadasTest` (a `compartido/tareas`), `ReglasDeLimiteDeApplicationYmlTest` (a `compartido/ratelimit`), `RedDeOrigenTest`, `CoordenadaTest` y `CorreoElectronicoTest`.
+- `ConfigSistemaMongoAdapterTest` pasó a `SecretosDelSistemaTest` (misma prueba contra Mongo real). Los tests de los adaptadores HMAC pasaban un lambda como puerto: ahora usan `SecretosDePrueba`, un ayudante de test que sobrescribe `obtenerOCrear`.
+- **`_class`: se implementó con una anotación, no con un mapa.** ADR-099 decía «`ConfigurableTypeInformationMapper` en `compartido/config`»; un mapa con las clases de todas las funcionalidades obligaría a `compartido` a importarlas, y ArchUnit lo prohíbe. Por eso `@ClaseGuardadaComo("<nombre de antes>")` va sobre cada `@Document` movido y `MapeadorDeClaseGuardada` lo escribe. Lo comprueban `MapeadorDeClaseGuardadaTest` y `MongoClaseGuardadaConfigTest` (contra Mongo real). **R2–R8: copiar el nombre de la clase vieja a la anotación en el mismo commit que mueve el `@Document`.**
+- `compartidoNoDependeDeFuncionalidades` ya no usa `allowEmptyShould`.
+- No se hizo la simplificación opcional de unir excepciones con el mismo estado y `type` (invariantes §3): el manejador y la tabla quedaron intactos.
+- `CasosDeUsoConfig` no cambió: ningún servicio se movió todavía.
+
+**Puerta (todo ejecutado el 2026-10-08):** `./mvnw clean verify` 2 099 tests, 0 fallos, 1 omitido (los 2 094 de R0 más 5 nuevos); `puerta.sh comparar` desde `down -v`: TODO EN VERDE (contrato 84 operaciones, forma con y sin datos, 33 flujos y esquema de Mongo y Redis sin diferencias); `sembrador verificar` OK; `agregar-usuarios` directo (50) y api (20) con `--borrar-lote`; `demo.mjs` en miniatura con `--restaurar`: todos los umbrales de k6 cumplidos; guion de simulación ×300: 54/54 en 177 s. La capacidad completa no se repite en R1 (solo se exige al cerrar R2, R4, R8 y R9).
 
 ## Prompt para Claude Code
 

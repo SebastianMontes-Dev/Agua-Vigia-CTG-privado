@@ -1,14 +1,14 @@
 package com.aguavigia.ctg.application;
 
+import com.aguavigia.ctg.compartido.error.CredencialInvalidaException;
+import com.aguavigia.ctg.compartido.error.CuentaBloqueadaException;
+import com.aguavigia.ctg.compartido.error.CuentaNoHabilitadaException;
+import com.aguavigia.ctg.compartido.error.SegundoFactorRequeridoException;
+import com.aguavigia.ctg.compartido.valor.CorreoElectronico;
 import com.aguavigia.ctg.domain.AccionAuditada;
 import com.aguavigia.ctg.domain.AlcanceSesion;
 import com.aguavigia.ctg.domain.ContextoDeAccion;
-import com.aguavigia.ctg.domain.CorreoElectronico;
-import com.aguavigia.ctg.domain.CredencialInvalidaException;
-import com.aguavigia.ctg.domain.CuentaBloqueadaException;
-import com.aguavigia.ctg.domain.CuentaNoHabilitadaException;
 import com.aguavigia.ctg.domain.EstadoCuenta;
-import com.aguavigia.ctg.domain.SegundoFactorRequeridoException;
 import com.aguavigia.ctg.domain.SesionEmitida;
 import com.aguavigia.ctg.domain.Usuario;
 import com.aguavigia.ctg.domain.port.in.AutenticarUsuarioUseCase;

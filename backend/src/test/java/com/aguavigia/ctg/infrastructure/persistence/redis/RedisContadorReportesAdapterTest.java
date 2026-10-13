@@ -1,9 +1,9 @@
 package com.aguavigia.ctg.infrastructure.persistence.redis;
 
+import com.aguavigia.ctg.compartido.config.RedisConfig;
+import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.domain.HuellaDispositivo;
 import com.aguavigia.ctg.domain.SectorId;
-import com.aguavigia.ctg.domain.port.out.RelojPort;
-import com.aguavigia.ctg.infrastructure.config.RedisConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,7 +46,7 @@ class RedisContadorReportesAdapterTest {
         }
 
         @Bean
-        RelojPort reloj() {
+        Reloj reloj() {
             return () -> instante;
         }
     }

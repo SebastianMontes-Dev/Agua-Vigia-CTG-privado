@@ -1,9 +1,9 @@
 package com.aguavigia.ctg.application;
 
+import com.aguavigia.ctg.compartido.error.EntidadNoEncontradaException;
+import com.aguavigia.ctg.compartido.valor.CorreoElectronico;
 import com.aguavigia.ctg.domain.AccionAuditada;
 import com.aguavigia.ctg.domain.ContextoDeAccion;
-import com.aguavigia.ctg.domain.CorreoElectronico;
-import com.aguavigia.ctg.domain.EntidadNoEncontradaException;
 import com.aguavigia.ctg.domain.EstadoCuenta;
 import com.aguavigia.ctg.domain.TipoTokenCuenta;
 import com.aguavigia.ctg.domain.Usuario;

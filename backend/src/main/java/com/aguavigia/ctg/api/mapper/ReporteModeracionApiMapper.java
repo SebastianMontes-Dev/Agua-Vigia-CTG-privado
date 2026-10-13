@@ -1,8 +1,8 @@
 package com.aguavigia.ctg.api.mapper;
 
-import com.aguavigia.ctg.api.dto.CoordenadaDTO;
 import com.aguavigia.ctg.api.dto.ReporteModeracionRespuesta;
-import com.aguavigia.ctg.domain.Coordenada;
+import com.aguavigia.ctg.compartido.valor.Coordenada;
+import com.aguavigia.ctg.compartido.valor.CoordenadaDTO;
 import com.aguavigia.ctg.domain.ReporteCiudadano;
 import com.aguavigia.ctg.domain.ReportesPendientes;
 import org.mapstruct.Mapping;

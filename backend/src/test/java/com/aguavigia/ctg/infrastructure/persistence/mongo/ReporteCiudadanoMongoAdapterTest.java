@@ -1,6 +1,7 @@
 package com.aguavigia.ctg.infrastructure.persistence.mongo;
 
-import com.aguavigia.ctg.domain.Coordenada;
+import com.aguavigia.ctg.compartido.reloj.Reloj;
+import com.aguavigia.ctg.compartido.valor.Coordenada;
 import com.aguavigia.ctg.domain.EstadoModeracion;
 import com.aguavigia.ctg.domain.EvidenciaVencida;
 import com.aguavigia.ctg.domain.HuellaDispositivo;
@@ -8,7 +9,6 @@ import com.aguavigia.ctg.domain.ReporteCiudadano;
 import com.aguavigia.ctg.domain.ReporteId;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.TipoReporte;
-import com.aguavigia.ctg.domain.port.out.RelojPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,7 +41,7 @@ class ReporteCiudadanoMongoAdapterTest {
 
     static class RelojFijo {
         @Bean
-        RelojPort reloj() {
+        Reloj reloj() {
             return () -> AHORA;
         }
     }

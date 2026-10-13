@@ -1,18 +1,18 @@
 package com.aguavigia.ctg.application;
 
+import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.domain.BoletinSimulado;
 import com.aguavigia.ctg.domain.port.in.InyectarBoletinSimuladoUseCase;
 import com.aguavigia.ctg.domain.port.out.BuzonDeBoletinesSimuladosPort;
 import com.aguavigia.ctg.domain.port.out.CicloDeIngestaPort;
-import com.aguavigia.ctg.domain.port.out.RelojPort;
 
 public class InyectarBoletinSimuladoService implements InyectarBoletinSimuladoUseCase {
 
     private final BuzonDeBoletinesSimuladosPort buzon;
     private final CicloDeIngestaPort ciclo;
-    private final RelojPort reloj;
+    private final Reloj reloj;
 
-    public InyectarBoletinSimuladoService(BuzonDeBoletinesSimuladosPort buzon, CicloDeIngestaPort ciclo, RelojPort reloj) {
+    public InyectarBoletinSimuladoService(BuzonDeBoletinesSimuladosPort buzon, CicloDeIngestaPort ciclo, Reloj reloj) {
         this.buzon = buzon;
         this.ciclo = ciclo;
         this.reloj = reloj;

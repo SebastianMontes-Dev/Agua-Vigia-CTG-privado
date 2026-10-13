@@ -1,8 +1,8 @@
 package com.aguavigia.ctg.infrastructure.security;
 
-import com.aguavigia.ctg.domain.SesionAutenticada;
 import com.aguavigia.ctg.domain.AlcanceSesion;
 import com.aguavigia.ctg.domain.Permiso;
+import com.aguavigia.ctg.domain.SesionAutenticada;
 import com.aguavigia.ctg.domain.UsuarioId;
 import com.aguavigia.ctg.domain.port.out.RevocacionSesionPort;
 import jakarta.servlet.FilterChain;

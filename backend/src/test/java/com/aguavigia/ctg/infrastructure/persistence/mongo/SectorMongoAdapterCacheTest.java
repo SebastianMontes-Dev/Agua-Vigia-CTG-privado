@@ -1,11 +1,11 @@
 package com.aguavigia.ctg.infrastructure.persistence.mongo;
 
+import com.aguavigia.ctg.compartido.config.CacheConfig;
+import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.domain.EstadoServicio;
 import com.aguavigia.ctg.domain.Sector;
 import com.aguavigia.ctg.domain.SectorId;
-import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.SectorRepository;
-import com.aguavigia.ctg.infrastructure.config.CacheConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,7 +54,7 @@ class SectorMongoAdapterCacheTest {
 
     static class RelojFijo {
         @Bean
-        RelojPort reloj() {
+        Reloj reloj() {
             return () -> Instant.parse("2026-08-09T15:30:00Z");
         }
     }

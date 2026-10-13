@@ -1,11 +1,11 @@
 package com.aguavigia.ctg.infrastructure.persistence.mongo;
 
+import com.aguavigia.ctg.compartido.http.Pagina;
 import com.aguavigia.ctg.domain.CorteId;
 import com.aguavigia.ctg.domain.EstadoServicio;
 import com.aguavigia.ctg.domain.EventoBitacora;
 import com.aguavigia.ctg.domain.EventoId;
 import com.aguavigia.ctg.domain.FiltroBitacora;
-import com.aguavigia.ctg.domain.Pagina;
 import com.aguavigia.ctg.domain.OrigenEstado;
 import com.aguavigia.ctg.domain.ReporteId;
 import com.aguavigia.ctg.domain.RespaldoVecinal;

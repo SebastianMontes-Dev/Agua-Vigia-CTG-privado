@@ -1,9 +1,9 @@
 package com.aguavigia.ctg.infrastructure.mantenimiento;
 
+import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.domain.EvidenciaVencida;
 import com.aguavigia.ctg.domain.ReporteId;
 import com.aguavigia.ctg.domain.port.out.AlmacenamientoPort;
-import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.ReporteCiudadanoRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,7 +35,7 @@ class PurgaEvidenciaAntiguaJobTest {
     }
 
     private void conPropiedades(MantenimientoProperties.RetencionEvidencia retencion) {
-        RelojPort reloj = () -> AHORA;
+        Reloj reloj = () -> AHORA;
         job = new PurgaEvidenciaAntiguaJob(almacenamiento, reportes, reloj,
                 new MantenimientoProperties(null, retencion), (nombre, maximo, minimo, tarea) -> tarea.run());
     }

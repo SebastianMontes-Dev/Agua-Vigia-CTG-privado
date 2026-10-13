@@ -18,7 +18,7 @@ import static org.mockito.Mockito.verify;
 class PlanificadorDeVentanasBloqueoTest {
 
     private static Duration minimoPedido(long intervaloMs) {
-        var ejecucionUnica = mock(com.aguavigia.ctg.infrastructure.scheduling.EjecucionUnica.class);
+        var ejecucionUnica = mock(com.aguavigia.ctg.compartido.tareas.EjecucionUnica.class);
         new PlanificadorDeVentanas(mock(ActualizarEstadosPorVentanaUseCase.class), ejecucionUnica, intervaloMs)
                 .revisarVentanasEnUnaReplica();
         var maximo = org.mockito.ArgumentCaptor.forClass(Duration.class);

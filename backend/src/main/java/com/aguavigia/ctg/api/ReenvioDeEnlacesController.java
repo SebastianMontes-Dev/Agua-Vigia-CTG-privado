@@ -1,7 +1,7 @@
 package com.aguavigia.ctg.api;
 
 import com.aguavigia.ctg.api.dto.SolicitudReenvioVerificacion;
-import com.aguavigia.ctg.domain.CorreoElectronico;
+import com.aguavigia.ctg.compartido.valor.CorreoElectronico;
 import com.aguavigia.ctg.domain.UsuarioId;
 import com.aguavigia.ctg.domain.port.in.ReenviarEnlaceDeCuentaUseCase;
 import io.swagger.v3.oas.annotations.Operation;

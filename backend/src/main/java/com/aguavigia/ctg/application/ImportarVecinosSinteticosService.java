@@ -1,15 +1,15 @@
 package com.aguavigia.ctg.application;
 
+import com.aguavigia.ctg.compartido.reloj.Reloj;
+import com.aguavigia.ctg.compartido.valor.CorreoElectronico;
 import com.aguavigia.ctg.domain.AccionAuditada;
 import com.aguavigia.ctg.domain.ClaveHash;
 import com.aguavigia.ctg.domain.ContextoDeAccion;
-import com.aguavigia.ctg.domain.CorreoElectronico;
 import com.aguavigia.ctg.domain.Sector;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.Usuario;
 import com.aguavigia.ctg.domain.UsuarioId;
 import com.aguavigia.ctg.domain.port.in.ImportarVecinosSinteticosUseCase;
-import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.SectorRepository;
 import com.aguavigia.ctg.domain.port.out.UsuarioRepository;
 import org.slf4j.Logger;
@@ -43,11 +43,11 @@ public class ImportarVecinosSinteticosService implements ImportarVecinosSintetic
     private final UsuarioRepository usuarios;
     private final SectorRepository sectores;
     private final RegistroDeAuditoria auditoria;
-    private final RelojPort reloj;
+    private final Reloj reloj;
     private final int tamanoDeLote;
 
     public ImportarVecinosSinteticosService(UsuarioRepository usuarios, SectorRepository sectores,
-                                            RegistroDeAuditoria auditoria, RelojPort reloj, int tamanoDeLote) {
+                                            RegistroDeAuditoria auditoria, Reloj reloj, int tamanoDeLote) {
         if (tamanoDeLote < 1) {
             throw new IllegalArgumentException("El tamaño del lote debe ser al menos 1");
         }

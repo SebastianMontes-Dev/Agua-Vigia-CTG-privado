@@ -1,8 +1,8 @@
 package com.aguavigia.ctg.api;
 
-import com.aguavigia.ctg.api.error.ManejadorGlobalDeErrores;
+import com.aguavigia.ctg.compartido.error.ManejadorGlobalDeErrores;
+import com.aguavigia.ctg.compartido.valor.CorreoElectronico;
 import com.aguavigia.ctg.domain.ConsentimientosAceptados;
-import com.aguavigia.ctg.domain.CorreoElectronico;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.port.in.RegistrarVecinoUseCase;
 import com.aguavigia.ctg.domain.port.out.RevocacionSesionPort;

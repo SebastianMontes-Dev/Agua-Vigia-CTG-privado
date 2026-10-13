@@ -1,13 +1,13 @@
 package com.aguavigia.ctg.application;
 
+import com.aguavigia.ctg.compartido.ratelimit.RedDeOrigen;
+import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.domain.AccionAuditada;
 import com.aguavigia.ctg.domain.AuditoriaId;
 import com.aguavigia.ctg.domain.ContextoDeAccion;
 import com.aguavigia.ctg.domain.EventoAuditoria;
-import com.aguavigia.ctg.domain.RedDeOrigen;
 import com.aguavigia.ctg.domain.Usuario;
 import com.aguavigia.ctg.domain.port.out.AuditoriaRepository;
-import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.UsuarioRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,13 +32,13 @@ public class RegistroDeAuditoria {
 
     private final AuditoriaRepository auditoria;
     private final UsuarioRepository usuarios;
-    private final RelojPort reloj;
+    private final Reloj reloj;
     private final Duration retencionDeVecinos;
 
     /**
      * @param retencionDeVecinos cuánto se conserva un evento sobre un vecino; cero o negativo lo conserva siempre
      */
-    public RegistroDeAuditoria(AuditoriaRepository auditoria, UsuarioRepository usuarios, RelojPort reloj,
+    public RegistroDeAuditoria(AuditoriaRepository auditoria, UsuarioRepository usuarios, Reloj reloj,
                                Duration retencionDeVecinos) {
         this.auditoria = auditoria;
         this.usuarios = usuarios;

@@ -1,12 +1,13 @@
 package com.aguavigia.ctg.infrastructure.mail;
 
+import com.aguavigia.ctg.compartido.correo.PlantillaCorreo;
+import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.domain.EnlaceDeRestablecimiento;
 import com.aguavigia.ctg.domain.EstadoServicio;
 import com.aguavigia.ctg.domain.Sector;
 import com.aguavigia.ctg.domain.Suscripcion;
 import com.aguavigia.ctg.domain.port.out.FirmaDeEnlacesPort;
 import com.aguavigia.ctg.domain.port.out.NotificacionPort;
-import com.aguavigia.ctg.domain.port.out.RelojPort;
 import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,14 +52,14 @@ public class MailNotificacionAdapter implements NotificacionPort {
     private final String urlFrontend;
     private final int horasVigenciaToken;
     private final FirmaDeEnlacesPort firmaDeEnlaces;
-    private final RelojPort reloj;
+    private final Reloj reloj;
     private final long horasVigenciaEnlace;
 
     public MailNotificacionAdapter(JavaMailSender mailSender,
                                     @Value("${aguavigia.correo.remitente:AguaVigía CTG <no-responder@aguavigia.local>}") String remitente,
                                     @Value("${aguavigia.app.url-frontend:http://localhost:5173}") String urlFrontend,
                                     @Value("${aguavigia.suscripcion.horas-vigencia-token:48}") int horasVigenciaToken,
-                                    FirmaDeEnlacesPort firmaDeEnlaces, RelojPort reloj,
+                                    FirmaDeEnlacesPort firmaDeEnlaces, Reloj reloj,
                                     @Value("${aguavigia.restablecimiento.horas-vigencia-enlace:24}") long horasVigenciaEnlace) {
         this.mailSender = mailSender;
         this.plantillaConfirmacion = PlantillaCorreo.desdeClasspath("plantillas-correo/confirmar-suscripcion.html");

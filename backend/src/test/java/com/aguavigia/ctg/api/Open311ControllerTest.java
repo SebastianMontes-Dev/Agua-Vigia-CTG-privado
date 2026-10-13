@@ -1,13 +1,13 @@
 package com.aguavigia.ctg.api;
 
-import com.aguavigia.ctg.api.error.ManejadorGlobalDeErrores;
+import com.aguavigia.ctg.compartido.error.ManejadorGlobalDeErrores;
 import com.aguavigia.ctg.domain.EstadoServicio;
 import com.aguavigia.ctg.domain.Sector;
 import com.aguavigia.ctg.domain.SectorId;
+import com.aguavigia.ctg.domain.port.out.RevocacionSesionPort;
 import com.aguavigia.ctg.domain.port.out.SectorRepository;
 import com.aguavigia.ctg.infrastructure.config.SecurityConfig;
 import com.aguavigia.ctg.infrastructure.security.JwtProvider;
-import com.aguavigia.ctg.domain.port.out.RevocacionSesionPort;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;

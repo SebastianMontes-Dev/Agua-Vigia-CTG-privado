@@ -1,9 +1,9 @@
 package com.aguavigia.ctg.application;
 
-import com.aguavigia.ctg.domain.EntidadNoEncontradaException;
+import com.aguavigia.ctg.compartido.error.EntidadNoEncontradaException;
+import com.aguavigia.ctg.compartido.http.Pagina;
 import com.aguavigia.ctg.domain.EventoBitacora;
 import com.aguavigia.ctg.domain.EventoId;
-import com.aguavigia.ctg.domain.Pagina;
 import com.aguavigia.ctg.domain.ReporteId;
 import com.aguavigia.ctg.domain.port.in.ConsultarSustentoDeEventoUseCase;
 import com.aguavigia.ctg.domain.port.out.EventoBitacoraRepository;

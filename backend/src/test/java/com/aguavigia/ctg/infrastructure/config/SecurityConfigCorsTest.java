@@ -1,5 +1,6 @@
 package com.aguavigia.ctg.infrastructure.config;
 
+import com.aguavigia.ctg.compartido.config.CorsProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;

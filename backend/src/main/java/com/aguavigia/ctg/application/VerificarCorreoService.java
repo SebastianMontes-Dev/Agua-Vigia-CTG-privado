@@ -1,11 +1,11 @@
 package com.aguavigia.ctg.application;
 
+import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.domain.AccionAuditada;
 import com.aguavigia.ctg.domain.ContextoDeAccion;
 import com.aguavigia.ctg.domain.TipoTokenCuenta;
 import com.aguavigia.ctg.domain.Usuario;
 import com.aguavigia.ctg.domain.port.in.VerificarCorreoUseCase;
-import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.UsuarioRepository;
 
 /**
@@ -18,12 +18,12 @@ public class VerificarCorreoService implements VerificarCorreoUseCase {
     private final UsuarioRepository usuarios;
     private final EmisorDeTokensDeCuenta emisorDeTokens;
     private final RegistroDeAuditoria auditoria;
-    private final RelojPort reloj;
+    private final Reloj reloj;
 
     public VerificarCorreoService(UsuarioRepository usuarios,
                                   EmisorDeTokensDeCuenta emisorDeTokens,
                                   RegistroDeAuditoria auditoria,
-                                  RelojPort reloj) {
+                                  Reloj reloj) {
         this.usuarios = usuarios;
         this.emisorDeTokens = emisorDeTokens;
         this.auditoria = auditoria;

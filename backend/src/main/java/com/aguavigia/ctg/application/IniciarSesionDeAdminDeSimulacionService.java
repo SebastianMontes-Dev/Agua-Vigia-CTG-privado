@@ -1,9 +1,9 @@
 package com.aguavigia.ctg.application;
 
+import com.aguavigia.ctg.compartido.error.CuentaNoHabilitadaException;
 import com.aguavigia.ctg.domain.AccionAuditada;
 import com.aguavigia.ctg.domain.AlcanceSesion;
 import com.aguavigia.ctg.domain.ContextoDeAccion;
-import com.aguavigia.ctg.domain.CuentaNoHabilitadaException;
 import com.aguavigia.ctg.domain.RolVeedor;
 import com.aguavigia.ctg.domain.SesionEmitida;
 import com.aguavigia.ctg.domain.Usuario;

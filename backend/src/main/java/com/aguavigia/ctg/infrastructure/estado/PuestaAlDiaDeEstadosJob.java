@@ -1,9 +1,9 @@
 package com.aguavigia.ctg.infrastructure.estado;
 
+import com.aguavigia.ctg.compartido.tareas.EjecucionUnica;
 import com.aguavigia.ctg.domain.port.in.ExpirarCortesVencidosUseCase;
 import com.aguavigia.ctg.domain.port.in.PonerAlDiaSectoresUseCase;
 import com.aguavigia.ctg.domain.port.in.RepoblarContadorDeReportesUseCase;
-import com.aguavigia.ctg.infrastructure.scheduling.EjecucionUnica;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;

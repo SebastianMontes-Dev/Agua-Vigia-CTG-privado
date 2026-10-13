@@ -1,10 +1,10 @@
 package com.aguavigia.ctg.application;
 
+import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.domain.CorteAgua;
 import com.aguavigia.ctg.domain.CorteId;
 import com.aguavigia.ctg.domain.port.in.ListarCortesVencidosUseCase;
 import com.aguavigia.ctg.domain.port.out.CorteAguaRepository;
-import com.aguavigia.ctg.domain.port.out.RelojPort;
 
 import java.time.Instant;
 import java.util.Comparator;
@@ -16,9 +16,9 @@ import java.util.stream.Stream;
 public class ListarCortesVencidosService implements ListarCortesVencidosUseCase {
 
     private final CorteAguaRepository cortes;
-    private final RelojPort reloj;
+    private final Reloj reloj;
 
-    public ListarCortesVencidosService(CorteAguaRepository cortes, RelojPort reloj) {
+    public ListarCortesVencidosService(CorteAguaRepository cortes, Reloj reloj) {
         this.cortes = cortes;
         this.reloj = reloj;
     }

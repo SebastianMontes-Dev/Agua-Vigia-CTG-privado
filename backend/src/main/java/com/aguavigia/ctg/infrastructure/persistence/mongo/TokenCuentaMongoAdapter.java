@@ -1,9 +1,9 @@
 package com.aguavigia.ctg.infrastructure.persistence.mongo;
 
+import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.domain.TipoTokenCuenta;
 import com.aguavigia.ctg.domain.TokenCuenta;
 import com.aguavigia.ctg.domain.UsuarioId;
-import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.TokenCuentaRepository;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -17,10 +17,10 @@ import java.util.Optional;
 public class TokenCuentaMongoAdapter implements TokenCuentaRepository {
 
     private final TokenCuentaMongoRepository repositorio;
-    private final RelojPort reloj;
+    private final Reloj reloj;
     private final MongoTemplate mongoTemplate;
 
-    public TokenCuentaMongoAdapter(TokenCuentaMongoRepository repositorio, RelojPort reloj,
+    public TokenCuentaMongoAdapter(TokenCuentaMongoRepository repositorio, Reloj reloj,
                                     MongoTemplate mongoTemplate) {
         this.repositorio = repositorio;
         this.reloj = reloj;

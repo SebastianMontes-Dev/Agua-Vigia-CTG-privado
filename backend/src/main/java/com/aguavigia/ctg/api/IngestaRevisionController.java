@@ -1,13 +1,14 @@
 package com.aguavigia.ctg.api;
 
 import com.aguavigia.ctg.api.dto.PropuestaIngestaRespuesta;
+import com.aguavigia.ctg.api.dto.SolicitudAnulacion;
 import com.aguavigia.ctg.api.mapper.PropuestaIngestaApiMapper;
-import com.aguavigia.ctg.domain.Pagina;
+import com.aguavigia.ctg.compartido.http.CabecerasDePaginacion;
+import com.aguavigia.ctg.compartido.http.Pagina;
 import com.aguavigia.ctg.domain.PropuestaId;
 import com.aguavigia.ctg.domain.PropuestaIngesta;
 import com.aguavigia.ctg.domain.port.in.RevisarPropuestaIngestaUseCase;
 import com.aguavigia.ctg.domain.port.out.PropuestaIngestaRepository;
-import com.aguavigia.ctg.api.dto.SolicitudAnulacion;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;

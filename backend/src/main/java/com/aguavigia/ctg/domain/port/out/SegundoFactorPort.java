@@ -1,6 +1,6 @@
 package com.aguavigia.ctg.domain.port.out;
 
-import com.aguavigia.ctg.domain.CorreoElectronico;
+import com.aguavigia.ctg.compartido.valor.CorreoElectronico;
 import com.aguavigia.ctg.domain.SecretoTotp;
 
 /** TOTP (RFC 6238). El cálculo del código y el formato del QR son detalle de infraestructura. */

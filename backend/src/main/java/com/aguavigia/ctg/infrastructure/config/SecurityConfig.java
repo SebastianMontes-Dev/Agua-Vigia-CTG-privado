@@ -1,5 +1,6 @@
 package com.aguavigia.ctg.infrastructure.config;
 
+import com.aguavigia.ctg.compartido.config.CorsProperties;
 import com.aguavigia.ctg.domain.port.out.RevocacionSesionPort;
 import com.aguavigia.ctg.infrastructure.security.JwtAuthenticationFilter;
 import com.aguavigia.ctg.infrastructure.security.JwtProvider;

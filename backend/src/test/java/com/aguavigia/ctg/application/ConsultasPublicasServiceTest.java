@@ -1,14 +1,14 @@
 package com.aguavigia.ctg.application;
 
+import com.aguavigia.ctg.compartido.error.EntidadNoEncontradaException;
+import com.aguavigia.ctg.compartido.http.Pagina;
 import com.aguavigia.ctg.domain.CorteAgua;
 import com.aguavigia.ctg.domain.CorteId;
-import com.aguavigia.ctg.domain.EntidadNoEncontradaException;
 import com.aguavigia.ctg.domain.EstadoCorte;
 import com.aguavigia.ctg.domain.EstadoServicio;
 import com.aguavigia.ctg.domain.EventoBitacora;
 import com.aguavigia.ctg.domain.EventoId;
 import com.aguavigia.ctg.domain.OrigenCorte;
-import com.aguavigia.ctg.domain.Pagina;
 import com.aguavigia.ctg.domain.ReporteId;
 import com.aguavigia.ctg.domain.Sector;
 import com.aguavigia.ctg.domain.SectorId;

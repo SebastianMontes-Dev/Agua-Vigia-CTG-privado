@@ -1,18 +1,18 @@
 package com.aguavigia.ctg.infrastructure.persistence.mongo;
 
-import com.aguavigia.ctg.domain.Coordenada;
+import com.aguavigia.ctg.compartido.http.Pagina;
+import com.aguavigia.ctg.compartido.reloj.Reloj;
+import com.aguavigia.ctg.compartido.valor.Coordenada;
 import com.aguavigia.ctg.domain.EstadoModeracion;
 import com.aguavigia.ctg.domain.EvidenciaVencida;
 import com.aguavigia.ctg.domain.HuellaDispositivo;
-import com.aguavigia.ctg.domain.Pagina;
-import com.aguavigia.ctg.domain.RedEnRafaga;
 import com.aguavigia.ctg.domain.NivelDeVerificacion;
+import com.aguavigia.ctg.domain.RedEnRafaga;
 import com.aguavigia.ctg.domain.ReporteCiudadano;
 import com.aguavigia.ctg.domain.ReporteId;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.TipoReporte;
 import com.aguavigia.ctg.domain.VotoReciente;
-import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.ReporteCiudadanoRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -39,10 +39,10 @@ import java.util.stream.Collectors;
 public class ReporteCiudadanoMongoAdapter implements ReporteCiudadanoRepository {
 
     private final ReporteCiudadanoMongoRepository repositorio;
-    private final RelojPort reloj;
+    private final Reloj reloj;
     private final MongoTemplate mongoTemplate;
 
-    public ReporteCiudadanoMongoAdapter(ReporteCiudadanoMongoRepository repositorio, RelojPort reloj,
+    public ReporteCiudadanoMongoAdapter(ReporteCiudadanoMongoRepository repositorio, Reloj reloj,
                                          MongoTemplate mongoTemplate) {
         this.repositorio = repositorio;
         this.reloj = reloj;

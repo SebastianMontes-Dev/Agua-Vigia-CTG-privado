@@ -1,14 +1,14 @@
 package com.aguavigia.ctg.api;
 
-import com.aguavigia.ctg.domain.port.out.CanalEnVivoPort;
 import com.aguavigia.ctg.api.dto.GeometriaSectoresRespuesta;
 import com.aguavigia.ctg.api.dto.RespuestaSectores;
 import com.aguavigia.ctg.api.dto.SectorRespuesta;
-import com.aguavigia.ctg.api.error.RecursoNoEncontradoException;
 import com.aguavigia.ctg.api.mapper.SectorApiMapper;
+import com.aguavigia.ctg.compartido.error.RecursoNoEncontradoException;
+import com.aguavigia.ctg.compartido.reloj.Reloj;
+import com.aguavigia.ctg.compartido.sse.SseSectoresBroadcaster;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.port.out.GeometriaSectoresPort;
-import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.SectorRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -42,11 +42,11 @@ public class SectorController {
     private final SectorRepository sectores;
     private final GeometriaSectoresPort geometrias;
     private final SectorApiMapper mapper;
-    private final RelojPort reloj;
-    private final CanalEnVivoPort<SseEmitter> canalEnVivo;
+    private final Reloj reloj;
+    private final SseSectoresBroadcaster canalEnVivo;
 
     public SectorController(SectorRepository sectores, GeometriaSectoresPort geometrias, SectorApiMapper mapper,
-                             RelojPort reloj, CanalEnVivoPort<SseEmitter> canalEnVivo) {
+                             Reloj reloj, SseSectoresBroadcaster canalEnVivo) {
         this.sectores = sectores;
         this.geometrias = geometrias;
         this.mapper = mapper;

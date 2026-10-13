@@ -1,8 +1,9 @@
 package com.aguavigia.ctg.application;
 
+import com.aguavigia.ctg.compartido.reloj.Reloj;
+import com.aguavigia.ctg.compartido.valor.CorreoElectronico;
 import com.aguavigia.ctg.domain.AccionAuditada;
 import com.aguavigia.ctg.domain.ContextoDeAccion;
-import com.aguavigia.ctg.domain.CorreoElectronico;
 import com.aguavigia.ctg.domain.RolVeedor;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.TipoTokenCuenta;
@@ -10,7 +11,6 @@ import com.aguavigia.ctg.domain.Usuario;
 import com.aguavigia.ctg.domain.UsuarioId;
 import com.aguavigia.ctg.domain.port.in.InvitarUsuarioUseCase;
 import com.aguavigia.ctg.domain.port.out.NotificacionCuentaPort;
-import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.SectorRepository;
 import com.aguavigia.ctg.domain.port.out.UsuarioRepository;
 
@@ -27,14 +27,14 @@ public class InvitarUsuarioService implements InvitarUsuarioUseCase {
     private final EmisorDeTokensDeCuenta emisorDeTokens;
     private final NotificacionCuentaPort notificaciones;
     private final RegistroDeAuditoria auditoria;
-    private final RelojPort reloj;
+    private final Reloj reloj;
     private final SectorRepository sectores;
 
     public InvitarUsuarioService(UsuarioRepository usuarios,
                                  EmisorDeTokensDeCuenta emisorDeTokens,
                                  NotificacionCuentaPort notificaciones,
                                  RegistroDeAuditoria auditoria,
-                                 RelojPort reloj,
+                                 Reloj reloj,
                                  SectorRepository sectores) {
         this.usuarios = usuarios;
         this.emisorDeTokens = emisorDeTokens;

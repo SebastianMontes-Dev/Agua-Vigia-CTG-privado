@@ -1,9 +1,9 @@
 package com.aguavigia.ctg.domain.port.out;
 
+import com.aguavigia.ctg.compartido.http.Pagina;
 import com.aguavigia.ctg.domain.EstadoModeracion;
 import com.aguavigia.ctg.domain.EvidenciaVencida;
 import com.aguavigia.ctg.domain.HuellaDispositivo;
-import com.aguavigia.ctg.domain.Pagina;
 import com.aguavigia.ctg.domain.RedEnRafaga;
 import com.aguavigia.ctg.domain.ReporteCiudadano;
 import com.aguavigia.ctg.domain.ReporteId;

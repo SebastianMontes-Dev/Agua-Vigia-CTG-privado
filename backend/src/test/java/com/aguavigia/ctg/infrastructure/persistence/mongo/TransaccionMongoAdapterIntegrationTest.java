@@ -1,6 +1,6 @@
 package com.aguavigia.ctg.infrastructure.persistence.mongo;
 
-import com.aguavigia.ctg.infrastructure.config.MongoTransaccionConfig;
+import com.aguavigia.ctg.compartido.config.MongoTransaccionConfig;
 import org.bson.Document;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

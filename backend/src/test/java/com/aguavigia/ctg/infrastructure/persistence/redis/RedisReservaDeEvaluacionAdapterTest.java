@@ -29,7 +29,7 @@ import static org.mockito.Mockito.mock;
  */
 @Testcontainers
 @DataRedisTest
-@Import(com.aguavigia.ctg.infrastructure.config.RedisConfig.class)
+@Import(com.aguavigia.ctg.compartido.config.RedisConfig.class)
 class RedisReservaDeEvaluacionAdapterTest {
 
     @Container

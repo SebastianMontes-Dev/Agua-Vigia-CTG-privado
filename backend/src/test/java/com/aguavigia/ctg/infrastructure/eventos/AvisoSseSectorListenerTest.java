@@ -1,9 +1,9 @@
 package com.aguavigia.ctg.infrastructure.eventos;
 
+import com.aguavigia.ctg.compartido.sse.SseSectoresBroadcaster;
 import com.aguavigia.ctg.domain.EstadoServicio;
 import com.aguavigia.ctg.domain.Sector;
 import com.aguavigia.ctg.domain.SectorId;
-import com.aguavigia.ctg.infrastructure.sse.SseSectoresBroadcaster;
 import org.junit.jupiter.api.Test;
 
 import static org.mockito.Mockito.mock;

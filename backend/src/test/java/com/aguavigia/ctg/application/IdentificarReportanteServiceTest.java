@@ -1,11 +1,12 @@
 package com.aguavigia.ctg.application;
 
+import com.aguavigia.ctg.compartido.error.DispositivoInvalidoException;
+import com.aguavigia.ctg.compartido.valor.CorreoElectronico;
 import com.aguavigia.ctg.domain.ClaveHash;
 import com.aguavigia.ctg.domain.Consentimiento;
-import com.aguavigia.ctg.domain.CorreoElectronico;
 import com.aguavigia.ctg.domain.Dispositivo;
 import com.aguavigia.ctg.domain.DispositivoId;
-import com.aguavigia.ctg.domain.DispositivoInvalidoException;
+import com.aguavigia.ctg.domain.EstadoCuenta;
 import com.aguavigia.ctg.domain.HuellaDispositivo;
 import com.aguavigia.ctg.domain.PermisosEfectivos;
 import com.aguavigia.ctg.domain.Reportante;
@@ -14,7 +15,6 @@ import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.TipoConsentimiento;
 import com.aguavigia.ctg.domain.Usuario;
 import com.aguavigia.ctg.domain.UsuarioId;
-import com.aguavigia.ctg.domain.EstadoCuenta;
 import com.aguavigia.ctg.domain.port.out.DispositivoRepository;
 import com.aguavigia.ctg.domain.port.out.FirmaDeDispositivosPort;
 import com.aguavigia.ctg.domain.port.out.UsuarioRepository;

@@ -1,11 +1,11 @@
 package com.aguavigia.ctg.application;
 
+import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.domain.TipoTokenCuenta;
 import com.aguavigia.ctg.domain.TokenCuenta;
 import com.aguavigia.ctg.domain.Usuario;
 import com.aguavigia.ctg.domain.UsuarioId;
 import com.aguavigia.ctg.domain.port.out.GeneradorSecretosPort;
-import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.TokenCuentaRepository;
 import com.aguavigia.ctg.domain.port.out.UsuarioRepository;
 
@@ -22,12 +22,12 @@ public class EmisorDeTokensDeCuenta {
     private final TokenCuentaRepository tokens;
     private final UsuarioRepository usuarios;
     private final GeneradorSecretosPort generador;
-    private final RelojPort reloj;
+    private final Reloj reloj;
 
     public EmisorDeTokensDeCuenta(TokenCuentaRepository tokens,
                                   UsuarioRepository usuarios,
                                   GeneradorSecretosPort generador,
-                                  RelojPort reloj) {
+                                  Reloj reloj) {
         this.tokens = tokens;
         this.usuarios = usuarios;
         this.generador = generador;

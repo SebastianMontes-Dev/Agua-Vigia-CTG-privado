@@ -1,5 +1,6 @@
 package com.aguavigia.ctg.domain;
 
+import com.aguavigia.ctg.compartido.http.Pagina;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;

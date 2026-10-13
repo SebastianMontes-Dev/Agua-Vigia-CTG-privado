@@ -1,6 +1,6 @@
 package com.aguavigia.ctg.infrastructure.mail;
 
-import com.aguavigia.ctg.domain.CorreoElectronico;
+import com.aguavigia.ctg.compartido.valor.CorreoElectronico;
 import com.aguavigia.ctg.domain.EstadoServicio;
 import com.aguavigia.ctg.domain.EstadoSuscripcion;
 import com.aguavigia.ctg.domain.Sector;

@@ -1,7 +1,7 @@
 package com.aguavigia.ctg.api;
 
-import com.aguavigia.ctg.api.error.ManejadorGlobalDeErrores;
 import com.aguavigia.ctg.api.mapper.CorteApiMapperImpl;
+import com.aguavigia.ctg.compartido.error.ManejadorGlobalDeErrores;
 import com.aguavigia.ctg.domain.CorteAgua;
 import com.aguavigia.ctg.domain.CorteId;
 import com.aguavigia.ctg.domain.EstadoCorte;

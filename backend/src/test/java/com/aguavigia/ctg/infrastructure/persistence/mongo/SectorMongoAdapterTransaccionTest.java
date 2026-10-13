@@ -1,10 +1,10 @@
 package com.aguavigia.ctg.infrastructure.persistence.mongo;
 
-import com.aguavigia.ctg.infrastructure.eventos.SectorActualizadoEvent;
 import com.aguavigia.ctg.domain.EstadoServicio;
 import com.aguavigia.ctg.domain.Sector;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.port.out.SectorRepository;
+import com.aguavigia.ctg.infrastructure.eventos.SectorActualizadoEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
