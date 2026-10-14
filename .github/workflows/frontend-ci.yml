@@ -97,7 +97,11 @@ jobs:
         run: |
           docker compose up -d --wait mongo redis
           docker compose exec -T redis redis-cli SET tarea-unica:ingesta pruebas-f2 EX 3600
-      - run: docker compose up -d --build --wait mongo redis mailhog backend
+      - name: Levantar el backend con el límite de peticiones holgado
+        # La siembra pide más de 10 identidades por hora desde una sola IP (el tope real) y recibía un 429.
+        env:
+          RATE_LIMIT_FACTOR: "100"
+        run: docker compose up -d --build --wait mongo redis mailhog backend
       - run: npm ci
         working-directory: scripts
       - name: Sembrar demo y casos de borde

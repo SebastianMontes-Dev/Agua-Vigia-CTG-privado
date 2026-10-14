@@ -5,3 +5,8 @@
 # controladores son @RestController (sin ViewResolver ni plantillas) y no hay Thymeleaf, FreeMarker ni XSLT en el backend, así que el
 # código vulnerable no es alcanzable. La corrección solo existe en Spring Framework 7.0.9 (Spring Boot 4): queda como deuda anotada.
 CVE-2026-47884 exp:2026-12-31
+
+# CVE-2026-47890 (crítica, spring-webmvc 6.2.19): corrupción del flujo Server-Sent Events «al renderizar fragmentos» (GHSA-j9f9-w8pj-32f8).
+# AguaVigía solo emite SSE con SseEmitter y eventos de texto o comentarios (SseSectoresBroadcaster); no usa FragmentsRendering, vistas
+# ni plantillas, así que el código afectado no es alcanzable. Igual que el anterior, la corrección solo existe en Spring Framework 7.0.9.
+CVE-2026-47890 exp:2026-12-31
