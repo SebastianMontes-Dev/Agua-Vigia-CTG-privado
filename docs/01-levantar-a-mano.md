@@ -29,7 +29,7 @@ flujos del backend con peticiones reales. Los comandos de esta guía se ejecutar
 cd C:\Users\sabas\Documentos\Agua-Vigia-CTG
 ```
 ```powershell
-docker compose --profile demo --profile carga --profile siembra down -v
+docker compose --profile demo --profile carga down -v
 ```
 
 Borra contenedores **y volúmenes** (`mongo-data`, `redis-data`, `fotos-data`) solo de este proyecto. Los contenedores de otros
@@ -85,13 +85,22 @@ Resultado: `{"status":"UP"}`.
 Al arrancar con la colección `usuarios` vacía, el backend crea `admin@aguavigia.local` con una **clave aleatoria que se imprime una sola vez en el log**
 (y un secreto de sesión aleatorio que nadie ve). Esta clave no está en ningún archivo del repositorio.
 
+> Con el perfil `docker`, el backend crea **30 000 cuentas sintéticas** de vecino en segundo plano al arrancar (`VECINOS_SINTETICOS`; con `0` no crea ninguna).
+> Esperan a que existan el ADMIN inicial y los 211 barrios (hasta 5 minutos, reintentando cada 5 s), así que en esta guía empiezan **después de la Parte C**.
+> Son lo único inventado del sistema: `GET /api/sistema/modo` las cuenta y `node scripts/verificar-datos.mjs` comprueba que son lo que dicen ser. Si
+> no las quieres en tu base de práctica: `VECINOS_SINTETICOS=0` en el `.env` y `docker compose up -d --force-recreate backend`.
+
 ### A5. Preparar el sembrador (una vez)
 
 ```powershell
 docker compose build sembrador
 ```
 El sembrador es un contenedor con Node y los scripts de siembra. Sirve para dos cosas en esta guía: cargar los barrios (Parte C) y calcular
-códigos del segundo factor sin instalar nada (Parte B). Está bajo el perfil `siembra`, así que `docker compose up` a secas nunca siembra por su cuenta.
+códigos del segundo factor sin instalar nada (Parte B).
+
+Desde ADR-094 el sembrador **no está bajo ningún perfil**: un `docker compose up` a secas lo ejecuta al terminar de arrancar el backend, carga los
+211 barrios y espera a que el backend termine de crear las cuentas sintéticas. En esta guía levantas los servicios uno a uno (`docker compose up -d
+backend` arranca el backend y lo que necesita, pero **no** el sembrador), así que los barrios los cargas tú en la Parte C.
 
 ---
 
@@ -176,8 +185,14 @@ docker compose run --rm sembrador sembrar-sectores
 Resultado: `211` (el archivo geográfico trae 213 filas y el sembrador descarta 2 duplicadas). Cada barrio tiene polígono `2dsphere`, población y
 `estado` vacío: **un barrio sin dato verificado se publica sin estado**, nunca como «con servicio» inventado.
 
-> `docker compose --profile siembra up` correría además el paso `inicial` (30 000 cuentas de demostración, histórico de cortes y reportes).
-> Para esta demostración no se usa: partimos de una base limpia.
+Los scripts de siembra (`sembrar-sectores`, `sembrar-historico-cortes` y `preparar-pruebas-frontend`) **se niegan** a correr si la base que reciben ya guarda
+reportes, cortes, propuestas o cuentas que no son de demostración, o si la URI no es local. Una base recién creada no se ve afectada. Para una base de pruebas que
+sí tiene esos datos, añade `--sobre-datos-reales`; para una base que no es local, `--permitir-remoto` (son dos permisos distintos). Así, repetir este paso sobre la base
+de uso diario da un rechazo en vez de borrar los estados de los barrios.
+
+> `docker compose up` (sin perfil) hace de una vez lo que esta guía hace paso a paso: levanta todo, carga los 211 barrios y el backend crea las cuentas
+> sintéticas. **No siembra reportes, cortes ni estados**: el mapa arranca en «sin datos» salvo los barrios con un boletín real de Acuacar vigente. Para comprobarlo:
+> `docker compose run --rm sembrador verificar`.
 
 ---
 
@@ -210,6 +225,9 @@ Invoke-RestMethod "$api/api/bitacora"
 ```
 Resultado: `estado SIN_SERVICIO` y un evento `CORTE_CONFIRMADO_POR_CIUDADANOS` con `cantidadReportesSustento 3`. (El consenso se evalúa en un barrido de 1 s.)
 La `huella` es un identificador anónimo del dispositivo (32–128 caracteres), no una cuenta.
+
+> El compose arranca con `AGUAVIGIA_CONSENSO_REDES_MINIMAS=1`. Para que un reporte cuente como verificado hay que mandar la coordenada con `precisionMetros`: un reporte
+> anónimo sin ubicación pesa en el conteo, pero el quórum pide que al menos un tercio del sustento esté verificado. `scripts/sembrar-demo.mjs` ya lo hace.
 
 **Cupo por dispositivo:** el mismo dispositivo solo puede reportar 3 veces por barrio cada 30 minutos.
 
@@ -340,6 +358,10 @@ Resultado: `204` y luego `401`.
 
 **Puertos.** Mongo, Redis, Mailhog y la API solo escuchan en `127.0.0.1`: `docker compose ps` muestra `127.0.0.1:27017->27017`, etc. Nadie de la red del aula los alcanza.
 
+El puerto **8082** es la API de la instancia de simulación (`backend-sim`, solo con `--profile simulacion`). Esos comandos necesitan Docker: no hay forma de
+correrla «a mano» sin él (necesita Mongo en réplica, Redis y Mailhog). El Mailhog es el mismo de la instancia real: la simulación solo borra sus propios correos
+(`@sim.aguavigia.test`), pero llena el buzón, así que si pruebas la instancia real a la vez, sus correos se mezclan con los de la simulación.
+
 ---
 
 ## Parte E · Mirar la base de datos
@@ -360,7 +382,7 @@ Las claves se guardan como hash BCrypt (`$2a$10$…`), nunca en claro. Índices 
 docker exec aguavigia-mongo mongosh aguavigia --quiet --eval "db.usuarios.getIndexes().forEach(i => print(i.name))"
 ```
 
-Visor web opcional: `docker compose --profile demo up -d mongo-express` y abrir http://localhost:8082.
+Visor web opcional: `docker compose --profile demo up -d mongo-express` y abrir http://localhost:8083 (el 8082 es de la API de la simulación).
 
 ---
 
