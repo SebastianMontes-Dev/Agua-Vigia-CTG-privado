@@ -1,6 +1,5 @@
 package com.aguavigia.ctg.application;
 
-import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.domain.CorteAgua;
 import com.aguavigia.ctg.domain.CorteId;
 import com.aguavigia.ctg.domain.EventoBitacoraFactory;
@@ -9,6 +8,7 @@ import com.aguavigia.ctg.domain.port.in.ExpirarCortesVencidosUseCase;
 import com.aguavigia.ctg.domain.port.in.RecalcularSectorUseCase;
 import com.aguavigia.ctg.domain.port.in.RegistrarEventoBitacoraUseCase;
 import com.aguavigia.ctg.domain.port.out.CorteAguaRepository;
+import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.TransaccionPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,12 +31,12 @@ public class ExpirarCortesVencidosService implements ExpirarCortesVencidosUseCas
     private final CorteAguaRepository cortes;
     private final RegistrarEventoBitacoraUseCase registrarEvento;
     private final RecalcularSectorUseCase recalcular;
-    private final Reloj reloj;
+    private final RelojPort reloj;
     private final TransaccionPort transaccion;
     private final Duration expiraTrasFin;
 
     public ExpirarCortesVencidosService(CorteAguaRepository cortes, RegistrarEventoBitacoraUseCase registrarEvento,
-                                        RecalcularSectorUseCase recalcular, Reloj reloj,
+                                        RecalcularSectorUseCase recalcular, RelojPort reloj,
                                         TransaccionPort transaccion, Duration expiraTrasFin) {
         this.cortes = cortes;
         this.registrarEvento = registrarEvento;

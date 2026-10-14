@@ -1,19 +1,19 @@
 package com.aguavigia.ctg.application;
 
-import com.aguavigia.ctg.compartido.error.LimiteReportesExcedidoException;
-import com.aguavigia.ctg.compartido.reloj.Reloj;
-import com.aguavigia.ctg.compartido.valor.Coordenada;
+import com.aguavigia.ctg.domain.Coordenada;
 import com.aguavigia.ctg.domain.HuellaDispositivo;
+import com.aguavigia.ctg.domain.LimiteReportesExcedidoException;
 import com.aguavigia.ctg.domain.NivelDeVerificacion;
-import com.aguavigia.ctg.domain.Reportante;
 import com.aguavigia.ctg.domain.ReporteCiudadano;
 import com.aguavigia.ctg.domain.ReporteId;
+import com.aguavigia.ctg.domain.Reportante;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.TipoReporte;
 import com.aguavigia.ctg.domain.port.in.EvaluarConsensoUseCase;
 import com.aguavigia.ctg.domain.port.in.RegistrarReporteUseCase;
 import com.aguavigia.ctg.domain.port.out.ContadorReportesPort;
 import com.aguavigia.ctg.domain.port.out.HashDeRedPort;
+import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.MetricasDelSistemaPort;
 import com.aguavigia.ctg.domain.port.out.ReporteCiudadanoRepository;
 import com.aguavigia.ctg.domain.port.out.SectorRepository;
@@ -60,7 +60,7 @@ public class RegistrarReporteService implements RegistrarReporteUseCase {
     private final ReporteCiudadanoRepository reportes;
     private final ContadorReportesPort contadorReportes;
     private final EvaluarConsensoUseCase evaluarConsenso;
-    private final Reloj reloj;
+    private final RelojPort reloj;
     private final LimitesDeReporte limites;
     private final HashDeRedPort hashDeRed;
     private final double precisionMaximaMetros;
@@ -70,7 +70,7 @@ public class RegistrarReporteService implements RegistrarReporteUseCase {
                                     ReporteCiudadanoRepository reportes,
                                     ContadorReportesPort contadorReportes,
                                     EvaluarConsensoUseCase evaluarConsenso,
-                                    Reloj reloj,
+                                    RelojPort reloj,
                                     HashDeRedPort hashDeRed,
                                     LimitesDeReporte limites,
                                     double precisionMaximaMetros) {
@@ -82,7 +82,7 @@ public class RegistrarReporteService implements RegistrarReporteUseCase {
                                     ReporteCiudadanoRepository reportes,
                                     ContadorReportesPort contadorReportes,
                                     EvaluarConsensoUseCase evaluarConsenso,
-                                    Reloj reloj,
+                                    RelojPort reloj,
                                     HashDeRedPort hashDeRed,
                                     LimitesDeReporte limites,
                                     double precisionMaximaMetros,

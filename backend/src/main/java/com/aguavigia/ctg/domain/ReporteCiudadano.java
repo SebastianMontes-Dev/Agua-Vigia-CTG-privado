@@ -1,6 +1,5 @@
 package com.aguavigia.ctg.domain;
 
-import com.aguavigia.ctg.compartido.valor.Coordenada;
 import java.time.Instant;
 
 public record ReporteCiudadano(

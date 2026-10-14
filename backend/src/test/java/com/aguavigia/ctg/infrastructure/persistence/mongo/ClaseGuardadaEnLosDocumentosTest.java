@@ -16,8 +16,8 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Caracteriza el campo {@code _class} que Spring Data escribe en cada documento (docs/reduccion/invariantes.md, «El campo _class»).
- * La reducción mueve los {@code @Document} de paquete: este test fija los dos hechos de los que depende cómo se hace sin cambiar la base.
+ * Caracteriza el campo {@code _class} que Spring Data escribe en cada documento .
+ * Mover un {@code @Document} de paquete cambiaría ese valor y dejaría la base distinta: este test fija los dos hechos de los que depende cómo se evita.
  * <ol>
  *   <li>Un documento escrito por el código viejo, cuyo {@code _class} nombra una clase que ya no existe, se sigue leyendo como el tipo declarado.</li>
  *   <li>Un mapeador de tipos configurado escribe en los documentos nuevos el nombre de clase de siempre, aunque la clase viva en otro paquete.</li>

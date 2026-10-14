@@ -1,6 +1,6 @@
 package com.aguavigia.ctg.domain.port.out;
 
-import com.aguavigia.ctg.compartido.valor.Coordenada;
+import com.aguavigia.ctg.domain.Coordenada;
 import com.aguavigia.ctg.domain.EstadoServicio;
 import com.aguavigia.ctg.domain.MarcasDeEstado;
 import com.aguavigia.ctg.domain.Sector;

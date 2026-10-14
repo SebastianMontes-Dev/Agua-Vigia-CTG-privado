@@ -1,9 +1,9 @@
 package com.aguavigia.ctg.domain.port.in;
 
-import com.aguavigia.ctg.compartido.http.Pagina;
+import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.EstadoCuenta;
 import com.aguavigia.ctg.domain.EventoAuditoria;
-import com.aguavigia.ctg.domain.SectorId;
+import com.aguavigia.ctg.domain.Pagina;
 import com.aguavigia.ctg.domain.Usuario;
 import com.aguavigia.ctg.domain.UsuarioId;
 

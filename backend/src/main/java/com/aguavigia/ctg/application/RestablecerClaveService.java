@@ -1,10 +1,9 @@
 package com.aguavigia.ctg.application;
 
-import com.aguavigia.ctg.compartido.reloj.Reloj;
-import com.aguavigia.ctg.compartido.valor.CorreoElectronico;
 import com.aguavigia.ctg.domain.AccionAuditada;
 import com.aguavigia.ctg.domain.ClaveEnClaro;
 import com.aguavigia.ctg.domain.ContextoDeAccion;
+import com.aguavigia.ctg.domain.CorreoElectronico;
 import com.aguavigia.ctg.domain.EstadoCuenta;
 import com.aguavigia.ctg.domain.TipoTokenCuenta;
 import com.aguavigia.ctg.domain.Usuario;
@@ -12,6 +11,7 @@ import com.aguavigia.ctg.domain.port.in.RestablecerClaveUseCase;
 import com.aguavigia.ctg.domain.port.out.CifradorClavePort;
 import com.aguavigia.ctg.domain.port.out.ControlIntentosPort;
 import com.aguavigia.ctg.domain.port.out.NotificacionCuentaPort;
+import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.RevocacionSesionPort;
 import com.aguavigia.ctg.domain.port.out.TiempoConstantePort;
 import com.aguavigia.ctg.domain.port.out.UsuarioRepository;
@@ -34,7 +34,7 @@ public class RestablecerClaveService implements RestablecerClaveUseCase {
     private final ControlIntentosPort intentos;
     private final NotificacionCuentaPort notificaciones;
     private final RegistroDeAuditoria auditoria;
-    private final Reloj reloj;
+    private final RelojPort reloj;
     private final TiempoConstantePort tiempoConstante;
 
     public RestablecerClaveService(UsuarioRepository usuarios,
@@ -44,7 +44,7 @@ public class RestablecerClaveService implements RestablecerClaveUseCase {
                                    ControlIntentosPort intentos,
                                    NotificacionCuentaPort notificaciones,
                                    RegistroDeAuditoria auditoria,
-                                   Reloj reloj,
+                                   RelojPort reloj,
                                    TiempoConstantePort tiempoConstante) {
         this.usuarios = usuarios;
         this.emisorDeTokens = emisorDeTokens;

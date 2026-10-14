@@ -1,6 +1,5 @@
 package com.aguavigia.ctg.domain;
 
-import com.aguavigia.ctg.compartido.http.Pagina;
 import java.util.Set;
 
 /** Una página de la cola de moderación con la señal de red de cada reporte (D9): dónde mirar primero, no un bloqueo. */

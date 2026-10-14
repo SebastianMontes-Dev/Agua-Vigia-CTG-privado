@@ -1,6 +1,5 @@
 package com.aguavigia.ctg.application;
 
-import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.domain.ChatTelegramId;
 import com.aguavigia.ctg.domain.EstadoServicio;
 import com.aguavigia.ctg.domain.MensajeTelegram;
@@ -8,6 +7,7 @@ import com.aguavigia.ctg.domain.Sector;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.SuscripcionTelegram;
 import com.aguavigia.ctg.domain.port.out.EnvioTelegramPort;
+import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.SectorRepository;
 import com.aguavigia.ctg.domain.port.out.SuscripcionTelegramRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -68,7 +68,7 @@ class ProcesarMensajeTelegramServiceTest {
             }
         };
         EnvioTelegramPort envio = (chat, texto) -> respuestas.add(texto);
-        Reloj reloj = mock(Reloj.class);
+        RelojPort reloj = mock(RelojPort.class);
         when(reloj.ahora()).thenReturn(AHORA);
         servicio = new ProcesarMensajeTelegramService(repositorio, sectores, envio, reloj);
     }

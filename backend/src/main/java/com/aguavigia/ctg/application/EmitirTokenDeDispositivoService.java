@@ -1,11 +1,11 @@
 package com.aguavigia.ctg.application;
 
-import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.domain.Dispositivo;
 import com.aguavigia.ctg.domain.DispositivoId;
 import com.aguavigia.ctg.domain.port.in.EmitirTokenDeDispositivoUseCase;
 import com.aguavigia.ctg.domain.port.out.DispositivoRepository;
 import com.aguavigia.ctg.domain.port.out.FirmaDeDispositivosPort;
+import com.aguavigia.ctg.domain.port.out.RelojPort;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -19,10 +19,10 @@ public class EmitirTokenDeDispositivoService implements EmitirTokenDeDispositivo
 
     private final DispositivoRepository dispositivos;
     private final FirmaDeDispositivosPort firma;
-    private final Reloj reloj;
+    private final RelojPort reloj;
 
     public EmitirTokenDeDispositivoService(DispositivoRepository dispositivos, FirmaDeDispositivosPort firma,
-                                           Reloj reloj) {
+                                           RelojPort reloj) {
         this.dispositivos = dispositivos;
         this.firma = firma;
         this.reloj = reloj;

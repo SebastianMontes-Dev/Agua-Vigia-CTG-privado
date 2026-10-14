@@ -1,18 +1,18 @@
 package com.aguavigia.ctg.application;
 
-import com.aguavigia.ctg.compartido.error.LimiteReportesExcedidoException;
-import com.aguavigia.ctg.compartido.reloj.Reloj;
-import com.aguavigia.ctg.compartido.valor.Coordenada;
+import com.aguavigia.ctg.domain.Coordenada;
 import com.aguavigia.ctg.domain.EstadoServicio;
 import com.aguavigia.ctg.domain.HuellaDispositivo;
+import com.aguavigia.ctg.domain.LimiteReportesExcedidoException;
 import com.aguavigia.ctg.domain.ReporteCiudadano;
 import com.aguavigia.ctg.domain.ReporteId;
-import com.aguavigia.ctg.domain.ResultadoConsenso;
 import com.aguavigia.ctg.domain.Sector;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.TipoReporte;
+import com.aguavigia.ctg.domain.ResultadoConsenso;
 import com.aguavigia.ctg.domain.port.in.EvaluarConsensoUseCase;
 import com.aguavigia.ctg.domain.port.out.ContadorReportesPort;
+import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.ReporteCiudadanoRepository;
 import com.aguavigia.ctg.domain.port.out.SectorRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -51,7 +51,7 @@ class RegistrarReporteServiceTest {
         reportes = mock(ReporteCiudadanoRepository.class);
         contadorReportes = mock(ContadorReportesPort.class);
         evaluarConsenso = mock(EvaluarConsensoUseCase.class);
-        Reloj reloj = () -> AHORA;
+        RelojPort reloj = () -> AHORA;
         servicio = new RegistrarReporteService(sectores, reportes, contadorReportes, evaluarConsenso, reloj,
                 mock(com.aguavigia.ctg.domain.port.out.HashDeRedPort.class),
                 new LimitesDeReporte(LIMITE, LIMITE_SENSOR, 5, java.time.Duration.ofMinutes(30)), 200.0);

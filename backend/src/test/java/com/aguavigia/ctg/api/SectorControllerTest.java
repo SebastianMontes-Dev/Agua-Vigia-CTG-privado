@@ -1,22 +1,22 @@
 package com.aguavigia.ctg.api;
 
+import com.aguavigia.ctg.domain.port.out.CanalEnVivoPort;
+import com.aguavigia.ctg.api.error.ManejadorGlobalDeErrores;
 import com.aguavigia.ctg.api.mapper.SectorApiMapperImpl;
-import com.aguavigia.ctg.compartido.error.ManejadorGlobalDeErrores;
-import com.aguavigia.ctg.compartido.reloj.Reloj;
-import com.aguavigia.ctg.compartido.sse.SseSectoresBroadcaster;
 import com.aguavigia.ctg.domain.EstadoServicio;
-import com.aguavigia.ctg.domain.GeometriaSector;
 import com.aguavigia.ctg.domain.MarcasDeEstado;
 import com.aguavigia.ctg.domain.OrigenEstado;
 import com.aguavigia.ctg.domain.RespaldoVecinal;
+import com.aguavigia.ctg.domain.VentanaTiempo;
 import com.aguavigia.ctg.domain.Sector;
 import com.aguavigia.ctg.domain.SectorId;
-import com.aguavigia.ctg.domain.VentanaTiempo;
+import com.aguavigia.ctg.domain.GeometriaSector;
 import com.aguavigia.ctg.domain.port.out.GeometriaSectoresPort;
-import com.aguavigia.ctg.domain.port.out.RevocacionSesionPort;
+import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.SectorRepository;
 import com.aguavigia.ctg.infrastructure.config.SecurityConfig;
 import com.aguavigia.ctg.infrastructure.security.JwtProvider;
+import com.aguavigia.ctg.domain.port.out.RevocacionSesionPort;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -56,7 +56,7 @@ class SectorControllerTest {
     private SectorRepository sectores;
 
     @MockitoBean
-    private Reloj reloj;
+    private RelojPort reloj;
 
     @MockitoBean
     private GeometriaSectoresPort geometrias;
@@ -71,7 +71,7 @@ class SectorControllerTest {
     private RedisTemplate<String, String> redisTemplateMock;
 
     @MockitoBean
-    private SseSectoresBroadcaster sseBroadcaster;
+    private CanalEnVivoPort<SseEmitter> sseBroadcaster;
 
     /** El frontend nuevo no tiene el GeoJSON: lo pide aquí, ya con el id que usa el resto de la API. */
     @Test

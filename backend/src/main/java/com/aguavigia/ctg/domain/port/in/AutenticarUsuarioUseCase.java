@@ -1,7 +1,7 @@
 package com.aguavigia.ctg.domain.port.in;
 
-import com.aguavigia.ctg.compartido.valor.CorreoElectronico;
 import com.aguavigia.ctg.domain.ContextoDeAccion;
+import com.aguavigia.ctg.domain.CorreoElectronico;
 import com.aguavigia.ctg.domain.SesionEmitida;
 
 public interface AutenticarUsuarioUseCase {

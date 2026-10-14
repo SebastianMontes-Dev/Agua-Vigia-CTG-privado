@@ -1,6 +1,5 @@
 package com.aguavigia.ctg.application;
 
-import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.domain.AvisoDeIngesta;
 import com.aguavigia.ctg.domain.CompuertaDePublicacion;
 import com.aguavigia.ctg.domain.EstadoRevision;
@@ -11,6 +10,7 @@ import com.aguavigia.ctg.domain.Sector;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.port.in.RevisarPropuestaIngestaUseCase;
 import com.aguavigia.ctg.domain.port.out.PropuestaIngestaRepository;
+import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.SectorRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -47,7 +47,7 @@ class RegistrarPropuestaIngestaServiceTest {
         propuestas = mock(PropuestaIngestaRepository.class);
         sectores = mock(SectorRepository.class);
         revisar = mock(RevisarPropuestaIngestaUseCase.class);
-        Reloj reloj = () -> AHORA;
+        RelojPort reloj = () -> AHORA;
         servicio = new RegistrarPropuestaIngestaService(propuestas, sectores, revisar, reloj,
                 CompuertaDePublicacion.porDefecto());
 

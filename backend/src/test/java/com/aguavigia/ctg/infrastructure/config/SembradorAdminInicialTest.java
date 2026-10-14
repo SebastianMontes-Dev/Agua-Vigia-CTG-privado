@@ -1,10 +1,10 @@
 package com.aguavigia.ctg.infrastructure.config;
 
 import com.aguavigia.ctg.application.RegistroDeAuditoria;
-import com.aguavigia.ctg.compartido.http.Pagina;
 import com.aguavigia.ctg.domain.AccionAuditada;
 import com.aguavigia.ctg.domain.ClaveHash;
 import com.aguavigia.ctg.domain.EstadoCuenta;
+import com.aguavigia.ctg.domain.Pagina;
 import com.aguavigia.ctg.domain.RolVeedor;
 import com.aguavigia.ctg.domain.Usuario;
 import com.aguavigia.ctg.domain.port.out.CifradorClavePort;

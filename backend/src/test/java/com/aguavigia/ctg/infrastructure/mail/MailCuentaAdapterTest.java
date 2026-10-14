@@ -1,6 +1,6 @@
 package com.aguavigia.ctg.infrastructure.mail;
 
-import com.aguavigia.ctg.compartido.valor.CorreoElectronico;
+import com.aguavigia.ctg.domain.CorreoElectronico;
 import com.aguavigia.ctg.domain.RolVeedor;
 import com.aguavigia.ctg.domain.Usuario;
 import com.aguavigia.ctg.domain.UsuarioId;

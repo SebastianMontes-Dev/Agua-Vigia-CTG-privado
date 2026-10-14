@@ -2,12 +2,11 @@ package com.aguavigia.ctg.api;
 
 import com.aguavigia.ctg.api.dto.EventoBitacoraRespuesta;
 import com.aguavigia.ctg.api.mapper.EventoBitacoraApiMapper;
-import com.aguavigia.ctg.compartido.http.CabecerasDePaginacion;
-import com.aguavigia.ctg.compartido.http.Pagina;
 import com.aguavigia.ctg.domain.EventoBitacora;
 import com.aguavigia.ctg.domain.EventoId;
 import com.aguavigia.ctg.domain.FiltroBitacora;
 import com.aguavigia.ctg.domain.ReporteId;
+import com.aguavigia.ctg.domain.Pagina;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.TipoEvento;
 import com.aguavigia.ctg.domain.port.in.ConsultarSustentoDeEventoUseCase;

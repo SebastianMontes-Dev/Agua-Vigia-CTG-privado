@@ -1,11 +1,11 @@
 package com.aguavigia.ctg.api;
 
-import com.aguavigia.ctg.compartido.error.ManejadorGlobalDeErrores;
-import com.aguavigia.ctg.compartido.http.Pagina;
-import com.aguavigia.ctg.compartido.valor.CorreoElectronico;
-import com.aguavigia.ctg.domain.ClaveHash;
+import com.aguavigia.ctg.api.error.ManejadorGlobalDeErrores;
+import com.aguavigia.ctg.domain.CorreoElectronico;
 import com.aguavigia.ctg.domain.EstadoCuenta;
+import com.aguavigia.ctg.domain.Pagina;
 import com.aguavigia.ctg.domain.Permiso;
+import com.aguavigia.ctg.domain.ClaveHash;
 import com.aguavigia.ctg.domain.PermisosEfectivos;
 import com.aguavigia.ctg.domain.RolVeedor;
 import com.aguavigia.ctg.domain.SectorId;

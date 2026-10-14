@@ -1,6 +1,6 @@
 package com.aguavigia.ctg.infrastructure.ingest;
 
-import com.aguavigia.ctg.compartido.config.RedisConfig;
+import com.aguavigia.ctg.infrastructure.config.RedisConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

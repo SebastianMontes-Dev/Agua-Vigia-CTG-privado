@@ -1,11 +1,11 @@
 package com.aguavigia.ctg.application;
 
 import com.aguavigia.ctg.domain.EstadoModeracion;
-import com.aguavigia.ctg.domain.HuellaDispositivo;
 import com.aguavigia.ctg.domain.ReporteCiudadano;
 import com.aguavigia.ctg.domain.ReporteId;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.TipoReporte;
+import com.aguavigia.ctg.domain.HuellaDispositivo;
 import com.aguavigia.ctg.domain.port.in.RecalcularSectorUseCase;
 import com.aguavigia.ctg.domain.port.out.ReporteCiudadanoRepository;
 import com.aguavigia.ctg.domain.port.out.TransaccionPort;

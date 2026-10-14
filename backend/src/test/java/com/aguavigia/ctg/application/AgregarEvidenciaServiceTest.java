@@ -1,13 +1,13 @@
 package com.aguavigia.ctg.application;
 
-import com.aguavigia.ctg.compartido.error.EntidadNoEncontradaException;
-import com.aguavigia.ctg.compartido.error.FormatoNoPermitidoException;
-import com.aguavigia.ctg.compartido.error.SubidaNoAutorizadaException;
+import com.aguavigia.ctg.domain.EntidadNoEncontradaException;
+import com.aguavigia.ctg.domain.FormatoNoPermitidoException;
 import com.aguavigia.ctg.domain.FotoGuardada;
 import com.aguavigia.ctg.domain.HuellaDispositivo;
 import com.aguavigia.ctg.domain.ReporteCiudadano;
 import com.aguavigia.ctg.domain.ReporteId;
 import com.aguavigia.ctg.domain.SectorId;
+import com.aguavigia.ctg.domain.SubidaNoAutorizadaException;
 import com.aguavigia.ctg.domain.TipoReporte;
 import com.aguavigia.ctg.domain.port.out.AlmacenamientoPort;
 import com.aguavigia.ctg.domain.port.out.ReporteCiudadanoRepository;

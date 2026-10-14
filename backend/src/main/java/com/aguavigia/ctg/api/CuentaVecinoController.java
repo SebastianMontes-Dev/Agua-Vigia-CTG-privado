@@ -1,7 +1,7 @@
 package com.aguavigia.ctg.api;
 
 import com.aguavigia.ctg.api.dto.SolicitudRegistroVecino;
-import com.aguavigia.ctg.compartido.valor.CorreoElectronico;
+import com.aguavigia.ctg.domain.CorreoElectronico;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.port.in.RegistrarVecinoUseCase;
 import io.swagger.v3.oas.annotations.Operation;

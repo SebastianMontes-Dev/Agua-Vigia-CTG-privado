@@ -1,11 +1,11 @@
 package com.aguavigia.ctg.application;
 
-import com.aguavigia.ctg.compartido.valor.Coordenada;
+import com.aguavigia.ctg.domain.Coordenada;
 import com.aguavigia.ctg.domain.EstadoServicio;
 import com.aguavigia.ctg.domain.HuellaDispositivo;
 import com.aguavigia.ctg.domain.NivelDeVerificacion;
-import com.aguavigia.ctg.domain.Reportante;
 import com.aguavigia.ctg.domain.ReporteCiudadano;
+import com.aguavigia.ctg.domain.Reportante;
 import com.aguavigia.ctg.domain.ResultadoConsenso;
 import com.aguavigia.ctg.domain.Sector;
 import com.aguavigia.ctg.domain.SectorId;
@@ -256,7 +256,7 @@ class RegistrarReporteServiceIdentidadTest {
         given(reportes.contarRecientesPorSectorYDispositivo(any(), any(), eq(vecino.huella()))).willReturn(5L);
 
         assertThatThrownBy(() -> registrar(MANGA, null, null, vecino, "1.1.1.1"))
-                .isInstanceOf(com.aguavigia.ctg.compartido.error.LimiteReportesExcedidoException.class);
+                .isInstanceOf(com.aguavigia.ctg.domain.LimiteReportesExcedidoException.class);
     }
 
     /** Una clase auxiliar mínima para inspeccionar lo guardado sin repetir el ArgumentCaptor en cada prueba. */

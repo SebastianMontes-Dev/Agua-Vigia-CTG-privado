@@ -1,7 +1,7 @@
 package com.aguavigia.ctg.api.mapper;
 
 import com.aguavigia.ctg.api.dto.SuscripcionRespuesta;
-import com.aguavigia.ctg.compartido.valor.CorreoElectronico;
+import com.aguavigia.ctg.domain.CorreoElectronico;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.Suscripcion;
 import org.mapstruct.Mapper;

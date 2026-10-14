@@ -1,6 +1,5 @@
 package com.aguavigia.ctg.domain;
 
-import com.aguavigia.ctg.compartido.valor.CorreoElectronico;
 import java.time.Instant;
 import java.util.List;
 

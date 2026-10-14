@@ -1,12 +1,12 @@
 package com.aguavigia.ctg.application;
 
-import com.aguavigia.ctg.compartido.http.Pagina;
-import com.aguavigia.ctg.compartido.reloj.Reloj;
+import com.aguavigia.ctg.domain.Pagina;
 import com.aguavigia.ctg.domain.RedEnRafaga;
 import com.aguavigia.ctg.domain.ReporteCiudadano;
 import com.aguavigia.ctg.domain.ReportesPendientes;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.port.in.ListarReportesPendientesUseCase;
+import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.ReporteCiudadanoRepository;
 
 import java.time.Duration;
@@ -20,11 +20,11 @@ import java.util.stream.Collectors;
 public class ListarReportesPendientesService implements ListarReportesPendientesUseCase {
 
     private final ReporteCiudadanoRepository reportes;
-    private final Reloj reloj;
+    private final RelojPort reloj;
     private final Duration ventana;
     private final int minimoDeReportes;
 
-    public ListarReportesPendientesService(ReporteCiudadanoRepository reportes, Reloj reloj, Duration ventana,
+    public ListarReportesPendientesService(ReporteCiudadanoRepository reportes, RelojPort reloj, Duration ventana,
                                            int minimoDeReportes) {
         this.reportes = reportes;
         this.reloj = reloj;

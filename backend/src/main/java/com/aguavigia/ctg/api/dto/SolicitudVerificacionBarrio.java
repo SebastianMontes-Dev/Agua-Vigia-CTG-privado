@@ -1,6 +1,5 @@
 package com.aguavigia.ctg.api.dto;
 
-import com.aguavigia.ctg.compartido.valor.CoordenadaDTO;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;

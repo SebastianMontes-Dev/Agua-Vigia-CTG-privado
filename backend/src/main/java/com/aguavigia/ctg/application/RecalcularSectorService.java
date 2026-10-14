@@ -1,14 +1,15 @@
 package com.aguavigia.ctg.application;
 
-import com.aguavigia.ctg.compartido.reloj.Reloj;
+import com.aguavigia.ctg.domain.Afirmacion;
 import com.aguavigia.ctg.domain.Afirmacion.CorteVeedor;
 import com.aguavigia.ctg.domain.Afirmacion.PrensaAprobada;
 import com.aguavigia.ctg.domain.Afirmacion.QuorumVecinos;
+import com.aguavigia.ctg.domain.ComposicionDelSustento;
+import com.aguavigia.ctg.domain.MemoriaDelBarrio;
+import com.aguavigia.ctg.domain.VotosDeVecinos;
 import com.aguavigia.ctg.domain.Afirmacion.RestablecimientoOficial;
 import com.aguavigia.ctg.domain.Afirmacion.VentanaOficial;
-import com.aguavigia.ctg.domain.Afirmacion;
 import com.aguavigia.ctg.domain.CierreDeCorte;
-import com.aguavigia.ctg.domain.ComposicionDelSustento;
 import com.aguavigia.ctg.domain.CorteAgua;
 import com.aguavigia.ctg.domain.CorteId;
 import com.aguavigia.ctg.domain.EstadoCorte;
@@ -18,7 +19,6 @@ import com.aguavigia.ctg.domain.EstrategiaConsenso;
 import com.aguavigia.ctg.domain.EventoBitacora;
 import com.aguavigia.ctg.domain.EventoBitacoraFactory;
 import com.aguavigia.ctg.domain.MarcasDeEstado;
-import com.aguavigia.ctg.domain.MemoriaDelBarrio;
 import com.aguavigia.ctg.domain.OrigenCorte;
 import com.aguavigia.ctg.domain.OrigenEstado;
 import com.aguavigia.ctg.domain.PropuestaIngesta;
@@ -29,12 +29,12 @@ import com.aguavigia.ctg.domain.ResultadoDeRecalculo;
 import com.aguavigia.ctg.domain.Sector;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.TipoReporte;
-import com.aguavigia.ctg.domain.VotosDeVecinos;
 import com.aguavigia.ctg.domain.port.in.RecalcularSectorUseCase;
 import com.aguavigia.ctg.domain.port.in.RegistrarEventoBitacoraUseCase;
 import com.aguavigia.ctg.domain.port.out.CorteAguaRepository;
 import com.aguavigia.ctg.domain.port.out.MetricasDelSistemaPort;
 import com.aguavigia.ctg.domain.port.out.PropuestaIngestaRepository;
+import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.ReporteCiudadanoRepository;
 import com.aguavigia.ctg.domain.port.out.SectorRepository;
 import com.aguavigia.ctg.domain.port.out.TransaccionPort;
@@ -80,7 +80,7 @@ public class RecalcularSectorService implements RecalcularSectorUseCase {
     private final EstrategiaConsenso estrategia;
     private final ResolutorDeEstadoSector resolutor;
     private final RegistrarEventoBitacoraUseCase registrarEvento;
-    private final Reloj reloj;
+    private final RelojPort reloj;
     private final TransaccionPort transaccion;
     private final Duration ventanaConsenso;
     private final int redesMinimas;
@@ -89,7 +89,7 @@ public class RecalcularSectorService implements RecalcularSectorUseCase {
     public RecalcularSectorService(SectorRepository sectores, CorteAguaRepository cortes,
                                    PropuestaIngestaRepository propuestas, ReporteCiudadanoRepository reportes,
                                    EstrategiaConsenso estrategia, ResolutorDeEstadoSector resolutor,
-                                   RegistrarEventoBitacoraUseCase registrarEvento, Reloj reloj,
+                                   RegistrarEventoBitacoraUseCase registrarEvento, RelojPort reloj,
                                    TransaccionPort transaccion, Duration ventanaConsenso,
                                    int redesMinimas) {
         this(sectores, cortes, propuestas, reportes, estrategia, resolutor, registrarEvento, reloj, transaccion, ventanaConsenso,
@@ -99,7 +99,7 @@ public class RecalcularSectorService implements RecalcularSectorUseCase {
     public RecalcularSectorService(SectorRepository sectores, CorteAguaRepository cortes,
                                    PropuestaIngestaRepository propuestas, ReporteCiudadanoRepository reportes,
                                    EstrategiaConsenso estrategia, ResolutorDeEstadoSector resolutor,
-                                   RegistrarEventoBitacoraUseCase registrarEvento, Reloj reloj,
+                                   RegistrarEventoBitacoraUseCase registrarEvento, RelojPort reloj,
                                    TransaccionPort transaccion, Duration ventanaConsenso,
                                    int redesMinimas, MetricasDelSistemaPort metricas) {
         if (redesMinimas < 1) {

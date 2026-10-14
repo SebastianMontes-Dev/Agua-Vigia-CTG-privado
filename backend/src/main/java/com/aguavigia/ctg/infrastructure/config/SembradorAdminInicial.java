@@ -1,18 +1,18 @@
 package com.aguavigia.ctg.infrastructure.config;
 
 import com.aguavigia.ctg.application.RegistroDeAuditoria;
-import com.aguavigia.ctg.compartido.reloj.Reloj;
-import com.aguavigia.ctg.compartido.valor.CorreoElectronico;
 import com.aguavigia.ctg.domain.AccionAuditada;
 import com.aguavigia.ctg.domain.ClaveEnClaro;
 import com.aguavigia.ctg.domain.ClaveHash;
 import com.aguavigia.ctg.domain.ContextoDeAccion;
+import com.aguavigia.ctg.domain.CorreoElectronico;
 import com.aguavigia.ctg.domain.EstadoCuenta;
 import com.aguavigia.ctg.domain.PermisosEfectivos;
 import com.aguavigia.ctg.domain.RolVeedor;
 import com.aguavigia.ctg.domain.Usuario;
 import com.aguavigia.ctg.domain.UsuarioId;
 import com.aguavigia.ctg.domain.port.out.CifradorClavePort;
+import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.UsuarioRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,7 +48,7 @@ public class SembradorAdminInicial {
 
     private final UsuarioRepository usuarios;
     private final RegistroDeAuditoria auditoria;
-    private final Reloj reloj;
+    private final RelojPort reloj;
     private final String correoConfigurado;
     private final String hashConfigurado;
     private final CifradorClavePort cifrador;
@@ -56,7 +56,7 @@ public class SembradorAdminInicial {
 
     public SembradorAdminInicial(UsuarioRepository usuarios,
                                  RegistroDeAuditoria auditoria,
-                                 Reloj reloj,
+                                 RelojPort reloj,
                                  CifradorClavePort cifrador,
                                  @Value("${aguavigia.cuentas.admin-inicial-correo:}") String correoConfigurado,
                                  @Value("${aguavigia.veedor.password-hash:}") String hashConfigurado,

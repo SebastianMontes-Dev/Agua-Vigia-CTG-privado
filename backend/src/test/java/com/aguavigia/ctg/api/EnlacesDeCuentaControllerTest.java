@@ -1,10 +1,10 @@
 package com.aguavigia.ctg.api;
 
-import com.aguavigia.ctg.compartido.error.ManejadorGlobalDeErrores;
-import com.aguavigia.ctg.compartido.valor.CorreoElectronico;
+import com.aguavigia.ctg.api.error.ManejadorGlobalDeErrores;
 import com.aguavigia.ctg.domain.ClaveEnClaro;
 import com.aguavigia.ctg.domain.ClaveHash;
 import com.aguavigia.ctg.domain.ContextoDeAccion;
+import com.aguavigia.ctg.domain.CorreoElectronico;
 import com.aguavigia.ctg.domain.Usuario;
 import com.aguavigia.ctg.domain.UsuarioId;
 import com.aguavigia.ctg.domain.port.in.AceptarInvitacionUseCase;

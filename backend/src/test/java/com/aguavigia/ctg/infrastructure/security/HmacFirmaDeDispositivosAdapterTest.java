@@ -12,7 +12,7 @@ class HmacFirmaDeDispositivosAdapterTest {
     private static final String SECRETO = "secreto-de-prueba-que-nadie-mas-conoce-0123456789";
     private static final DispositivoId ID = new DispositivoId("7f1c2b9e-4d3a-4e5b-8c6d-1a2b3c4d5e6f");
 
-    private final HmacFirmaDeDispositivosAdapter firma = new HmacFirmaDeDispositivosAdapter(SecretosDePrueba.con(nombre -> SECRETO));
+    private final HmacFirmaDeDispositivosAdapter firma = new HmacFirmaDeDispositivosAdapter(nombre -> SECRETO);
 
     @Test
     void unTokenEmitidoDebeVerificarseYDevolverElMismoId() {
@@ -69,7 +69,7 @@ class HmacFirmaDeDispositivosAdapterTest {
 
     @Test
     void unTokenFirmadoConOtroSecretoNoDebeVerificarse() {
-        String ajeno = new HmacFirmaDeDispositivosAdapter(SecretosDePrueba.con(nombre -> "otro-secreto-completamente-distinto-9876543210"))
+        String ajeno = new HmacFirmaDeDispositivosAdapter(nombre -> "otro-secreto-completamente-distinto-9876543210")
                 .emitir(ID);
 
         assertThat(firma.verificar(ajeno)).isEmpty();
@@ -90,10 +90,10 @@ class HmacFirmaDeDispositivosAdapterTest {
     @Test
     void debePedirElSecretoPorSuNombreYNoDebeDevolverVacioConUnTokenValido() {
         java.util.List<String> pedidos = new java.util.ArrayList<>();
-        HmacFirmaDeDispositivosAdapter conRegistro = new HmacFirmaDeDispositivosAdapter(SecretosDePrueba.con(nombre -> {
+        HmacFirmaDeDispositivosAdapter conRegistro = new HmacFirmaDeDispositivosAdapter(nombre -> {
             pedidos.add(nombre);
             return SECRETO;
-        }));
+        });
 
         Optional<DispositivoId> verificado = conRegistro.verificar(conRegistro.emitir(ID));
 

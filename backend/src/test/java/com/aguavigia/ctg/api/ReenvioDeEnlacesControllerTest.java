@@ -1,8 +1,8 @@
 package com.aguavigia.ctg.api;
 
-import com.aguavigia.ctg.compartido.error.EntidadNoEncontradaException;
-import com.aguavigia.ctg.compartido.error.ManejadorGlobalDeErrores;
-import com.aguavigia.ctg.compartido.valor.CorreoElectronico;
+import com.aguavigia.ctg.api.error.ManejadorGlobalDeErrores;
+import com.aguavigia.ctg.domain.CorreoElectronico;
+import com.aguavigia.ctg.domain.EntidadNoEncontradaException;
 import com.aguavigia.ctg.domain.Permiso;
 import com.aguavigia.ctg.domain.UsuarioId;
 import com.aguavigia.ctg.domain.port.in.ReenviarEnlaceDeCuentaUseCase;

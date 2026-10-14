@@ -20,7 +20,7 @@ páginas HTML del backend** (`/api/cuentas/enlaces/*`). Esas páginas funcionan 
 
 Para que el correo lleve a pantallas de la SPA (`/cuenta/verificar`, `/cuenta/invitacion`, `/cuenta/restablecer`, ya
 diseñadas en la guía §5.3), el backend tiene que cambiar `MailCuentaAdapter`. Es un cambio de comportamiento, así que va
-**después de la reducción (R9)** y se coordina con Sebastian. Queda como **FE6b opcional**: las tres pantallas, que
+**en una fase aparte** y se coordina con Sebastian. Queda como **FE6b opcional**: las tres pantallas, que
 llaman a `POST /api/cuentas/verificacion`, `/invitacion` y `/clave`.
 
 ## Pantallas

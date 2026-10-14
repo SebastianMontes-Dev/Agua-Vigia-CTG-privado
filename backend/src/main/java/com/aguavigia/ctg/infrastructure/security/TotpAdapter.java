@@ -1,8 +1,8 @@
 package com.aguavigia.ctg.infrastructure.security;
 
-import com.aguavigia.ctg.compartido.reloj.Reloj;
-import com.aguavigia.ctg.compartido.valor.CorreoElectronico;
+import com.aguavigia.ctg.domain.CorreoElectronico;
 import com.aguavigia.ctg.domain.SecretoTotp;
+import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.SegundoFactorPort;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -32,10 +32,10 @@ public class TotpAdapter implements SegundoFactorPort {
     private static final int FRANJAS_DE_TOLERANCIA = 1;
     private static final String ALGORITMO = "HmacSHA1";
 
-    private final Reloj reloj;
+    private final RelojPort reloj;
     private final String emisor;
 
-    public TotpAdapter(Reloj reloj,
+    public TotpAdapter(RelojPort reloj,
                        @Value("${aguavigia.cuentas.emisor-totp:AguaVigia CTG}") String emisor) {
         this.reloj = reloj;
         this.emisor = emisor;

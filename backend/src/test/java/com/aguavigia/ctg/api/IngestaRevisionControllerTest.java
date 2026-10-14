@@ -1,16 +1,16 @@
 package com.aguavigia.ctg.api;
 
+import com.aguavigia.ctg.api.error.ManejadorGlobalDeErrores;
 import com.aguavigia.ctg.api.mapper.PropuestaIngestaApiMapperImpl;
-import com.aguavigia.ctg.compartido.error.ManejadorGlobalDeErrores;
-import com.aguavigia.ctg.compartido.http.Pagina;
 import com.aguavigia.ctg.domain.EstadoServicio;
-import com.aguavigia.ctg.domain.Permiso;
+import com.aguavigia.ctg.domain.Pagina;
 import com.aguavigia.ctg.domain.PropuestaId;
 import com.aguavigia.ctg.domain.PropuestaIngesta;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.port.in.RevisarPropuestaIngestaUseCase;
 import com.aguavigia.ctg.domain.port.out.PropuestaIngestaRepository;
 import com.aguavigia.ctg.infrastructure.config.SecurityConfig;
+import com.aguavigia.ctg.domain.Permiso;
 import com.aguavigia.ctg.infrastructure.security.JwtProvider;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -169,7 +169,7 @@ class IngestaRevisionControllerTest {
     void debeResponder404EnFormatoRfc7807SiLaPropuestaNoExiste() throws Exception {
         autenticarComoVeedor();
         given(revisarPropuesta.aprobar(any()))
-                .willThrow(new com.aguavigia.ctg.compartido.error.EntidadNoEncontradaException("No existe la propuesta 'no-existe'"));
+                .willThrow(new com.aguavigia.ctg.domain.EntidadNoEncontradaException("No existe la propuesta 'no-existe'"));
 
         mockMvc.perform(patch("/api/veedor/ingesta/propuestas/no-existe/aprobar").header("Authorization", TOKEN))
                 .andExpect(status().isNotFound())

@@ -4,8 +4,7 @@ Plan por fases para que el frontend (`frontend/`, React 19 + Vite + TS) cubra **
 (`backend/openapi.yaml`). Lo ejecuta Yordy con Claude Code. Propuesto el 2026-10-06. Reemplaza la tabla de
 [`guia-frontend.md` §7](../diseno/guia-frontend.md#7-aplicación-por-claude-code).
 
-Las fases se llaman **FE0–FE7** para no confundirse con las fases F0–F6 del backend ni con las R0–R9 de la
-[reducción](../reduccion/README.md).
+Las fases se llaman **FE0–FE7** para no confundirse con las fases F0–F6 del backend.
 
 ## Punto de partida (`main`, 2026-10-06)
 
@@ -30,12 +29,11 @@ No hay panel, cuentas ni vecino. El ingreso al panel con segundo factor ya está
 
 ## Qué no cambia mientras se trabaja
 
-- **El contrato.** El backend está en reducción (R0–R9) y su contrato HTTP está **congelado**. Si una prueba contra el backend real falla justo después de una fusión de la reducción, es un defecto del backend: se avisa a Sebastian y no se adapta el frontend.
+- **El contrato.** `backend/openapi.yaml` es la fuente de verdad. Si una prueba contra el backend real falla sin que el contrato haya cambiado, es un defecto del backend: se avisa a Sebastian y no se adapta el frontend.
 - **La identidad visual** ([`identidad.md`](../diseno/identidad.md), ADR-070/071), los cuatro estados ([`DESIGN.md`](../../DESIGN.md)) y la regla de los cinco segundos (ADR-079): el veredicto arriba, cifras que se lean solas, dos columnas en escritorio y el detalle detrás de una acción.
 - **El stack:** React 19, Vite, TanStack Router y Query, `openapi-fetch`, react-aria, MapLibre y PMTiles, CSS propio. No se añaden librerías de interfaz.
-- **Quién manda si hay choque (nota del backend, 2026-10-08).** El backend tiene prioridad sobre el frontend: es el requisito 7 de la
-  [reducción](../reduccion/README.md#requisitos-del-dueño-añadidos-el-2026-10-07). Si algo de este plan choca con ella, se adapta el
-  frontend. El contrato sigue congelado hasta R9; si el backend necesitara cambiarlo, lo decide Sebastian y lo avisa en
+- **Quién manda si hay choque (nota del backend, 2026-10-08).** El backend tiene prioridad sobre el frontend: si algo de este plan
+  choca con él, se adapta el frontend. Si el backend necesitara cambiar el contrato, lo decide Sebastian y lo avisa en
   [`cambios-para-frontend.md`](../api/cambios-para-frontend.md) antes de fusionar.
 - **Las dos instancias.** El backend real (`http://localhost:8081`) arranca con las 30 000 cuentas de vecinos; la simulación
   (`http://localhost:8082`, `AGUAVIGIA_BACKEND=http://localhost:8082`) arranca sin cuentas. Para que las pruebas `e2e/real` sean repetibles,
@@ -115,7 +113,7 @@ FE0 va primero porque sin él nada compila contra el esquema nuevo y reportar no
 |---|---|
 | **FE0 es grande**: regenerar el esquema rompe la compilación en muchos sitios a la vez (`finReal`, `huella`, tipos de bitácora) | Se hace en una sola rama con commits por causa. La guía de FE0 lista cada punto con su archivo |
 | **La rama `feat/f5-ingreso-panel` está 81 commits atrás** y usa el esquema viejo | Se rebasa **después** de FE0. Solo `router.tsx` cambió en los dos lados. El mayor trabajo es adaptar sus tipos al esquema nuevo |
-| **El backend cambia por dentro (reducción) mientras se construye el panel** | Contrato congelado. Las pruebas `e2e/real` son además una red de seguridad para Sebastian: si fallan tras una fase R, se le avisa |
+| **El backend cambia mientras se construye el panel** | Los cambios de contrato se avisan en [`cambios-para-frontend.md`](../api/cambios-para-frontend.md). Las pruebas `e2e/real` son además una red de seguridad para Sebastian: si fallan sin cambio de contrato, se le avisa |
 | **El e2e real depende del límite de dispositivos** (10 por hora por IP) | `RATE_LIMIT_FACTOR=100` en el CI y en local (FE0). El cliente pide el token una vez y lo reutiliza |
 | **Los enlaces de los correos de cuenta abren páginas HTML del backend, no la SPA** | Funcionan tal cual. Que el correo apunte a la SPA exige cambiar `MailCuentaAdapter` (backend), que queda **después de R9** y coordinado con Sebastian. FE6 lo deja opcional |
 | **El panel con 30 000 cuentas sintéticas** | La lista de cuentas filtra `sintetica` y pagina por cabeceras. Nunca se cuentan como personas (frase fija de `cambios-para-frontend.md` F4) |

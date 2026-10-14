@@ -1,10 +1,10 @@
 package com.aguavigia.ctg.api;
 
-import com.aguavigia.ctg.compartido.error.ManejadorGlobalDeErrores;
-import com.aguavigia.ctg.domain.Permiso;
-import com.aguavigia.ctg.domain.port.out.SaludDeColectoresPort;
+import com.aguavigia.ctg.api.error.ManejadorGlobalDeErrores;
 import com.aguavigia.ctg.infrastructure.config.SecurityConfig;
+import com.aguavigia.ctg.domain.port.out.SaludDeColectoresPort;
 import com.aguavigia.ctg.infrastructure.ingest.EstadoColectorRegistry;
+import com.aguavigia.ctg.domain.Permiso;
 import com.aguavigia.ctg.infrastructure.security.JwtProvider;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

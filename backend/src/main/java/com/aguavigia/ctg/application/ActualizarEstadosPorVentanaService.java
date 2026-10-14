@@ -1,11 +1,11 @@
 package com.aguavigia.ctg.application;
 
-import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.port.in.ActualizarEstadosPorVentanaUseCase;
 import com.aguavigia.ctg.domain.port.in.RecalcularSectorUseCase;
 import com.aguavigia.ctg.domain.port.out.CorteAguaRepository;
 import com.aguavigia.ctg.domain.port.out.PropuestaIngestaRepository;
+import com.aguavigia.ctg.domain.port.out.RelojPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,7 +29,7 @@ public class ActualizarEstadosPorVentanaService implements ActualizarEstadosPorV
     private final PropuestaIngestaRepository propuestas;
     private final CorteAguaRepository cortes;
     private final RecalcularSectorUseCase recalcular;
-    private final Reloj reloj;
+    private final RelojPort reloj;
     private final Duration memoria;
 
     /**
@@ -37,7 +37,7 @@ public class ActualizarEstadosPorVentanaService implements ActualizarEstadosPorV
      *                resolutor, porque hasta entonces un corte sin confirmar sigue afirmando «sin servicio»
      */
     public ActualizarEstadosPorVentanaService(PropuestaIngestaRepository propuestas, CorteAguaRepository cortes,
-                                              RecalcularSectorUseCase recalcular, Reloj reloj, Duration memoria) {
+                                              RecalcularSectorUseCase recalcular, RelojPort reloj, Duration memoria) {
         this.propuestas = propuestas;
         this.cortes = cortes;
         this.recalcular = recalcular;

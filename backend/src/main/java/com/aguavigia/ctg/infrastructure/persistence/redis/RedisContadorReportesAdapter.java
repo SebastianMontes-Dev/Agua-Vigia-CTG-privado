@@ -1,10 +1,10 @@
 package com.aguavigia.ctg.infrastructure.persistence.redis;
 
-import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.domain.HuellaDispositivo;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.VotoReciente;
 import com.aguavigia.ctg.domain.port.out.ContadorReportesPort;
+import com.aguavigia.ctg.domain.port.out.RelojPort;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
@@ -33,13 +33,13 @@ public class RedisContadorReportesAdapter implements ContadorReportesPort {
     private static final Duration RETENCION_MAXIMA = Duration.ofHours(24);
 
     private final RedisTemplate<String, String> redis;
-    private final Reloj reloj;
+    private final RelojPort reloj;
 
     // Spring Boot registra ademas un bean "stringRedisTemplate" (StringRedisTemplate) que tambien
     // es asignable a RedisTemplate<String, String> — sin el calificador, cualquier inyeccion por
     // tipo es ambigua entre los dos.
     public RedisContadorReportesAdapter(@Qualifier("redisTemplate") RedisTemplate<String, String> redis,
-                                         Reloj reloj) {
+                                         RelojPort reloj) {
         this.redis = redis;
         this.reloj = reloj;
     }

@@ -2,9 +2,8 @@ package com.aguavigia.ctg.api;
 
 import com.aguavigia.ctg.api.dto.CorteRespuesta;
 import com.aguavigia.ctg.api.mapper.CorteApiMapper;
-import com.aguavigia.ctg.compartido.http.CabecerasDePaginacion;
-import com.aguavigia.ctg.compartido.http.Pagina;
 import com.aguavigia.ctg.domain.CorteAgua;
+import com.aguavigia.ctg.domain.Pagina;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.port.in.ConsultarHistorialDeCortesUseCase;
 import io.swagger.v3.oas.annotations.Operation;

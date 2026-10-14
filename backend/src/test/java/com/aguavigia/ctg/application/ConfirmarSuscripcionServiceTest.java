@@ -1,11 +1,11 @@
 package com.aguavigia.ctg.application;
 
-import com.aguavigia.ctg.compartido.reloj.Reloj;
-import com.aguavigia.ctg.compartido.valor.CorreoElectronico;
+import com.aguavigia.ctg.domain.CorreoElectronico;
 import com.aguavigia.ctg.domain.EstadoSuscripcion;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.Suscripcion;
 import com.aguavigia.ctg.domain.SuscripcionId;
+import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.SuscripcionRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,7 +26,7 @@ class ConfirmarSuscripcionServiceTest {
     private static final long HORAS_VIGENCIA = 48;
 
     private SuscripcionRepository suscripciones;
-    private Reloj reloj;
+    private RelojPort reloj;
     private ConfirmarSuscripcionService servicio;
 
     @BeforeEach
@@ -66,7 +66,7 @@ class ConfirmarSuscripcionServiceTest {
     void debeRechazarUnTokenVencido() {
         // BUG-041: confirmar-suscripcion.html le promete al vecino que el enlace vence en
         // HORAS_VIGENCIA horas — este es el caso que faltaba probar esa promesa.
-        Reloj relojUnSegundoDespuesDelVencimiento = () -> CREADA.plusSeconds(HORAS_VIGENCIA * 3600 + 1);
+        RelojPort relojUnSegundoDespuesDelVencimiento = () -> CREADA.plusSeconds(HORAS_VIGENCIA * 3600 + 1);
         servicio = new ConfirmarSuscripcionService(suscripciones, relojUnSegundoDespuesDelVencimiento, HORAS_VIGENCIA);
         given(suscripciones.buscarPorToken("token-1")).willReturn(Optional.of(pendienteCreadaEn(CREADA)));
 
@@ -76,7 +76,7 @@ class ConfirmarSuscripcionServiceTest {
 
     @Test
     void debeAceptarUnTokenJustoAntesDeVencer() {
-        Reloj relojUnSegundoAntesDelVencimiento = () -> CREADA.plusSeconds(HORAS_VIGENCIA * 3600 - 1);
+        RelojPort relojUnSegundoAntesDelVencimiento = () -> CREADA.plusSeconds(HORAS_VIGENCIA * 3600 - 1);
         servicio = new ConfirmarSuscripcionService(suscripciones, relojUnSegundoAntesDelVencimiento, HORAS_VIGENCIA);
         given(suscripciones.buscarPorToken("token-1")).willReturn(Optional.of(pendienteCreadaEn(CREADA)));
 

@@ -1,14 +1,14 @@
 package com.aguavigia.ctg.api;
 
+import com.aguavigia.ctg.api.error.ManejadorGlobalDeErrores;
 import com.aguavigia.ctg.api.mapper.CumplimientoApiMapperImpl;
-import com.aguavigia.ctg.compartido.error.ManejadorGlobalDeErrores;
 import com.aguavigia.ctg.domain.IndiceCumplimiento;
 import com.aguavigia.ctg.domain.PuntoSerieCumplimiento;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.port.in.CalcularCumplimientoUseCase;
-import com.aguavigia.ctg.domain.port.out.RevocacionSesionPort;
 import com.aguavigia.ctg.infrastructure.config.SecurityConfig;
 import com.aguavigia.ctg.infrastructure.security.JwtProvider;
+import com.aguavigia.ctg.domain.port.out.RevocacionSesionPort;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -77,7 +77,7 @@ class IndiceCumplimientoControllerTest {
     @Test
     void debeResponder400ConFormatoRfc7807SiElCorteNoExiste() throws Exception {
         given(calcularCumplimiento.porCorte(any()))
-                .willThrow(new com.aguavigia.ctg.compartido.error.EntidadNoEncontradaException("No existe el corte 'no-existe'"));
+                .willThrow(new com.aguavigia.ctg.domain.EntidadNoEncontradaException("No existe el corte 'no-existe'"));
 
         mockMvc.perform(get("/api/cumplimiento/cortes/no-existe"))
                 .andExpect(status().isNotFound())

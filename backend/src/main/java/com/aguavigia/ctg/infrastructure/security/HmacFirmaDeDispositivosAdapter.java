@@ -1,8 +1,8 @@
 package com.aguavigia.ctg.infrastructure.security;
 
-import com.aguavigia.ctg.compartido.secretos.SecretosDelSistema;
 import com.aguavigia.ctg.domain.DispositivoId;
 import com.aguavigia.ctg.domain.port.out.FirmaDeDispositivosPort;
+import com.aguavigia.ctg.domain.port.out.SecretosDelSistemaPort;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.Mac;
@@ -27,9 +27,9 @@ public class HmacFirmaDeDispositivosAdapter implements FirmaDeDispositivosPort {
     static final String SECRETO = "dispositivos";
     private static final String ALGORITMO = "HmacSHA256";
 
-    private final SecretosDelSistema secretos;
+    private final SecretosDelSistemaPort secretos;
 
-    public HmacFirmaDeDispositivosAdapter(SecretosDelSistema secretos) {
+    public HmacFirmaDeDispositivosAdapter(SecretosDelSistemaPort secretos) {
         this.secretos = secretos;
     }
 

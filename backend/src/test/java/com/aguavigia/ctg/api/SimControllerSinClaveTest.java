@@ -1,10 +1,10 @@
 package com.aguavigia.ctg.api;
 
-import com.aguavigia.ctg.compartido.error.ManejadorGlobalDeErrores;
+import com.aguavigia.ctg.api.error.ManejadorGlobalDeErrores;
 import com.aguavigia.ctg.domain.port.in.ControlarRelojDeSimulacionUseCase;
-import com.aguavigia.ctg.domain.port.in.IniciarSesionDeAdminDeSimulacionUseCase;
 import com.aguavigia.ctg.domain.port.in.InyectarBoletinSimuladoUseCase;
 import com.aguavigia.ctg.domain.port.in.ReiniciarSimulacionUseCase;
+import com.aguavigia.ctg.domain.port.in.IniciarSesionDeAdminDeSimulacionUseCase;
 import com.aguavigia.ctg.domain.port.out.RevocacionSesionPort;
 import com.aguavigia.ctg.infrastructure.config.SecurityConfig;
 import com.aguavigia.ctg.infrastructure.security.JwtProvider;

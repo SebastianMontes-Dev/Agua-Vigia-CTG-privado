@@ -1,8 +1,8 @@
 package com.aguavigia.ctg.infrastructure.security;
 
-import com.aguavigia.ctg.compartido.valor.CorreoElectronico;
 import com.aguavigia.ctg.domain.AlcanceSesion;
 import com.aguavigia.ctg.domain.ClaveHash;
+import com.aguavigia.ctg.domain.CorreoElectronico;
 import com.aguavigia.ctg.domain.EstadoCuenta;
 import com.aguavigia.ctg.domain.Permiso;
 import com.aguavigia.ctg.domain.PermisosEfectivos;
@@ -20,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 class JwtProviderTest {
 
     private static final Instant AHORA = Instant.parse("2026-08-09T20:00:00Z");
-    private static final com.aguavigia.ctg.compartido.reloj.Reloj RELOJ = () -> AHORA;
+    private static final com.aguavigia.ctg.domain.port.out.RelojPort RELOJ = () -> AHORA;
 
     private static final String SECRETO_VALIDO = "01234567890123456789012345678901"; // 33 bytes
 

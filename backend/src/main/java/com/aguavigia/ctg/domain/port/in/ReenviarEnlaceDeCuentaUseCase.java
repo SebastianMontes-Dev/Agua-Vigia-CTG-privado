@@ -1,7 +1,7 @@
 package com.aguavigia.ctg.domain.port.in;
 
-import com.aguavigia.ctg.compartido.valor.CorreoElectronico;
 import com.aguavigia.ctg.domain.ContextoDeAccion;
+import com.aguavigia.ctg.domain.CorreoElectronico;
 import com.aguavigia.ctg.domain.UsuarioId;
 
 /**
@@ -21,7 +21,7 @@ public interface ReenviarEnlaceDeCuentaUseCase {
     /**
      * Reenvía la invitación a una cuenta que aún no la aceptó.
      *
-     * @throws com.aguavigia.ctg.compartido.error.EntidadNoEncontradaException si no existe la cuenta
+     * @throws com.aguavigia.ctg.domain.EntidadNoEncontradaException si no existe la cuenta
      * @throws IllegalStateException                                 si la cuenta ya no está en estado INVITADA
      */
     void reenviarInvitacion(UsuarioId sujeto, ContextoDeAccion contexto);

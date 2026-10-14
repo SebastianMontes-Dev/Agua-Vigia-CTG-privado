@@ -1,15 +1,16 @@
 package com.aguavigia.ctg.api;
 
-import com.aguavigia.ctg.compartido.error.CredencialInvalidaException;
-import com.aguavigia.ctg.compartido.error.ManejadorGlobalDeErrores;
-import com.aguavigia.ctg.compartido.error.UbicacionFueraDelBarrioException;
-import com.aguavigia.ctg.compartido.error.UbicacionImprecisaException;
-import com.aguavigia.ctg.compartido.valor.Coordenada;
-import com.aguavigia.ctg.compartido.valor.CorreoElectronico;
+import com.aguavigia.ctg.api.error.ManejadorGlobalDeErrores;
 import com.aguavigia.ctg.domain.AlcanceSesion;
 import com.aguavigia.ctg.domain.CambiosDePerfil;
 import com.aguavigia.ctg.domain.ClaveHash;
 import com.aguavigia.ctg.domain.Consentimiento;
+import com.aguavigia.ctg.domain.Coordenada;
+import com.aguavigia.ctg.domain.CorreoElectronico;
+import com.aguavigia.ctg.domain.CredencialInvalidaException;
+import com.aguavigia.ctg.domain.UbicacionFueraDelBarrioException;
+import com.aguavigia.ctg.domain.UbicacionImprecisaException;
+import com.aguavigia.ctg.domain.port.in.VerificarBarrioVecinoUseCase;
 import com.aguavigia.ctg.domain.Permiso;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.SesionEmitida;
@@ -20,7 +21,6 @@ import com.aguavigia.ctg.domain.port.in.ActualizarPerfilVecinoUseCase;
 import com.aguavigia.ctg.domain.port.in.AutenticarUsuarioUseCase;
 import com.aguavigia.ctg.domain.port.in.CerrarSesionUseCase;
 import com.aguavigia.ctg.domain.port.in.ConsultarCuentasUseCase;
-import com.aguavigia.ctg.domain.port.in.VerificarBarrioVecinoUseCase;
 import com.aguavigia.ctg.domain.port.out.RevocacionSesionPort;
 import com.aguavigia.ctg.infrastructure.config.SecurityConfig;
 import com.aguavigia.ctg.infrastructure.security.JwtProvider;
@@ -294,7 +294,7 @@ class VecinoControllerTest {
     void sinIntentosDelDiaDebeResponder429ConRetryAfter() throws Exception {
         autenticadoCon(Permiso.GESTIONAR_PERFIL_PROPIO);
         given(verificarBarrio.verificar(any(), any(), org.mockito.ArgumentMatchers.anyDouble(), any()))
-                .willThrow(new com.aguavigia.ctg.compartido.error.LimiteDePeticionesExcedidoException(
+                .willThrow(new com.aguavigia.ctg.domain.LimiteDePeticionesExcedidoException(
                         "Ya usaste los 3 intentos de verificación de hoy.", 18000));
 
         mockMvc.perform(post(RUTA_VERIFICACION).header("Authorization", "Bearer " + TOKEN)

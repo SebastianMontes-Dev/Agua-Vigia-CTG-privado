@@ -1,10 +1,10 @@
 package com.aguavigia.ctg.application;
 
-import com.aguavigia.ctg.compartido.valor.CorreoElectronico;
 import com.aguavigia.ctg.domain.AccionAuditada;
 import com.aguavigia.ctg.domain.ClaveHash;
 import com.aguavigia.ctg.domain.Consentimiento;
 import com.aguavigia.ctg.domain.ContextoDeAccion;
+import com.aguavigia.ctg.domain.CorreoElectronico;
 import com.aguavigia.ctg.domain.EstadoCuenta;
 import com.aguavigia.ctg.domain.EventoAuditoria;
 import com.aguavigia.ctg.domain.PermisosEfectivos;

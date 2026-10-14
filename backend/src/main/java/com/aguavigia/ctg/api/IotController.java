@@ -1,9 +1,9 @@
 package com.aguavigia.ctg.api;
 
 import com.aguavigia.ctg.api.dto.IotPresionRequest;
-import com.aguavigia.ctg.compartido.error.CredencialInvalidaException;
-import com.aguavigia.ctg.compartido.error.ServicioNoDisponibleException;
-import com.aguavigia.ctg.compartido.valor.Coordenada;
+import com.aguavigia.ctg.api.error.ServicioNoDisponibleException;
+import com.aguavigia.ctg.domain.Coordenada;
+import com.aguavigia.ctg.domain.CredencialInvalidaException;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.port.in.RegistrarLecturaDePresionUseCase;
 import io.swagger.v3.oas.annotations.Operation;

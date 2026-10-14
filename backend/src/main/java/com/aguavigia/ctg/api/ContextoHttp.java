@@ -1,8 +1,8 @@
 package com.aguavigia.ctg.api;
 
 import com.aguavigia.ctg.domain.ContextoDeAccion;
-import com.aguavigia.ctg.domain.SesionAutenticada;
 import com.aguavigia.ctg.domain.UsuarioId;
+import com.aguavigia.ctg.domain.SesionAutenticada;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;

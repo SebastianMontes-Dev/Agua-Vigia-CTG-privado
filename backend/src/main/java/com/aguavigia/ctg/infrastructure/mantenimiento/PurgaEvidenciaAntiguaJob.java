@@ -1,12 +1,12 @@
 package com.aguavigia.ctg.infrastructure.mantenimiento;
 
-import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.domain.EvidenciaVencida;
 import com.aguavigia.ctg.domain.port.out.AlmacenamientoPort;
+import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.ReporteCiudadanoRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.aguavigia.ctg.compartido.tareas.EjecucionUnica;
+import com.aguavigia.ctg.infrastructure.scheduling.EjecucionUnica;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -31,13 +31,13 @@ public class PurgaEvidenciaAntiguaJob {
 
     private final AlmacenamientoPort almacenamiento;
     private final ReporteCiudadanoRepository reportes;
-    private final Reloj reloj;
+    private final RelojPort reloj;
     private final MantenimientoProperties propiedades;
     private final EjecucionUnica ejecucionUnica;
 
     public PurgaEvidenciaAntiguaJob(AlmacenamientoPort almacenamiento,
                                      ReporteCiudadanoRepository reportes,
-                                     Reloj reloj,
+                                     RelojPort reloj,
                                      MantenimientoProperties propiedades,
                                      EjecucionUnica ejecucionUnica) {
         this.almacenamiento = almacenamiento;

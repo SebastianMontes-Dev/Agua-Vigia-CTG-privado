@@ -13,8 +13,8 @@ Cada fila tiene su número de ADR para buscarla ahí. Las decisiones tomadas des
 
 | ADR | Decisión | Por qué |
 |---|---|---|
-| 001 | **Arquitectura Limpia** con puertos y adaptadores *(en revisión por ADR-098: pasa a paquetes por funcionalidad con reglas puras)* | Dominio testeable sin framework; SOLID demostrable. El MVC anterior mezclaba lógica en los controladores |
-| 002 | La regla de capas se verifica con **ArchUnit** en la build *(se conserva con otras reglas, ADR-098)* | Que `domain/` no importe Spring ni Mongo no depende de la disciplina de nadie: si se rompe, la build falla |
+| 001 | **Arquitectura Limpia** con puertos y adaptadores | Dominio testeable sin framework; SOLID demostrable. El MVC anterior mezclaba lógica en los controladores |
+| 002 | La regla de capas se verifica con **ArchUnit** en la build | Que `domain/` no importe Spring ni Mongo no depende de la disciplina de nadie: si se rompe, la build falla |
 | 003 | **MongoDB** para datos y **Redis** para estado efímero | Cortes = documentos variables + consultas geoespaciales; Redis para rate limiting, ventana de consenso y pub/sub |
 | 004 | Consumir la **API REST de Acuacar**, no scrapear HTML | Fuente oficial estable y sin conflicto con `robots.txt` |
 | 005 | Respetar `robots.txt` aunque sea evadible; sin disfrazar el `User-Agent` | Coherencia ética del proyecto (ver `06-etica-de-datos.md`) |
@@ -501,133 +501,31 @@ que venza el bloqueo (molestia, no brecha); no hay enfriamiento por cuenta en el
 - **Gana:** una carga medida con método y límites dichos, métricas con una guía de lectura en vez de umbrales inventados, tres escrituras que dejaron de pisarse, y scripts que ya no pueden borrar la base real
   por descuido. **Pierde:** las cifras de carga son de un PC compartido y no valen como capacidad de un servidor; la deuda de arriba sigue ahí hasta que haya datos que la justifiquen.
 
-## 5. Reducción estructural (2026-10-06)
+## 5. Reducción estructural (2026-10-06, abandonada)
 
-### ADR-098 — Reducción estructural por funcionalidad
+### ADR-098 — Reducción estructural por funcionalidad: abandonada
 
-**Estado: aceptada; en ejecución por fases (R0–R9, [`docs/reduccion/`](reduccion/README.md)).** Propuesta por Yordy, la ejecuta Sebastian.
+**Estado: rechazada (2026-10-14).** El profesor pidió conservar la arquitectura tal como estaba antes de la reducción.
 
-**Contexto.** El backend tiene 523 archivos `.java` (~28 000 líneas) y 247 de test (~34 000) para 89 endpoints:
-- 57 interfaces `port/in`, todas con una sola implementación
-- 44 `port/out`, de las que solo 3 tienen dos implementaciones
-- 49 DTO con 9 mappers
-- un `CasosDeUsoConfig` que cablea a mano 57 servicios
+**Contexto.** El 2026-10-06 se propuso pasar de capas técnicas (`domain`, `application`, `api`, `infrastructure`) a paquetes por
+funcionalidad, para bajar de unas 520 clases a unas 250 sin cambiar el contrato ni el comportamiento. El plan (fases R0–R9) se
+aprobó y se ejecutaron solo dos fases:
+- **R0** (red de seguridad): tests nuevos, catálogo de escenarios y herramientas de comparación. No tocó código de producción.
+- **R1**: `compartido/` con errores, configuración, reloj, HTTP, SSE, rate limit y secretos.
 
-Para tocar una funcionalidad hay que abrir 6–8 archivos en 4 paquetes. El proyecto es académico, corre en local (ADR-057/080)
-y hay que sustentarlo. Ese andamiaje cuesta más de lo que protege.
+**Decisión.** Se vuelve a la arquitectura limpia (puertos y adaptadores) de ADR-001 y ADR-002, que sigue vigente sin cambios:
+`domain` no importa Spring ni Mongo y la build lo verifica con ArchUnit. Se deshizo R1 completa (`git revert -m 1 8311b1f`) y
+se retiró el plan y las herramientas exclusivas de la reducción. El código de producción, el contrato (`openapi.yaml`), las
+colecciones de Mongo y las claves de Redis quedaron idénticos a los del commit `fb62a56^`, anterior al plan.
 
-**Decisión.** Se pasa a paquetes por funcionalidad (`sectores`, `cortes`, `reportes`, `bitacora`, `cumplimiento`,
-`estadisticas`, `ingesta`, `suscripciones`, `cuentas`, `sistema`, más `compartido`). Cada uno tiene:
-- un controlador sin lógica
-- uno o pocos `@Service` concretos
-- un almacén por agregado (Spring Data / `MongoTemplate`)
-- el modelo como `@Document`
-- un archivo de DTO
-- las reglas de negocio en `reglas/`, en Java puro
+**Qué se conservó.** Los tests de comportamiento que R0 añadió a `backend/src/test` (manejador de errores, cuentas, pipeline de
+ingesta, tareas programadas y el campo `_class` de Mongo), porque verifican el sistema tal como es.
 
-Solo quedan las interfaces con varias implementaciones reales (reloj, fuentes de ingesta, Telegram, notificación de cuenta).
-Se retiran MapStruct y el cableado a mano. **No se quita ninguna funcionalidad y el contrato HTTP queda congelado**: rutas,
-JSON, códigos, `type` RFC 7807, cabeceras, colecciones y campos.
+**Dónde queda la historia.** En git: el plan completo está en el commit `5721c91` (`git show 5721c91:docs/reduccion/README.md`) y la
+línea base de capacidad en `git show 5721c91:scripts/reduccion/linea-base`. Las etiquetas `pre-reduccion` y `reduccion-R<n>` que
+mencionaba el plan nunca se crearon.
 
-**Qué se conserva de ADR-001/002.** La idea de fondo: las reglas de negocio no dependen del framework y eso lo verifica la
-build. ArchUnit hace cumplir que:
-- `..reglas..` no importe Spring ni Mongo
-- los controladores no toquen almacenes
-- `compartido` no dependa de las funcionalidades
-- solo `bitacora` cree eventos
-- el estado de un barrio tenga un único escritor (ADR-087)
-- toda ruta del panel y del vecino exija `@PreAuthorize`
-
-Se acepta un ciclo deliberado: cortes, reportes e ingesta ↔ recálculo de estado. Corre en la misma transacción que la
-escritura que lo provoca.
-
-**Cómo se evita la regresión.** Ninguna fase se fusiona a `main` sin pasar la «puerta»:
-- `mvnw verify`
-- comparación del `/v3/api-docs` normalizado contra la línea base de R0
-- comparación de la forma de todas las respuestas GET
-- `verificar-flujos.mjs` ampliado a los 89 endpoints
-- el guion de simulación
-
-Además se usa un patrón de estrangulamiento (la clase nueva implementa la interfaz vieja mientras quedan consumidores
-viejos), y las operaciones atómicas se copian literal (`docs/reduccion/invariantes.md`).
-
-- **Gana:**
-  - una funcionalidad se lee en un solo paquete
-  - unas 250–300 clases menos (meta orientativa)
-  - el jurado ve la regla de oro en `reglas/` sin recorrer puertos vacíos
-  - el frontend no se entera: el contrato no cambia
-- **Pierde:**
-  - la simetría de «un caso de uso = una clase = una interfaz»
-  - las capas ya no se distinguen por paquete, sino por convención y por ArchUnit
-  - el cambio es grande y se reparte en 10 fases
-- **Se revierte** con la etiqueta `pre-reduccion` (o `reduccion-R<n>` para volver a una fase), porque el contrato no cambió.
-
-
-### ADR-099 — Cierre de R0: requisitos del dueño, decisiones de la red de seguridad y criterio de capacidad
-
-**Estado: aceptada (2026-10-08).** Sebastian delegó en Claude las decisiones pendientes de R0 y pidió que se tomaran con criterio profesional. Complementa
-a ADR-098; el plan vive en [`docs/reduccion/`](reduccion/README.md).
-
-**Los 7 requisitos del dueño** (2026-10-07; el texto completo y su herramienta de control están en el [README de la reducción](reduccion/README.md#requisitos-del-dueño-añadidos-el-2026-10-07)):
-1. Toda la lógica de negocio se queda, con todos sus escenarios, sin un solo hueco.
-2. El proyecto arranca con las 30 000 cuentas de vecinos cargadas.
-3. Los endpoints aguantan a todos los usuarios acordados a la vez (10 000 registros, 5 000 reportes, suscripciones y lectura).
-4. Dos instancias en localhost: la real (`:8081`) y la de simulación (`:8082`).
-5. Los scripts que inyectan usuarios y simulan personas siguen funcionando contra la simulación.
-6. MongoDB y Redis quedan intactos: misma estructura.
-7. El backend va primero; el frontend se adapta.
-
-El punto 8 de la lista del dueño llegó vacío: no hay acción pendiente. «Sentores» del punto 4 se entiende como **sectores** (barrios).
-
-**Decisiones.**
-1. **E31** (cerrar dos veces a la vez el mismo corte no es atómico): se deja como está durante la reducción. Endurecerlo con un filtro de estado esperado
-   cambiaría comportamiento; queda como mejora posterior a R9.
-2. **Reglas de negocio**: las de [`escenarios-de-negocio.md`](reduccion/escenarios-de-negocio.md) se conservan tal cual, incluidas las que eran más finas que el
-   primer borrador (reapertura de un corte solo dentro de las 3 h, un reporte fuera del barrio no se rechaza, expiración a 24 h y 72 h, compuerta de publicación
-   de la ingesta). Los 72 escenarios tienen test que pasa; R0 escribió los de E27, E43, E67, E126 y E145.
-3. **`_class` de Mongo.** Spring Data guarda en cada documento el nombre completo de su clase Java. Al mover los `@Document` a paquetes por funcionalidad ese
-   nombre cambiaría y la base ya no sería «igualita» (requisito 6). Se conservan los nombres de hoy con un `ConfigurableTypeInformationMapper` en
-   `compartido/config`, que se instala **en R1/R2, antes de mover el primer `@Document`**.
-   *(Implementado en R1 con una anotación `@ClaseGuardadaComo` sobre cada `@Document` movido y un mapeador que la lee, en vez de un mapa: un mapa con las clases de todas
-   las funcionalidades obligaría a `compartido` a importarlas. Ver [invariantes](reduccion/invariantes.md#el-campo-_class-de-mongo).)*
-   `ClaseGuardadaEnLosDocumentosTest` demuestra las dos mitades: un `_class` de una clase que ya no existe se lee igual como el tipo declarado, y el mapeador
-   configurado escribe el nombre antiguo.
-4. **Criterio de capacidad (requisito 3).** La carga mixta de [R0 §8](reduccion/R0-red-de-seguridad.md#8-línea-base-de-capacidad) mide a la vez el backend y el
-   generador en un PC compartido, y varía mucho de una corrida a otra (tabla abajo). Por eso la puerta no pide «todas las corridas verdes», sino:
-   - **Pasa** si, en **hasta 3 corridas consecutivas**, **al menos una** cumple todos los umbrales de `scripts/carga/flujo-ciudadano.js`: reporte p95 < 1 s,
-     lectura p95 < 1 s, registro p95 < 2 s, fallos < 1 % y menos de 50 iteraciones descartadas. La serie se detiene en la primera que cumple.
-   - Si las 3 fallan, la fase **no se cierra**. Antes de investigar el código se corre la misma carga contra la etiqueta `pre-reduccion` en la misma sesión: la
-     fase pasa si no queda peor que ese contraste (el cuello de botella puede ser el PC y no el código).
-   - Una corrida en que el backend **colapsa** (más de la mitad de las peticiones falla) cuenta como fallida y se investiga la causa aunque la siguiente pase.
-   - Se anotan **todas** las corridas, no solo la buena. Una corrida con el entorno mal puesto (por ejemplo sin `CLAVE_VEEDORES`) no se cuenta, pero se anota.
-   - Es obligatorio al cerrar **R2, R4, R8 y R9**.
-5. **Veedores bajo carga**: R0 no mide `POST /api/veedor/sesion` bajo carga porque el generador necesita la clave de las cuentas demo, que ya no está en el
-   repositorio. **R8 debe medirlo** con una clave de prueba generada.
-6. **Simulación con 0 cuentas** (`VECINOS_SINTETICOS=0`); la real con 30 000. Se mantiene. `agregar-usuarios` funciona contra la simulación (comando exacto en
-   [`scripts/simulacion/README.md`](../scripts/simulacion/README.md#agregar-usuarios-a-la-simulación)); requiere que la base de simulación tenga sus barrios (`simulador reiniciar`).
-7. **`puerta.sh` con `down -v`** queda autorizada en cada cierre de fase; hace copia de Mongo antes de borrar.
-8. **Subagentes**: si se usan, con `model: sonnet`.
-9. **Aviso a Yordy**: la nota ya está en [`docs/frontend/README.md`](frontend/README.md) (el backend manda; el contrato queda congelado hasta R9;
-   `INGESTA_MODO=local` para e2e repetibles). Sebastian se la comenta.
-10. **Una fase por sesión.** R1 empieza en una sesión nueva.
-
-**Corridas de capacidad de R0** (`scripts/carga/demo.mjs --usuarios 5000 --ventana 60 --conectados 10000 --registros 10000 --tasa-registros 50 --suscripciones 5 --veedores 0 --sin-correo --restaurar --sobre-datos-reales`, mismo código en las cinco):
-
-| # | Reportes p95 | Registros | Lectura p95 | Resultado |
-|---|---|---|---|---|
-| 1 | 392 ms | 10 000 de 10 000, p95 418 ms | < 1 s | **Cumple todos los umbrales**, 10 000 SSE abiertas |
-| 2 | **1 736 ms** | p95 750 ms | < 1 s | Falla el umbral de reportes |
-| 3 | — | 0 de 10 000 | — | **Colapso**: el backend no contestó a ninguna petición en 60 s (0,27 % de comprobaciones correctas) |
-| 4 | 103 ms | 0 de 10 000 | — | No cuenta para registros: faltaba `CLAVE_VEEDORES` y todos fallaron con 400 en ~1 ms. Los reportes fueron los mejores (5 000 de 5 000) |
-| 5 | **2 018 ms** | 9 994 de 10 000, p95 541 ms | 301 ms | Fallan reportes y 183 iteraciones descartadas |
-
-Lectura honesta: **solo 1 de 5 corridas cumplió todo**, así que una serie que hubiera empezado en la corrida 2 habría agotado sus 3 intentos. Las demás fallas son
-de latencia de la cola (p95 de reportes) o de colapso, no de funcionalidad: con la corrida 4 los reportes fueron más rápidos que nunca. No se identificó la causa del
-colapso de la corrida 3 (el backend había arrancado 21 s antes que k6, con el perfil de carga y 10 000 conexiones SSE entrando a la vez). Por eso el criterio exige
-comparar con `pre-reduccion` el mismo día, y por eso el colapso se investiga si se repite. En las corridas 3 a 5 había además otros dos stacks de Docker
-(`simtest` y `verif`, ociosos) en marcha; medir con solo el del proyecto es una precaución, no una causa demostrada.
-
-- **Gana:** una puerta de capacidad que se puede cumplir y que no engaña (cuenta todas las corridas y se contrasta con la línea previa), el `_class` resuelto antes
-  de que cueste, y un registro de decisiones que no depende de la memoria de nadie.
-- **Pierde:** la puerta de capacidad no es determinista; la mide un PC compartido. Si la reducción empeorara el rendimiento por poco, el contraste con `pre-reduccion` es lo que lo delataría.
-- **Se revierte** editando este ADR y el criterio de [R0 §8](reduccion/R0-red-de-seguridad.md#8-línea-base-de-capacidad); ninguna de estas decisiones toca código de producción.
+- **Gana:** la estructura que el profesor conoce y la simetría «un caso de uso = una clase = una interfaz».
+- **Pierde:** el costo de navegación (6–8 archivos por funcionalidad) y unas 250 clases que la reducción habría quitado. Ese costo
+  se asume y se explica en la sustentación.
+- **Se revierte** retomando el plan desde el commit `5721c91`; no se descarta nada que no esté en el historial.

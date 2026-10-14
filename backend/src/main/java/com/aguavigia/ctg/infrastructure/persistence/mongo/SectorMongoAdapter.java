@@ -1,14 +1,14 @@
 package com.aguavigia.ctg.infrastructure.persistence.mongo;
 
-import com.aguavigia.ctg.compartido.reloj.Reloj;
-import com.aguavigia.ctg.compartido.valor.Coordenada;
+import com.aguavigia.ctg.domain.Coordenada;
 import com.aguavigia.ctg.domain.EstadoServicio;
 import com.aguavigia.ctg.domain.MarcasDeEstado;
 import com.aguavigia.ctg.domain.OrigenEstado;
 import com.aguavigia.ctg.domain.RespaldoVecinal;
+import com.aguavigia.ctg.domain.VentanaTiempo;
 import com.aguavigia.ctg.domain.Sector;
 import com.aguavigia.ctg.domain.SectorId;
-import com.aguavigia.ctg.domain.VentanaTiempo;
+import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.SectorRepository;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
@@ -45,11 +45,11 @@ public class SectorMongoAdapter implements SectorRepository {
 
     private final SectorMongoRepository repositorio;
     private final MongoTemplate mongoTemplate;
-    private final Reloj reloj;
+    private final RelojPort reloj;
     private final ApplicationEventPublisher eventPublisher;
     private final CacheManager cacheManager;
 
-    public SectorMongoAdapter(SectorMongoRepository repositorio, MongoTemplate mongoTemplate, Reloj reloj,
+    public SectorMongoAdapter(SectorMongoRepository repositorio, MongoTemplate mongoTemplate, RelojPort reloj,
                               ApplicationEventPublisher eventPublisher, CacheManager cacheManager) {
         this.repositorio = repositorio;
         this.mongoTemplate = mongoTemplate;

@@ -18,7 +18,7 @@ import java.time.Instant;
  * saldría sobre casi todo el mapa. Nunca es anterior al cambio: cambiar el estado es verificarlo.
  *
  * Quien escribe las dos marcas es {@code SectorMongoAdapter}, con {@link
- * com.aguavigia.ctg.compartido.reloj.Reloj}, y no {@link #conEstado(EstadoServicio)}: así hay un
+ * com.aguavigia.ctg.domain.port.out.RelojPort}, y no {@link #conEstado(EstadoServicio)}: así hay un
  * solo reloj decidiendo la marca de tiempo de un cambio de estado. La consecuencia es que un Sector
  * recién derivado con {@code conEstado()} conserva en memoria las marcas anteriores hasta que se
  * guarda y se relee — el {@code SectorActualizadoEvent} que publica el adaptador sí viaja con las

@@ -1,7 +1,7 @@
 package com.aguavigia.ctg.domain.port.out;
 
-import com.aguavigia.ctg.compartido.http.Pagina;
 import com.aguavigia.ctg.domain.EventoAuditoria;
+import com.aguavigia.ctg.domain.Pagina;
 
 /**
  * Igual que EventoBitacoraRepository: solo anexar y leer. Que no exista `editar` ni `eliminar` es

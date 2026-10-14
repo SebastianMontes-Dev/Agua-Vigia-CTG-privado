@@ -1,14 +1,14 @@
 package com.aguavigia.ctg.application;
 
-import com.aguavigia.ctg.compartido.error.EntidadNoEncontradaException;
-import com.aguavigia.ctg.compartido.error.FormatoNoPermitidoException;
-import com.aguavigia.ctg.compartido.error.SubidaNoAutorizadaException;
-import com.aguavigia.ctg.compartido.reloj.Reloj;
+import com.aguavigia.ctg.domain.EntidadNoEncontradaException;
+import com.aguavigia.ctg.domain.FormatoNoPermitidoException;
 import com.aguavigia.ctg.domain.FotoGuardada;
 import com.aguavigia.ctg.domain.ReporteCiudadano;
 import com.aguavigia.ctg.domain.ReporteId;
+import com.aguavigia.ctg.domain.SubidaNoAutorizadaException;
 import com.aguavigia.ctg.domain.port.in.AgregarEvidenciaUseCase;
 import com.aguavigia.ctg.domain.port.out.AlmacenamientoPort;
+import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.ReporteCiudadanoRepository;
 import com.aguavigia.ctg.domain.port.out.SubidaDeFotoRepository;
 import com.aguavigia.ctg.domain.port.out.TokenDeSubidaPort;
@@ -40,10 +40,10 @@ public class AgregarEvidenciaService implements AgregarEvidenciaUseCase {
     private final AlmacenamientoPort almacenamiento;
     private final SubidaDeFotoRepository subidas;
     private final TokenDeSubidaPort tokens;
-    private final Reloj reloj;
+    private final RelojPort reloj;
 
     public AgregarEvidenciaService(ReporteCiudadanoRepository reportes, AlmacenamientoPort almacenamiento,
-                                   SubidaDeFotoRepository subidas, TokenDeSubidaPort tokens, Reloj reloj) {
+                                   SubidaDeFotoRepository subidas, TokenDeSubidaPort tokens, RelojPort reloj) {
         this.reportes = reportes;
         this.almacenamiento = almacenamiento;
         this.subidas = subidas;

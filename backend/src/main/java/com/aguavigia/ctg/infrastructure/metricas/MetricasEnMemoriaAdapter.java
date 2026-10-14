@@ -1,6 +1,5 @@
 package com.aguavigia.ctg.infrastructure.metricas;
 
-import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.domain.EstadoServicio;
 import com.aguavigia.ctg.domain.MetricasDelSistema;
 import com.aguavigia.ctg.domain.NivelDeVerificacion;
@@ -8,6 +7,7 @@ import com.aguavigia.ctg.domain.OrigenEstado;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.TipoReporte;
 import com.aguavigia.ctg.domain.port.out.MetricasDelSistemaPort;
+import com.aguavigia.ctg.domain.port.out.RelojPort;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
@@ -41,7 +41,7 @@ public class MetricasEnMemoriaAdapter implements MetricasDelSistemaPort {
     private final LongAdder segundosAcumulados = new LongAdder();
     private final AtomicLong maximoSegundos = new AtomicLong();
 
-    public MetricasEnMemoriaAdapter(Reloj reloj) {
+    public MetricasEnMemoriaAdapter(RelojPort reloj) {
         this.desde = reloj.ahora();
     }
 

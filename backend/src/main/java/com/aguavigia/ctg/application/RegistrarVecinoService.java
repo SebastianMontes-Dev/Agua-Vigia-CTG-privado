@@ -1,11 +1,10 @@
 package com.aguavigia.ctg.application;
 
-import com.aguavigia.ctg.compartido.reloj.Reloj;
-import com.aguavigia.ctg.compartido.valor.CorreoElectronico;
 import com.aguavigia.ctg.domain.AccionAuditada;
 import com.aguavigia.ctg.domain.Consentimiento;
 import com.aguavigia.ctg.domain.ConsentimientosAceptados;
 import com.aguavigia.ctg.domain.ContextoDeAccion;
+import com.aguavigia.ctg.domain.CorreoElectronico;
 import com.aguavigia.ctg.domain.CorreoYaRegistradoException;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.TipoConsentimiento;
@@ -14,6 +13,7 @@ import com.aguavigia.ctg.domain.Usuario;
 import com.aguavigia.ctg.domain.UsuarioId;
 import com.aguavigia.ctg.domain.port.in.RegistrarVecinoUseCase;
 import com.aguavigia.ctg.domain.port.out.NotificacionCuentaPort;
+import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.SectorRepository;
 import com.aguavigia.ctg.domain.port.out.TiempoConstantePort;
 import com.aguavigia.ctg.domain.port.out.UsuarioRepository;
@@ -38,7 +38,7 @@ public class RegistrarVecinoService implements RegistrarVecinoUseCase {
     private final EmisorDeTokensDeCuenta emisorDeTokens;
     private final NotificacionCuentaPort notificaciones;
     private final RegistroDeAuditoria auditoria;
-    private final Reloj reloj;
+    private final RelojPort reloj;
     private final SectorRepository sectores;
     private final TiempoConstantePort tiempoConstante;
     private final String versionPrivacidad;
@@ -47,7 +47,7 @@ public class RegistrarVecinoService implements RegistrarVecinoUseCase {
                                   EmisorDeTokensDeCuenta emisorDeTokens,
                                   NotificacionCuentaPort notificaciones,
                                   RegistroDeAuditoria auditoria,
-                                  Reloj reloj,
+                                  RelojPort reloj,
                                   SectorRepository sectores,
                                   TiempoConstantePort tiempoConstante,
                                   String versionPrivacidad) {

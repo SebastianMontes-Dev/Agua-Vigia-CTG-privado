@@ -1,10 +1,10 @@
 package com.aguavigia.ctg.infrastructure.ingest;
 
-import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.domain.EstadoServicio;
 import com.aguavigia.ctg.domain.Sector;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.port.in.RegistrarPropuestaIngestaUseCase;
+import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.SectorRepository;
 import com.aguavigia.ctg.infrastructure.persistence.mongo.DocumentoFallidoDocumento;
 import com.aguavigia.ctg.infrastructure.persistence.mongo.DocumentoFallidoMongoRepository;
@@ -48,7 +48,7 @@ class PipelineOrquestadorTest {
     private EstadoColectorRegistry estadoColectores;
     private MarcaDeIngestaMongoRepository marcas;
     private DocumentoFallidoMongoRepository fallidos;
-    private Reloj reloj;
+    private RelojPort reloj;
 
     private PipelineOrquestador orquestador;
 
@@ -60,7 +60,7 @@ class PipelineOrquestadorTest {
         extractor = mock(HeuristicaExtractor.class);
         sectores = mock(SectorRepository.class);
         registrarPropuesta = mock(RegistrarPropuestaIngestaUseCase.class);
-        reloj = mock(Reloj.class);
+        reloj = mock(RelojPort.class);
         marcas = mock(MarcaDeIngestaMongoRepository.class);
         fallidos = mock(DocumentoFallidoMongoRepository.class);
         // Real y no mock: es un contador en memoria sin dependencias, y así el test puede

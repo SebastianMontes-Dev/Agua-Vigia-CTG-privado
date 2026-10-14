@@ -10,7 +10,7 @@ import com.aguavigia.ctg.domain.SectorId;
 public interface ConfirmarRestablecimientoPorEnlaceUseCase {
 
     /**
-     * @throws com.aguavigia.ctg.compartido.error.EnlaceDeRestablecimientoInvalidoException si el enlace no sirve, por la razón que sea
+     * @throws com.aguavigia.ctg.domain.EnlaceDeRestablecimientoInvalidoException si el enlace no sirve, por la razón que sea
      */
     ReporteCiudadano confirmar(SectorId sector, String token, String ip);
 }

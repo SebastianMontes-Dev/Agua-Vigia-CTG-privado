@@ -1,6 +1,5 @@
 package com.aguavigia.ctg.infrastructure.mail;
 
-import com.aguavigia.ctg.compartido.correo.PlantillaCorreo;
 import com.aguavigia.ctg.domain.TipoTokenCuenta;
 import com.aguavigia.ctg.domain.Usuario;
 import com.aguavigia.ctg.domain.port.out.NotificacionCuentaPort;

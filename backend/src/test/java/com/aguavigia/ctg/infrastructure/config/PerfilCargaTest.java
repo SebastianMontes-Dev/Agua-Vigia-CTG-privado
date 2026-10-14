@@ -1,6 +1,6 @@
 package com.aguavigia.ctg.infrastructure.config;
 
-import com.aguavigia.ctg.compartido.ratelimit.RateLimitProperties;
+import com.aguavigia.ctg.infrastructure.ratelimit.RateLimitProperties;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.boot.test.context.ConfigDataApplicationContextInitializer;

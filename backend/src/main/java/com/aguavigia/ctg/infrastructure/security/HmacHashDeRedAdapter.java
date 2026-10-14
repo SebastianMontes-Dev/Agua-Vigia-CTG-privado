@@ -1,8 +1,8 @@
 package com.aguavigia.ctg.infrastructure.security;
 
-import com.aguavigia.ctg.compartido.ratelimit.RedDeOrigen;
-import com.aguavigia.ctg.compartido.secretos.SecretosDelSistema;
+import com.aguavigia.ctg.domain.RedDeOrigen;
 import com.aguavigia.ctg.domain.port.out.HashDeRedPort;
+import com.aguavigia.ctg.domain.port.out.SecretosDelSistemaPort;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.Mac;
@@ -26,9 +26,9 @@ public class HmacHashDeRedAdapter implements HashDeRedPort {
     static final String SECRETO = "red";
     private static final String ALGORITMO = "HmacSHA256";
 
-    private final SecretosDelSistema secretos;
+    private final SecretosDelSistemaPort secretos;
 
-    public HmacHashDeRedAdapter(SecretosDelSistema secretos) {
+    public HmacHashDeRedAdapter(SecretosDelSistemaPort secretos) {
         this.secretos = secretos;
     }
 

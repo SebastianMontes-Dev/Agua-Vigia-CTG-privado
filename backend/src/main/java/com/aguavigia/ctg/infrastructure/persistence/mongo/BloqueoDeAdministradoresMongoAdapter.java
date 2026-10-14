@@ -1,7 +1,7 @@
 package com.aguavigia.ctg.infrastructure.persistence.mongo;
 
-import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.domain.port.out.BloqueoDeAdministradoresPort;
+import com.aguavigia.ctg.domain.port.out.RelojPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DuplicateKeyException;
@@ -41,9 +41,9 @@ public class BloqueoDeAdministradoresMongoAdapter implements BloqueoDeAdministra
     private static final Duration DURACION_MAXIMA = Duration.ofSeconds(10);
 
     private final MongoTemplate mongoTemplate;
-    private final Reloj reloj;
+    private final RelojPort reloj;
 
-    public BloqueoDeAdministradoresMongoAdapter(MongoTemplate mongoTemplate, Reloj reloj) {
+    public BloqueoDeAdministradoresMongoAdapter(MongoTemplate mongoTemplate, RelojPort reloj) {
         this.mongoTemplate = mongoTemplate;
         this.reloj = reloj;
     }

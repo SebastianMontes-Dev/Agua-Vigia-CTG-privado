@@ -1,7 +1,7 @@
 package com.aguavigia.ctg.application;
 
-import com.aguavigia.ctg.domain.ModoDelSistema.Modo;
 import com.aguavigia.ctg.domain.ModoDelSistema;
+import com.aguavigia.ctg.domain.ModoDelSistema.Modo;
 import com.aguavigia.ctg.domain.port.out.UsuarioRepository;
 import org.junit.jupiter.api.Test;
 

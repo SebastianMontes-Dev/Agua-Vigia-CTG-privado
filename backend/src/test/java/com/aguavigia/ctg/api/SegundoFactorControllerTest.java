@@ -1,16 +1,16 @@
 package com.aguavigia.ctg.api;
 
-import com.aguavigia.ctg.compartido.error.ManejadorGlobalDeErrores;
-import com.aguavigia.ctg.compartido.valor.CorreoElectronico;
+import com.aguavigia.ctg.api.error.ManejadorGlobalDeErrores;
 import com.aguavigia.ctg.domain.ClaveHash;
+import com.aguavigia.ctg.domain.CorreoElectronico;
 import com.aguavigia.ctg.domain.EstadoCuenta;
 import com.aguavigia.ctg.domain.Permiso;
 import com.aguavigia.ctg.domain.PermisosEfectivos;
 import com.aguavigia.ctg.domain.RolVeedor;
 import com.aguavigia.ctg.domain.Usuario;
 import com.aguavigia.ctg.domain.UsuarioId;
-import com.aguavigia.ctg.domain.port.in.ConfigurarSegundoFactorUseCase.AltaSegundoFactor;
 import com.aguavigia.ctg.domain.port.in.ConfigurarSegundoFactorUseCase;
+import com.aguavigia.ctg.domain.port.in.ConfigurarSegundoFactorUseCase.AltaSegundoFactor;
 import com.aguavigia.ctg.domain.port.in.ConsultarCuentasUseCase;
 import com.aguavigia.ctg.domain.port.out.RevocacionSesionPort;
 import com.aguavigia.ctg.infrastructure.config.SecurityConfig;

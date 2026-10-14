@@ -1,11 +1,11 @@
 package com.aguavigia.ctg.infrastructure.ingest;
 
-import com.aguavigia.ctg.compartido.reloj.Reloj;
 import com.aguavigia.ctg.domain.AvisoDeIngesta;
 import com.aguavigia.ctg.domain.EstadoServicio;
 import com.aguavigia.ctg.domain.Sector;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.port.in.RegistrarPropuestaIngestaUseCase;
+import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.SectorRepository;
 import com.aguavigia.ctg.infrastructure.persistence.mongo.DocumentoFallidoDocumento;
 import com.aguavigia.ctg.infrastructure.persistence.mongo.DocumentoFallidoMongoRepository;
@@ -13,7 +13,7 @@ import com.aguavigia.ctg.infrastructure.persistence.mongo.MarcaDeIngestaDocument
 import com.aguavigia.ctg.infrastructure.persistence.mongo.MarcaDeIngestaMongoRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.aguavigia.ctg.compartido.tareas.EjecucionUnica;
+import com.aguavigia.ctg.infrastructure.scheduling.EjecucionUnica;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -73,7 +73,7 @@ public class PipelineOrquestador {
     private final EstadoColectorRegistry estadoColectores;
     private final MarcaDeIngestaMongoRepository marcas;
     private final DocumentoFallidoMongoRepository fallidos;
-    private final Reloj reloj;
+    private final RelojPort reloj;
     private final EjecucionUnica ejecucionUnica;
 
     public PipelineOrquestador(AcuacarApiCollector acuacarApiCollector,
@@ -86,7 +86,7 @@ public class PipelineOrquestador {
                                EstadoColectorRegistry estadoColectores,
                                MarcaDeIngestaMongoRepository marcas,
                                DocumentoFallidoMongoRepository fallidos,
-                               Reloj reloj,
+                               RelojPort reloj,
                                EjecucionUnica ejecucionUnica) {
         this(acuacarApiCollector, rssCollector, colectorLocal, deduplicador, extractor, sectorRepository, registrarPropuesta,
                 estadoColectores, marcas, fallidos, reloj, ejecucionUnica, Optional.empty());
@@ -103,7 +103,7 @@ public class PipelineOrquestador {
                                EstadoColectorRegistry estadoColectores,
                                MarcaDeIngestaMongoRepository marcas,
                                DocumentoFallidoMongoRepository fallidos,
-                               Reloj reloj,
+                               RelojPort reloj,
                                EjecucionUnica ejecucionUnica,
                                Optional<ColectorSimulado> colectorSimulado) {
         this.colectorSimulado = colectorSimulado;

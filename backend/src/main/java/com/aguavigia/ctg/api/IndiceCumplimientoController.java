@@ -4,7 +4,6 @@ import com.aguavigia.ctg.api.dto.CalidadDelCumplimientoRespuesta;
 import com.aguavigia.ctg.api.dto.IndiceCumplimientoRespuesta;
 import com.aguavigia.ctg.api.dto.PuntoSerieRespuesta;
 import com.aguavigia.ctg.api.mapper.CumplimientoApiMapper;
-import com.aguavigia.ctg.compartido.http.EscritorCsv;
 import com.aguavigia.ctg.domain.CorteId;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.port.in.CalcularCumplimientoUseCase;

@@ -1,7 +1,7 @@
 package com.aguavigia.ctg.domain.port.in;
 
-import com.aguavigia.ctg.compartido.valor.Coordenada;
 import com.aguavigia.ctg.domain.ContextoDeAccion;
+import com.aguavigia.ctg.domain.Coordenada;
 import com.aguavigia.ctg.domain.Usuario;
 import com.aguavigia.ctg.domain.UsuarioId;
 

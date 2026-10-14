@@ -1,13 +1,13 @@
 package com.aguavigia.ctg.application;
 
-import com.aguavigia.ctg.compartido.reloj.Reloj;
-import com.aguavigia.ctg.compartido.valor.CorreoElectronico;
+import com.aguavigia.ctg.domain.CorreoElectronico;
 import com.aguavigia.ctg.domain.EstadoServicio;
 import com.aguavigia.ctg.domain.EstadoSuscripcion;
 import com.aguavigia.ctg.domain.Sector;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.Suscripcion;
 import com.aguavigia.ctg.domain.port.out.NotificacionPort;
+import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.SectorRepository;
 import com.aguavigia.ctg.domain.port.out.SuscripcionRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,7 +41,7 @@ class SuscribirseServiceTest {
         sectores = mock(SectorRepository.class);
         suscripciones = mock(SuscripcionRepository.class);
         notificaciones = mock(NotificacionPort.class);
-        Reloj reloj = () -> AHORA;
+        RelojPort reloj = () -> AHORA;
         servicio = new SuscribirseService(sectores, suscripciones, notificaciones, reloj);
 
         given(suscripciones.guardar(any(Suscripcion.class)))

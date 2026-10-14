@@ -15,7 +15,7 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
-import com.aguavigia.ctg.compartido.reloj.Reloj;
+import com.aguavigia.ctg.domain.port.out.RelojPort;
 
 import java.time.Instant;
 
@@ -35,7 +35,7 @@ class TokenCuentaMongoAdapterTest {
     @TestConfiguration
     static class RelojFijo {
         @Bean
-        Reloj reloj() {
+        RelojPort reloj() {
             return () -> AHORA;
         }
     }

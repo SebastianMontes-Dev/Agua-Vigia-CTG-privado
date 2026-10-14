@@ -1,9 +1,9 @@
 package com.aguavigia.ctg.application;
 
-import com.aguavigia.ctg.compartido.reloj.Reloj;
-import com.aguavigia.ctg.domain.ModoDelSistema.Modo;
 import com.aguavigia.ctg.domain.ModoDelSistema;
+import com.aguavigia.ctg.domain.ModoDelSistema.Modo;
 import com.aguavigia.ctg.domain.port.in.ConsultarModoDelSistemaUseCase;
+import com.aguavigia.ctg.domain.port.out.RelojPort;
 import com.aguavigia.ctg.domain.port.out.UsuarioRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,12 +31,12 @@ public class ConsultarModoDelSistemaService implements ConsultarModoDelSistemaUs
 
     private final UsuarioRepository usuarios;
     private final Modo modo;
-    private final Reloj reloj;
+    private final RelojPort reloj;
     private final ReentrantLock renovando = new ReentrantLock();
 
     private volatile Conteo conteo;
 
-    public ConsultarModoDelSistemaService(UsuarioRepository usuarios, Modo modo, Reloj reloj) {
+    public ConsultarModoDelSistemaService(UsuarioRepository usuarios, Modo modo, RelojPort reloj) {
         this.usuarios = usuarios;
         this.modo = modo;
         this.reloj = reloj;

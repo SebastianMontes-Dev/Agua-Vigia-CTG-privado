@@ -1,13 +1,13 @@
 package com.aguavigia.ctg.application;
 
-import com.aguavigia.ctg.compartido.error.EnlaceDeRestablecimientoInvalidoException;
-import com.aguavigia.ctg.compartido.valor.CorreoElectronico;
+import com.aguavigia.ctg.domain.CorreoElectronico;
 import com.aguavigia.ctg.domain.EnlaceDeRestablecimiento;
+import com.aguavigia.ctg.domain.EnlaceDeRestablecimientoInvalidoException;
 import com.aguavigia.ctg.domain.EstadoSuscripcion;
 import com.aguavigia.ctg.domain.HuellaDispositivo;
-import com.aguavigia.ctg.domain.Reportante;
 import com.aguavigia.ctg.domain.ReporteCiudadano;
 import com.aguavigia.ctg.domain.ReporteId;
+import com.aguavigia.ctg.domain.Reportante;
 import com.aguavigia.ctg.domain.SectorId;
 import com.aguavigia.ctg.domain.Suscripcion;
 import com.aguavigia.ctg.domain.SuscripcionId;

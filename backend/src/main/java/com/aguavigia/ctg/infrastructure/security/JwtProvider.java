@@ -1,11 +1,11 @@
 package com.aguavigia.ctg.infrastructure.security;
 
-import com.aguavigia.ctg.compartido.reloj.Reloj;
+import com.aguavigia.ctg.domain.SesionAutenticada;
 import com.aguavigia.ctg.domain.AlcanceSesion;
 import com.aguavigia.ctg.domain.Permiso;
-import com.aguavigia.ctg.domain.SesionAutenticada;
 import com.aguavigia.ctg.domain.Usuario;
 import com.aguavigia.ctg.domain.port.out.EmisorDeSesionPort;
+import com.aguavigia.ctg.domain.port.out.RelojPort;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
@@ -45,16 +45,16 @@ public class JwtProvider implements EmisorDeSesionPort {
     static final String CLAIM_ALCANCE = "alcance";
 
     private final String secreto;
-    private final Reloj reloj;
+    private final RelojPort reloj;
 
-    public JwtProvider(@Value("${aguavigia.jwt.secret:}") String secreto, Reloj reloj) {
+    public JwtProvider(@Value("${aguavigia.jwt.secret:}") String secreto, RelojPort reloj) {
         this.secreto = secreto;
         this.reloj = reloj;
     }
 
     @Override
     public String emitir(Usuario usuario, AlcanceSesion alcance) {
-        // Reloj y no Instant.now(): sin esto, comprobar que el token expira a las 8 horas
+        // RelojPort y no Instant.now(): sin esto, comprobar que el token expira a las 8 horas
         // (RNF011) exigiría una prueba que espere 8 horas o que mockee el reloj del sistema.
         Instant ahora = reloj.ahora();
 
@@ -87,7 +87,7 @@ public class JwtProvider implements EmisorDeSesionPort {
     public Optional<SesionAutenticada> validar(String token) {
         try {
             Claims cuerpo = Jwts.parser()
-                    // El mismo reloj que emite decide si expiró. Sin esto, emitir usaba Reloj y
+                    // El mismo reloj que emite decide si expiró. Sin esto, emitir usaba RelojPort y
                     // validar el reloj del sistema: en una prueba con reloj fijo el token nacía ya
                     // vencido, y en producción cualquier deriva entre relojes sería intermitente.
                     .clock(() -> java.util.Date.from(reloj.ahora()))

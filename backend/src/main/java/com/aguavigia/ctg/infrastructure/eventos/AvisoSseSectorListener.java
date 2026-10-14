@@ -1,6 +1,6 @@
 package com.aguavigia.ctg.infrastructure.eventos;
 
-import com.aguavigia.ctg.compartido.sse.SseSectoresBroadcaster;
+import com.aguavigia.ctg.infrastructure.sse.SseSectoresBroadcaster;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;

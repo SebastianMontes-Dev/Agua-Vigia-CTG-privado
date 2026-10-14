@@ -1,6 +1,5 @@
 package com.aguavigia.ctg.api;
 
-import com.aguavigia.ctg.compartido.http.PaginaDeCortesia;
 import com.aguavigia.ctg.domain.ClaveEnClaro;
 import com.aguavigia.ctg.domain.port.in.AceptarInvitacionUseCase;
 import com.aguavigia.ctg.domain.port.in.RestablecerClaveUseCase;
