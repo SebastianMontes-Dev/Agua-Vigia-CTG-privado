@@ -18,6 +18,11 @@ spring:
 # habituales de Vite (5173), su preview E2E (4173), React/Next (3000) y Angular (4200); CORS_ORIGENES los reemplaza con una
 # lista separada por comas. Sin uno de estos perfiles, CORS queda cerrado.
 aguavigia:
+  # Copia analitica en PostgreSQL (ADR-100). El servicio `postgres` del compose usa autenticacion `trust` (D1). Si no esta, el
+  # backend arranca igual: la copia se reintenta en cada ciclo.
+  sql:
+    habilitado: ${AGUAVIGIA_SQL_HABILITADO:true}
+    url: ${AGUAVIGIA_SQL_URL:jdbc:postgresql://postgres:5432/aguavigia_analitica}
   app:
     url-frontend: ${APP_URL_FRONTEND:http://localhost:5173}
   cors:

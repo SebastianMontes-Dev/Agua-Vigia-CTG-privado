@@ -9,6 +9,17 @@ spring:
       # que esperan a Mongo o Redis ocupaban un hilo de plataforma cada una y el servidor dejaba de
       # aceptar trafico a los pocos cientos de peticiones concurrentes.
       enabled: true
+  autoconfigure:
+    exclude:
+      # Copia analitica en PostgreSQL (ADR-100): la conexion JDBC y las migraciones las arma SqlConfig solo si
+      # aguavigia.sql.habilitado=true, y sin intentar conectar al arrancar. La autoconfiguracion de Spring conectaria al
+      # arrancar (con PostgreSQL apagado el backend no levantaria), registraria un segundo PlatformTransactionManager
+      # (TransaccionMongoAdapter lo recibe por tipo y dejaria de arrancar) y migraria con Flyway antes de tiempo.
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration
+      - org.springframework.boot.autoconfigure.jdbc.JdbcTemplateAutoConfiguration
+      - org.springframework.boot.autoconfigure.jdbc.JdbcClientAutoConfiguration
+      - org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration
   data:
     redis:
       # Sin estos dos, un Redis colgado dejaba cada peticion esperando sin limite.
@@ -65,6 +76,18 @@ aguavigia:
     espera-conexion-ms: 2000
     timeout-lectura-ms: 5000
     seleccion-servidor-ms: 5000
+  sql:
+    # Copia analitica del Indice de Cumplimiento en PostgreSQL (ADR-100, docs/09). Mongo sigue siendo la unica fuente de verdad:
+    # esto es una copia derivada, de solo lectura para la API. Apagada por defecto (y en todas las pruebas): con `habilitado=false`
+    # no existe ningun bean de JDBC ni de Flyway y el backend es el de siempre. application-docker.yml la enciende.
+    habilitado: ${AGUAVIGIA_SQL_HABILITADO:false}
+    url: ${AGUAVIGIA_SQL_URL:jdbc:postgresql://localhost:5433/aguavigia_analitica}
+    usuario: ${AGUAVIGIA_SQL_USUARIO:aguavigia}
+    # Vacia: PostgreSQL local usa autenticacion `trust` (D1), igual que Mongo y Redis. Nunca se versiona una clave.
+    clave: ${AGUAVIGIA_SQL_CLAVE:}
+    copia-intervalo-ms: 300000
+    # Da tiempo a que la siembra de los barrios termine antes de la primera copia.
+    copia-retraso-inicial-ms: 60000
   sse:
     # Conexiones SSE por instancia; por encima se responde 429 con Retry-After.
     max-conexiones: 20000
@@ -323,6 +346,10 @@ management:
         readiness:
           include: readinessState,mongo,redis
   health:
+    db:
+      # El indicador de base de datos marcaria DOWN toda la aplicacion si PostgreSQL cae, y la copia analitica es derivada y
+      # opcional (ADR-100). Su estado se ve en GET /api/veedor/analitica/copia, no en /actuator/health.
+      enabled: false
     mail:
       # El indicador de correo intenta abrir una conexion SMTP en cada consulta y, sin timeout,
       # un SMTP colgado colgaba tambien el healthcheck. El envio es asincrono y reintentable: un

@@ -122,6 +122,41 @@ class ReglaDeOroArchitectureTest {
     }
 
     /**
+     * ADR-100: PostgreSQL es un detalle de infraestructura (`infrastructure/persistence/sql`). Ni el dominio ni los casos de uso
+     * conocen JDBC ni Flyway; hablan con la copia analítica por los puertos `AlmacenAnaliticoPort` y `ConsultaAnaliticaPort`.
+     * La regla del dominio de arriba deja pasar `javax..` (sirve para `javax.crypto`), y `javax.sql` entra por ahí.
+     */
+    @Test
+    void dominioYApplicationNoDebenImportarJdbcNiFlyway() {
+        ArchRule regla = noClasses()
+                .that().resideInAnyPackage("..domain..", "..application..")
+                .should().dependOnClassesThat().resideInAnyPackage(
+                        "java.sql..", "javax.sql..", "org.springframework.jdbc..", "org.flywaydb..", "org.postgresql..");
+
+        regla.check(CLASES_PRODUCCION);
+    }
+
+    /**
+     * ADR-100: la copia analítica no puede reescribir Mongo. Solo se leen sus dos listados completos; las escrituras (`guardar`,
+     * `anexarSectorAlCorte`) las siguen haciendo quienes ya las hacían.
+     */
+    @Test
+    void elPaqueteSqlSoloDebeLeerDeMongoYNuncaEscribirEnElPorLosRepositorios() {
+        ArchRule regla = noClasses()
+                .that().resideInAPackage("..infrastructure.persistence.sql..")
+                .or().haveSimpleName("CopiarAnaliticaService")
+                .should().callMethod(com.aguavigia.ctg.domain.port.out.CorteAguaRepository.class, "guardar",
+                        com.aguavigia.ctg.domain.CorteAgua.class)
+                .orShould().callMethod(com.aguavigia.ctg.domain.port.out.CorteAguaRepository.class, "anexarSectorAlCorte",
+                        CorteId.class, SectorId.class, Instant.class, Instant.class, String.class,
+                        com.aguavigia.ctg.domain.OrigenCorte.class, com.aguavigia.ctg.domain.EstadoCorte.class)
+                .orShould().callMethod(SectorRepository.class, "publicarSiEs", SectorId.class, EstadoServicio.class,
+                        EstadoServicio.class, com.aguavigia.ctg.domain.MarcasDeEstado.class);
+
+        regla.check(CLASES_PRODUCCION);
+    }
+
+    /**
      * Plan de validación del backend, Fase 4: escuchar eventos y ejecutar en segundo plano es
      * infraestructura (`infrastructure/eventos`, `infrastructure/sse`), no cosa de un controlador.
      */
