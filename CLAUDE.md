@@ -12,12 +12,13 @@ Proyecto académico de dos personas que corre **en local**. Resuelve un vacío d
 
 ## Stack
 
-Spring Boot 3.5 · Java 21 · Maven (`backend/mvnw`) · MongoDB 7 con réplica de un nodo (documentos + `2dsphere`) · Redis 7
+Spring Boot 3.5 · Java 21 · Maven (`backend/mvnw`) · MongoDB 7 con réplica de un nodo (documentos + `2dsphere`) · PostgreSQL 17 (copia analítica, Flyway) · Redis 7
 (caché, rate limiting, ventana de consenso, pub/sub) · Mailhog (SMTP de pruebas) · Docker Compose. Sin SDK de IA.
 Frontend: React 19 + Vite (contrato: `backend/openapi.yaml`; guía en `docs/api/`).
 
-**MongoDB es la base principal y la única fuente de verdad; no se cambia.** PostgreSQL está **planificado, no construido**, como copia
-analítica de solo lectura: [`docs/09-postgresql-fase-1.md`](docs/09-postgresql-fase-1.md). Se ejecuta solo cuando el dueño lo pida.
+**MongoDB es la base principal y la única fuente de verdad; no se cambia.** PostgreSQL 17 es una **copia analítica derivada** del Índice de Cumplimiento
+(ADR-100, fase 1 ejecutada): un job la llena desde Mongo cada 5 min, Mongo nunca lee de ella y, si cae, el sistema sigue igual. Rutas `/api/analitica/**`
+(503 si no está). Detalle y qué queda para las fases 2 y 3: [`docs/09-postgresql-fase-1.md`](docs/09-postgresql-fase-1.md).
 
 ## Comandos
 
@@ -60,5 +61,5 @@ Arquitectura Limpia (puertos y adaptadores), dependencias siempre hacia adentro:
 Vive en `docs/`, una guía por tema (índice en `docs/README.md`). `docs/api/` y `docs/diseno/` son referencia para el frontend.
 La documentación anterior sigue en el historial: `git show pre-limpieza-docs:<ruta>`. Un dato vive en un solo archivo.
 Números de ADR: 087–097 son los de `docs/07` §4; el registro histórico reutiliza 087–089 con otro sentido (citarlos como «histórico ADR-0xx»),
-098–099 los consumió la reducción cancelada y el siguiente libre es el 100.
+098–099 los consumió la reducción cancelada y el 100 es PostgreSQL (copia analítica) y el siguiente libre es el 101.
 Verificar antes de afirmar: si se dice que un endpoint funciona, se prueba.

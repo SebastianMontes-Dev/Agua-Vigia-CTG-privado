@@ -34,9 +34,9 @@ Leer la clave del ADMIN (PowerShell): `docker compose logs backend | findstr ADM
 
 ## 3. Exposición de la red
 
-Todos los puertos de `docker-compose.yml` se publican solo en `127.0.0.1` (Mongo 27017, Redis 6379, Mailhog 1025/8025, API 8081,
+Todos los puertos de `docker-compose.yml` se publican solo en `127.0.0.1` (Mongo 27017, Redis 6379, PostgreSQL 5433, Mailhog 1025/8025, API 8081,
 API de la simulación 8082 —solo con el perfil `simulacion`—, visor 8083). Dentro de la red interna de compose, Mongo escucha en todas sus interfaces para que el backend lo alcance; hacia la
-red del aula no se ve. Mongo y Redis siguen **sin autenticación**: es aceptable solo porque no salen del equipo.
+red del aula no se ve. Mongo y Redis siguen **sin autenticación**: es aceptable solo porque no salen del equipo. PostgreSQL (copia analítica, ADR-100) recibe el mismo trato, ver §5.
 
 ## 4. Perfiles
 
@@ -44,6 +44,10 @@ red del aula no se ve. Mongo y Redis siguen **sin autenticación**: es aceptable
 - `prod`: Swagger cerrado, sin orígenes CORS por defecto (`CORS_ORIGENES` explícito), `ValidacionDeSecretos` exige `JWT_SECRET`.
 
 ## 5. Pendiente o aceptado
+
+- **PostgreSQL sin contraseña (`trust`), riesgo aceptado (D1, decidido el 2026-10-15).** Un arranque sin `.env` (ADR-086) choca con que PostgreSQL pida una clave al crearse, y no se pueden
+  versionar secretos. Se trata como Mongo y Redis: puerto solo en `127.0.0.1` y red interna de compose, y la base no guarda datos personales (solo barrios, cortes y duraciones). Descartado:
+  `POSTGRES_PASSWORD` obligatorio en `.env`, que rompe el `docker compose up` sin configuración. Nunca se escribe una clave en `docker-compose.yml`.
 
 - **Secreto TOTP en claro en Mongo.** Cifrarlo en reposo exige una clave que sobreviva a los reinicios; no hay dónde guardarla sin
   romper el arranque sin `.env`. Decisión pendiente del dueño.

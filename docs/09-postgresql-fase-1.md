@@ -1,7 +1,30 @@
 # 09 · PostgreSQL, fase 1: copia analítica del Índice de Cumplimiento
 
-**Estado: plan aprobado en su alcance, sin ejecutar** (2026-10-15, hora de Cartagena). Nada de lo que describe este documento existe todavía
-en el código. Se ejecuta cuando el dueño lo indique, en el orden de §8, y al terminar su ADR pasa a [07 · Decisiones clave](07-decisiones-clave.md).
+**Estado: ejecutado el 2026-10-15 (hora de Cartagena), pasos 0 a 7 de §8 y la verificación local del 8** (`./mvnw verify` con 2142 pruebas en verde). Faltan del paso 8 el commit, el CI de GitHub y avisar a Yordy. El ADR quedó en [07 · Decisiones clave](07-decisiones-clave.md) §5 (ADR-100) y la descripción
+vigente del modelo en [03 · Base de datos](03-base-de-datos.md) §4. El resto de este documento es el plan tal como se aprobó; **donde difiera de la sección siguiente, manda la siguiente**.
+
+## 0. Lo que cambió al ejecutar
+
+| Plan | Lo construido | Por qué |
+|---|---|---|
+| Imagen `postgres:17-alpine` (D2) | `postgres:17.11-alpine` | Etiqueta exacta, la última 17.x publicada ese día. Trivy sobre la imagen corre en el CI, no en local |
+| Puerto `127.0.0.1:5432` | `127.0.0.1:${POSTGRES_PUERTO:-5433}` | El equipo del dueño ya tiene un PostgreSQL 18 de Windows escuchando en 5432 |
+| `sector.poblacion INTEGER NOT NULL`, columnas `localidad` y `zona` | `poblacion` **nula** y sin `localidad` ni `zona` | El dominio no tiene localidad ni zona, y 27 barrios no traen población (`Sector`); un 0 sería un barrio sin habitantes |
+| `analitica.copia`: conteos de barrios y cortes | Añade `pares_en_mongo` y `pares_en_sql` | §4.3 compara también los pares corte-barrio |
+| Vistas: `v_par_cerrado`, `v_cumplimiento_por_sector`, `v_cumplimiento_mensual` | Añade `v_cumplimiento_global`; las sumas van en milisegundos y se truncan a segundos al final | El endpoint global necesita su vista; así coincide al segundo con Mongo y `Duration.toSeconds()` aunque haya fracciones |
+| `corte_sector` | Añade `CHECK`: un barrio sin cierre no puede traer fuente ni ser provisional | Coherencia con `FilaParAnalitica` |
+| Un par que apunta a un barrio inexistente rompe la clave foránea | `CopiarAnaliticaService` lo omite y la copia queda `CON_DIFERENCIAS` con el detalle | Un solo dato colgado no debe impedir copiar todo lo demás |
+| `AlmacenAnaliticoPort`: `registrarInicioDeCopia`, `reemplazar`, `contar`, `cerrarCopia` | Sin `contar()`: `reemplazar` devuelve los conteos, tomados dentro de la misma transacción | §4.3 pide comparar en la misma transacción |
+| `CasosDeUsoConfig` no se tocaba | Se añade `CopiarAnaliticaService` a su exclusión del escaneo | El escaneo recoge toda clase `*Service` de `application/`; sin excluirla el servicio se creaba aun con SQL apagado |
+| `backend-sim` no se mencionaba | `AGUAVIGIA_SQL_HABILITADO: "false"` en `backend-sim` | Comparte el perfil `docker`; copiaría su Mongo de simulación sobre la copia real |
+| Pruebas `*IT` | Se llaman `*IntegrationTest` | Surefire ejecuta `*Test`; no hay Failsafe, y un `*IT` no correría en `./mvnw verify` |
+| `ArranqueSinPostgresIT` y `ArranqueConSqlDeshabilitadoTest` | `ArranqueSinPostgresIntegrationTest` y `ArranqueConSqlDeshabilitadoTest` | Ídem |
+| 503: el mensaje trae la causa | El mensaje es genérico; la causa va al log | Es una ruta pública y un error de PostgreSQL revelaría el esquema |
+
+Se añadieron además dos reglas de ArchUnit (`domain/` y `application/` sin JDBC ni Flyway; el paquete `sql` sin escribir en Mongo por los repositorios) y `CopiaAnaliticaJobTest`.
+
+**Verificado en el compose real:** `analitica.copia` con una fila `OK` (211 barrios, 7 cortes y 51 pares a los dos lados); `GET /api/analitica/cumplimiento` da las mismas duraciones y el mismo porcentaje que
+`GET /api/cumplimiento`; con `docker compose stop postgres` el backend sigue `UP` y respondiendo y solo la analítica da 503; al volver a arrancarlo responde 200.
 
 ## 1. Qué se quiere y qué no
 

@@ -21,7 +21,7 @@ Paquete raíz: `backend/src/main/java/com/aguavigia/ctg/`.
 | `domain/` | Entidades (`CorteAgua`, `Sector`, `ReporteCiudadano`, `Usuario`…), objetos de valor como `record` que validan al construir, reglas de negocio (`ResolutorDeEstadoSector`, `ComposicionDelSustento`, `CompuertaDePublicacion`, `IndiceCumplimiento`…) y los **puertos**: `port/in` (casos de uso) y `port/out` (lo que el dominio necesita de fuera) | 115 clases + 57 puertos de entrada + 44 de salida |
 | `application/` | Un caso de uso = una clase = una acción (`RegistrarReporteService`, `GestionarCorteOficialService`…). Orquesta dominio y puertos | 63 clases |
 | `api/` | Controladores REST, DTO (`api/dto`) y mappers (`api/mapper`, MapStruct; algunos DTO usan métodos `de(...)`, ver ADR-015). Un único `@RestControllerAdvice` (`ManejadorGlobalDeErrores`) responde los errores en RFC 7807 | 36 + 49 DTO + 9 mappers |
-| `infrastructure/` | Adaptadores: `persistence/` (Mongo y Redis), `ingest/` (colectores y pipeline), `security/` (JWT, TOTP, HMAC), `mail/`, `telegram/`, `sse/`, `cache/`, `ratelimit/`, `scheduling/`, `storage/` (fotos), `metricas/`, `sim/` (reloj de simulación), `config/` | ≈ 140 clases |
+| `infrastructure/` | Adaptadores: `persistence/` (Mongo, Redis y `sql/`, la copia analítica en PostgreSQL con Flyway), `ingest/` (colectores y pipeline), `security/` (JWT, TOTP, HMAC), `mail/`, `telegram/`, `sse/`, `cache/`, `ratelimit/`, `scheduling/`, `storage/` (fotos), `metricas/`, `sim/` (reloj de simulación), `config/` | ≈ 140 clases |
 
 ## 2. Reglas que la build hace cumplir
 
@@ -33,6 +33,7 @@ Paquete raíz: `backend/src/main/java/com/aguavigia/ctg/`.
 - Un evento de bitácora solo se crea desde su fábrica o desde el adaptador Mongo.
 - **Un solo escritor del estado de un barrio** (ADR-087): nada en producción cambia el estado saltándose el resolutor.
 - Toda ruta del panel (`/api/veedor/**`) y del vecino (`/api/vecino/**`) exige un permiso.
+- `domain/` y `application/` no importan JDBC, Flyway ni el driver de PostgreSQL (ADR-100); el paquete `persistence/sql` no escribe en Mongo por los repositorios.
 
 Excepción documentada: los controladores de **lectura sin regla de negocio** dependen directamente de un puerto de salida, sin un caso de uso que
 solo delegue (ADR-015).
@@ -61,6 +62,7 @@ Los sensores IoT (`/api/iot/presion`) están construidos pero **inactivos**: no 
 | `PipelineOrquestador` (ingesta) | 10 min | `EjecucionUnica` (candado en Redis) |
 | `PlanificadorDeVentanas` (ventanas declaradas que empiezan o terminan) | 1 min | `EjecucionUnica` |
 | `PuestaAlDiaDeEstadosJob` | periódica | `EjecucionUnica` |
+| `CopiaAnaliticaJob` (copia de Mongo a PostgreSQL, ADR-100; solo con `aguavigia.sql.habilitado=true`) | 5 min, y una vez al arrancar tras 1 min | `EjecucionUnica` |
 | `LimpiezaFotosHuerfanasJob`, `PurgaEvidenciaAntiguaJob` (esta, desactivada: ADR-097 §3) | periódica | `EjecucionUnica` |
 | `EvaluacionPendienteJob` (consenso pendiente) | 1 s | Corre en todas las instancias; cada barrio pendiente lo reserva una sola en Redis |
 | `TelegramSondeoJob` | 3 s | Solo existe si hay token de Telegram, y está pensado para una sola instancia |

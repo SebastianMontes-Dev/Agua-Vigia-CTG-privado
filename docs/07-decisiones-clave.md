@@ -12,7 +12,7 @@ Cada fila tiene su número de ADR para buscarla ahí. Las decisiones tomadas des
 **Ojo con la numeración.** El registro histórico llega hasta el ADR-089, y la §4 de este archivo reutilizó los números 087, 088 y 089 para
 decisiones distintas. Aquí y en el código, **ADR-087 a 097 significan siempre las decisiones de la §4**. Para citar una del registro histórico
 se escribe «histórico ADR-0xx» (por ejemplo, el registro masivo de cuentas de la demo de carga es el histórico ADR-088). Los números 098 y 099
-se usaron en el plan de reducción del backend, que se canceló y revirtió el 2026-10-14: no tienen decisión vigente y no se reutilizan.
+se usaron en el plan de reducción del backend, que se canceló y revirtió el 2026-10-14: no tienen decisión vigente y no se reutilizan. El **ADR-100** (§5) es el siguiente número libre que se usó.
 
 ## 1. Decisiones que se conservan
 
@@ -506,3 +506,22 @@ que venza el bloqueo (molestia, no brecha); no hay enfriamiento por cuenta en el
 
 - **Gana:** una carga medida con método y límites dichos, métricas con una guía de lectura en vez de umbrales inventados, tres escrituras que dejaron de pisarse, y scripts que ya no pueden borrar la base real
   por descuido. **Pierde:** las cifras de carga son de un PC compartido y no valen como capacidad de un servidor; la deuda de arriba sigue ahí hasta que haya datos que la justifiquen.
+
+## 5. PostgreSQL como copia analítica (2026-10-15)
+
+### ADR-100 — PostgreSQL como copia analítica del Índice de Cumplimiento; MongoDB sigue siendo la única fuente de verdad
+
+- **Contexto.** La materia exige usar SQL. MongoDB es y seguirá siendo la base principal (ADR-003); nadie quiere migrar datos ni tocar lo que funciona.
+- **Decisión.** PostgreSQL guarda una copia derivada y sin datos personales de barrios, cortes y cierres por barrio, que llena cada 5 minutos un job (`CopiaAnaliticaJob`) que lee de Mongo con los
+  puertos existentes (`listarTodos()`). Expone el Índice en vistas SQL y en rutas nuevas de solo lectura (`/api/analitica/**`, y `/api/veedor/analitica/copia` para el panel). Si cae, el sistema sigue igual:
+  arranca sin él, está `UP` y solo la analítica responde 503.
+- **Cómo se evita que PostgreSQL tumbe el backend.** Las autoconfiguraciones de JDBC y Flyway están excluidas; `SqlConfig` crea el pool con `initializationFailTimeout = -1` solo si
+  `aguavigia.sql.habilitado=true`; el gestor de transacciones de SQL es privado del adaptador (con dos `PlatformTransactionManager` `TransaccionMongoAdapter` no arrancaría); Flyway migra en la primera copia
+  y no al arrancar; y `management.health.db.enabled: false` evita que `/actuator/health` dependa de él. La instancia de simulación la tiene apagada: copiaría su Mongo sobre la copia real.
+- **Autenticación `trust`** en el servicio de compose (D1, decidida por el dueño): mismo trato que Mongo y Redis, ver [05](05-seguridad-y-claves.md) §5.
+- **Gana.** Un modelo relacional real (claves foráneas, restricciones `CHECK`, un índice parcial, migraciones versionadas, vistas y funciones de ventana) sobre el dato que el proyecto publica; una primera
+  señal de diferencias entre bases (los conteos de cada copia).
+- **Pierde.** Un servicio más que operar; la vista puede ir hasta 5 minutos por detrás de Mongo; la fórmula del Índice existe dos veces (Java/Mongo y SQL), y por eso hay una prueba de paridad
+  (`ParidadMongoPostgresIntegrationTest`) que compara cortes variados —parciales, anulados, expirados, antiguos, de fin de mes y con fracciones de segundo— en las dos bases.
+- **Se revierte** quitando el servicio, el paquete `persistence/sql` y las rutas `/api/analitica/**`; Mongo no se entera.
+- **Pendiente (fases 2 y 3, [09](09-postgresql-fase-1.md) §10):** el vigilante completo de integridad, la bitácora inmutable con respaldo restaurable y las vistas de datos abiertos.

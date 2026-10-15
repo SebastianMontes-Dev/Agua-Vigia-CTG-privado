@@ -70,6 +70,17 @@ docker exec aguavigia-redis redis-cli ping
 - **Mailhog** (SMTP `:1025`, interfaz http://localhost:8025): captura todos los correos que envía el backend. **Nada sale a Internet.**
   Ábrelo en el navegador y déjalo a la vista durante la demostración.
 
+### A3b. PostgreSQL (copia analítica, opcional)
+
+```powershell
+docker compose up -d postgres
+```
+```powershell
+docker exec aguavigia-postgres pg_isready -U aguavigia -d aguavigia_analitica
+```
+- **PostgreSQL** (`:5433` en el equipo): copia derivada del Índice de Cumplimiento (ADR-100). Responde `accepting connections`. El backend **no depende de él**: si no lo levantas, todo funciona igual y
+  `/api/analitica/**` responde 503. Las tablas las crea el backend (Flyway) en la primera copia, un minuto después de arrancar.
+
 ### A4. Backend
 
 ```powershell
@@ -395,6 +406,15 @@ Las claves se guardan como hash BCrypt (`$2a$10$…`), nunca en claro. Índices 
 ```powershell
 docker exec aguavigia-mongo mongosh aguavigia --quiet --eval "db.usuarios.getIndexes().forEach(i => print(i.name))"
 ```
+
+**La copia en PostgreSQL** (un minuto después de arrancar el backend, y luego cada 5 minutos):
+
+```powershell
+docker exec aguavigia-postgres psql -U aguavigia -d aguavigia_analitica -c "select id, resultado, sectores_en_mongo, sectores_en_sql, cortes_en_mongo, cortes_en_sql, pares_en_mongo, pares_en_sql from analitica.copia order by id desc limit 3"
+docker exec aguavigia-postgres psql -U aguavigia -d aguavigia_analitica -c "select * from analitica.v_cumplimiento_global"
+```
+La primera fila debe ser `OK` con los mismos conteos a los dos lados (211 barrios). La vista da el mismo Índice que `GET /api/cumplimiento` (Mongo); `GET /api/analitica/cumplimiento` lo lee de la vista.
+Para ver que PostgreSQL no tumba nada: `docker compose stop postgres` y `/api/sectores` y `/actuator/health/readiness` siguen respondiendo; solo la analítica da 503. `docker compose start postgres` y vuelve.
 
 Visor web opcional: `docker compose --profile demo up -d mongo-express` y abrir http://localhost:8083 (el 8082 es de la API de la simulación).
 

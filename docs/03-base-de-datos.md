@@ -97,7 +97,47 @@ La caché de lectura de sectores también vive en Redis; si Redis falla, el back
 **Es anterior al modelo actual**: no incluye `suscripciones_telegram`, `bloqueos_administracion`, `documentos_fallidos`, `dispositivos`,
 `subidas_foto` ni `marcas_ingesta`, ni los campos de estado de barrio de F1–F4. Se conserva como entregable; el modelo vigente es el de §1.
 
-## 4. PostgreSQL (planificado, no construido)
+## 4. PostgreSQL: copia analítica (ADR-100)
 
-Hay un plan para añadir **PostgreSQL como copia derivada y de solo lectura** del Índice de Cumplimiento, sin tocar Mongo ni ningún endpoint
-existente: [09 · PostgreSQL, fase 1](09-postgresql-fase-1.md). Mientras no se ejecute, el sistema no usa SQL.
+**Es una copia derivada, no una segunda fuente de verdad.** Guarda el Índice de Cumplimiento en un modelo relacional; Mongo no cambió (ni colecciones, ni
+índices, ni escrituras nuevas) y nunca lee de PostgreSQL. Si se borra entera (`docker compose down -v` borraría `postgres-data`), la siguiente copia la reconstruye.
+Si está apagada o falla, el sistema arranca, está `UP` y responde igual: solo la analítica contesta 503.
+
+- **Instalación:** PostgreSQL 17.11 (`postgres:17.11-alpine`), base `aguavigia_analitica`, esquema `analitica`, usuario `aguavigia`, autenticación `trust` (D1, ver
+  [05](05-seguridad-y-claves.md) §5). En el equipo escucha en `127.0.0.1:5433` (el 5432 suele estar ocupado por un PostgreSQL instalado en Windows; `POSTGRES_PUERTO` lo cambia).
+- **Migraciones:** Flyway, en `backend/src/main/resources/db/migration/` (`V1__esquema_analitico.sql`, `V2__vistas_cumplimiento.sql`). No corren al arrancar sino en la primera copia que consigue
+  conexión; así un PostgreSQL apagado no impide arrancar.
+- **Sin datos personales:** ni correos, ni dispositivos, ni redes, ni coordenadas. Solo barrios, cortes y duraciones.
+
+### 4.1 Tablas (`analitica.*`)
+
+| Tabla | Qué guarda |
+|---|---|
+| `sector` | Un barrio: `id` (el slug de Mongo), `nombre`, `poblacion` (nula si el DANE no la cubre), `copiado_en` |
+| `corte` | Un corte: `id`, `origen`, `estado`, `causa`, `inicio`, `fin_prometido` (`CHECK fin_prometido > inicio`), `copiado_en` |
+| `corte_sector` | Un par corte-barrio (D14). Claves foráneas a `corte` (`ON DELETE CASCADE`) y `sector`; `cierre_hora`, `cierre_fuente`, `cierre_provisional` son opcionales (un barrio sin cierre no cuenta en el Índice) |
+| `copia` | Una fila por copia: cuándo, resultado (`EN_CURSO`, `OK`, `CON_DIFERENCIAS`, `FALLIDA`) y los conteos de barrios, cortes y pares en Mongo y en PostgreSQL |
+
+### 4.2 Vistas: el Índice en SQL
+
+`v_par_cerrado` (un par con cierre, sin cortes `ANULADO`), `v_cumplimiento_por_sector`, `v_cumplimiento_global` y `v_cumplimiento_mensual` (mes en hora de Cartagena). Misma fórmula que
+`CalcularCumplimientoService` (ADR-022): se **suman** duraciones —en milisegundos, truncando a segundos al final, como Mongo y `Duration.toSeconds()`— y el porcentaje es
+`min(100, prometida × 100 / real)`, o 100 si la real es 0. Una prueba de paridad (`ParidadMongoPostgresIntegrationTest`) compara las dos con los mismos cortes.
+
+### 4.3 La copia
+
+`CopiaAnaliticaJob` corre cada 5 minutos (`aguavigia.sql.copia-intervalo-ms`) y una vez al arrancar tras un minuto, por `EjecucionUnica`. `CopiarAnaliticaService` lee de Mongo con
+`SectorRepository.listarTodos()` y `CorteAguaRepository.listarTodos()` (los de siempre, solo lectura) y escribe en **una sola transacción** de PostgreSQL: borra y reescribe los pares, hace *upsert*
+de barrios y cortes y quita lo que ya no existe. Repetirla no duplica nada; si algo falla vuelve atrás y queda la copia anterior. Al final compara los conteos de las dos bases
+(barrios, cortes, pares) y anota el resultado en `analitica.copia`; un par que apunta a un barrio inexistente no se copia y se declara como `CON_DIFERENCIAS`.
+
+### 4.4 Rutas (solo lectura)
+
+`GET /api/analitica/cumplimiento[?sectorId=]` y `GET /api/analitica/cumplimiento/mensual` (públicas) y `GET /api/veedor/analitica/copia` (`VER_PANEL`: últimas copias y sus conteos).
+Con la copia apagada, PostgreSQL caído o sin primera copia responden **503** (`servicio-no-disponible`) y nunca suplen la consulta leyendo de Mongo. El estado de la copia **no** está en
+`/actuator/health` a propósito (`management.health.db.enabled: false`).
+
+### 4.5 Qué no se hizo
+
+El vigilante completo de integridad (sumas de control, referencias colgantes), la bitácora inmutable, el respaldo restaurable y las vistas de datos abiertos son las fases 2 y 3 de
+[09 · PostgreSQL, fase 1](09-postgresql-fase-1.md) §10.
