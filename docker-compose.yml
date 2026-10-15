@@ -1,7 +1,7 @@
 # Un solo comando deja todo listo (ADR-094). Sin .env: el backend genera su secreto de sesión y la clave del primer ADMIN,
 # que se imprime una sola vez en el log del backend.
 #
-#   docker compose up -d --build            → Mongo, réplica, Redis, Mailhog y backend, y el `sembrador`, que carga los 211 barrios.
+#   docker compose up -d --build            → Mongo, réplica, Redis, Mailhog, PostgreSQL (copia analítica, ADR-100) y backend, y el `sembrador`, que carga los 211 barrios.
 #                                             El backend crea el ADMIN y, en segundo plano, 30 000 cuentas SINTÉTICAS de vecino
 #                                             (lo único inventado: se dicen sintéticas y la API lo declara en /api/sistema/modo).
 #                                             No hay reportes, cortes ni estados inventados: el mapa muestra lo que dicen los
@@ -81,6 +81,30 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  # Copia analítica del Índice de Cumplimiento (ADR-100, docs/09). MongoDB sigue siendo la única fuente de verdad: esta base es derivada,
+  # sin datos personales, y se reconstruye sola desde Mongo. El backend NO depende de ella: si tarda o no arranca, todo lo demás funciona.
+  # `trust` (D1): sin contraseña, igual que Mongo y Redis, y el puerto solo se publica en 127.0.0.1. Nunca se escribe una clave aquí.
+  # Puerto 5433 en el equipo y no 5432: es el que suele ocupar un PostgreSQL instalado en Windows. POSTGRES_PUERTO lo cambia.
+  postgres:
+    image: postgres:17.11-alpine
+    container_name: aguavigia-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: aguavigia_analitica
+      POSTGRES_USER: aguavigia
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "127.0.0.1:${POSTGRES_PUERTO:-5433}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - aguavigia
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aguavigia -d aguavigia_analitica"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   mailhog:
     image: mailhog/mailhog:v1.0.1
@@ -182,6 +206,8 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: docker
       SERVER_PORT: "8080"
+      # La simulación tiene su propia base de Mongo: si copiara a PostgreSQL pisaría la copia de la instancia real.
+      AGUAVIGIA_SQL_HABILITADO: "false"
       SPRING_DATA_MONGODB_URI: mongodb://mongo:27017/aguavigia_sim?replicaSet=rs0
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: "6379"
@@ -299,4 +325,5 @@ services:
 volumes:
   mongo-data:
   redis-data:
+  postgres-data:
   fotos-data:
