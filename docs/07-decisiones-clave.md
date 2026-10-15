@@ -7,7 +7,12 @@ retiró de `docs/`; el texto completo de cada ADR sigue en el historial:
 git show pre-limpieza-docs:docs/design-decisions.md
 ```
 
-Cada fila tiene su número de ADR para buscarla ahí. Las decisiones tomadas después de la limpieza se añaden al final (§3).
+Cada fila tiene su número de ADR para buscarla ahí. Las decisiones tomadas después de la limpieza se añaden al final (§3 y §4).
+
+**Ojo con la numeración.** El registro histórico llega hasta el ADR-089, y la §4 de este archivo reutilizó los números 087, 088 y 089 para
+decisiones distintas. Aquí y en el código, **ADR-087 a 097 significan siempre las decisiones de la §4**. Para citar una del registro histórico
+se escribe «histórico ADR-0xx» (por ejemplo, el registro masivo de cuentas de la demo de carga es el histórico ADR-088). Los números 098 y 099
+se usaron en el plan de reducción del backend, que se canceló y revirtió el 2026-10-14: no tienen decisión vigente y no se reutilizan.
 
 ## 1. Decisiones que se conservan
 
@@ -63,7 +68,8 @@ y algunos DTO se arman con métodos estáticos `de(...)` en vez de MapStruct. Es
 
 ## 4. Estado de un barrio, cierre de cortes e identidad (2026-10-01)
 
-Decisiones de las fases F1 (ADR-087 y 088), F2 (ADR-089 y 090), F3 (ADR-091 a 093) y F4 (ADR-094) del plan de estados de barrio. Los números de ADR continúan los del registro histórico.
+Decisiones de las fases F1 (ADR-087 y 088), F2 (ADR-089 y 090), F3 (ADR-091 a 093), F4 (ADR-094 y 095), F5 (ADR-096) y F6 (ADR-097) del plan de
+estados de barrio. Los números 087 a 089 chocan con los del registro histórico (ver la nota del inicio).
 
 ### ADR-087 — Un solo resolutor decide el estado de un barrio
 

@@ -16,6 +16,9 @@ Spring Boot 3.5 · Java 21 · Maven (`backend/mvnw`) · MongoDB 7 con réplica d
 (caché, rate limiting, ventana de consenso, pub/sub) · Mailhog (SMTP de pruebas) · Docker Compose. Sin SDK de IA.
 Frontend: React 19 + Vite (contrato: `backend/openapi.yaml`; guía en `docs/api/`).
 
+**MongoDB es la base principal y la única fuente de verdad; no se cambia.** PostgreSQL está **planificado, no construido**, como copia
+analítica de solo lectura: [`docs/09-postgresql-fase-1.md`](docs/09-postgresql-fase-1.md). Se ejecuta solo cuando el dueño lo pida.
+
 ## Comandos
 
 ```bash
@@ -56,4 +59,6 @@ Arquitectura Limpia (puertos y adaptadores), dependencias siempre hacia adentro:
 
 Vive en `docs/`, una guía por tema (índice en `docs/README.md`). `docs/api/` y `docs/diseno/` son referencia para el frontend.
 La documentación anterior sigue en el historial: `git show pre-limpieza-docs:<ruta>`. Un dato vive en un solo archivo.
+Números de ADR: 087–097 son los de `docs/07` §4; el registro histórico reutiliza 087–089 con otro sentido (citarlos como «histórico ADR-0xx»),
+098–099 los consumió la reducción cancelada y el siguiente libre es el 100.
 Verificar antes de afirmar: si se dice que un endpoint funciona, se prueba.

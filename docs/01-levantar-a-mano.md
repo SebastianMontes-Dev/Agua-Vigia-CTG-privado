@@ -1,8 +1,9 @@
 # 01 · Guía paso a paso: levantar AguaVigía a mano y recorrer el backend
 
 Objetivo: arrancar el sistema desde cero, servicio por servicio, explicando qué hace cada pieza, y luego recorrer todos los
-flujos del backend con peticiones reales. Los comandos de esta guía se ejecutaron el 2026-09-29 (hora de Cartagena) en
-**Windows PowerShell 5.1** contra un backend levantado de esta forma (salvo el visor web opcional de la parte E); tras cada bloque va lo que debe salir.
+flujos del backend con peticiones reales. Las partes B a D se volvieron a ejecutar el 2026-10-15 (hora de Cartagena) en
+**Windows PowerShell 5.1** contra `main`, en un proyecto Docker aislado levantado de esta forma (salvo el visor web opcional de la parte E); tras cada bloque
+va lo que debe salir.
 
 **Antes de empezar**
 - Docker Desktop abierto. No hace falta Node, Java ni un `.env`.
@@ -116,6 +117,9 @@ docker compose logs backend | findstr ADMINISTRADOR
 ```
 Aparece una línea con la cuenta y la clave. Cópiala a tu gestor de contraseñas; el log no la vuelve a mostrar si el contenedor se recrea.
 
+> Si tu `.env` define `VEEDOR_PASSWORD_HASH`, el backend **no genera ni imprime** ninguna clave: el ADMIN se crea con ese hash y su clave es la que
+> lo generó (y el correo, el de `ADMIN_INICIAL_CORREO`). Para seguir la guía tal cual, arranca sin `.env` o deja esas dos variables comentadas.
+
 ### B2. Iniciar sesión (sesión restringida)
 
 ```powershell
@@ -156,7 +160,7 @@ Resultado: `COMPLETO`. Desde aquí `$h` es tu sesión de ADMIN (vale 8 horas). C
 ```powershell
 Invoke-RestMethod "$api/api/veedor/yo" -Headers $h
 ```
-Resultado: `rol ADMIN`, `segundoFactorActivo True` y siete permisos (`VER_PANEL`, `GESTIONAR_CORTES`, `MODERAR_REPORTES`, `GESTIONAR_USUARIOS`, `VER_AUDITORIA`, `REVISAR_INGESTA`, `CONFIGURAR_SEGUNDO_FACTOR`).
+Resultado: `rol ADMIN`, `segundoFactorActivo True` y siete permisos en `permisosEfectivos` (`VER_PANEL`, `GESTIONAR_CORTES`, `MODERAR_REPORTES`, `GESTIONAR_USUARIOS`, `VER_AUDITORIA`, `REVISAR_INGESTA`, `CONFIGURAR_SEGUNDO_FACTOR`).
 
 ### B5. Volver a entrar más tarde (o si cierras la ventana)
 
@@ -205,35 +209,44 @@ Invoke-RestMethod "$api/api/sectores/albornoz"
 Invoke-RestMethod "$api/api/estadisticas"
 Invoke-RestMethod "$api/api/bitacora"
 ```
-`estado` es `null` y la bitácora está vacía: todavía no hay nada verificado. `GET /api/cumplimiento` responde 400 «No hay cortes cerrados todavía».
+`estado` es `null`: ningún barrio tiene un dato verificado todavía. `GET /api/cumplimiento` responde 400 (no hay cortes cerrados).
+La bitácora **no** está vacía si ya pasó el primer ciclo de ingesta (≈ 1 min tras arrancar): trae los boletines pasados de Acuacar como
+`CORTE_EXPIRADO`, que son **historia** y no cambian el estado de ningún barrio (ADR-092).
 
 ### D2. Reportes ciudadanos y consenso
 
 Un vecino reporta sin registrarse. El sistema no cree a una sola persona: cambia el estado de un barrio cuando **varios reportes independientes**
 coinciden. El umbral es proporcional a la población (0,1 %, mínimo 3): ALBORNOZ (853 hab.) necesita 3; MANGA (10 754 hab.) necesitaría 11.
 
+Cada reporte necesita una **identidad de dispositivo** que emite el servidor (`POST /api/dispositivos`, máximo 10 por hora por IP) y que viaja en la
+cabecera `X-Dispositivo` (ADR-090). Sin ella el reporte responde `401`. Un campo `huella` en el cuerpo, como en versiones anteriores, se ignora.
+Para que el reporte cuente como **verificado**, se manda la coordenada con `precisionMetros` (≤ 200 m) y tiene que caer dentro del barrio: el quórum pide que
+al menos un tercio del sustento esté verificado. Tres vecinos, cada uno con su dispositivo, desde un punto de ALBORNOZ:
+
 ```powershell
+$albornoz = @{ latitud = 10.37006; longitud = -75.50777 }
 foreach ($i in 1..3) {
-  $huella = [guid]::NewGuid().ToString("N") + [guid]::NewGuid().ToString("N")
-  Invoke-RestMethod -Method Post -Uri "$api/api/reportes" -ContentType "application/json" -Body (@{ sectorId = "albornoz"; tipo = "SIN_AGUA"; huella = $huella } | ConvertTo-Json)
+  $dispositivo = (Invoke-RestMethod -Method Post -Uri "$api/api/dispositivos").token
+  Invoke-RestMethod -Method Post -Uri "$api/api/reportes" -Headers @{ "X-Dispositivo" = $dispositivo } -ContentType "application/json" -Body (@{ sectorId = "albornoz"; tipo = "SIN_AGUA"; coordenada = $albornoz; precisionMetros = 10 } | ConvertTo-Json)
 }
 ```
+Cada respuesta trae `verificacion UBICACION_VERIFICADA` y un `subidaToken` (para adjuntar una foto; aquí no se usa).
+
 ```powershell
 Start-Sleep -Seconds 3
 Invoke-RestMethod "$api/api/sectores/albornoz"
 Invoke-RestMethod "$api/api/bitacora"
 ```
-Resultado: `estado SIN_SERVICIO` y un evento `CORTE_CONFIRMADO_POR_CIUDADANOS` con `cantidadReportesSustento 3`. (El consenso se evalúa en un barrido de 1 s.)
-La `huella` es un identificador anónimo del dispositivo (32–128 caracteres), no una cuenta.
-
-> El compose arranca con `AGUAVIGIA_CONSENSO_REDES_MINIMAS=1`. Para que un reporte cuente como verificado hay que mandar la coordenada con `precisionMetros`: un reporte
-> anónimo sin ubicación pesa en el conteo, pero el quórum pide que al menos un tercio del sustento esté verificado. `scripts/sembrar-demo.mjs` ya lo hace.
+Resultado: `estado SIN_SERVICIO`, `origen VECINOS`, `respaldo @{vecinos=3; umbral=3}` y un evento `CORTE_CONFIRMADO_POR_CIUDADANOS` con
+`cantidadReportesSustento 3`. (El consenso se evalúa en un barrido de 1 s.) El compose arranca con `AGUAVIGIA_CONSENSO_REDES_MINIMAS=1`, así que los tres
+pueden salir de la misma red; `scripts/sembrar-demo.mjs` hace lo mismo a escala.
 
 **Cupo por dispositivo:** el mismo dispositivo solo puede reportar 3 veces por barrio cada 30 minutos.
 
 ```powershell
-$huella = "a" * 40
-1..4 | ForEach-Object { try { (Invoke-WebRequest -Method Post -Uri "$api/api/reportes" -UseBasicParsing -ContentType "application/json" -Body (@{ sectorId = "crespo"; tipo = "SIN_AGUA"; huella = $huella } | ConvertTo-Json)).StatusCode } catch { [int]$_.Exception.Response.StatusCode } }
+$crespo = @{ latitud = 10.448; longitud = -75.51892 }
+$dispositivo = (Invoke-RestMethod -Method Post -Uri "$api/api/dispositivos").token
+1..4 | ForEach-Object { try { (Invoke-WebRequest -Method Post -Uri "$api/api/reportes" -UseBasicParsing -Headers @{ "X-Dispositivo" = $dispositivo } -ContentType "application/json" -Body (@{ sectorId = "crespo"; tipo = "SIN_AGUA"; coordenada = $crespo; precisionMetros = 10 } | ConvertTo-Json)).StatusCode } catch { [int]$_.Exception.Response.StatusCode } }
 ```
 Resultado: `201`, `201`, `201`, `429`.
 
@@ -324,7 +337,8 @@ $ha = @{ Authorization = "Bearer $($sa.token)" }
 try { Invoke-RestMethod -Method Post -Uri "$api/api/veedor/cortes" -Headers $ha -ContentType "application/json" -Body (@{ sectoresAfectados = @("manga"); inicio = $ini; finPrometido = $fin; causa = "x" } | ConvertTo-Json) } catch { [int]$_.Exception.Response.StatusCode }
 ```
 Resultado: `OBSERVADOR`, `CONFIGURAR_SEGUNDO_FACTOR, VER_PANEL`, y `403` al intentar crear un corte. Roles: **ADMIN** (todo), **VEEDOR** (cortes, moderación, ingesta),
-**OBSERVADOR** (solo ver); un ADMIN además puede conceder o quitar permisos sueltos por persona. Cada acción queda en la auditoría:
+**OBSERVADOR** (solo ver) y **VECINO** (cuenta ciudadana: solo su propio perfil, nunca permisos de panel); un ADMIN además puede conceder o quitar permisos sueltos
+por persona del panel. Cada acción queda en la auditoría:
 
 ```powershell
 (Invoke-RestMethod "$api/api/veedor/auditoria" -Headers $h) | Select-Object -First 6 accion, detalle
@@ -369,8 +383,8 @@ correrla «a mano» sin él (necesita Mongo en réplica, Redis y Mailhog). El Ma
 ```powershell
 docker exec aguavigia-mongo mongosh aguavigia --quiet --eval "db.getCollectionNames().sort().forEach(c => print(c.padEnd(24), db.getCollection(c).countDocuments()))"
 ```
-Colecciones: `usuarios`, `sectores`, `reportes`, `cortes`, `eventos_bitacora`, `suscripciones`, `tokens_cuenta`, `auditoria_cuentas`, `suscripciones_telegram`,
-`propuestas_ingesta`, `documentos_fallidos`.
+Son 16 colecciones (algunas aparecen solo cuando reciben su primer documento). Qué guarda cada una, sus índices y su retención:
+[03 · Base de datos](03-base-de-datos.md).
 
 ```powershell
 docker exec aguavigia-mongo mongosh aguavigia --quiet --eval "db.usuarios.find({}, {claveHash:0, secretoTotp:0, _class:0}).forEach(u => print(u.correo, '|', u.rol, '|', u.estado))"

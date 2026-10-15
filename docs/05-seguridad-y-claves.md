@@ -1,6 +1,6 @@
 # 05 · Seguridad y claves
 
-Estado a 2026-09-29 (hora de Cartagena), tras la auditoría del backend y sus correcciones. **Aquí nunca van valores**:
+Estado a 2026-10-15 (hora de Cartagena), contrastado con el código de `main`. **Aquí nunca van valores**:
 las claves viven en el `.env` local (ignorado por git) o se generan al arrancar.
 
 ## 1. Cómo se protege el acceso
@@ -8,12 +8,13 @@ las claves viven en el `.env` local (ignorado por git) o se generan al arrancar.
 | Pieza | Cómo funciona |
 |---|---|
 | Sesión | JWT HS256 firmado con `JWT_SECRET` (≥ 32 bytes), vigencia 8 h. Cada petición con token consulta en Redis si fue revocado; si Redis cae, se deniega |
-| Roles | `ADMIN`, `VEEDOR`, `OBSERVADOR`, más permisos sueltos. Cada método de `/api/veedor/**` lleva `@PreAuthorize` contra un permiso concreto |
+| Roles | Panel: `ADMIN`, `VEEDOR`, `OBSERVADOR`, más permisos sueltos; cada método de `/api/veedor/**` lleva `@PreAuthorize` contra un permiso concreto. `VECINO`: cuenta ciudadana, solo su perfil (`/api/vecino/**`), nunca permisos de panel |
+| Identidad de quien reporta | El servidor emite un token de dispositivo firmado (`POST /api/dispositivos`, 10 por hora por IP) que viaja en `X-Dispositivo`; la colección `dispositivos` guarda solo su SHA-256 (ADR-090). Un vecino con sesión reporta con su cuenta |
 | Segundo factor | TOTP (app de autenticación) con antirreplay: un código no se puede usar dos veces en 2 minutos |
 | Bloqueo de cuenta | Por **cuenta y dirección**: 5 fallos en 15 min bloquean 15 min a quien falló, sin bloquear al titular. Además un tope global por cuenta (50 fallos) frena el ataque repartido entre muchas IP |
 | Límite por IP | `/api/veedor/sesion`: 10 intentos / 5 min. **Límite conocido:** detrás de Docker Desktop todos los clientes llegan con la IP de la pasarela, así que aquí es un tope global |
 | Enlaces de cuenta | Verificar, invitar y restablecer: token aleatorio, solo se guarda su hash, un solo uso. El marcado como usado es atómico (dos peticiones con el mismo enlace: gana una) |
-| Rutas | **Denegadas por defecto.** Solo son públicas las de `RUTAS_PUBLICAS` en `SecurityConfig` (lectura, reportes, avisos, IoT, salud) y `/api/cuentas/**` |
+| Rutas | **Denegadas por defecto.** Son públicas solo las de `RUTAS_PUBLICAS` en `SecurityConfig` (lectura, reportes, dispositivos, suscripciones, IoT, Open311 en `/api/v2`, simulación en `/api/sim` —que solo existe en esa instancia y además pide `X-Sim-Key`—, salud y Swagger fuera de `prod`), más `/api/cuentas/**`, el inicio de sesión del panel y del vecino, `GET /api/fotos/**` y `GET /api/sistema/modo` |
 | Cabeceras | `Content-Security-Policy` estricta (salvo Swagger UI), `Referrer-Policy: no-referrer`, `X-Content-Type-Options`, `X-Frame-Options: DENY`, HSTS bajo HTTPS |
 | Fotos de evidencia | Lista blanca de tipo, verificación de firma de bytes, nombre UUID; **una foto por reporte, no se reemplaza** |
 | Sensores IoT | Cabecera `X-IoT-Key`, comparación en tiempo constante; identificador de sensor acotado (≤ 64, alfabeto limitado), presión y coordenadas con rango |
@@ -23,7 +24,7 @@ las claves viven en el `.env` local (ignorado por git) o se generan al arrancar.
 | Secreto | Origen | Si falta |
 |---|---|---|
 | `JWT_SECRET` | Perfil `docker`: aleatorio en cada arranque (las sesiones no sobreviven a un reinicio). Perfil `prod`: obligatorio | En `prod` el backend **no arranca** (`ValidacionDeSecretos`) |
-| Clave del primer ADMIN | Con `usuarios` vacía, el backend crea `admin@aguavigia.local` con clave aleatoria y la imprime **una sola vez** en el log | `scripts/restablecer-admin.mjs` (solo contra base local) |
+| Clave del primer ADMIN | Con `usuarios` vacía, el backend crea `admin@aguavigia.local` con clave aleatoria y la imprime **una sola vez** en el log. Si el `.env` define `VEEDOR_PASSWORD_HASH` (y `ADMIN_INICIAL_CORREO`), usa ese hash y **no imprime nada** | `scripts/restablecer-admin.mjs` (solo contra base local) |
 | `IOT_KEY` | Opcional. Si se define debe medir **≥ 32 caracteres** (p. ej. `openssl rand -hex 16`) o el backend no arranca | Vacía: `/api/iot/presion` responde 503 |
 | `TELEGRAM_BOT_TOKEN` | `.env` | Vacío: el canal queda apagado |
 | Clave de las cuentas sintéticas de vecino | **Nadie la conoce.** El backend genera una contraseña aleatoria, guarda solo su hash BCrypt (uno, compartido) y descarta la contraseña: esas cuentas no pueden iniciar sesión (ADR-094) | — |
@@ -46,7 +47,11 @@ red del aula no se ve. Mongo y Redis siguen **sin autenticación**: es aceptable
 
 - **Secreto TOTP en claro en Mongo.** Cifrarlo en reposo exige una clave que sobreviva a los reinicios; no hay dónde guardarla sin
   romper el arranque sin `.env`. Decisión pendiente del dueño.
-- **Huella del dispositivo enviada por el cliente:** el cupo de 3 reportes por dispositivo se evade rotándola; solo lo frena el límite por IP.
+- **Identidades de dispositivo:** ya no las elige el cliente (ADR-090), pero alguien puede pedir hasta 10 por hora desde una IP y repartir reportes entre ellas.
+  Lo frenan el límite por IP y la composición del quórum (un tercio del sustento verificado por ubicación y un mínimo de redes distintas, que el compose
+  local deja en 1 con `AGUAVIGIA_CONSENSO_REDES_MINIMAS`); la reputación por dispositivo
+  no se construyó (ADR-097 §3).
+- **Pendientes de la revisión de F6** (ADR-097): endpoints públicos sin límite propio, SSE sin tope por IP y Trivy solo sobre el backend.
 - **`IOT_KEY` es una clave compartida**, no se puede rotar por sensor.
 - **Historial de git:** una clave de desarrollo y una clave de demostración estuvieron publicadas en un repo público. Ya no están en
   ningún archivo vigente y se consideran expuestas (no usarlas jamás); seguirán en el historial mientras no se reescriba.

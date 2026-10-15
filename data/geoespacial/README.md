@@ -1,8 +1,8 @@
 # Datos geoespaciales — barrios de Cartagena
 
-> Datos crudos de referencia. No es código de aplicación: son el insumo de origen para el script de
-> siembra (seed) de MongoDB que crea D5 en Sprint 1 (`docs/equipo/D5-devops-qa.md` §2).
-> Verificado con peticiones reales el 2026-08-07 (D5).
+> Datos crudos de referencia. No es código de aplicación: son el insumo de origen de `scripts/sembrar-sectores.mjs`, que carga los
+> 211 barrios en la colección `sectores` de MongoDB ([03 · Base de datos](../../docs/03-base-de-datos.md)).
+> Verificado con peticiones reales el 2026-08-07.
 
 ---
 
@@ -25,8 +25,8 @@ API, no un sitio indexable). Se identificó el colector con `User-Agent` propio 
 **Licencia:** el ítem en ArcGIS Online no declara `licenseInfo`. Es un dataset **público** (`access:
 public`) publicado por Cartagena Cómo Vamos (organización civil independiente de veeduría ciudadana,
 fuente ya citada en la documentación de ingeniería del proyecto). **Pendiente:** confirmar términos de
-uso exactos antes de publicarlo en producción — anotar en `docs/design-decisions.md` si el equipo
-decide citarlo formalmente en el Capítulo II/Anexo 6.
+uso exactos antes de publicarlo fuera del entorno local; si se decide citarlo formalmente (Capítulo II/Anexo 6), anotarlo en
+[06 · Ética de datos](../../docs/06-etica-de-datos.md).
 
 ---
 

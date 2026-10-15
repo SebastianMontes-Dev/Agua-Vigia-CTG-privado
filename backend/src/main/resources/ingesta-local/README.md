@@ -3,10 +3,11 @@
 `boletines-acuacar.json` son **boletines reales de Acuacar** tal como los devuelve su API pública de WordPress
 (`/wp-json/wp/v2/posts`), sin editar: título y contenido en HTML, enlace, fecha y portada. No hay nada inventado.
 
-Lo lee `ColectorLocalDeBoletines` cuando `INGESTA_MODO=local` (`aguavigia.ingesta.modo=local`). Siguen el mismo
-camino que uno en vivo (limpieza, deduplicación por hash, prefiltro, extractor, propuesta). Como Acuacar es fuente
-oficial, sus propuestas **se publican solas** (ADR-034), igual que en vivo; la prensa, que es lo que llena la cola de
-revisión del veedor, no se lee en este modo.
+Lo lee `ColectorLocalDeBoletines` cuando `INGESTA_MODO=local`, y también en modo `auto` (el del compose) si Acuacar en vivo
+falla. Siguen el mismo camino que uno en vivo (limpieza, deduplicación por hash, prefiltro, extractor, propuesta). Como
+Acuacar es fuente oficial, sus propuestas se publican solas **solo si pasan las compuertas de fiabilidad**; si no, van a
+la cola del veedor con el motivo, y los boletines cuya ventana ya pasó entran como historia (`CORTE_EXPIRADO`), sin
+cambiar el estado de ningún barrio (ADR-092). La prensa no se lee en este modo.
 
 ## Renovarlos
 

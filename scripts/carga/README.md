@@ -1,14 +1,15 @@
 # Pruebas de carga
 
-Scripts para medir cuánta carga aguanta el backend en el banco local (un solo PC, `ADR-080`). Contexto y resultados en
-[`docs/ingenieria/escalabilidad.md`](../../docs/ingenieria/escalabilidad.md).
+Scripts para medir cuánta carga aguanta el backend en el banco local (un solo PC, ADR-057/080). Las cifras vigentes y sus límites están en
+el ADR-097 §1 de [07 · Decisiones clave](../../docs/07-decisiones-clave.md). Los ADR que cita este archivo con la palabra «histórico» son del registro
+anterior (`git show pre-limpieza-docs:docs/design-decisions.md`), no los de igual número de `docs/07`.
 
 **Para la presentación:** `demo.mjs` lo hace todo con un comando (ver abajo). Los demás miden una sola cosa.
 
 | Script | Qué mide | Herramienta |
 |---|---|---|
 | `demo.mjs` | La ciudad entera a la vez: orquesta `flujo-ciudadano.js` y `sse-conexiones.mjs`, con respaldo, perfil `carga`, resumen y vuelta atrás. | Node + Docker |
-| `monitor-bd.mjs` | La base en vivo: cuántos documentos tiene cada colección y a qué ritmo crece, cada segundo (`ADR-088`). | Node (o `docker compose run --rm sembrador monitor`) |
+| `monitor-bd.mjs` | La base en vivo: cuántos documentos tiene cada colección y a qué ritmo crece, cada segundo (histórico ADR-088). | Node (o `docker compose run --rm sembrador monitor`) |
 | `flujo-ciudadano.js` | Reportes de miles de vecinos (con coordenada y confirmaciones), averías masivas en varios barrios, lecturas, inicios de sesión de veedores, suscripciones y, con `REGISTROS`, altas de cuentas por la API, todo a la vez. | k6 |
 | `lectura-publica.js` | Lecturas públicas (`/api/sectores`, `/estadisticas`, `/cumplimiento`, `/bitacora`) a tasa creciente. | k6 |
 | `escritura-reportes.js` | `POST /api/reportes` repartido y un pico concentrado en un sector (avería masiva). | k6 |
@@ -17,13 +18,13 @@ Scripts para medir cuánta carga aguanta el backend en el banco local (un solo P
 
 k6 no hace falta instalarlo: se usa la imagen `grafana/k6`.
 
-## La demo de carga (`demo.mjs`, `ADR-083`)
+## La demo de carga (`demo.mjs`, histórico ADR-083)
 
 ```bash
 node scripts/carga/demo.mjs --usuarios 30000 --ventana 60 --conectados 30000 --restaurar
 ```
 
-Requiere el stack levantado con `docker compose --profile siembra up` (que siembra sectores y cuentas, `ADR-086`) y Node en el equipo con
+Requiere el stack levantado con `docker compose up` (siembra los sectores y el backend crea las cuentas sintéticas, ADR-094) y Node en el equipo con
 `cd scripts && npm install` hecho una vez: el script maneja Docker desde fuera. Deja el informe HTML de k6, el `resumen.json` y el `resumen.txt` en
 `resultados/<fecha>/` (ignorado por git) y muestra el panel en vivo de k6 en `http://localhost:5665`.
 
@@ -34,7 +35,7 @@ Requiere el stack levantado con `docker compose --profile siembra up` (que siemb
 | `--conectados` | 30000 | Conexiones SSE simultáneas (0 = sin SSE); se reparten en contenedores de hasta 20 000 |
 | `--focos` | 12 | Barrios con avería masiva que se encienden uno tras otro |
 | `--lectores` / `--veedores` / `--suscripciones` | 150 / 2 / 1 | Por segundo |
-| `--registros` | 0 | Personas que piden una cuenta por `POST /api/cuentas/registro`, en paralelo con los reportes (`ADR-088`) |
+| `--registros` | 0 | Personas que piden una cuenta por `POST /api/cuentas/registro`, en paralelo con los reportes (histórico ADR-088) |
 | `--tasa-registros` | 50 | Registros por segundo. Con reportes a la vez, 50/s cumple todos los umbrales; solos, el techo medido es ≈ 160/s (BCrypt) |
 | `--sin-correo` | no | Los registros no envían el correo de verificación (no llenan MailHog) |
 | `--restaurar` | no | Al terminar, vuelve Mongo y Redis al estado de antes |
@@ -42,8 +43,8 @@ Requiere el stack levantado con `docker compose --profile siembra up` (que siemb
 | `--sin-respaldo` / `--sin-reinicio` / `--dejar-perfil` | no | Omiten el respaldo, el reinicio del backend o su vuelta al perfil normal |
 
 El perfil `carga` (`docker-compose.carga.yml` + `application-carga.yml`) solo vacía el límite de peticiones por IP y sube los
-topes de conexiones; el cupo por dispositivo de `RF006` y el consenso son los de siempre. Cifras medidas y sus límites en
-[`docs/ingenieria/escalabilidad.md`](../../docs/ingenieria/escalabilidad.md).
+topes de conexiones; el cupo por dispositivo de `RF006` y el consenso son los de siempre. Cifras medidas y sus límites en el ADR-097 §1 de
+[07 · Decisiones clave](../../docs/07-decisiones-clave.md).
 
 ### Registro masivo y la base en vivo
 
@@ -57,13 +58,14 @@ docker compose run --rm sembrador monitor
 ```
 
 Las cuentas nuevas quedan en `usuarios` con correo `r-<corrida>-<n>@carga.aguavigia.local` y estado `PENDIENTE_VERIFICACION`:
-en `mongo-express` (`docker compose --profile demo up -d mongo-express`, `http://localhost:8082`) o en Compass, con
-`db.usuarios.find({correo: /@carga.aguavigia.local$/})`. Con `--restaurar` desaparecen al terminar. Cifras y límites:
-[`escalabilidad.md`](../../docs/ingenieria/escalabilidad.md#registro-masivo-de-cuentas-2026-09-29-adr-088).
+en `mongo-express` (`docker compose --profile demo up -d mongo-express`, `http://localhost:8083`) o en Compass, con
+`db.usuarios.find({correo: /@carga.aguavigia.local$/})`. Con `--restaurar` desaparecen al terminar. Las cifras del registro masivo del 2026-09-29
+están en el histórico ADR-088 (`git show pre-limpieza-docs:docs/design-decisions.md`).
 
 ## Antes de medir
 
-1. Levantar el stack con `docker compose --profile siembra up` (siembra sectores y cuentas; `ADR-086`).
+1. Levantar el stack con `docker compose up` (siembra los sectores y el backend crea las cuentas sintéticas; ADR-094). Mejor aún, en un
+   proyecto aparte (`docker compose -p <nombre> ...`) para no tocar la base de uso diario: así se midió el ADR-097.
 2. **Hacer una copia de Mongo** (`scripts/backup-mongo.sh`): las escrituras dejan decenas de miles de reportes.
 3. **Vaciar el rate limit por IP** para las pruebas de escritura (`aguavigia.rate-limit.reglas` vacío): k6 sale desde una
    sola IP y mediría el `429` del limitador, no la latencia.
