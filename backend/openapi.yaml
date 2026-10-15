@@ -63,6 +63,8 @@ tags:
   description: Registro y cierre de cortes oficiales (RF016-RF017)
 - name: Reportes
   description: "Reportes ciudadanos de estado del servicio, sin registro"
+- name: Analítica
+  description: Índice de Cumplimiento desde la copia analítica en PostgreSQL (ADR-100)
 - name: Veedor - Segundo factor
   description: Alta y baja del TOTP de la propia cuenta
 - name: Veedor
@@ -2466,6 +2468,52 @@ paths:
                 $ref: "#/components/schemas/ProblemDetail"
       security:
       - bearerAuth: []
+  /api/veedor/analitica/copia:
+    get:
+      tags:
+      - Analítica
+      summary: Últimas copias de MongoDB a la base analítica
+      description: "Cuándo corrió cada copia, cuánto copió y si los conteos de las\
+        \ dos bases cuadraron. Es donde se ve el estado de la copia: `/actuator/health`\
+        \ no la incluye a propósito."
+      operationId: ultimasCopiasAnaliticas
+      parameters:
+      - name: limite
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 20
+      responses:
+        "200":
+          description: "Las copias, de la más reciente a la más antigua"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CopiaAnaliticaRespuesta"
+        "503":
+          description: La copia analítica está apagada o PostgreSQL no responde
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: "Sin sesión, token inválido, caducado o revocado"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: La sesión no tiene el permiso que exige esta operación
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+      security:
+      - bearerAuth: []
   /api/vecino/yo:
     get:
       tags:
@@ -2975,6 +3023,63 @@ paths:
                   type: string
         "404":
           description: No existe el evento
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+  /api/analitica/cumplimiento:
+    get:
+      tags:
+      - Analítica
+      summary: Índice de Cumplimiento desde la copia SQL
+      description: "El índice global de la ciudad, o el de un barrio con `sectorId`.\
+        \ Misma fórmula que `GET /api/cumplimiento`, calculada por una vista de PostgreSQL\
+        \ sobre la copia, que va hasta 5 minutos por detrás de MongoDB."
+      operationId: cumplimientoAnalitico
+      parameters:
+      - name: sectorId
+        in: query
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Índice calculado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CumplimientoAnaliticoRespuesta"
+        "404":
+          description: El barrio no existe en la copia
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "503":
+          description: "La copia analítica está apagada, PostgreSQL no responde o\
+            \ todavía no hubo una primera copia"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+  /api/analitica/cumplimiento/mensual:
+    get:
+      tags:
+      - Analítica
+      summary: Serie mensual del Índice desde la copia SQL
+      description: "El índice agrupado por mes en hora de Cartagena, de más antiguo\
+        \ a más reciente."
+      operationId: cumplimientoAnaliticoMensual
+      responses:
+        "200":
+          description: Serie calculada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SerieMensualAnaliticaRespuesta"
+        "503":
+          description: "La copia analítica está apagada, PostgreSQL no responde o\
+            \ todavía no hubo una primera copia"
           content:
             application/problem+json:
               schema:
@@ -4046,6 +4151,46 @@ components:
           format: date-time
       description: "Asiento de la bitacora de auditoria de cuentas: quien le hizo\
         \ que a quien"
+    ConteosAnaliticosRespuesta:
+      type: object
+      properties:
+        sectores:
+          type: integer
+          format: int32
+        cortes:
+          type: integer
+          format: int32
+        pares:
+          type: integer
+          format: int32
+      description: "Cuántos barrios, cortes y pares corte-barrio hay en una de las\
+        \ dos bases"
+    CopiaAnaliticaRespuesta:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        iniciadaEn:
+          type: string
+          format: date-time
+        terminadaEn:
+          type: string
+          description: Nulo si la copia sigue en curso o el backend se detuvo a mitad
+            de ella
+          format: date-time
+        resultado:
+          type: string
+          description: "EN_CURSO, OK, CON_DIFERENCIAS o FALLIDA"
+        enMongo:
+          $ref: "#/components/schemas/ConteosAnaliticosRespuesta"
+        enSql:
+          $ref: "#/components/schemas/ConteosAnaliticosRespuesta"
+        detalle:
+          type: string
+          description: Qué no cuadró o por qué falló. Nulo si todo salió bien
+      description: "Una copia de MongoDB a la base analítica: cuándo corrió y si los\
+        \ conteos de las dos bases cuadraron"
     Open311Response:
       type: object
       properties:
@@ -4285,6 +4430,78 @@ components:
           format: int32
       description: Cuántos vecinos respaldan un cambio y cuántos hacían falta
       nullable: true
+    CumplimientoAnaliticoRespuesta:
+      type: object
+      properties:
+        sectorId:
+          type: string
+          description: Nulo en el índice global de la ciudad
+        nombre:
+          type: string
+          description: Nulo en el índice global de la ciudad
+        paresCerrados:
+          type: integer
+          description: "Pares corte-barrio ya restablecidos que sostienen el índice.\
+            \ Con 0, el 100 % no dice nada: no hay nada que medir"
+          format: int64
+        duracionPrometidaSegundos:
+          type: integer
+          format: int64
+        duracionRealSegundos:
+          type: integer
+          format: int64
+        desviacionSegundos:
+          type: integer
+          description: duracionReal - duracionPrometida. Negativa si terminó antes
+            de lo prometido
+          format: int64
+        porcentajeCumplimiento:
+          type: number
+          description: Capado en 100 cuando los cortes terminan antes o a tiempo
+          format: double
+        copiadoEn:
+          type: string
+          description: Cuándo terminó la última copia que cuadró con MongoDB. Nulo
+            si todavía no hubo ninguna
+          format: date-time
+      description: |-
+        Índice de Cumplimiento calculado por las vistas SQL de la copia analítica (PostgreSQL, ADR-100). Misma fórmula que
+        GET /api/cumplimiento (ADR-022): se suman duraciones, no se promedian porcentajes. Va hasta 5 minutos por detrás de MongoDB.
+    PuntoMensualAnaliticoRespuesta:
+      type: object
+      properties:
+        periodo:
+          type: string
+          description: "Mes en hora de Cartagena, formato ISO 8601"
+          example: 2026-08
+        paresCerrados:
+          type: integer
+          format: int64
+        duracionPrometidaSegundos:
+          type: integer
+          format: int64
+        duracionRealSegundos:
+          type: integer
+          format: int64
+        porcentajeCumplimiento:
+          type: number
+          format: double
+      description: "El Índice de un mes, calculado por las vistas SQL de la copia\
+        \ analítica"
+    SerieMensualAnaliticaRespuesta:
+      type: object
+      properties:
+        copiadoEn:
+          type: string
+          description: Cuándo terminó la última copia que cuadró con MongoDB. Nulo
+            si todavía no hubo ninguna
+          format: date-time
+        puntos:
+          type: array
+          items:
+            $ref: "#/components/schemas/PuntoMensualAnaliticoRespuesta"
+      description: "La serie mensual del Índice según la copia analítica, de más antiguo\
+        \ a más reciente"
   securitySchemes:
     bearerAuth:
       type: http

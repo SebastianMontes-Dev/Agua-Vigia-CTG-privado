@@ -54,7 +54,7 @@ public class SecurityConfig {
 
     /** Lectura y reporte ciudadano, avisos, telemetría y salud: lo que existe sin sesión. */
     private static final String[] RUTAS_PUBLICAS = {
-            "/api/sectores/**", "/api/reportes/**", "/api/cumplimiento/**", "/api/estadisticas/**",
+            "/api/sectores/**", "/api/reportes/**", "/api/cumplimiento/**", "/api/analitica/**", "/api/estadisticas/**",
             "/api/bitacora/**", "/api/suscripciones/**", "/api/iot/**", "/api/v2/**", "/api/dispositivos/**",
             // Simulación (D26): sin sesión pero con X-Sim-Key, y solo existe en la instancia de simulación: en la real no hay
             // controlador y responde 404.

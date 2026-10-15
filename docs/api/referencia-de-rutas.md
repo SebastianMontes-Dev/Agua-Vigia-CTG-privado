@@ -6,7 +6,7 @@
 >
 > Las **guías** de esta carpeta explican el porqué y los flujos; esta página es el catálogo exacto.
 
-**84 operaciones** en 78 rutas, más las páginas HTML de cortesía y el SSE.
+**87 operaciones** en 81 rutas, más las páginas HTML de cortesía y el SSE.
 
 Leyenda de **Acceso**: *Público* no exige token · *Sesión + `PERMISO`* exige `Authorization: Bearer <token>` de una
 cuenta que tenga ese permiso · *Sesión (cualquier cuenta)* exige token pero ningún permiso concreto.
@@ -14,6 +14,7 @@ Todo error sale en RFC 7807: ver [Errores y límites](errores-y-limites.md).
 
 ## Índice
 
+- [Analítica](#anal-tica) (3)
 - [Bitácora](#bit-cora) (2)
 - [Cuentas](#cuentas) (13)
 - [Cumplimiento](#cumplimiento) (6)
@@ -37,6 +38,49 @@ Todo error sale en RFC 7807: ver [Errores y límites](errores-y-limites.md).
 - [Veedor - Segundo factor](#veedor-segundo-factor) (3)
 - [Veedor - Sistema](#veedor-sistema) (1)
 - [Esquemas](#esquemas)
+
+## Analítica
+
+Índice de Cumplimiento desde la copia analítica en PostgreSQL (ADR-100)
+
+### `GET /api/analitica/cumplimiento`
+
+**Índice de Cumplimiento desde la copia SQL**
+
+El índice global de la ciudad, o el de un barrio con `sectorId`. Misma fórmula que `GET /api/cumplimiento`, calculada por una vista de PostgreSQL sobre la copia, que va hasta 5 minutos por detrás de MongoDB.
+
+| | |
+|---|---|
+| **Acceso** | Público |
+| **Parámetros** | `sectorId` (query) |
+| **Cuerpo** | — |
+| **Respuestas** | `200` Índice calculado → [CumplimientoAnaliticoRespuesta](#esquema-cumplimientoanaliticorespuesta)<br>`404` El barrio no existe en la copia → [ProblemDetail](#esquema-problemdetail)<br>`503` La copia analítica está apagada, PostgreSQL no responde o todavía no hubo una primera copia → [ProblemDetail](#esquema-problemdetail) |
+
+### `GET /api/analitica/cumplimiento/mensual`
+
+**Serie mensual del Índice desde la copia SQL**
+
+El índice agrupado por mes en hora de Cartagena, de más antiguo a más reciente.
+
+| | |
+|---|---|
+| **Acceso** | Público |
+| **Parámetros** | — |
+| **Cuerpo** | — |
+| **Respuestas** | `200` Serie calculada → [SerieMensualAnaliticaRespuesta](#esquema-seriemensualanaliticarespuesta)<br>`503` La copia analítica está apagada, PostgreSQL no responde o todavía no hubo una primera copia → [ProblemDetail](#esquema-problemdetail) |
+
+### `GET /api/veedor/analitica/copia`
+
+**Últimas copias de MongoDB a la base analítica**
+
+Cuándo corrió cada copia, cuánto copió y si los conteos de las dos bases cuadraron. Es donde se ve el estado de la copia: `/actuator/health` no la incluye a propósito.
+
+| | |
+|---|---|
+| **Acceso** | Sesión + `VER_PANEL` |
+| **Parámetros** | `limite` (query) |
+| **Cuerpo** | — |
+| **Respuestas** | `200` Las copias, de la más reciente a la más antigua → lista de [CopiaAnaliticaRespuesta](#esquema-copiaanaliticarespuesta)<br>`401` Sin sesión, token inválido, caducado o revocado → [ProblemDetail](#esquema-problemdetail)<br>`403` La sesión no tiene el permiso que exige esta operación → [ProblemDetail](#esquema-problemdetail)<br>`503` La copia analítica está apagada o PostgreSQL no responde → [ProblemDetail](#esquema-problemdetail) |
 
 ## Bitácora
 
@@ -1258,6 +1302,18 @@ Lo que acepto, con la version del texto y la fecha
 | `version` | string |  |  |  |
 | `fecha` | string (date-time) |  |  |  |
 
+<a id="esquema-conteosanaliticosrespuesta"></a>
+
+### ConteosAnaliticosRespuesta
+
+Cuántos barrios, cortes y pares corte-barrio hay en una de las dos bases
+
+| Campo | Tipo | Oblig. | Nulo | Descripción |
+|---|---|---|---|---|
+| `sectores` | integer (int32) |  |  |  |
+| `cortes` | integer (int32) |  |  |  |
+| `pares` | integer (int32) |  |  |  |
+
 <a id="esquema-coordenadadto"></a>
 
 ### CoordenadaDTO
@@ -1268,6 +1324,22 @@ Coordenada GPS del reporte, solo cuando el usuario la autoriza (RF007)
 |---|---|---|---|---|
 | `latitud` | number (double) | sí |  |  |
 | `longitud` | number (double) | sí |  |  |
+
+<a id="esquema-copiaanaliticarespuesta"></a>
+
+### CopiaAnaliticaRespuesta
+
+Una copia de MongoDB a la base analítica: cuándo corrió y si los conteos de las dos bases cuadraron
+
+| Campo | Tipo | Oblig. | Nulo | Descripción |
+|---|---|---|---|---|
+| `id` | integer (int64) |  |  |  |
+| `iniciadaEn` | string (date-time) |  |  |  |
+| `terminadaEn` | string (date-time) |  |  | Nulo si la copia sigue en curso o el backend se detuvo a mitad de ella |
+| `resultado` | string |  |  | EN_CURSO, OK, CON_DIFERENCIAS o FALLIDA |
+| `enMongo` | [ConteosAnaliticosRespuesta](#esquema-conteosanaliticosrespuesta) |  |  |  |
+| `enSql` | [ConteosAnaliticosRespuesta](#esquema-conteosanaliticosrespuesta) |  |  |  |
+| `detalle` | string |  |  | Qué no cuadró o por qué falló. Nulo si todo salió bien |
 
 <a id="esquema-corterespuesta"></a>
 
@@ -1310,6 +1382,23 @@ Credencial de acceso al panel del veedor
 | `correo` | string (email) | sí |  | Correo de la cuenta |
 | `clave` | string | sí |  | Clave de la cuenta |
 | `codigoTotp` | string |  |  | Codigo de 6 digitos de la app de autenticacion. Se omite en el primer intento; si la cuenta tiene segundo factor, la respuesta 401 con type `segundo-factor-requerido` indica que hay que reintentar incluyendolo. |
+
+<a id="esquema-cumplimientoanaliticorespuesta"></a>
+
+### CumplimientoAnaliticoRespuesta
+
+Índice de Cumplimiento calculado por las vistas SQL de la copia analítica (PostgreSQL, ADR-100). Misma fórmula que GET /api/cumplimiento (ADR-022): se suman duraciones, no se promedian porcentajes. Va hasta 5 minutos por detrás de MongoDB.
+
+| Campo | Tipo | Oblig. | Nulo | Descripción |
+|---|---|---|---|---|
+| `sectorId` | string |  |  | Nulo en el índice global de la ciudad |
+| `nombre` | string |  |  | Nulo en el índice global de la ciudad |
+| `paresCerrados` | integer (int64) |  |  | Pares corte-barrio ya restablecidos que sostienen el índice. Con 0, el 100 % no dice nada: no hay nada que medir |
+| `duracionPrometidaSegundos` | integer (int64) |  |  |  |
+| `duracionRealSegundos` | integer (int64) |  |  |  |
+| `desviacionSegundos` | integer (int64) |  |  | duracionReal - duracionPrometida. Negativa si terminó antes de lo prometido |
+| `porcentajeCumplimiento` | number (double) |  |  | Capado en 100 cuando los cortes terminan antes o a tiempo |
+| `copiadoEn` | string (date-time) |  |  | Cuándo terminó la última copia que cuadró con MongoDB. Nulo si todavía no hubo ninguna |
 
 <a id="esquema-documentofallidorespuesta"></a>
 
@@ -1523,6 +1612,20 @@ Propuesta de cambio de estado detectada por la ingesta automatizada (M9), espera
 | `finPrometido` | string (date-time) |  | sí | Fin prometido de la misma ventana. Junto con el inicio es lo que permite que el estado del sector evolucione solo (ADR-033) y lo que alimenta el Índice de Cumplimiento (RF020-RF022). |
 | `motivoDeRevision` | string |  | sí | Por qué esta propuesta espera al veedor en vez de haberse publicado sola (D5): confianza baja, una ventana de más de 72 horas, más de 40 barrios, un nombre ambiguo, o que viene de prensa. Nulo si salió sola. |
 
+<a id="esquema-puntomensualanaliticorespuesta"></a>
+
+### PuntoMensualAnaliticoRespuesta
+
+El Índice de un mes, calculado por las vistas SQL de la copia analítica
+
+| Campo | Tipo | Oblig. | Nulo | Descripción |
+|---|---|---|---|---|
+| `periodo` | string |  |  | Mes en hora de Cartagena, formato ISO 8601 |
+| `paresCerrados` | integer (int64) |  |  |  |
+| `duracionPrometidaSegundos` | integer (int64) |  |  |  |
+| `duracionRealSegundos` | integer (int64) |  |  |  |
+| `porcentajeCumplimiento` | number (double) |  |  |  |
+
 <a id="esquema-puntoserierespuesta"></a>
 
 ### PuntoSerieRespuesta
@@ -1644,6 +1747,17 @@ Sector de Cartagena con el estado conocido de su servicio de agua
 | `enDisputa` | boolean |  |  | Un quórum de vecinos contradice a la fuente oficial. El color no cambia: la contradicción se muestra como una insignia y llega a la cola del veedor. |
 | `reportesEnContra` | integer (int32) |  |  | Cuántos vecinos sostienen esa contradicción. 0 si no hay disputa. |
 | `respaldo` | [RespaldoVecinalRespuesta](#esquema-respaldovecinalrespuesta) |  |  |  |
+
+<a id="esquema-seriemensualanaliticarespuesta"></a>
+
+### SerieMensualAnaliticaRespuesta
+
+La serie mensual del Índice según la copia analítica, de más antiguo a más reciente
+
+| Campo | Tipo | Oblig. | Nulo | Descripción |
+|---|---|---|---|---|
+| `copiadoEn` | string (date-time) |  |  | Cuándo terminó la última copia que cuadró con MongoDB. Nulo si todavía no hubo ninguna |
+| `puntos` | lista de [PuntoMensualAnaliticoRespuesta](#esquema-puntomensualanaliticorespuesta) |  |  |  |
 
 <a id="esquema-sesionvecino"></a>
 

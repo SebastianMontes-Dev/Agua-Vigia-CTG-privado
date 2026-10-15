@@ -1,5 +1,6 @@
 package com.aguavigia.ctg.api.error;
 
+import com.aguavigia.ctg.domain.AnaliticaNoDisponibleException;
 import com.aguavigia.ctg.domain.EntidadNoEncontradaException;
 import com.aguavigia.ctg.domain.CredencialInvalidaException;
 import com.aguavigia.ctg.domain.CuentaBloqueadaException;
@@ -66,6 +67,15 @@ public class ManejadorGlobalDeErrores {
     /** La ruta existe pero este servidor no está configurado para atenderla (p. ej. IoT sin clave). */
     @ExceptionHandler(ServicioNoDisponibleException.class)
     public ProblemDetail servicioNoDisponible(ServicioNoDisponibleException e) {
+        ProblemDetail problema = ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE, e.getMessage());
+        problema.setTitle("Servicio no disponible");
+        problema.setType(URI.create(BASE_TIPO + "servicio-no-disponible"));
+        return problema;
+    }
+
+    /** La copia analítica (PostgreSQL) está apagada, no responde o no tiene todavía su primera copia (ADR-100). */
+    @ExceptionHandler(AnaliticaNoDisponibleException.class)
+    public ProblemDetail analiticaNoDisponible(AnaliticaNoDisponibleException e) {
         ProblemDetail problema = ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE, e.getMessage());
         problema.setTitle("Servicio no disponible");
         problema.setType(URI.create(BASE_TIPO + "servicio-no-disponible"));
