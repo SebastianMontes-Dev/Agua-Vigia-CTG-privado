@@ -56,6 +56,12 @@
       y CVE-2026-91777 (jackson-databind), las cuatro altas que marcaba Trivy.
     -->
     <jackson-bom.version>2.21.7</jackson-bom.version>
+    <!--
+      Spring Boot 3.5.16 fija el driver de PostgreSQL en 42.7.11, y CVE-2026-54291 (alta, en la dependencia com.ongres que
+      trae para la autenticacion SCRAM) se corrige en 42.7.12. Este backend solo se conecta a un PostgreSQL local con
+      autenticacion trust, pero subir una version de parche cuesta una linea y deja el escaneo del CI en verde sin excepciones.
+    -->
+    <postgresql.version>42.7.12</postgresql.version>
     <mapstruct.version>1.6.3</mapstruct.version>
     <testcontainers.version>1.21.4</testcontainers.version>
     <jjwt.version>0.13.0</jjwt.version>
