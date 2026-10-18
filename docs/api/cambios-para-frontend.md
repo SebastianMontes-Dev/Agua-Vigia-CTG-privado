@@ -241,3 +241,35 @@ lo siguiente es nuevo o añade campos.
   `frontend/src/api/generado/esquema.ts` (el `maxItems` sale en el esquema).
 - **Exportaciones CSV (`GET /api/estadisticas/exportar.csv`, `GET /api/cumplimiento/serie.csv`):** un texto que empiece por `=`, `+`, `-` o `@` sale con una comilla simple delante (`'=...`) para que Excel no lo abra como fórmula.
   Las cifras no cambian. Solo importa si el frontend muestra o procesa ese texto del CSV: no debería.
+
+## F7 — PostgreSQL: la copia analítica del Índice (ADR-100, 2026-10-15)
+
+**No rompe nada y no obliga a adaptar nada.** Lo que el frontend ya consume sigue igual y MongoDB sigue siendo la única fuente de verdad. El contrato suma **3 rutas** (de 78 a 81) que leen de
+una copia en PostgreSQL que un job llena desde Mongo cada 5 minutos. Regenera los tipos (`npm run api:sync`); eso ya forma parte de FE0.
+
+### Nuevo
+
+| Ruta | Acceso | Qué devuelve |
+|---|---|---|
+| `GET /api/analitica/cumplimiento` | Público | El Índice global (`CumplimientoAnaliticoRespuesta`): `paresCerrados`, `duracionPrometidaSegundos`, `duracionRealSegundos`, `desviacionSegundos`, `porcentajeCumplimiento` y `copiadoEn`. `sectorId` y `nombre` van nulos en el global |
+| `GET /api/analitica/cumplimiento?sectorId=` | Público | Lo mismo para un barrio. `404` si el barrio no está en la copia |
+| `GET /api/analitica/cumplimiento/mensual` | Público | `SerieMensualAnaliticaRespuesta`: `copiadoEn` y `puntos[]` (`periodo` `YYYY-MM` en hora de Cartagena, `paresCerrados`, duraciones y `porcentajeCumplimiento`), de más antiguo a más reciente |
+| `GET /api/veedor/analitica/copia?limite=` | Panel, permiso `VER_PANEL` | Las últimas copias (`CopiaAnaliticaRespuesta`): `id`, `iniciadaEn`, `terminadaEn`, `resultado` (`EN_CURSO`, `OK`, `CON_DIFERENCIAS`, `FALLIDA`), `enMongo` y `enSql` (`sectores`, `cortes`, `pares`) y `detalle` |
+
+### Reglas que el cliente debe respetar
+
+- **`503` no es un fallo de la aplicación.** Las rutas responden `503` (`servicio-no-disponible`, RFC 7807) si la copia está apagada, PostgreSQL no responde o aún no hubo una primera copia. El backend sigue `UP` y todo lo demás
+  funciona. Nunca se suple con datos de Mongo: si necesitas el Índice sin depender de PostgreSQL, usa `GET /api/cumplimiento`, que es la ruta de verdad.
+- **Misma fórmula, otra fuente.** `/api/analitica/cumplimiento` da las mismas duraciones y el mismo porcentaje que `/api/cumplimiento` (hay una prueba de paridad en el backend), pero puede ir **hasta 5 minutos por detrás**.
+  Si se muestra, se muestra `copiadoEn`.
+- **Con `paresCerrados: 0` el 100 % no dice nada** (no hay nada que medir): no se pinta como «cumplimiento perfecto». Es la misma regla de siempre para el Índice.
+- La copia no guarda datos personales: solo barrios, cortes y duraciones.
+
+### Qué se recomienda hacer
+
+1. **Las dos rutas públicas no necesitan pantalla.** Duplican `/api/cumplimiento` y pueden dar `503`. Se excluyen de la cobertura del contrato en FE7, como `/api/sim/**`.
+2. **La ruta del panel sí:** un bloque «Copia analítica» en `/panel/sistema` (FE5) con el resultado en texto y glifo, los conteos de Mongo frente a SQL y el `detalle`. Un `503` se muestra como
+   «La copia analítica está apagada o PostgreSQL no responde; el sistema funciona igual», no como error de la pantalla.
+3. Nada de esto toca los permisos: `VER_PANEL` ya existe.
+
+Cómo se levanta PostgreSQL en local (`docker compose up -d postgres`, puerto `5433`) y cómo consultarlo: [`01-levantar-a-mano.md`](../01-levantar-a-mano.md) §A3b y el final de la parte D.

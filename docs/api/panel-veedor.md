@@ -19,6 +19,7 @@ Cómo se obtiene el token: [Cuentas y sesión](cuentas-y-sesion.md).
 | `PATCH /api/veedor/ingesta/propuestas/{id}/aprobar` · `…/descartar` · `…/anulacion` | `REVISAR_INGESTA` |
 | `GET /api/veedor/usuarios` · `POST …/usuarios/invitaciones` · `POST …/usuarios/{id}/invitacion/reenvio` · `PATCH …/usuarios/{id}/{aprobacion,rechazo,suspension,reactivacion,permisos}` | `GESTIONAR_USUARIOS` |
 | `GET /api/veedor/auditoria` | `VER_AUDITORIA` |
+| `GET /api/veedor/analitica/copia` (estado de la copia de MongoDB a PostgreSQL, ADR-100) | `VER_PANEL` |
 | `POST /api/veedor/segundo-factor/{alta,confirmacion,baja}` | `CONFIGURAR_SEGUNDO_FACTOR` |
 | `POST /api/veedor/cuenta/clave` (cambiar la propia clave; detalle en [Cuentas y sesión](cuentas-y-sesion.md)) | `VER_PANEL` |
 | `POST /api/veedor/sesion/cierre` · `GET /api/veedor/yo` | solo estar autenticado |

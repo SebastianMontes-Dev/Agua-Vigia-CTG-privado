@@ -69,6 +69,12 @@ desviacionSegundos      = duración real − duración prometida
   Muéstralo (por ejemplo, con un punto más grande o un texto «sobre 3 cortes»).
 - `sectorId`, `desde` y `hasta` son opcionales; sin ellos, es la serie global.
 
+## El Índice desde la copia SQL (opcional)
+
+`GET /api/analitica/cumplimiento[?sectorId=]` y `GET /api/analitica/cumplimiento/mensual` devuelven el mismo Índice, calculado por vistas de PostgreSQL sobre una copia que va **hasta 5 minutos por detrás** de
+MongoDB y que puede no estar disponible (`503`). Son rutas públicas y de solo lectura; la ruta de verdad sigue siendo `GET /api/cumplimiento`. Campos, reglas y la recomendación de no construir pantalla para ellas:
+[`cambios-para-frontend.md` §F7](cambios-para-frontend.md#f7--postgresql-la-copia-analítica-del-índice-adr-100-2026-10-15).
+
 ## La bitácora
 
 Un registro **de solo anexado** (RF026–RF028): nada se edita ni se borra. Es la memoria pública del
