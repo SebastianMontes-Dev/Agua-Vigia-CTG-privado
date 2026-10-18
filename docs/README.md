@@ -28,3 +28,11 @@ Detalle en [`scripts/simulacion/README.md`](../scripts/simulacion/README.md). Lo
 
 Referencia para el frontend (no se toca sin Yordy): [`api/`](api/) (contrato, flujos, errores) y [`diseno/`](diseno/).
 La documentación anterior está en el historial: `git show pre-limpieza-docs:<ruta>`.
+
+## Integrantes
+
+- Sebastián Andrés Montes Olivera
+- Yordy Pardo Pájaro
+- Carlos Mario Bechara Arias
+- Rafael Eduardo Sarmiento Peña
+- Jose Daniel Zambrano Luna
