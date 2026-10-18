@@ -1,6 +1,8 @@
 # 09 · PostgreSQL, fase 1: copia analítica del Índice de Cumplimiento
 
-**Estado: ejecutado el 2026-10-15 (hora de Cartagena), pasos 0 a 7 de §8 y la verificación local del 8** (`./mvnw verify` con 2142 pruebas en verde). Faltan del paso 8 el commit, el CI de GitHub y avisar a Yordy. El ADR quedó en [07 · Decisiones clave](07-decisiones-clave.md) §5 (ADR-100) y la descripción
+**Estado: ejecutado el 2026-10-15 (hora de Cartagena), pasos 0 a 7 de §8 y la verificación local del 8** (`./mvnw verify` con 2142 pruebas en verde). El paso 8 se cerró el 2026-10-18: el código está en `main`; el Backend CI quedó en verde (`f45d5b2`, el último commit con código) y *Contenedores y dependencias* y el escaneo de secretos, en verde (`c6ff2fb`);
+el aviso a Yordy es la sección F7 de [`cambios-para-frontend.md`](api/cambios-para-frontend.md) y la [guía para Yordy](frontend/guia-para-yordy.md). El Frontend CI sigue rojo, pero por una causa anterior a esta fase
+(su `esquema.ts` es del 2026-09-29 y FE0 lo arregla). El ADR quedó en [07 · Decisiones clave](07-decisiones-clave.md) §5 (ADR-100) y la descripción
 vigente del modelo en [03 · Base de datos](03-base-de-datos.md) §4. El resto de este documento es el plan tal como se aprobó; **donde difiera de la sección siguiente, manda la siguiente**.
 
 ## 0. Lo que cambió al ejecutar

@@ -13,9 +13,10 @@ Guías por tema, escritas conforme se valida cada parte del backend y contrastad
 | [06 · Ética de datos](06-etica-de-datos.md) | Hecha; pendientes en §3 |
 | [07 · Decisiones clave](07-decisiones-clave.md) | Hecha (ADR-001 a 100; ojo con la nota de numeración) |
 | 08 · Guion de la presentación | Pendiente |
-| [09 · PostgreSQL, fase 1](09-postgresql-fase-1.md) | **Ejecutada** (2026-10-15): copia analítica del Índice de Cumplimiento; fases 2 y 3 sin hacer |
-| [Plan del frontend (FE0–FE7)](frontend/README.md) | Plan del 2026-10-06; en curso (Yordy) |
-| [Prompt de auditoría de cierre del backend](prompts/auditoria-final-backend.md) | Listo para usar en una sesión nueva |
+| [09 · PostgreSQL, fase 1](09-postgresql-fase-1.md) | **Ejecutada y cerrada** (2026-10-15; CI verde el 2026-10-18): copia analítica del Índice de Cumplimiento; fases 2 y 3 sin hacer |
+| [Guía para Yordy](frontend/guia-para-yordy.md) | **Empieza aquí si trabajas el frontend** (2026-10-18): estado de hoy, todo lo que el backend ya hace, entorno y plan fase por fase |
+| [Plan del frontend (FE0–FE7)](frontend/README.md) | Plan del 2026-10-06; en curso (Yordy), actualizado el 2026-10-18 con las rutas de PostgreSQL |
+| [Prompt de auditoría de cierre del backend](prompts/auditoria-final-backend.md) | Actualizado el 2026-10-18 (ADR-100 y PostgreSQL); listo para usar en una sesión nueva, aún sin ejecutar |
 
 **Arranque único.** `docker compose up` levanta todo, carga los 211 barrios y el backend crea las cuentas sintéticas (ADR-094); la guía 01 hace lo mismo paso a paso.
 
