@@ -8,7 +8,7 @@ Rama: `feat/fe7-integracion`. Depende de FE0–FE6. Esfuerzo: 2 sesiones.
 ## Trabajo
 
 1. **Cobertura del contrato.** Un script (`frontend/scripts/cobertura-contrato.mjs`) lista las rutas de `backend/openapi.yaml` que ningún módulo de `src/api` llama.
-   - Solo pueden quedar las excluidas en el [README](README.md#fases): `/api/sim/**`, `/api/iot/presion`, `/api/v2/requests.json` y `/api/cuentas/enlaces/*`, más las JSON de FE6b si no se hizo.
+   - Solo pueden quedar las excluidas en el [README](README.md#fases): `/api/sim/**`, `/api/iot/presion`, `/api/v2/requests.json`, `/api/cuentas/enlaces/*` y `/api/analitica/cumplimiento` con su `/mensual`, más las JSON de FE6b si no se hizo.
    - Se añade al CI.
 2. **Lo provisional:**
    - `/muestrario` se retira de la navegación o queda solo en desarrollo

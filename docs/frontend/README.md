@@ -6,6 +6,8 @@ Plan por fases para que el frontend (`frontend/`, React 19 + Vite + TS) cubra **
 
 Las fases se llaman **FE0–FE7** para no confundirse con las fases F0–F6 del backend.
 
+**Si llegas de nuevo al proyecto, empieza por [`guia-para-yordy.md`](guia-para-yordy.md)**: el estado de hoy, todo lo que el backend ya hace, el entorno paso a paso y este plan fase por fase.
+
 ## Punto de partida (`main`, 2026-10-06)
 
 | | Hoy |
@@ -26,6 +28,10 @@ Pantallas que existen hoy:
 
 No hay panel, cuentas ni vecino. El ingreso al panel con segundo factor ya está hecho en la rama
 `feat/f5-ingreso-panel` (2 commits, 81 detrás de `main`), que es la base de FE2.
+
+**Actualización del 2026-10-18.** El contrato pasó de 78 a **81 rutas**: el 2026-10-15 el backend añadió 3 de PostgreSQL (ADR-100; ver F7 en
+[`cambios-para-frontend.md`](../api/cambios-para-frontend.md)). No rompen nada ni cambian FE0–FE4 y FE6; solo suman un bloque a FE5 y una exclusión a FE7. El frontend no ha recibido commits desde el 2026-10-06,
+`esquema.ts` sigue siendo del 2026-09-29 (58 rutas) y el Frontend CI sigue rojo por las dos causas de la tabla.
 
 ## Qué no cambia mientras se trabaja
 
@@ -85,7 +91,7 @@ Desde `frontend/`:
 | FE2 | [Ingreso al panel](FE2-ingreso-al-panel.md) | Rebasar `feat/f5-ingreso-panel`: ingreso, alta de TOTP con QR, marco con permisos, seguridad de la cuenta | `veedor/sesion`, `sesion/cierre`, `yo`, `segundo-factor/*`, `cuenta/clave` | — |
 | FE3 | [Moderación y cortes](FE3-moderacion-y-cortes.md) | Cola de reportes, fotos del panel, cortes (crear, cerrar, por barrio, confirmar, anular), vencidos, disputas | 14 operaciones de `veedor/reportes`, `veedor/fotos`, `veedor/cortes`, `veedor/disputas` | — |
 | FE4 | [Ingesta](FE4-ingesta.md) | Propuestas (aprobar, descartar, anular), documentos fallidos, salud de los colectores | 6 operaciones de `veedor/ingesta` | — |
-| FE5 | [Administración](FE5-administracion.md) | Cuentas, invitaciones y permisos, auditoría, métricas del sistema | 10 operaciones de `veedor/usuarios`, `auditoria`, `sistema/metricas` | — |
+| FE5 | [Administración](FE5-administracion.md) | Cuentas, invitaciones y permisos, auditoría, métricas del sistema y estado de la copia analítica | 10 operaciones de `veedor/usuarios`, `auditoria`, `sistema/metricas`, `veedor/analitica/copia` | — |
 | FE6 | [Cuentas públicas y vecino](FE6-cuentas-y-vecino.md) | Solicitar cuenta, olvidé mi clave, reenviar verificación; registro, ingreso y perfil del vecino; reportar con su sesión | `cuentas/registro`, `restablecimiento`, `verificacion/reenvio`, `cuentas/vecino` y las 5 de `vecino/*` | — |
 | FE7 | [Integración y entrega](FE7-integracion-y-entrega.md) | Cobertura total del contrato, accesibilidad, rendimiento, guion de la demo | — | — |
 
@@ -93,6 +99,7 @@ Desde `frontend/`:
 - `/api/sim/**`: la usa el simulador.
 - `POST /api/iot/presion`: es para sensores, inactivo.
 - `GET /api/v2/requests.json`: Open311, una API para máquinas.
+- `GET /api/analitica/cumplimiento` y `/mensual`: el Índice desde la copia SQL; duplican `/api/cumplimiento` y pueden dar `503` (F7 de `cambios-para-frontend.md`).
 - Las páginas HTML de `/api/cuentas/enlaces/*`: el backend las sirve y el frontend solo depende de que existan (ver FE6).
 
 ### Orden y dependencias

@@ -17,7 +17,7 @@ Contrato: [`panel-veedor.md` §Gestión de cuentas](../api/panel-veedor.md#gesti
 |---|---|---|
 | `/panel/cuentas` | `GESTIONAR_USUARIOS` | **La lista:** `GET /api/veedor/usuarios?estado=`, paginada por cabeceras.<br>- **Hay 30 000 cuentas sintéticas**: por defecto se ocultan las de `sintetica: true`, con un interruptor para verlas<br>- Nunca se cuentan como personas; frase fija en F4<br><br>**Las acciones:**<br>- invitar: `POST …/usuarios/invitaciones`, con correo, nombre y rol<br>- reenviar una invitación: `POST …/usuarios/{id}/invitacion/reenvio`<br>- aprobar con rol y permisos, rechazar, suspender, reactivar: `PATCH …/{id}/aprobacion|rechazo|suspension|reactivacion`<br>- ajustar permisos sueltos: `PATCH …/{id}/permisos` con `concedidos`/`revocados`<br><br>**Reglas:**<br>- no se puede editar el propio acceso<br>- no se ofrece quitar el último ADMIN<br>- `CONFIGURAR_SEGUNDO_FACTOR` no se puede revocar<br>- un permiso no puede estar en las dos listas<br>- cada acción se confirma con el nombre de la cuenta afectada<br>- se avisa que suspender o cambiar permisos cierra las sesiones de esa persona |
 | `/panel/auditoria` | `VER_AUDITORIA` | `GET /api/veedor/auditoria`, paginada y de solo lectura: fecha, quién actuó, sobre quién y qué acción |
-| `/panel/sistema` * | `VER_PANEL` | `GET /api/veedor/sistema/metricas`. Son **métricas de calibración** (ADR-097): se presentan como tabla con su unidad y su guía de lectura, sin semáforos ni umbrales inventados |
+| `/panel/sistema` * | `VER_PANEL` | `GET /api/veedor/sistema/metricas`. Son **métricas de calibración** (ADR-097): se presentan como tabla con su unidad y su guía de lectura, sin semáforos ni umbrales inventados.<br><br>**Bloque «Copia analítica»** (F7 de [`cambios-para-frontend.md`](../api/cambios-para-frontend.md#f7--postgresql-la-copia-analítica-del-índice-adr-100-2026-10-15)): `GET /api/veedor/analitica/copia`, las últimas copias con su `resultado` en texto y glifo (`OK`, `CON_DIFERENCIAS`, `FALLIDA`, `EN_CURSO`), los conteos de `enMongo` frente a `enSql` y el `detalle`. Un `503` se dice como «La copia analítica está apagada o PostgreSQL no responde; el sistema funciona igual», no como un error de la pantalla |
 
 ## Pruebas
 
@@ -29,6 +29,7 @@ Contrato: [`panel-veedor.md` §Gestión de cuentas](../api/panel-veedor.md#gesti
   - autoprotección (sin botón sobre uno mismo)
   - auditoría vacía y con datos
   - métricas
+  - copia analítica: `OK`, `CON_DIFERENCIAS` con detalle, `FALLIDA` y `503`
 - e2e real: el ADMIN invita a un OBSERVADOR y la invitación llega a Mailhog. El enlace abre la página HTML del backend, ver FE6. El observador fija su clave, entra y **no ve acciones** de veedor; esto cierra la comprobación pendiente de FE3. El ADMIN le concede `MODERAR_REPORTES` y el observador ve la acción tras volver a entrar.
 
 ## Terminado cuando
