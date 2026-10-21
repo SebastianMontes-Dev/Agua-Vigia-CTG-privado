@@ -73,10 +73,10 @@ Suman 23. Las demás rutas que el contrato tiene y tu esquema ya conoce (por eje
 
 ### 2.2 Ramas y revisión
 
-- El **backend** va directo a `main` (regla de `CLAUDE.md`).
-- El **frontend** usa **una rama por fase** (`feat/fe<n>-<tema>`) y un PR, porque su CI necesita la rama para correr los dos jobs. Fusiona con la puerta (§5.0) en verde.
+- Backend y frontend siguen Gitflow (regla de `CLAUDE.md`): rama desde `develop` y PR a `develop`.
+- El **frontend** usa **una rama por fase** (`feature/fe<n>-<tema>`). Fusiona con la puerta (§5.0) en verde.
 - Una fase por sesión de Claude Code, con `/clear` entre fases. Cada guía FE termina con un prompt listo para pegar.
-- Commits en español con Conventional Commits (`feat(panel): …`), un commit por causa. **Sin `Co-Authored-By` ni firmas de IA**: el workflow `autoria.yml` revisa los PR y falla si un commit lo firma una identidad de IA. Antes de abrir el PR corre `scripts/verificar-autoria.sh origin/main..HEAD`.
+- Commits en español con Conventional Commits (`feat(panel): …`), un commit por causa. **Sin `Co-Authored-By` ni firmas de IA**: el workflow `autoria.yml` revisa los PR y falla si un commit lo firma una identidad de IA. Antes de abrir el PR corre `scripts/verificar-autoria.sh origin/develop..HEAD`.
 
 ### 2.3 Cuándo escribirle a Sebastian
 
@@ -297,11 +297,11 @@ Recomendación de calendario (cada «sesión» es una sesión de Claude Code): *
 
 ### 5.2 FE0 · Contrato al día — **empieza aquí**
 
-Guía: [`FE0-contrato-al-dia.md`](FE0-contrato-al-dia.md). Rama `feat/fe0-contrato-al-dia`. Objetivo: que compile, que reportar funcione y que el CI quede en verde.
+Guía: [`FE0-contrato-al-dia.md`](FE0-contrato-al-dia.md). Rama `feature/fe0-contrato-al-dia`. Objetivo: que compile, que reportar funcione y que el CI quede en verde.
 
 Orden de trabajo (un commit por causa):
 
-1. `git checkout -b feat/fe0-contrato-al-dia main` y `npm run api:sync`. Aparecen errores de compilación: es lo esperado. El esquema ahora trae las 81 rutas (incluidas las 3 de PostgreSQL, que no usarás todavía).
+1. `git checkout -b feature/fe0-contrato-al-dia develop` y `npm run api:sync`. Aparecen errores de compilación: es lo esperado. El esquema ahora trae las 81 rutas (incluidas las 3 de PostgreSQL, que no usarás todavía).
 2. **CI:** `scripts/preparar-env-ci.mjs` debe escribir `RATE_LIMIT_FACTOR=100` en el `.env` del CI. `docker-compose.yml` ya lo pasa al backend. Avisa a Sebastian: es un script compartido.
 3. **Identidad del dispositivo:** crea `src/api/dispositivo.ts` (`POST /api/dispositivos` una vez, token en `localStorage` con `try/catch`, cabecera `X-Dispositivo`, ante `401 dispositivo-invalido` pide otro y reintenta **una** vez). Borra `huella.ts` y su test.
 4. **Reportar:** `precisionMetros` junto a la coordenada; `/confirmar` sin cuerpo; guarda `subidaToken` y mándalo en `X-Subida` al subir la foto; quita WebP (`TIPOS_FOTO`, texto de ayuda); maneja `415 formato-no-permitido`; muestra `fotoEstado`.
@@ -329,7 +329,7 @@ Guía: [`FE1-publico-completo.md`](FE1-publico-completo.md). Depende de FE0.
 
 Guía: [`FE2-ingreso-al-panel.md`](FE2-ingreso-al-panel.md). Depende de FE0. Casi todo está hecho en tu rama `feat/f5-ingreso-panel`.
 
-1. `git checkout -b feat/fe2-ingreso-al-panel main` y `git cherry-pick 95962ad 5dda089`. Solo choca `router.tsx`.
+1. `git checkout -b feature/fe2-ingreso-al-panel develop` y `git cherry-pick 95962ad 5dda089`. Solo choca `router.tsx`.
 2. Adapta los tipos al esquema nuevo (nada a mano).
 3. Completa `/panel/seguridad` (cambiar clave, quitar TOTP salvo el ADMIN, «Cerrar todas mis sesiones» con aviso previo).
 4. Token en `sessionStorage`, nunca en la URL. Un `401` con `type` distinto de `credencial-invalida` o `segundo-factor-requerido` borra la sesión.

@@ -6,7 +6,7 @@
 
 Cuando el vecino tiene sesión, sus reportes se envían con ella.
 
-Rama: `feat/fe6-cuentas-y-vecino`. Depende de FE0 y del marco de sesión de FE2. Esfuerzo: 2 sesiones.
+Rama: `feature/fe6-cuentas-y-vecino`. Depende de FE0 y del marco de sesión de FE2. Esfuerzo: 2 sesiones.
 
 Contrato: [`cuentas-y-sesion.md`](../api/cuentas-y-sesion.md) (crear una cuenta, recuperar la clave, reenviar la
 verificación, vecino registrado), F2 de [`cambios-para-frontend.md`](../api/cambios-para-frontend.md) y
@@ -55,7 +55,7 @@ también va en `sessionStorage`.
 
 ```
 Usa la skill disenar-frontend. Lee docs/frontend/README.md, docs/frontend/FE6-cuentas-y-vecino.md, docs/api/cuentas-y-sesion.md
-y docs/api/correos-y-enlaces.md. En feat/fe6-cuentas-y-vecino desde main: añade §5.5 «Vecino registrado» a guia-frontend.md
+y docs/api/correos-y-enlaces.md. En feature/fe6-cuentas-y-vecino desde develop: añade §5.5 «Vecino registrado» a guia-frontend.md
 y construye /cuenta/solicitar, /cuenta/olvide, el reenvío, /vecino/registro, /vecino/ingreso, /vecino/perfil con verificación
 de barrio, y el reporte con sesión de vecino. Los enlaces de correo de cuenta siguen en las páginas HTML del backend.
 Corre la puerta completa y muéstrame el resultado. Abre el PR, no lo fusiones. Si usas subagentes, usa model sonnet.

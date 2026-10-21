@@ -4,7 +4,7 @@
 todos los cambios que **rompen** (F0–F3 de [`cambios-para-frontend.md`](../api/cambios-para-frontend.md)) y el Frontend CI
 queda en verde.
 
-Rama: `feat/fe0-contrato-al-dia`. Esfuerzo: 2 sesiones. Sin pantallas nuevas.
+Rama: `feature/fe0-contrato-al-dia`. Esfuerzo: 2 sesiones. Sin pantallas nuevas.
 
 ## 1. Destrabar el CI
 
@@ -62,7 +62,7 @@ Las evidencias son de `main` del 2026-10-06.
 ```
 Usa la skill disenar-frontend. Lee docs/frontend/README.md y docs/frontend/FE0-contrato-al-dia.md, y las secciones
 F0–F3 y F6 de docs/api/cambios-para-frontend.md y docs/api/reportes.md.
-En una rama feat/fe0-contrato-al-dia desde main: corre npm run api:sync, adopta cada cambio de la guía en el orden
+En una rama feature/fe0-contrato-al-dia desde develop: corre npm run api:sync, adopta cada cambio de la guía en el orden
 de sus tablas (un commit por causa) y arregla el CI (RATE_LIMIT_FACTOR=100 en scripts/preparar-env-ci.mjs).
 No escribas tipos de API a mano. Corre la puerta completa del README (lint, typecheck, api:check, test, build,
 e2e simulado y real con docker compose) y muéstrame la salida. Abre el PR cuando todo esté en verde, no lo fusiones.

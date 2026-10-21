@@ -3,7 +3,7 @@
 **Objetivo:** el trabajo diario del veedor. Moderar los reportes con su foto, registrar y cerrar cortes barrio por barrio,
 anular lo publicado por error, atender los cortes vencidos y ver las disputas.
 
-Rama: `feat/fe3-moderacion-y-cortes`. Depende de FE2. Esfuerzo: 2–3 sesiones.
+Rama: `feature/fe3-moderacion-y-cortes`. Depende de FE2. Esfuerzo: 2–3 sesiones.
 
 Contrato: [`panel-veedor.md`](../api/panel-veedor.md) (rutas y permisos, cortes, moderación) y las secciones F1–F4 de
 [`cambios-para-frontend.md`](../api/cambios-para-frontend.md) (`verificacion`, `senalRed`, cierres, disputas).
@@ -57,7 +57,7 @@ su ficha y a sus cortes.
 
 ```
 Usa la skill disenar-frontend. Lee docs/frontend/README.md, docs/frontend/FE3-moderacion-y-cortes.md y docs/api/panel-veedor.md.
-En feat/fe3-moderacion-y-cortes desde main: añade a guia-frontend.md §5.4 las filas de disputas y vencidos, y construye
+En feature/fe3-moderacion-y-cortes desde develop: añade a guia-frontend.md §5.4 las filas de disputas y vencidos, y construye
 /panel (moderación), /panel/cortes (con vencidos) y /panel/disputas según la guía. Acciones solo con su permiso, sin doble envío,
 fechas en hora de Cartagena. Corre la puerta completa y muéstrame el resultado. Abre el PR, no lo fusiones.
 Si usas subagentes, usa model sonnet.
