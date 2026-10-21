@@ -14,7 +14,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * RateLimitConfigTest prueba el mecanismo con reglas inventadas; esta prueba el contenido real de
+ * RateLimitConfigIT prueba el mecanismo con reglas inventadas; esta prueba el contenido real de
  * application.yml. Sin ella, borrar el bloque `aguavigia.rate-limit` dejaria el login del veedor
  * sin freno contra fuerza bruta y ninguna prueba se daria cuenta: la lista vacia es un valor
  * valido por diseno (opt-in, ADR-018).

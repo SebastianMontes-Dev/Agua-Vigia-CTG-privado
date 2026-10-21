@@ -122,7 +122,7 @@ Si está apagada o falla, el sistema arranca, está `UP` y responde igual: solo 
 
 `v_par_cerrado` (un par con cierre, sin cortes `ANULADO`), `v_cumplimiento_por_sector`, `v_cumplimiento_global` y `v_cumplimiento_mensual` (mes en hora de Cartagena). Misma fórmula que
 `CalcularCumplimientoService` (ADR-022): se **suman** duraciones —en milisegundos, truncando a segundos al final, como Mongo y `Duration.toSeconds()`— y el porcentaje es
-`min(100, prometida × 100 / real)`, o 100 si la real es 0. Una prueba de paridad (`ParidadMongoPostgresIntegrationTest`) compara las dos con los mismos cortes.
+`min(100, prometida × 100 / real)`, o 100 si la real es 0. Una prueba de paridad (`ParidadMongoPostgresIT`) compara las dos con los mismos cortes.
 
 ### 4.3 La copia
 

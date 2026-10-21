@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * Pruebas puras (sin Mongo real) de la política de reintento: verifican cuántas veces se invoca
  * {@code accion} y si se hizo commit o rollback, con un {@link PlatformTransactionManager} de
  * mentira que solo cuenta llamadas. La atomicidad real contra Mongo se prueba en
- * {@link TransaccionMongoAdapterIntegrationTest}.
+ * {@link TransaccionMongoAdapterIT}.
  */
 class TransaccionMongoAdapterTest {
 

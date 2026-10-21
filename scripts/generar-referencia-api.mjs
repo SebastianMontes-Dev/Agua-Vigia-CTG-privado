@@ -4,7 +4,7 @@
  * pueda desviarse de lo que el backend expone de verdad.
  *
  *   1. Regenerar el contrato (deja también backend/target/openapi.json):
- *        cd backend && ./mvnw test -Dtest=ContratoOpenApiTest -Dopenapi.regenerar=true
+ *        cd backend && ./mvnw test -Dtest=ContratoOpenApiIT -Dopenapi.regenerar=true
  *   2. node scripts/generar-referencia-api.mjs
  *
  * De qué sale cada dato:
@@ -25,7 +25,7 @@ const CONTROLADORES = path.join(RAIZ, 'backend', 'src', 'main', 'java', 'com', '
 const SALIDA = path.join(RAIZ, 'docs', 'api', 'referencia-de-rutas.md');
 
 if (!fs.existsSync(CONTRATO)) {
-    console.error(`Falta ${path.relative(RAIZ, CONTRATO)}. Corre antes:\n  cd backend && ./mvnw test -Dtest=ContratoOpenApiTest -Dopenapi.regenerar=true`);
+    console.error(`Falta ${path.relative(RAIZ, CONTRATO)}. Corre antes:\n  cd backend && ./mvnw test -Dtest=ContratoOpenApiIT -Dopenapi.regenerar=true`);
     process.exit(2);
 }
 const api = JSON.parse(fs.readFileSync(CONTRATO, 'utf8'));

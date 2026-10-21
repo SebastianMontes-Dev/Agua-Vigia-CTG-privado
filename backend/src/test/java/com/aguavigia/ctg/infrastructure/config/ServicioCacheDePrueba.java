@@ -5,7 +5,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-/** Solo para CacheConfigTest — no hay servicios reales que cachear todavia en esta rama. */
+/** Solo para CacheConfigIT — no hay servicios reales que cachear todavia en esta rama. */
 @Service
 public class ServicioCacheDePrueba {
 

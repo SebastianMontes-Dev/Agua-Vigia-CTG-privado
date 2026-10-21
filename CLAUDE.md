@@ -23,7 +23,8 @@ Frontend: React 19 + Vite (contrato: `backend/openapi.yaml`; guía en `docs/api/
 ## Comandos
 
 ```bash
-cd backend && ./mvnw verify            # compila, pruebas unitarias + ArchUnit; las de integración exigen Docker
+cd backend && ./mvnw test              # unitarias *Test + ArchUnit (Surefire), sin Docker
+cd backend && ./mvnw verify            # además las de integración *IT con Testcontainers (Failsafe, exigen Docker) y la cobertura
 docker compose up -d mongo             # servicio por servicio; ver docs/01-levantar-a-mano.md
 docker compose up -d --build backend   # levanta también sus dependencias; API en http://localhost:8081
 node scripts/generar-referencia-api.mjs  # regenera docs/api/referencia-de-rutas.md desde el contrato

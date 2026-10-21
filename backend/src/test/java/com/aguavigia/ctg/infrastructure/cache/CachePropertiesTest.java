@@ -10,7 +10,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 /**
  * estado-del-backend.md #6.1 — `infrastructure.cache` era el paquete de menor cobertura tras la
  * limpieza (69.6%): la validación de esta clase (el TTL por defecto y el mapa nulo) no tenía
- * ninguna prueba propia, solo la ejercitaba indirectamente CacheConfigTest con valores válidos.
+ * ninguna prueba propia, solo la ejercitaba indirectamente CacheConfigIT con valores válidos.
  */
 class CachePropertiesTest {
 

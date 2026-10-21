@@ -22,7 +22,7 @@ import java.util.List;
 /**
  * Publica el contrato que consume el frontend. El archivo versionado backend/openapi.yaml se genera
  * desde aqui — no se escribe a mano, para que no pueda desviarse de lo que el backend responde de
- * verdad: `./mvnw test -Dtest=ContratoOpenApiTest -Dopenapi.regenerar=true`.
+ * verdad: `./mvnw test -Dtest=ContratoOpenApiIT -Dopenapi.regenerar=true`.
  */
 @Configuration
 public class OpenApiConfig {

@@ -21,7 +21,7 @@ import static org.mockito.Mockito.verify;
 /**
  * RF024 — el agrupamiento por mes, la zona horaria de Cartagena y el filtro de rango viven ahora
  * en el pipeline Mongo (`CorteAguaRepository.agregarCerradosPorMes`, ver `CorteAguaMongoAdapter` y
- * su prueba de integración `CorteAguaMongoAdapterTest`). Lo único que le corresponde a
+ * su prueba de integración `CorteAguaMongoAdapterIT`). Lo único que le corresponde a
  * `CalcularCumplimientoService` es traducir cada `PuntoAgregadoMensual` a `PuntoSerieCumplimiento`
  * calculando el porcentaje (`ADR-022`), y pasar sectorId/desde/hasta intactos al puerto.
  */

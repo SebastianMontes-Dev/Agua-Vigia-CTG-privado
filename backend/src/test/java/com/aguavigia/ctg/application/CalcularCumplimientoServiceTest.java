@@ -200,7 +200,7 @@ class CalcularCumplimientoServiceTest {
     /**
      * La suma ahora la hace el pipeline Mongo (CorteAguaRepository.agregarCerrados) — este test
      * verifica que el servicio calcule el porcentaje sobre el agregado, no que sepa sumar
-     * ventanas; el pipeline en sí se prueba contra Mongo real en CorteAguaMongoAdapterTest.
+     * ventanas; el pipeline en sí se prueba contra Mongo real en CorteAguaMongoAdapterIT.
      */
     @Test
     void debeCalcularElIndiceGlobalSobreElAgregadoDeCortesCerrados() {
