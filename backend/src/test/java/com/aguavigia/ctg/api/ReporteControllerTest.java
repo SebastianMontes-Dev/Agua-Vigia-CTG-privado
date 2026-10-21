@@ -54,7 +54,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import({ReporteApiMapperImpl.class, ManejadorGlobalDeErrores.class, SecurityConfig.class})
 // Sin reglas de rate limiting: este slice prueba el contrato del controlador, y con la regla real
 // de application.yml el interceptor llamaria al RedisTemplate mockeado. El limitador tiene su
-// propia prueba contra un Redis real (RateLimitConfigTest).
+// propia prueba contra un Redis real (RateLimitConfigIT).
 @TestPropertySource(properties = "aguavigia.rate-limit.reglas=")
 class ReporteControllerTest {
 

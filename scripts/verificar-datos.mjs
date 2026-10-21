@@ -9,7 +9,7 @@
 // Las cuentas sintéticas son lo único inventado del sistema: se verifica que sean exactamente eso (vecinos activos, marcados como
 // demostración, con barrio del catastro y sin consentimiento ni verificación de barrio que nadie dio). VECINOS_SINTETICOS es la
 // cantidad que debe haber; con 0 (la siembra desactivada) no se exige ninguna.
-// El contrato de los campos que lee este script lo guarda UsuarioMongoAdapterTest.elDocumentoSinteticoTieneLosCamposQueVerificarDatosEspera.
+// El contrato de los campos que lee este script lo guarda UsuarioMongoAdapterIT.elDocumentoSinteticoTieneLosCamposQueVerificarDatosEspera.
 
 import { MongoClient } from 'mongodb';
 

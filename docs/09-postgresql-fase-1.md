@@ -20,7 +20,7 @@ vigente del modelo en [03 · Base de datos](03-base-de-datos.md) §4. El resto d
 | `CasosDeUsoConfig` no se tocaba | Se añade `CopiarAnaliticaService` a su exclusión del escaneo | El escaneo recoge toda clase `*Service` de `application/`; sin excluirla el servicio se creaba aun con SQL apagado |
 | `backend-sim` no se mencionaba | `AGUAVIGIA_SQL_HABILITADO: "false"` en `backend-sim` | Comparte el perfil `docker`; copiaría su Mongo de simulación sobre la copia real |
 | Pruebas `*IT` | Se llaman `*IntegrationTest` | Surefire ejecuta `*Test`; no hay Failsafe, y un `*IT` no correría en `./mvnw verify` |
-| `ArranqueSinPostgresIT` y `ArranqueConSqlDeshabilitadoTest` | `ArranqueSinPostgresIntegrationTest` y `ArranqueConSqlDeshabilitadoTest` | Ídem |
+| `ArranqueSinPostgresIT` y `ArranqueConSqlDeshabilitadoTest` | `ArranqueSinPostgresIntegrationTest` y `ArranqueConSqlDeshabilitadoTest` | Ídem. Desde 2026-10-20 hay Failsafe y las pruebas que exigen Docker se llaman `*IT` |
 | 503: el mensaje trae la causa | El mensaje es genérico; la causa va al log | Es una ruta pública y un error de PostgreSQL revelaría el esquema |
 
 Se añadieron además dos reglas de ArchUnit (`domain/` y `application/` sin JDBC ni Flyway; el paquete `sql` sin escribir en Mongo por los repositorios) y `CopiaAnaliticaJobTest`.
@@ -333,7 +333,7 @@ Siguen el patrón del repo: JUnit 5, nombres en español y Testcontainers para l
 | `VistasDeCumplimientoIT` | La vista da el mismo porcentaje que `CalcularCumplimientoService` en casos de borde: real 0 → 100; real < prometida → 100; real > prometida; anulados fuera; barrio sin cierre fuera |
 | `ParidadMongoPostgresIT` (Mongo y PostgreSQL en Testcontainers) | Con los mismos cortes, `GET /api/cumplimiento` y `GET /api/analitica/cumplimiento` devuelven las mismas duraciones y el mismo porcentaje, global y por barrio |
 | `ArranqueSinPostgresIT` | Con `habilitado=true` y PostgreSQL inalcanzable, el contexto arranca, `/actuator/health/readiness` es `UP`, `/api/cumplimiento` responde y `/api/analitica/cumplimiento` da 503 |
-| `ArranqueConSqlDeshabilitadoTest` | Con `habilitado=false` no existe ningún bean de JDBC ni de Flyway |
+| `ArranqueConSqlDeshabilitadoIT` | Con `habilitado=false` no existe ningún bean de JDBC ni de Flyway |
 | `AnaliticaControllerTest` (MockMvc) | Rutas, 503 con `ProblemDetail`, `VER_PANEL` en `/api/veedor/analitica/copia` |
 | Regla ArchUnit nueva | Ni `domain/` ni `application/` importan `java.sql`, `javax.sql`, `org.springframework.jdbc` ni `org.flywaydb` |
 

@@ -522,6 +522,6 @@ que venza el bloqueo (molestia, no brecha); no hay enfriamiento por cuenta en el
 - **Gana.** Un modelo relacional real (claves foráneas, restricciones `CHECK`, un índice parcial, migraciones versionadas, vistas y funciones de ventana) sobre el dato que el proyecto publica; una primera
   señal de diferencias entre bases (los conteos de cada copia).
 - **Pierde.** Un servicio más que operar; la vista puede ir hasta 5 minutos por detrás de Mongo; la fórmula del Índice existe dos veces (Java/Mongo y SQL), y por eso hay una prueba de paridad
-  (`ParidadMongoPostgresIntegrationTest`) que compara cortes variados —parciales, anulados, expirados, antiguos, de fin de mes y con fracciones de segundo— en las dos bases.
+  (`ParidadMongoPostgresIT`) que compara cortes variados —parciales, anulados, expirados, antiguos, de fin de mes y con fracciones de segundo— en las dos bases.
 - **Se revierte** quitando el servicio, el paquete `persistence/sql` y las rutas `/api/analitica/**`; Mongo no se entera.
 - **Pendiente (fases 2 y 3, [09](09-postgresql-fase-1.md) §10):** el vigilante completo de integridad, la bitácora inmutable con respaldo restaurable y las vistas de datos abiertos.

@@ -8,7 +8,7 @@
 >
 > **Fuente de verdad.** El contrato exacto (campos, tipos, códigos) es
 > [`backend/openapi.yaml`](../../backend/openapi.yaml), generado desde el código y comprobado en cada
-> build (`ContratoOpenApiTest`). Estas guías explican lo que el contrato no puede: el *porqué*, los
+> build (`ContratoOpenApiIT`). Estas guías explican lo que el contrato no puede: el *porqué*, los
 > flujos, las reglas de negocio y las trampas. Si una guía y el contrato discrepan, gana el contrato.
 
 ---

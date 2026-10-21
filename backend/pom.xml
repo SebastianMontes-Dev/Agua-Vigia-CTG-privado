@@ -226,6 +226,12 @@
       <artifactId>postgresql</artifactId>
       <scope>test</scope>
     </dependency>
+    <!-- Esperar a que venza un TTL o cambie un estado sin Thread.sleep fijo -->
+    <dependency>
+      <groupId>org.awaitility</groupId>
+      <artifactId>awaitility</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>
@@ -270,6 +276,17 @@
           </systemPropertyVariables>
         </configuration>
       </plugin>
+      <!-- Surefire (`./mvnw test`) corre las `*Test`, sin Docker. Failsafe (`./mvnw verify`) corre las `*IT`,
+           las que levantan Mongo, Redis o PostgreSQL con Testcontainers. Las executions vienen del parent. -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <configuration>
+          <systemPropertyVariables>
+            <api.version>${docker.api.version}</api.version>
+          </systemPropertyVariables>
+        </configuration>
+      </plugin>
       <plugin>
         <groupId>org.jacoco</groupId>
         <artifactId>jacoco-maven-plugin</artifactId>
@@ -283,7 +300,8 @@
           </execution>
           <execution>
             <id>report</id>
-            <phase>test</phase>
+            <!-- Después de Failsafe, para que el reporte sume las `*Test` y las `*IT` (comparten jacoco.exec) -->
+            <phase>post-integration-test</phase>
             <goals>
               <goal>report</goal>
             </goals>
