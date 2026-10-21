@@ -7,7 +7,7 @@
 - cuándo los datos son de una simulación
 - la pantalla «¿ya volvió el agua?» que abren los correos de aviso
 
-Rama: `feat/fe1-publico-completo`. Depende de FE0. Esfuerzo: 2 sesiones.
+Rama: `feature/fe1-publico-completo`. Depende de FE0. Esfuerzo: 2 sesiones.
 
 ## Pantallas y cambios
 
@@ -43,7 +43,7 @@ Sigue vigente la regla de los cinco segundos: en la ficha, el veredicto («Sin s
 ```
 Usa la skill disenar-frontend. Lee docs/frontend/README.md, docs/frontend/FE1-publico-completo.md, y las secciones F1 y F4
 de docs/api/cambios-para-frontend.md, más los documentos enlazados en la tabla.
-En una rama feat/fe1-publico-completo desde main: primero añade a docs/diseno/guia-frontend.md §5 las filas nuevas,
+En una rama feature/fe1-publico-completo desde develop: primero añade a docs/diseno/guia-frontend.md §5 las filas nuevas,
 luego construye cada cambio de la tabla. Respeta la regla de los cinco segundos y la identidad visual.
 Corre la puerta completa (incluidas capturas en 4 tamaños y 2 temas, y la skill revisar-diseno) y muéstrame el resultado.
 Abre el PR cuando esté en verde, no lo fusiones. Si usas subagentes, usa model sonnet.

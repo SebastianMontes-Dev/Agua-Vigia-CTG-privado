@@ -3,7 +3,7 @@
 **Objetivo:** cerrar el frontend para la sustentación. Cubrir todo el contrato, medir accesibilidad y rendimiento, retirar
 lo provisional y dejar un guion de demostración que funcione con un solo `docker compose up`.
 
-Rama: `feat/fe7-integracion`. Depende de FE0–FE6. Esfuerzo: 2 sesiones.
+Rama: `feature/fe7-integracion`. Depende de FE0–FE6. Esfuerzo: 2 sesiones.
 
 ## Trabajo
 
@@ -50,7 +50,7 @@ Rama: `feat/fe7-integracion`. Depende de FE0–FE6. Esfuerzo: 2 sesiones.
 
 ```
 Usa la skill disenar-frontend. Lee docs/frontend/README.md y docs/frontend/FE7-integracion-y-entrega.md.
-En feat/fe7-integracion desde main: crea el script de cobertura del contrato y súmalo al CI, retira lo provisional,
+En feature/fe7-integracion desde develop: crea el script de cobertura del contrato y súmalo al CI, retira lo provisional,
 añade axe a los e2e, mide rendimiento con 3G simulado, escribe docs/frontend/guion-demo.md y ejecútalo de principio a fin
 sobre un docker compose up limpio. Corre la puerta completa y muéstrame el resultado. Abre el PR, no lo fusiones.
 Si usas subagentes, usa model sonnet.

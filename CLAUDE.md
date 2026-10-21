@@ -8,7 +8,7 @@ Proyecto académico de dos personas que corre **en local**. Resuelve un vacío d
 
 - **Backend: Sebastian. Frontend: Yordy Pardo (`Jordy-Lv`).** No se crea ni edita nada en `frontend/` salvo que Yordy lo pida.
   Si el backend cambia el contrato (`backend/openapi.yaml`, rutas, correos), se avisa qué debe adaptar el frontend.
-- El frontend sigue su plan por fases en [`docs/frontend/`](docs/frontend/README.md) (FE0–FE7), con una rama por fase. La rama `feat/f5-ingreso-panel` es de Yordy: no se borra ni se toca (se integra en FE2).
+- El frontend sigue su plan por fases en [`docs/frontend/`](docs/frontend/README.md) (FE0–FE7), con una rama `feature/fe<n>-<tema>` por fase desde `develop`. La rama `feat/f5-ingreso-panel` es de Yordy: no se borra ni se toca (se integra en FE2).
 
 ## Stack
 
@@ -51,8 +51,16 @@ Arquitectura Limpia (puertos y adaptadores), dependencias siempre hacia adentro:
 
 ## Git y autoría
 
-- Todo va **directo a `main`**, sin ramas ni PR. Conventional Commits en español (`tipo(scope): descripción`), un commit por unidad de trabajo.
-- Commit y push solo cuando el dueño lo pide. Verificar en local antes de empujar y revisar el CI después.
+- **Gitflow** (desde 2026-10-20). `main` y `develop` son ramas protegidas: **prohibido el push directo**, no se modifican ni se usan como
+  destino sin autorización. Todo cambio, por pequeño que sea, se hace en su propia rama de trabajo y entra solo por PR, con revisión,
+  aprobación y el CI en verde. La rama se borra al fusionarse.
+  - `main`: lo entregado. Solo recibe `release/*` y `hotfix/*`, y cada fusión lleva su etiqueta `vX.Y.Z`.
+  - `develop`: integración. De aquí salen y aquí vuelven las ramas de trabajo.
+  - `feature/<tema>` desde `develop`, PR a `develop`. Las fases del frontend usan `feature/fe<n>-<tema>`.
+  - `release/X.Y.Z` desde `develop` al preparar una entrega: solo correcciones y versión; se fusiona a `main` y de vuelta a `develop`.
+  - `hotfix/X.Y.Z` desde `main` para un fallo en lo entregado; se fusiona a `main` y a `develop`.
+- Conventional Commits en español (`tipo(scope): descripción`), un commit por unidad de trabajo.
+- Commit, push y PR solo cuando el dueño lo pide. Verificar en local antes de empujar y revisar el CI después.
 - **El agente nunca figura como colaborador**: sin `Co-Authored-By` ni firmas de IA en commits o PR (lo refuerzan `includeCoAuthoredBy: false` y `.github/workflows/autoria.yml`).
 - Fechas en hora de Cartagena (UTC-5). Sin secretos versionados: van en `.env` (ignorado por git); `.env.example` es la plantilla.
 

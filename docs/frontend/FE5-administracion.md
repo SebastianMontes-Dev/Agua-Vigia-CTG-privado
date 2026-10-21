@@ -3,7 +3,7 @@
 **Objetivo:** lo que solo hace un ADMIN. Gestionar cuentas (invitar, aprobar, rechazar, suspender, reactivar, ajustar
 permisos), leer la auditoría y ver las métricas del sistema.
 
-Rama: `feat/fe5-administracion`. Depende de FE2. Esfuerzo: 2 sesiones.
+Rama: `feature/fe5-administracion`. Depende de FE2. Esfuerzo: 2 sesiones.
 
 Contrato: [`panel-veedor.md` §Gestión de cuentas](../api/panel-veedor.md#gestión-de-cuentas-admin),
 [`cuentas-y-sesion.md`](../api/cuentas-y-sesion.md#roles-y-permisos) (roles, permisos, autoprotección), y las secciones F4
@@ -41,7 +41,7 @@ Contrato: [`panel-veedor.md` §Gestión de cuentas](../api/panel-veedor.md#gesti
 
 ```
 Usa la skill disenar-frontend. Lee docs/frontend/README.md, docs/frontend/FE5-administracion.md, docs/api/panel-veedor.md
-y docs/api/cuentas-y-sesion.md. En feat/fe5-administracion desde main: añade /panel/sistema a guia-frontend.md §5.4 y
+y docs/api/cuentas-y-sesion.md. En feature/fe5-administracion desde develop: añade /panel/sistema a guia-frontend.md §5.4 y
 construye /panel/cuentas, /panel/auditoria y /panel/sistema con las reglas de autoprotección y el tratamiento de cuentas
 sintéticas. Corre la puerta completa y muéstrame el resultado. Abre el PR, no lo fusiones. Si usas subagentes, usa model sonnet.
 ```

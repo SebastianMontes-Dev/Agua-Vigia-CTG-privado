@@ -3,7 +3,7 @@
 **Objetivo:** que un veedor o un ADMIN entre al panel con su clave y su segundo factor y vea un marco que solo le ofrece lo
 que sus permisos permiten. También gestiona la seguridad de su cuenta.
 
-Rama: `feat/fe2-ingreso-al-panel`. Depende de FE0. Esfuerzo: 1–2 sesiones, porque la mayor parte ya está hecha en
+Rama: `feature/fe2-ingreso-al-panel`. Depende de FE0. Esfuerzo: 1–2 sesiones, porque la mayor parte ya está hecha en
 `feat/f5-ingreso-panel`.
 
 ## Punto de partida: la rama `feat/f5-ingreso-panel`
@@ -16,7 +16,7 @@ Tiene 2 commits, va 81 commits detrás de `main` y está hecha contra el esquema
 - **Dependencia nueva:** `qrcode`. Es local, sin servicios externos; el QR se dibuja en el navegador
 
 Pasos:
-1. `git checkout -b feat/fe2-ingreso-al-panel main`, y luego `git cherry-pick 95962ad 5dda089`, los dos commits de la rama. Solo `router.tsx` choca.
+1. `git checkout -b feature/fe2-ingreso-al-panel develop`, y luego `git cherry-pick 95962ad 5dda089`, los dos commits de la rama. Solo `router.tsx` choca.
 2. Ajustar los tipos al `esquema.ts` de FE0. Nada se escribe a mano.
 3. Cuando el PR se fusione, archivar la rama vieja como `archivo/yordy-<fecha>/f5-ingreso-panel` y borrarla.
 
@@ -57,7 +57,7 @@ Las filas ya están en [`guia-frontend.md` §5.3/§5.4](../diseno/guia-frontend.
 
 ```
 Usa la skill disenar-frontend. Lee docs/frontend/README.md, docs/frontend/FE2-ingreso-al-panel.md y docs/api/cuentas-y-sesion.md.
-Crea feat/fe2-ingreso-al-panel desde main y trae los dos commits de feat/f5-ingreso-panel (cherry-pick 95962ad 5dda089),
+Crea feature/fe2-ingreso-al-panel desde develop y trae los dos commits de feat/f5-ingreso-panel (cherry-pick 95962ad 5dda089),
 resolviendo el conflicto de router.tsx y adaptando los tipos al esquema generado. Completa /panel/seguridad.
 Corre la puerta completa y muéstrame el resultado. Abre el PR, no lo fusiones. Si usas subagentes, usa model sonnet.
 ```

@@ -78,7 +78,7 @@ Desde `frontend/`:
 
 ## Cómo se trabaja
 
-- **Una rama por fase** desde `main`: `feat/fe<n>-<tema>`, por ejemplo `feat/fe0-contrato-al-dia`. Se fusiona a `main` con la puerta en verde. Hoy `main` recibe directo, según `CLAUDE.md`; para el frontend se usa rama más PR porque el CI del frontend necesita la rama para correr sus dos jobs.
+- **Una rama por fase** desde `develop`: `feature/fe<n>-<tema>`, por ejemplo `feature/fe0-contrato-al-dia`. Se fusiona a `develop` por PR con la puerta en verde (Gitflow, ver `CLAUDE.md`).
 - **Una fase por sesión** de Claude Code, `/clear` entre fases. Cada guía termina con un prompt listo para pegar. Si se usan subagentes, con Sonnet.
 - **Al cerrar una fase** se marca ✅ en la tabla de abajo, con la fecha y el PR.
 
