@@ -12,6 +12,23 @@
       }
     },
     {
+      "name": "frontend-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "frontend",
+      "port": 5173
+    },
+    {
+      "name": "frontend-sim",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "frontend",
+      "port": 5173,
+      "env": {
+        "AGUAVIGIA_BACKEND": "http://localhost:8082"
+      }
+    },
+    {
       "name": "frontend-preview",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "preview"],
